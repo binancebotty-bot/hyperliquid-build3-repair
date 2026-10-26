@@ -58,6 +58,117 @@ def stack_root(state):
     return state.parent.parent
 
 
+SETTLE_S = 6.0          # the engine gets this long to prove it is alive before the UI is spawned
+UI_WAIT_S = 60.0        # how long the UI gets to answer
+STOP_WAIT_S = 10.0      # terminate, then this long, then kill
+
+
+def pid_alive(pid):
+    import psutil
+    try:
+        return psutil.Process(int(pid)).is_running()
+    except Exception:
+        return False
+
+
+def acquire_lock(lock):
+    """Exclusive start lock -> ('ok', fd) or ('held', holder-pid). A lock whose pid is dead is stale, not a blocker."""
+    for _ in range(2):
+        try:
+            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            return 'ok', fd
+        except FileExistsError:
+            try:
+                other = int(lock.read_text(encoding='utf-8').strip() or 0)
+            except (OSError, ValueError):
+                other = 0
+            if other and pid_alive(other):
+                return 'held', other
+            try:
+                lock.unlink()
+            except OSError:
+                return 'held', other
+    return 'held', 0
+
+
+def release_lock(lock, fd):
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+    try:
+        lock.unlink()
+    except OSError:
+        pass
+
+
+def read_pointer(pointer):
+    """('absent','') | ('ok',text) | ('unreadable',reason).
+
+    A directory or a denied path is unreadable, never absent: deleting it destroys a pointer this run cannot restore.
+    """
+    if not pointer.exists() and not pointer.is_symlink():
+        return 'absent', ''
+    try:
+        return 'ok', pointer.read_text(encoding='utf-8-sig').strip()
+    except OSError as exc:
+        return 'unreadable', '%s: %s' % (type(exc).__name__, exc)
+
+
+def stop_proc(proc, wait=None):
+    """terminate -> wait -> kill -> wait -> 'terminated'|'killed'|'already_exited'|'unreaped'|'none'."""
+    if proc is None:
+        return 'none'
+    if proc.poll() is not None:
+        return 'already_exited'
+    try:
+        proc.terminate()
+    except Exception:
+        pass
+    wait = STOP_WAIT_S if wait is None else wait
+    for attempt in range(2):
+        deadline = time.time() + wait
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                return 'terminated' if attempt == 0 else 'killed'
+            time.sleep(0.1)
+        if attempt == 0:
+            try:
+                proc.kill()
+            except Exception:
+                return 'unreaped'
+    return 'unreaped'
+
+
+def ui_proven(ui, engine, port, state, started_ms):
+    """Up = both alive AND the listener is OUR ui pid, or the state file was written after this start."""
+    if ui.poll() is not None or engine.poll() is not None:
+        return False
+    if SP.listener(port) == ui.pid:
+        return True
+    f = state / 'live_service_state.json'
+    try:
+        return f.exists() and f.stat().st_mtime * 1000 >= started_ms
+    except OSError:
+        return False
+
+
+def spawn_engine(engine_file, env):
+    return subprocess.Popen(
+        [PY_ENGINE, str(engine_file), "--ws", "--loop", "--interval", "10", "--poll-live", "--poll-copy"],
+        cwd=str(engine_file.parent), env=env,
+        creationflags=DETACHED_ONLY, close_fds=True)     # DETACHED_PROCESS only - never with CREATE_NO_WINDOW
+
+
+def spawn_ui(port, engine_file, env):
+    return subprocess.Popen(
+        [PY_PLAIN, "-m", "uvicorn", "HL_Copy_App_SSOT:app", "--host", "127.0.0.1",
+         "--port", str(port), "--no-access-log"],
+        cwd=str(engine_file.parent), env=env,
+        creationflags=DETACHED_ONLY, close_fds=True)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="start the pair from one checkout into one state dir")
     ap.add_argument("--checkout", required=True, help="the build checkout (contains _archive/hl_stage2)")
@@ -132,75 +243,74 @@ def main(argv=None):
 
     # 3. the pointer this run owns
     pointer = stack_root(state) / "CURRENT_AUDIT_DIR"
+    pstate, previous_pointer = read_pointer(pointer)
+    if pstate == 'unreadable':
+        return refuse("the pointer %s is present but unreadable (%s) - left in place, because a run that "
+                      "cannot read it cannot restore it" % (pointer, previous_pointer))
     plan = {
         "checkout": str(checkout), "sha": sha, "state": str(state),
         "engine": str(engine_path(checkout)), "ui_port": args.ui_port, "pointer": str(pointer),
+        "pointer_state": pstate,
     }
-    try:
-        previous_pointer = pointer.read_text(encoding="utf-8-sig").strip() if pointer.exists() else ""
-    except OSError:
-        previous_pointer = ""
 
     if args.dry_run:
         print(json.dumps({"dry_run": True, "would_start": plan}, indent=2))
         return 0
 
-
-    env = dict(os.environ)
-    env["HL_LIVE_AUDIT_DIR"] = str(state)
-    for k in list(env):
-        if k.startswith("PYTHON"):
-            env.pop(k)          # a stray PYTHONPATH/PYTHONHOME makes the 3.14 UI exit instantly and silently
-    engine = subprocess.Popen(
-        [PY_ENGINE, str(engine_path(checkout)), "--ws", "--loop", "--interval", "10",
-         "--poll-live", "--poll-copy"],
-        cwd=str(engine_path(checkout).parent), env=env,
-        creationflags=DETACHED_ONLY, close_fds=True)     # DETACHED_PROCESS only - never with CREATE_NO_WINDOW
-    time.sleep(6.0)
-    if engine.poll() is not None:
-        return refuse("the engine exited immediately (rc=%s) - read its log, nothing was armed" % engine.returncode)
-
-    ui = subprocess.Popen(
-        [PY_PLAIN, "-m", "uvicorn", "HL_Copy_App_SSOT:app", "--host", "127.0.0.1",
-         "--port", str(args.ui_port), "--no-access-log"],
-        cwd=str(engine_path(checkout).parent), env=env,
-        creationflags=DETACHED_ONLY, close_fds=True)
-
-    deadline = time.time() + 60
-    while time.time() < deadline and not (SP.listener(args.ui_port) and (state / "live_service_state.json").exists()):
-        time.sleep(1.0)
-
-    up = bool(SP.listener(args.ui_port)) and engine.poll() is None
-    if up:
-        # proven: only now does the pointer move. Written through a temp file, so a kill mid-write cannot leave an
-        # empty CURRENT_AUDIT_DIR behind.
-        _tmp = pointer.with_name(pointer.name + '.tmp')
-        _tmp.write_text(str(state) + chr(10), encoding='utf-8')
-        os.replace(str(_tmp), str(pointer))
-    else:
-        # A failed start must leave NOTHING running: a detached engine with no pointer is invisible to the monitor and
-        # blocks the next start with "engine already running".
-        for _proc in (ui, engine):
-            try:
-                if _proc is not None and _proc.poll() is None:
-                    _proc.terminate()
-            except Exception:
-                pass
+    # 4. one start at a time per stack
+    lock = stack_root(state) / ".start_pair.lock"
+    got, lock_fd = acquire_lock(lock)
+    if got != 'ok':
+        return refuse("another start is in progress on %s (lock pid %s) - delete %s if that pid is gone"
+                      % (stack_root(state), lock_fd or '?', lock))
+    try:
+        env = dict(os.environ)
+        env["HL_LIVE_AUDIT_DIR"] = str(state)
+        for k in list(env):
+            if k.startswith("PYTHON"):
+                env.pop(k)          # a stray PYTHONPATH/PYTHONHOME makes the 3.14 UI exit instantly and silently
+        started_ms = int(time.time() * 1000)
+        engine = spawn_engine(engine_path(checkout), env)
+        ui = None
+        up = False
+        stopped = {}
+        # everything after the first process starts is guarded: any exception (UI spawn, pointer write) reaps it
         try:
-            if previous_pointer and previous_pointer != str(state):
-                pointer.write_text(previous_pointer + chr(10), encoding='utf-8')   # revert: the run that was live
-            elif pointer.exists() and not previous_pointer:
-                pointer.unlink()
-        except Exception:
-            pass
-    print(json.dumps({
-        "pair": "STARTED" if up else "UI_NOT_LISTENING",
-        "sha": sha, "state": str(state), "engine_pid": engine.pid, "ui_pid": ui.pid,
-        "ui_port": args.ui_port, "listener": bool(SP.listener(args.ui_port)),
-        "pointer": str(pointer), "started_at": utc(),
-        "sends": "OFF unless live_config says otherwise - arming is a separate logged step",
-    }, indent=2))
-    return 0 if up else 1
+            time.sleep(SETTLE_S)
+            if engine.poll() is not None:
+                return refuse("the engine exited immediately (rc=%s) - read its log, nothing was armed"
+                              % engine.returncode)
+            ui = spawn_ui(args.ui_port, engine_path(checkout), env)
+            deadline = time.time() + UI_WAIT_S
+            while time.time() < deadline and not ui_proven(ui, engine, args.ui_port, state, started_ms):
+                time.sleep(1.0)
+            up = ui_proven(ui, engine, args.ui_port, state, started_ms)
+            if up:
+                # proven: only now does the pointer move, through a temp file so a kill mid-write cannot leave it empty
+                _tmp = pointer.with_name(pointer.name + '.tmp')
+                _tmp.write_text(str(state) + chr(10), encoding='utf-8')
+                os.replace(str(_tmp), str(pointer))
+        finally:
+            if not up:
+                stopped = {'ui': stop_proc(ui), 'engine': stop_proc(engine)}
+                try:
+                    if pstate == 'ok' and previous_pointer and previous_pointer != str(state):
+                        pointer.write_text(previous_pointer + chr(10), encoding='utf-8')   # revert: the live run
+                    elif pstate == 'absent' and pointer.exists():
+                        pointer.unlink()
+                except Exception as exc:
+                    print("WARNING: could not restore the pointer %s: %r" % (pointer, exc), file=sys.stderr)
+        print(json.dumps({
+            "pair": "STARTED" if up else "UI_NOT_LISTENING",
+            "sha": sha, "state": str(state), "engine_pid": engine.pid, "ui_pid": ui.pid if ui else None,
+            "ui_port": args.ui_port, "listener": bool(SP.listener(args.ui_port)),
+            "pointer": str(pointer), "pointer_state": pstate, "started_at": utc(),
+            "stopped_on_failure": stopped,
+            "sends": "OFF unless live_config says otherwise - arming is a separate logged step",
+        }, indent=2))
+        return 0 if up else 1
+    finally:
+        release_lock(lock, lock_fd)
 
 
 if __name__ == "__main__":

@@ -181,6 +181,155 @@ check('THE_POINTER_IS_WRITTEN_AFTER_THE_START_IS_PROVEN', write_at > first_popen
 check('A_FAILED_START_REVERTS_THE_POINTER', 'previous_pointer' in srcp and 'revert' in srcp.lower(),
       'a failed start would leave the monitor pointing at a dead run')
 
+# ---- the six adversarial findings, each proved here ----
+# These import the tool in-process and stub every process primitive: nothing is spawned, no port is bound.
+sys.path.insert(0, str(HERE))
+import start_pair as M
+
+
+class FakeProc(object):
+    """A process that answers poll()/terminate()/kill() and records what was done to it."""
+
+    def __init__(self, pid, ignore_terminate=0):
+        self.pid = pid
+        self.returncode = None
+        self.terminated = 0
+        self.killed = 0
+        self._ignore = ignore_terminate
+
+    def poll(self):
+        return self.returncode
+
+    def terminate(self):
+        self.terminated += 1
+        if self._ignore > 0:
+            self._ignore -= 1
+            return
+        self.returncode = 0
+
+    def kill(self):
+        self.killed += 1
+        self.returncode = -9
+
+    def die(self):
+        self.returncode = 0
+
+
+def seeded_state(prefix, root):
+    d = tmp / root / 'run01' / 'state_20260101'
+    d.mkdir(parents=True, exist_ok=True)
+    (d / 'live_config.json').write_text('{}', encoding='utf-8')
+    (d / 'clean_core_runtime_state.json').write_text(
+        '{"last_leader_poll_cursor_ms": %d}' % (int(time.time() * 1000) - 300_000), encoding='utf-8')
+    return d
+
+
+# 1. ONE TRY/FINALLY: a failing UI spawn must reap the engine that is already running
+st_tf = seeded_state('tf', 'stack_tf')
+real_pids, real_listener = M.SP.pids, M.SP.listener
+eng = FakeProc(40001)
+M.SETTLE_S = 0.0
+M.SP.pids = lambda d: []
+M.SP.listener = lambda p: None
+M.spawn_engine = lambda f, e: eng
+
+
+def _boom(port, f, env):
+    raise RuntimeError('ui spawn failed on purpose')
+
+
+M.spawn_ui = _boom
+raised = False
+try:
+    M.main(['--checkout', str(fake), '--state', str(st_tf), '--ui-port', str(PORT)])
+except RuntimeError:
+    raised = True
+check('A_FAILING_UI_SPAWN_PROPAGATES', raised, 'the exception was swallowed - a failed start looks like success')
+check('A_FAILING_UI_SPAWN_TERMINATES_THE_ENGINE', eng.terminated >= 1,
+      'the engine was left running after the UI spawn failed (terminated=%d)' % eng.terminated)
+check('A_FAILING_UI_SPAWN_LEAVES_NO_POINTER', not (st_tf.parent.parent / 'CURRENT_AUDIT_DIR').exists(),
+      'a failed start wrote the pointer')
+M.SP.pids, M.SP.listener = real_pids, real_listener
+
+# 2. POINTER: absent, unreadable and unreadable-is-never-deleted are three different things
+check('AN_ABSENT_POINTER_READS_AS_ABSENT', M.read_pointer(tmp / 'nothing_here' / 'CURRENT_AUDIT_DIR') == ('absent', ''),
+      'a missing pointer is not reported as absent')
+pdir = tmp / 'ptr_is_a_dir'
+pdir.mkdir()
+pstate, pdetail = M.read_pointer(pdir)
+check('A_DIRECTORY_IN_PLACE_OF_THE_POINTER_IS_UNREADABLE', pstate == 'unreadable',
+      'a directory read as %r (%s) - it must be unreadable, not absent' % (pstate, pdetail))
+
+st_pt = seeded_state('pt', 'stack_pt')
+(st_pt.parent.parent / 'CURRENT_AUDIT_DIR').mkdir()
+rc, out = run(['--checkout', str(fake), '--state', str(st_pt), '--ui-port', str(PORT), '--dry-run'])
+check('AN_UNREADABLE_POINTER_IS_REFUSED', rc == 1 and 'unreadable' in out, 'rc=%s out=%s' % (rc, out[:240]))
+check('AN_UNREADABLE_POINTER_IS_NOT_DELETED', (st_pt.parent.parent / 'CURRENT_AUDIT_DIR').is_dir(),
+      'the run deleted a pointer it could not read')
+
+st_pa = seeded_state('pa', 'stack_pa')
+rc, out = run(['--checkout', str(fake), '--state', str(st_pa), '--ui-port', str(PORT), '--dry-run'])
+check('AN_ABSENT_POINTER_IS_NAMED_IN_THE_PLAN', rc == 0 and '"pointer_state": "absent"' in out,
+      'rc=%s out=%s' % (rc, out[:240]))
+
+# 3. UI PROOF: a UI that has exited is never "up", whatever is listening on the port
+eng_up = FakeProc(40002)
+ui_dead = FakeProc(40003)
+ui_dead.die()
+real_listener2 = M.SP.listener
+M.SP.listener = lambda p: 40003                     # someone IS listening on the port, as our pid
+check('AN_EXITED_UI_IS_NOT_UP', not M.ui_proven(ui_dead, eng_up, PORT, st_pa, 0),
+      'an exited UI was reported as up - the false positive the review found')
+M.SP.listener = lambda p: 40004                     # our live UI owns the port
+ui_live = FakeProc(40004)
+check('A_LIVE_UI_HOLDING_THE_PORT_IS_UP', M.ui_proven(ui_live, eng_up, PORT, st_pa, 0),
+      'a live UI on its own port was not proven')
+M.SP.listener = lambda p: 40099                     # a listener, but not ours
+check('A_FOREIGN_LISTENER_DOES_NOT_PROVE_OUR_UI', not M.ui_proven(ui_live, eng_up, PORT, st_pa, int(time.time() * 1000)),
+      'a listener with another pid proved our UI up')
+M.SP.listener = real_listener2
+
+# 4. LOCK: a live holder refuses, a dead holder is stale and is replaced
+lock = tmp / 'lockdir' / '.start_pair.lock'
+lock.parent.mkdir()
+lock.write_text(str(os.getpid()), encoding='utf-8')
+state, holder = M.acquire_lock(lock)
+check('A_LIVE_LOCK_HOLDER_IS_REFUSED', state == 'held' and holder == os.getpid(),
+      'a live holder did not refuse: %r %r' % (state, holder))
+lock.write_text('2147483646', encoding='utf-8')     # a pid that cannot exist
+state, holder = M.acquire_lock(lock)
+check('A_STALE_LOCK_IS_RECOVERED', state == 'ok', 'a dead holder was not treated as stale: %r %r' % (state, holder))
+if state == 'ok':
+    check('THE_LOCK_NOW_NAMES_THIS_PROCESS', lock.read_text(encoding='utf-8').strip() == str(os.getpid()),
+          'the recovered lock does not name us')
+    M.release_lock(lock, holder)
+check('RELEASING_THE_LOCK_REMOVES_IT', not lock.exists(), 'the lock file survived release')
+
+st_lk = seeded_state('lk', 'stack_lk')
+lk = st_lk.parent.parent / '.start_pair.lock'
+lk.write_text(str(os.getpid()), encoding='utf-8')   # held by this very test process: alive
+rc, out = run(['--checkout', str(fake), '--state', str(st_lk), '--ui-port', str(PORT)])
+check('A_SECOND_START_REFUSES_WHILE_THE_LOCK_IS_HELD', rc == 1 and 'another start is in progress' in out,
+      'rc=%s out=%s' % (rc, out[:240]))
+lk.unlink()
+
+# 5. STOP: terminate, then wait, then kill, and say which happened
+M.STOP_WAIT_S = 0.2
+p_ok = FakeProc(40005)
+check('A_PROCESS_THAT_HONOURS_TERMINATE_IS_REPORTED_TERMINATED', M.stop_proc(p_ok) == 'terminated',
+      'terminate path not reported: terminated=%d killed=%d' % (p_ok.terminated, p_ok.killed))
+check('A_PROCESS_THAT_HONOURS_TERMINATE_IS_NOT_KILLED', p_ok.killed == 0, 'it was killed anyway')
+p_stub = FakeProc(40006, ignore_terminate=1)
+check('A_PROCESS_THAT_IGNORES_TERMINATE_ONCE_IS_KILLED', M.stop_proc(p_stub) == 'killed',
+      'the escalate-to-kill path did not report killed')
+check('THE_KILL_ACTUALLY_HAPPENED', p_stub.killed == 1, 'killed=%d' % p_stub.killed)
+p_stuck = FakeProc(40007, ignore_terminate=99)
+p_stuck.kill = lambda: None                          # ignores kill too
+check('A_PROCESS_THAT_SURVIVES_KILL_IS_REPORTED_UNREAPED', M.stop_proc(p_stuck) == 'unreaped',
+      'an unkillable process was reported as cleanly stopped')
+check('AN_EXITED_PROCESS_IS_NOT_SIGNALLED', M.stop_proc(ui_dead) == 'already_exited', 'it was signalled again')
+check('A_MISSING_PROCESS_IS_HANDLED', M.stop_proc(None) == 'none', 'None was not handled')
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:
