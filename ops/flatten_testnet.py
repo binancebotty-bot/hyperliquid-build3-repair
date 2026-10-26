@@ -78,8 +78,9 @@ def sz_decimals_from_meta(meta: Any) -> Dict[str, int]:
     try:
         for asset in (meta or {}).get("universe") or []:
             name = str((asset or {}).get("name") or "")
-            if name:
-                out[name] = int((asset or {}).get("szDecimals") or 0)
+            dec = (asset or {}).get("szDecimals")
+            if name and dec is not None:
+                out[name] = int(dec)          # a missing step stays MISSING so the caller refuses, not floors to 0
     except Exception:
         return {}
     return out
@@ -97,15 +98,24 @@ def host_of(url: str) -> str:
         return ""
 
 
+def url_parts(url: str) -> Tuple[str, str]:
+    try:
+        from urllib.parse import urlparse
+        u = urlparse(str(url or "").strip())
+        return (str(u.scheme or "").lower(), (u.hostname or "").lower())
+    except Exception:
+        return ("", "")
+
+
 def is_testnet(info_url: str, client_url: str = "") -> bool:
-    """CANONICAL HOST, never a substring: 'testnet.example.com' and 'my-testnet-proxy.io' must both fail."""
+    """HTTPS and the EXACT testnet API host - nothing else passes.
+
+    No localhost, no 127.0.0.1, no wildcard subdomains: a signed order goes over TLS to one canonical hostname, and a
+    guard that accepts a lookalike is worse than no guard because it certifies the wrong thing.
+    """
     def ok(u: str) -> bool:
-        h = host_of(u)
-        if not h:
-            return False
-        if h in TESTNET_HOSTS:
-            return True
-        return h in ("127.0.0.1", "localhost") or h.endswith(".hyperliquid-testnet.xyz")
+        scheme, host = url_parts(u)
+        return scheme == "https" and host in TESTNET_HOSTS
     if not ok(info_url):
         return False
     return (not client_url) or ok(client_url)
@@ -301,9 +311,10 @@ def build_plan(positions: List[Dict[str, Any]], nets: Dict[str, float],
 def report(rows: List[Dict[str, Any]]) -> str:
     lines = ["coin            before        after   action / reason"]
     for r in rows:
-        lines.append("%-14s %10.4f %12s   %s" % (r["coin"], r["before"],
+        _rem = (" REMAINDER_%.8f" % r["remainder"]) if r.get("remainder") else ""
+        lines.append("%-14s %10.4f %12s   %s%s" % (r["coin"], r["before"],
                                                  ("%.4f" % r["after"]) if r.get("after") is not None else "-",
-                                                 (r.get("action") or "") + (" " + r["reason"] if r.get("reason") else "")))
+                                                 (r.get("action") or "") + (" " + r["reason"] if r.get("reason") else "") + _rem))
     left = [r for r in rows if r.get("after") not in (0, 0.0, None)]
     lines.append("")
     lines.append("LEFT OPEN: %d" % len(left))
@@ -393,9 +404,14 @@ def abort_run(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Dict[s
     try:
         out = write_report(state, live, rows, extra)
         print("report written to %s" % out)
+        return code
     except Exception as exc:
-        print("REPORT_NOT_WRITTEN %r - the evidence for this abort exists only in this console" % (exc,))
-    return code
+        print("REPORT_NOT_WRITTEN %r - printing the evidence so it is not lost" % (exc,))
+        try:
+            print(json.dumps({"rows": rows, "extra": extra}, indent=2, default=str))
+        except Exception:
+            pass
+        return 100 + int(code)      # a DISTINCT code: a failed-evidence abort is not the same abort
 
 
 def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Optional[Dict[str, Any]] = None) -> Path:
@@ -403,14 +419,21 @@ def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Opt
     out = state / ("FLATTEN_%s_%s.json" % ("LIVE" if live else "DRYRUN",
                                            time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
     payload = {"live": live, "rows": rows, "extra": extra or {}}
-    try:
-        with open(out, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, indent=2, default=str)
-            fh.flush()
-            os.fsync(fh.fileno())
-    except Exception as exc:
-        print("report write failed: %r" % (exc,))
+    with open(out, "w", encoding="utf-8") as fh:     # NOT caught here: the caller must know evidence failed
+        json.dump(payload, fh, indent=2, default=str)
+        fh.flush()
+        os.fsync(fh.fileno())
     return out
+
+
+def refuse(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Dict[str, Any], code: int,
+           why: str) -> int:
+    """A pre-flight refusal still leaves evidence when it is a LIVE run - a refusal is a decision worth a row."""
+    rows.append({"coin": "", "before": 0, "after": 0, "action": "REFUSED", "reason": why})
+    print("REFUSED: %s" % why)
+    if live:
+        return abort_run(state, live, rows, extra, code)
+    return code
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -449,8 +472,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # ---- endpoints: BOTH must be testnet, and an unreadable endpoint refuses
     info_url = os.getenv("HL_INFO_URL") or "https://api.hyperliquid-testnet.xyz/info"
     if not is_testnet(info_url):
-        print("REFUSED: info endpoint is not testnet (%r)" % (info_url,))
-        return 6
+        return refuse(state, live, rows, extra, 6, "info endpoint is not testnet (%r)" % (info_url,))
 
     # ---- ledger: disposable copy + fingerprint of the original
     real_ledger = state / "manual_live_positions.json"
@@ -471,15 +493,14 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # ---- 3a. cancels are MANDATORY for a live run, verified, and a failure is a hard stop
     if live and not args.cancel_resting:
-        print("REFUSED: --live requires --cancel-resting (a resting order must not fill into a flattened book)")
-        return 8
+        return refuse(state, live, rows, extra, 8,
+                      "--live requires --cancel-resting (a resting order must not fill into a flattened book)")
     if args.cancel_resting:
         try:
             from HL_Live_Copy_Service_Core import SenderGateway, ConfigManager, AuditLogWriter
             _gw = SenderGateway(ConfigManager(), AuditLogWriter())
         except Exception as exc:
-            print("REFUSED: cannot build the engine gateway (%r)" % (exc,))
-            return 9
+            return refuse(state, live, rows, extra, 9, "cannot build the engine gateway (%r)" % (exc,))
         for o in resting_orders(wallet):
             coin, oid = coin_key(o.get("coin")), str(o.get("oid") or "")
             print("%s resting cancel %s %s oid=%s" % ("DOING" if live else "WOULD", coin, o.get("side"), oid))
@@ -542,10 +563,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                 r.update(action="SKIP", reason="PRECISION_UNKNOWN")
                 rows.append(r)
                 continue
+            # SIGN AND GROWTH: the reviewed amount is the plan's net. A position that reversed is a different trade, and
+            # one that GREW must not be reduced beyond what was reviewed.
+            if (float(_net_now) > 0) != (float(step["net"]) > 0):
+                r.update(action="SKIP", reason="SIGN_CHANGED_%s_TO_%s" % (step["net"], _net_now))
+                rows.append(r)
+                continue
+            if abs(float(_net_now)) > abs(float(step["net"])) + 1e-9:
+                r.update(action="SKIP", reason="GREW_%s_TO_%s" % (step["net"], _net_now))
+                rows.append(r)
+                continue
             step = dict(step, net=float(_net_now), size=wire_size(float(_net_now), sz_dec[step["coin"]]),
                         is_buy=order_side(float(_net_now)))
             if abs(float(_net_now)) - step["size"] > 1e-12:
-                r["reason"] = "REMAINDER_%.8f " % (abs(float(_net_now)) - step["size"]) + r.get("reason", "")
+                r["remainder"] = abs(float(_net_now)) - step["size"]   # kept in its own field: the result below must
+                                                                      # not overwrite the precision note
             r["before"] = float(_net_now)
             gw = SenderGateway(ConfigManager(), AuditLogWriter())
             exch, sdk_coin = gw._exchange_client_for_coin(step["coin"])

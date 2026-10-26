@@ -126,13 +126,13 @@ check("THE_ORDER_CLIENT_ENDPOINT_IS_CHECKED",
       "client_is_testnet(exch)" in src and "client_endpoint(exch)" in src,
       "checking the info URL does not prove the ORDER endpoint is testnet")
 check("AN_UNREADABLE_ENDPOINT_REFUSES",
-      "endpoint_not_proven" in src.lower() and "return 6" in src,
+      "endpoint_not_proven" in src.lower() and ("abort_run(state, live, rows, extra, 6" in src or "refuse(state, live, rows, extra, 6" in src),
       "an unreadable client endpoint must refuse, not pass")
 check("THE_LEDGER_FINGERPRINT_IS_TAKEN_AND_RECHECKED",
       "ledger_fingerprint(real_ledger)" in src and "ledger_unchanged(real_ledger, fp)" in src,
       "a ledger edited after the copy must stop the run")
 check("CANCELS_ARE_MANDATORY_FOR_LIVE",
-      "requires --cancel-resting" in src and "return 8" in src,
+      "requires --cancel-resting" in src and "refuse(state, live, rows, extra, 8" in src,
       "a live run without verified cancels must refuse")
 check("A_CANCEL_FAILURE_IS_A_HARD_STOP",
       'CANCEL_FAILED' in src and "abort_run(state, live, rows, extra, 10" in src,
@@ -191,6 +191,18 @@ check("NO_READABLE_SOURCE_REFUSES", _no_src in (None, True) and _no_src is not F
       "no source must not read as 'mainnet' by accident, and must never silently pass")
 check("EVERY_SOURCE_IS_EXAMINED", "endpoint_sources(exchange)" in src and "for _name, url in sources" in src,
       "returning on the first source lets a stale attribute vouch for a mainnet environment")
+
+check("HTTPS_AND_EXACT_HOST_ONLY",
+      'scheme == "https"' in src and "TESTNET_HOSTS" in src and "endswith" not in src.split("def is_testnet")[1][:600],
+      "localhost, 127.0.0.1 and wildcard subdomains must not pass")
+check("A_REVERSED_POSITION_IS_SKIPPED", "SIGN_CHANGED_" in src, "a reversed position is a different trade")
+check("A_GREWN_POSITION_IS_REFUSED", "GREW_" in src,
+      "a position that grew must not be reduced beyond the reviewed amount")
+check("EVIDENCE_FAILURE_RETURNS_A_DISTINCT_CODE", "return 100 + int(code)" in src,
+      "a failed report must not look like a clean abort")
+check("THE_REMAINDER_HAS_ITS_OWN_FIELD", 'r["remainder"]' in src,
+      "the order result must not overwrite the precision note")
+check("REFUSALS_LEAVE_EVIDENCE_WHEN_LIVE", "def refuse(" in src and "REFUSED" in src)
 
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
