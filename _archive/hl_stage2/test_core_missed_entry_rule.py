@@ -352,6 +352,11 @@ def main() -> None:
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "wallets": {
         LEADER: {"enabled": True, "mode": "ON"}, OTHER: {"enabled": True, "mode": "ON"}}})
     starts = []
+    # re-capture now HERE: `now` was captured at the top of main(), and this block asserts poll
+    # starts against now - retention within 60 s. A slow or loaded run drifts past that tolerance
+    # and takes all six M7 checks down together (3 of 30 clean runs). The engine clamps correctly;
+    # the test measured against a stale clock.
+    now = c.utc_now_ms()
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_NETWORK_ERROR")
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000, OTHER: now - 3 * 86400000}
