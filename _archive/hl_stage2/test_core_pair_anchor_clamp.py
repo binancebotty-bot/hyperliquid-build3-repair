@@ -115,6 +115,34 @@ v2 = subprocess.run([py, str(seed_tool), '--state-dir', str(state), '--seed',
                      '--interval-sec', '1'], capture_output=True, text=True)
 check('VERIFY_ONLY_FAILS_WITHOUT_THE_ANCHOR', v2.returncode == 22, v2.stdout[-120:])
 
+# ---------------- (5) THE WIRING, which is where this branch first failed review
+# The anchor lives on DedupeStore; an earlier version read it off the core object, got 0, and the
+# clamp never fired while all the pure-function checks above stayed green. These three checks exist
+# because of that, and each one fails on the broken wiring.
+import re
+src = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
+
+check('POLL_LOOP_READS_THE_ANCHOR_FROM_THE_DEDUPE_STORE',
+      '_pair_anchor = int(getattr(self.dedupe, "pair_start_anchor_ms", 0) or 0)' in src)
+check('NO_CORE_LEVEL_ANCHOR_LOOKUP_REMAINS',
+      'getattr(self, "pair_start_anchor_ms"' not in src)
+check('RETENTION_FLOOR_INCLUDES_THE_ANCHOR',
+      '_retention_floor = max(now - LEADER_POLL_RETENTION_MS, _pair_anchor)' in src,
+      'the OUTAGE_GAP branch sets _start = _retention_floor, so the anchor must be folded in there')
+
+# and behaviourally: a store built against a dir with an anchor carries it
+state_a = Path(tempfile.mkdtemp(prefix='anchorstore_'))
+(state_a / 'PAIR_START_ANCHOR.json').write_text(json.dumps({'t0_ms': T0}), encoding='utf-8')
+_saved = C.AUDIT_DIR
+try:
+    C.AUDIT_DIR = state_a
+    store = C.DedupeStore({}, state_a)
+    got_anchor = store.pair_start_anchor_ms
+finally:
+    C.AUDIT_DIR = _saved
+check('DEDUPE_STORE_LOADS_THE_ANCHOR', got_anchor == T0, got_anchor)
+
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 sys.exit(1 if failed else 0)

@@ -172,6 +172,12 @@ def main():
         if a0 <= 0 or a0 > min(got.values()):
             print('NOT VERIFIED: anchor %s is not before the cursors' % a0)
             return 22
+        _a = json.load(open(anchor_p, encoding='utf-8'))
+        _expect = a0 + int(_a.get('interval_ms') or 0) + int(_a.get('overlap_ms') or 0)
+        if min(got.values()) != _expect:
+            print('NOT VERIFIED: cursors start at %d but the anchor implies %d (anchor/cursor drift)'
+                  % (min(got.values()), _expect))
+            return 22
         print('  pair-start anchor      %d (%s)' % (a0, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(a0 / 1000))))
         print('  config sha256    %s (equals the seed)' % _sha(cfg_path))
         print('  cursors          %d wallets, engine would start %s'

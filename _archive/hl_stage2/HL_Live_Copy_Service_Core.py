@@ -13595,7 +13595,10 @@ class LiveCopyCore:
                 # Run 3: the leaders are read in parallel and re-read only LEADER_POLL_OVERLAP_MS back
                 # (was 5 min of thousands of already-handled fills per busy wallet per cycle).
                 _jobs: List[Tuple[str, int, str]] = []
-                _retention_floor = now - LEADER_POLL_RETENTION_MS
+                # the anchor is held by the dedupe store, not by this object; folding it into the
+                # retention floor makes it bind on EVERY path below, including the OUTAGE_GAP branch
+                _pair_anchor = int(getattr(self.dedupe, "pair_start_anchor_ms", 0) or 0)
+                _retention_floor = max(now - LEADER_POLL_RETENTION_MS, _pair_anchor)
                 _feed_set = {normalise_wallet(w) for w in self.wallets}
                 _acked_set = {normalise_wallet(w) for w in (getattr(self.ws, "_subscribed", ()) or ())}
                 _feed_ok = bool(self.ws.enabled and getattr(self.ws, "_socket_open", False)
@@ -13612,7 +13615,7 @@ class LiveCopyCore:
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
                     _start = leader_poll_start_ms(
                         _cursor, now, _overlap_ms - LEADER_POLL_OVERLAP_MS, LEADER_POLL_OVERLAP_MS,
-                        LEADER_POLL_RETENTION_MS, getattr(self, "pair_start_anchor_ms", 0))
+                        LEADER_POLL_RETENTION_MS, _pair_anchor)
                     if _cursor > 0 and _cursor < _retention_floor:
                         if _cursor > _reported_outage_gap_floors.get(w, 0):
                             self.audit.append_reconciliation(
