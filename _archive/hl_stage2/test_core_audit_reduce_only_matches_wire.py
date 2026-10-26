@@ -66,12 +66,64 @@ RESOLVED = {'ok': True, 'sdk_coin': 'ZRO', 'sz_decimals': 2, 'price_max_decimals
             'sdk_order_compatible': True, 'min_order_value_usd': 1.0, 'min_size': 0.0, 'status': 'OK'}
 
 
+class StubCfg:
+    """Satisfies the master gate instead of being stopped by it.
+
+    Why this exists: with a real ConfigManager over an empty temp audit dir, send_mode reads OFF, every order stops at
+    the master gate (_master_gate_reason -> MASTER_REAL_ORDERS_OFF), no order reaches the fake exchange, and the file
+    printed wire=None in all four cases - asserting nothing since the gate was added. Boss's standing rule needs a
+    real wire value to compare against, so the gate is satisfied here and everything else answers safely.
+    """
+
+    config = {}
+
+    def send_mode_now(self):
+        return 'ON'
+
+    def master_switch_now(self):
+        return True
+
+    def wallet_enabled(self, wallet):
+        return True
+
+    def wallet_mode(self, wallet):
+        return 'LIVE'
+
+    def marketable_bps(self):
+        return 20.0
+
+    def max_wallet_exposure(self, wallet):
+        return 400.0
+
+    def max_order_notional(self):
+        return 250.0
+
+    def max_total_exposure(self):
+        return 900.0
+
+    def max_asset_exposure(self):
+        return 300.0
+
+    def max_daily_loss(self):
+        return 100.0
+
+    def close_adverse_diff_pct(self):
+        return 5.0
+
+    def __getattr__(self, name):
+        return lambda *a, **k: 0.0
+
+
 class Led:
     def __init__(self, net):
         self.net = net
+        self.data = {'by_wallet': {}, 'by_coin_net': {}}
 
     def coin_net(self, key):
         return self.net
+
+    def wallet_abs_exposure_usd(self, wallet, prices=None):
+        return 0.0
 
 
 def make_intent(side, size, lifecycle, tag):
@@ -99,7 +151,7 @@ def make_intent(side, size, lifecycle, tag):
 
 def run(name, side, size, ledger_net, exchange_net, lifecycle):
     fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw = c.SenderGateway(StubCfg(), c.AuditLogWriter())
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -117,6 +169,9 @@ def run(name, side, size, ledger_net, exchange_net, lifecycle):
     audit = [str(r.get('reduce_only_sent')) for r in rows]
     check(name, bool(fake.calls) and all(a == str(wire) for a in audit),
           'wire=%s audit_rows=%s status=%s' % (wire, audit, status))
+    if not fake.calls:
+        check(name + '_REACHED_THE_EXCHANGE', False,
+              'no order reached the fake exchange (status=%s): this case asserts nothing' % (status,))
     return wire
 
 

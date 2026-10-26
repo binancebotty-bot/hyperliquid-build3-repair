@@ -30,6 +30,84 @@ def check(name: str, cond: bool, detail: str = "") -> None:
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
 
 
+class StubCfg:
+    """Satisfies the master gate instead of being stopped by it, with the shapes the send path actually reads.
+
+    With a real ConfigManager over an empty temp audit dir, send_mode reads OFF, the order is refused AT THE GATE
+    (BLOCKED_AT_PLACE_ORDER), the ambiguous-timeout path is never entered, and this file asserted nothing - 19 of its
+    21 checks failed on the deployed build for exactly that reason. Every method below exists because Core calls it.
+    """
+
+    config = {}
+
+    def send_mode_now(self):
+        return 'ON'
+
+    def master_switch_now(self):
+        return True
+
+    def wallet_enabled(self, wallet):
+        return True
+
+    def wallet_mode(self, wallet):
+        return 'LIVE'
+
+    def wallet_mode_counts(self):
+        return {'LIVE': 1}
+
+    def wallet_cfg(self, wallet):
+        return {'norm_base': 100.0, 'fixed_notional': 10.0, 'copy_mode': 'fixed', 'mode': 'LIVE',
+                'enabled': True, 'max_diff_pct': 5.0, 'daily_loss_limit': 100.0, 'leader_equity_base': 10000.0}
+
+    def copy_mode(self, wallet):
+        return 'fixed'
+
+    def fixed_notional(self, wallet):
+        return 10.0
+
+    def stream_wallets(self):
+        return []
+
+    def active_wallets(self):
+        return []
+
+    def wallets(self):
+        return []
+
+    def marketable_bps(self):
+        return 20.0
+
+    def min_notional(self):
+        return 10.0
+
+    def max_order_notional(self):
+        return 250.0
+
+    def max_wallet_exposure(self, wallet):
+        return 400.0
+
+    def max_total_exposure(self):
+        return 900.0
+
+    def max_asset_directional_exposure(self):
+        return 300.0
+
+    def max_daily_loss(self):
+        return 100.0
+
+    def liq_parity_enabled(self):
+        return False
+
+    def is_symbol_allowed(self, coin):
+        return (True, '')          # Core unpacks (allowed, reason)
+
+    def close_adverse_diff_pct(self):
+        return 5.0
+
+    def __getattr__(self, name):
+        return lambda *a, **k: 0.0
+
+
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="readiness1_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
@@ -72,7 +150,7 @@ def main() -> None:
     gateways = []
 
     def gateway(fake, ledger=None, on_gateway=None, intent=None):
-        gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
+        gw = c.SenderGateway(StubCfg(), c.AuditLogWriter(), ledger)
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -107,7 +185,7 @@ def main() -> None:
                            "position_id": "test-position", "opened_by_intent_id": "test-open"})
             led._recompute_net(led.data)
             led.save(touched_sleeves=[(LEADER, "BTC")])
-        intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side=side))
+        intent = c.IntentBuilder(StubCfg(), led).build(fill(side=side))
         c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
         c.atomic_write_json(c.STANDING_CLOSES_FILE, {})
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
