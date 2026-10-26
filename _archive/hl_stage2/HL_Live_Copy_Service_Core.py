@@ -8440,6 +8440,19 @@ class SenderGateway:
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
                                          cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"},
                                          pre_send=_pending_send, intent=intent, path="send_other")
+            if isinstance(response, dict) and response.get("exchange_called") is False:
+                # The gate refused inside _place_order: the exchange was never called. Returning here keeps
+                # the semantics (no call stamp, no retry, BLOCKED_AT_PLACE_ORDER) instead of letting the
+                # parser turn it into ORDER_REJECTED with exchange_called True further down.
+                return False, "ORDER_REJECTED", {
+                    "exchange_response": {}, "exchange_called": False,
+                    "error": str(response.get("response") or ""),
+                    "reject_category": response.get("reject_category") or "BLOCKED_AT_PLACE_ORDER",
+                    "terminal_state": response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER",
+                    "operator_action": response.get("operator_action") or "NO_EXCHANGE_CALL",
+                    "timing": timing, "notes": str(response.get("notes") or "gate refusal, no exchange call"),
+                    "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
+                }
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(response)
@@ -12217,6 +12230,7 @@ class LiveCopyCore:
             return None
         if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
             return None
+        reason = str(intent.reason or "")  # read below by the freshness and snapshot causes; removing it kills ENG-017
         halted = self.sender._market_halted_until_ms.get(str(intent.fill.coin or "").strip().lower(), 0) > utc_now_ms()
         if send_status in {"INTENT_NOT_SEND_ALLOWED", "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE"} and (
                 "no fresh follower-network" in reason or send_status.endswith("FOLLOWER_PRICE_UNAVAILABLE")):

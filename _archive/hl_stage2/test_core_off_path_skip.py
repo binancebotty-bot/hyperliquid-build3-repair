@@ -75,6 +75,27 @@ check('GUARD_IS_EXACTLY_MASTER_OFF_ONLY',
       'MASTER_REAL_ORDERS_OFF' in guard_block and guard_block.count('send_status) ==') == 1,
       'guard block: %r' % guard_block[:120])
 
+# ---- (a) ENG-017 must still ACT when sending is ON. This is the check that was missing: the first
+# version of this commit deleted the `reason` assignment this path reads, so the freshness and snapshot
+# causes raised NameError, the caller swallowed it, and the rule was silently dead for exactly the two
+# refusal causes it exists to serve. A sending-ON refusal must reach the rest path with a named cause.
+reached = []
+stub_on = types.SimpleNamespace(
+    sender=types.SimpleNamespace(
+        _market_halted_until_ms={},
+        _missed_entry_rest_or_diff=lambda i, c: (reached.append(c),
+                                                 {'outcome': 'MISSED_ENTRY_REST_PLACED', 'notes': ''})[1]),
+    audit=Audit())
+on_fill = types.SimpleNamespace(coin='BTC', leader_wallet='0xabc', leader_fill_id='f1', timestamp_ms=0)
+on_intent = types.SimpleNamespace(reason='no fresh follower-network price', notes='lifecycle=ENTRY',
+                                  intent_id='i1', fill=on_fill)
+try:
+    out = C.LiveCopyCore._apply_missed_entry_rule_on_refusal(stub_on, on_fill, on_intent, 'INTENT_NOT_SEND_ALLOWED')
+    check('ENG017_STILL_ACTS_WHEN_SENDING_IS_ON', reached == ['FOLLOWER_PRICE_FRESHNESS_GATE'],
+          'rest cause(s)=%r outcome=%r' % (reached, out))
+except Exception as exc:
+    check('ENG017_STILL_ACTS_WHEN_SENDING_IS_ON', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
+
 # ---- (b) a gate refusal is not an exchange call
 gw = types.SimpleNamespace(
     cfg=types.SimpleNamespace(send_mode_now=lambda: 'OFF', wallet_enabled=lambda w: True, wallet_mode=lambda w: 'LIVE'),
