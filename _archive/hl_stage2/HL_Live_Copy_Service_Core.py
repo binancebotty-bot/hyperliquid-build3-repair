@@ -6204,6 +6204,35 @@ class SenderGateway:
                     cloids.add(cl)
         return cloids, oids
 
+    def _sleeved_coins(self) -> set:
+        """Canonical coin keys the manual ledger holds a non-zero sleeve in: those coins carry human money."""
+        out = set()
+        try:
+            ledger = getattr(self, "ledger", None)
+            if ledger is None:
+                return out
+            for wallet_map in ((ledger.data.get("by_wallet") or {})).values():
+                if not isinstance(wallet_map, dict):
+                    continue
+                for raw_coin, sleeve in wallet_map.items():
+                    if isinstance(sleeve, dict) and abs(fnum(sleeve.get("signed_size"), 0.0)) > POSITION_EPSILON:
+                        out.add(canonical_coin_key(raw_coin))
+        except Exception as exc:
+            log_error("user_owned_sleeve_read_failed", exc)
+        return out
+
+    def _label_user_owned_order(self, dex: str, o: Dict[str, Any], reason: str) -> None:
+        """Record, by name, a resting order that is the human's: the startup check never touches it."""
+        oid = str(o.get("oid", ""))
+        coin = str(o.get("coin") or "")
+        side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
+        size = o.get("sz") or o.get("origSz")
+        self.audit.append_reconciliation(
+            "STARTUP_ORPHAN", "ORPHAN_ORDER_USER_OWNED", coin=coin, exchange_order_id=oid,
+            action="NO_ACTION_USER_OWNED_ORDER_LEFT", terminal_state="USER_OWNED_ORDER_LEFT_UNTOUCHED",
+            notes=("startup: open order %s on %s:%s (%s %s @ %s) is USER-OWNED - %s; left untouched, not cancelled"
+                   % (oid, dex or "main", coin, side, size, o.get("limitPx"), reason)))
+
     def _read_open_orders(self):
         """Read the follower's open orders on every dex the engine reads. Returns (ok, [(dex, order)], detail).
         A failed or unreadable dex makes ok False (the caller fails closed)."""
@@ -6284,7 +6313,11 @@ class SenderGateway:
         if not ok:
             return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
                     "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
-        adopted, cancelled = [], []
+        adopted, cancelled, user_owned = [], [], []
+        # USER-OWNED ORDERS ARE NEVER CANCELLED (2026-10-26 gap 1): the engine always sets a cloid, so an order
+        # carrying none cannot be ours; and an order on a coin where the manual ledger holds a non-zero sleeve is
+        # the human's. Both are named in one audit row each and left untouched.
+        sleeved = self._sleeved_coins()
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
             if not oid:
@@ -6293,11 +6326,22 @@ class SenderGateway:
             if (cloid and cloid in cloids) or (oid in oids):
                 self._adopt_orphan_order(dex, o)
                 adopted.append({"oid": oid, "cloid": cloid})
-            else:
-                outcome = self._cancel_orphan_order(dex, o)
-                cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
+                continue
+            reason = ""
+            if not cloid:
+                reason = "no cloid on the order: the engine always sets one, so this order is not the engine's"
+            elif canonical_coin_key(o.get("coin")) in sleeved:
+                reason = "coin %s has a non-zero sleeve in the manual ledger" % str(o.get("coin") or "")
+            if reason:
+                self._label_user_owned_order(dex, o, reason)
+                user_owned.append({"oid": oid, "cloid": cloid, "reason": reason})
+                continue
+            outcome = self._cancel_orphan_order(dex, o)
+            cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
         return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
-                "detail": f"{detail}; adopted={len(adopted)} cancelled={len(cancelled)}"}
+                "user_owned": user_owned,
+                "detail": "%s; adopted=%d cancelled=%d user_owned_left_untouched=%d" % (
+                    detail, len(adopted), len(cancelled), len(user_owned))}
 
     def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
         """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""

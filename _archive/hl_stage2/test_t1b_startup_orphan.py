@@ -127,6 +127,66 @@ def main() -> None:
         c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = saved_net, saved_conf
     check("B10_MAINNET_UNCONFIRMED_SKIPPED", res["ok"] and res.get("skipped") and not fake.cancels, str(res))
 
+    # ---- G1..G6: USER-OWNED orders are never cancelled (gap 1, 2026-10-26) --------------------------
+    class _LedgerStub:
+        def __init__(self, coins):
+            self.data = {"by_wallet": {FOLLOWER: {c: {"coin": c, "signed_size": 1.0} for c in coins}},
+                         "by_coin_net": {}}
+
+    def user_owned_rows(oid):
+        return [r for r in recon_rows()
+                if r.get("status") == "ORPHAN_ORDER_USER_OWNED" and r.get("exchange_order_id") == str(oid)]
+
+    # G1: an order carrying NO cloid cannot be the engine's -> left untouched and named
+    res, fake, gw = run(orders=[{"oid": 1001, "coin": "HYPE", "side": "B", "sz": "5", "limitPx": "10"}])
+    check("G1_CLOID_NONE_NOT_CANCELLED",
+          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1
+          and res["user_owned"][0]["oid"] == "1001" and not res["cancelled"], str(res))
+    check("G1B_CLOID_NONE_AUDITED_BY_NAME", len(user_owned_rows(1001)) == 1,
+          str(recon_rows())[:400])
+
+    # G2/G6: an order WITH an engine-style cloid on a coin the manual ledger holds a non-zero sleeve in
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
+    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1002, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "99",
+                                        "cloid": "0x" + "a" * 32}]
+    fake = FakeExchange()
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.ledger = _LedgerStub(["BTC"])
+    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    res = gw.startup_orphan_order_check()
+    check("G2_SLEEVED_COIN_NOT_CANCELLED",
+          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1 and not res["cancelled"], str(res))
+    rows = user_owned_rows(1002)
+    check("G6_SLEEVE_REASON_NAMED", len(rows) == 1 and "manual ledger" in str(rows[0].get("notes") or ""),
+          str(rows)[:400])
+
+    # G3: engine-style cloid absent from the journal, coin has NO sleeve -> cancelled exactly as before
+    # NOTE: the cancel path uses the SDK coin the exchange client reports (the run() helper stubs it to "BTC"),
+    # so the coin under test must be BTC for the cancel to be observable here - that is B5's proven shape.
+    res, fake, gw = run(orders=[{"oid": 1003, "coin": "BTC", "side": "A", "sz": "2", "limitPx": "50",
+                                 "cloid": "0x" + "b" * 32}])
+    check("G3_ENGINE_CLOID_ORPHAN_STILL_CANCELLED",
+          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1003")]
+          and len(res["cancelled"]) == 1 and not (res.get("user_owned") or []), str(res))
+
+    # G5: a sender with NO ledger must not raise and must not protect anything (explicit None)
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
+    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1005, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "20",
+                                        "cloid": "0x" + "c" * 32}]
+    fake = FakeExchange()
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.ledger = None
+    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    check("G5A_SLEEVED_COINS_NONE_LEDGER_IS_EMPTY", gw._sleeved_coins() == set(), "sleeved=%r" % (gw._sleeved_coins(),))
+    res = gw.startup_orphan_order_check()
+    check("G5_LEDGER_NONE_SAFE",
+          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1005")]
+          and not (res.get("user_owned") or []), str(res))
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
