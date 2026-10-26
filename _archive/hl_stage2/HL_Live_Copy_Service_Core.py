@@ -13130,20 +13130,6 @@ class LiveCopyCore:
                     notes=_note + "; lifecycle=%s; one terminal row per leader fill; no order and no diff by design"
                           % _life,
                 )
-                for _mid in merged_ids:   # an excluded head must not leave its merged siblings silent
-                    try:
-                        self.audit.append_reconciliation(
-                            "FILL_MERGED", "LEADER_FILL_MERGED_INTO_EXCLUDED",
-                            leader_wallet=fill.leader_wallet, leader_fill_id=_mid,
-                            intent_id=intent.intent_id, coin=fill.coin,
-                            action="EXCLUDED_WITH_MERGED_FILL", engine_can_send="False",
-                            notes=("merged into leader fill %s, which was excluded as %s; recorded so this fill has a "
-                                   "row of its own" % (fill.leader_fill_id, _status)))
-                    except Exception as _mrg_exc:
-                        try:
-                            log_error("merged_sibling_excluded_row", _mrg_exc)
-                        except Exception:
-                            pass
                 return False, _status, intent
         for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
             try:
