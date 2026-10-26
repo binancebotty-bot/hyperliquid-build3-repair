@@ -116,42 +116,74 @@ def read_pointer(pointer):
         return 'unreadable', '%s: %s' % (type(exc).__name__, exc)
 
 
+def reaped(proc, wait):
+    """Popen.wait(timeout) IS the reap; polling and returning leaves the child unreaped."""
+    try:
+        proc.wait(timeout=wait)
+        return True
+    except Exception:
+        return False
+
+
 def stop_proc(proc, wait=None):
     """terminate -> wait -> kill -> wait -> 'terminated'|'killed'|'already_exited'|'unreaped'|'none'."""
     if proc is None:
         return 'none'
     if proc.poll() is not None:
         return 'already_exited'
+    wait = STOP_WAIT_S if wait is None else wait
     try:
         proc.terminate()
     except Exception:
         pass
-    wait = STOP_WAIT_S if wait is None else wait
-    for attempt in range(2):
-        deadline = time.time() + wait
-        while time.time() < deadline:
-            if proc.poll() is not None:
-                return 'terminated' if attempt == 0 else 'killed'
-            time.sleep(0.1)
-        if attempt == 0:
-            try:
-                proc.kill()
-            except Exception:
-                return 'unreaped'
-    return 'unreaped'
+    if reaped(proc, wait):
+        return 'terminated'
+    try:
+        proc.kill()
+    except Exception:
+        pass
+    if reaped(proc, wait):
+        return 'killed'
+    return 'unreaped'          # the final wait ran; the process survived both signals
 
 
-def ui_proven(ui, engine, port, state, started_ms):
-    """Up = both alive AND the listener is OUR ui pid, or the state file was written after this start."""
+def state_identity(state):
+    """(mtime_ns, size) of the UI state file BEFORE the launch, or None if it was absent."""
+    try:
+        st = (state / 'live_service_state.json').stat()
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+def ui_proven(ui, engine, port, state, before):
+    """Up = both alive AND (our pid holds the port, or the state file is provably NEWER than before).
+
+    `before` is state_identity() taken before the spawn. A file that already existed only proves the UI when its
+    mtime strictly advances: a preserved or future timestamp would otherwise certify a hung UI.
+    """
     if ui.poll() is not None or engine.poll() is not None:
         return False
     if SP.listener(port) == ui.pid:
         return True
     f = state / 'live_service_state.json'
+    if before is None:
+        return f.exists()                       # it did not exist before this launch
     try:
-        return f.exists() and f.stat().st_mtime * 1000 >= started_ms
+        return f.stat().st_mtime_ns > before[0]
     except OSError:
         return False
+
+
+def already_running(state, port):
+    """The refusal message if this dir or port is taken, else None. Read-only, so a dry run can call it too."""
+    running = SP.pids(state)
+    if running:
+        return ("engine already running for %s: pids %s - stop it with ops/stop_pair.py --all"
+                % (state, list(running)))
+    if SP.listener(port):
+        return "something is already listening on %d - stop the UI first" % port
+    return None
 
 
 def spawn_engine(engine_file, env):
@@ -233,15 +265,7 @@ def main(argv=None):
         return refuse("the leader cursor in %s is %r - an unseeded/zero cursor replays the retention window "
                       "as live intents (the 2026-10-25 runaway); re-seed rather than force" % (cursor_file, cursor))
 
-    # 2. nothing may already be running for this dir or on the UI port
-    running = SP.pids(state)
-    if running:
-        return refuse("engine already running for %s: pids %s - stop it with ops/stop_pair.py --all"
-                      % (state, list(running)))
-    if SP.listener(args.ui_port):
-        return refuse("something is already listening on %d - stop the UI first" % args.ui_port)
-
-    # 3. the pointer this run owns
+    # 2. the pointer this run owns (read-only, so a dry run can report it)
     pointer = stack_root(state) / "CURRENT_AUDIT_DIR"
     pstate, previous_pointer = read_pointer(pointer)
     if pstate == 'unreadable':
@@ -254,42 +278,53 @@ def main(argv=None):
     }
 
     if args.dry_run:
+        blocked = already_running(state, args.ui_port)      # nothing starts, but the refusals are still reported
+        if blocked:
+            return refuse(blocked)
         print(json.dumps({"dry_run": True, "would_start": plan}, indent=2))
         return 0
 
-    # 4. one start at a time per stack
+    # 3. one start at a time per stack. The lock is taken BEFORE the running-process and listener checks and held
+    #    through start, proof and pointer publication: a launcher that waited its turn must re-check, or it starts a
+    #    second pair on a dir that is already running.
     lock = stack_root(state) / ".start_pair.lock"
     got, lock_fd = acquire_lock(lock)
     if got != 'ok':
         return refuse("another start is in progress on %s (lock pid %s) - delete %s if that pid is gone"
                       % (stack_root(state), lock_fd or '?', lock))
     try:
+        blocked = already_running(state, args.ui_port)     # re-checked HERE: a launcher that waited must see A's pair
+        if blocked:
+            return refuse(blocked)
+
         env = dict(os.environ)
         env["HL_LIVE_AUDIT_DIR"] = str(state)
         for k in list(env):
             if k.startswith("PYTHON"):
                 env.pop(k)          # a stray PYTHONPATH/PYTHONHOME makes the 3.14 UI exit instantly and silently
-        started_ms = int(time.time() * 1000)
+        before = state_identity(state)          # recorded BEFORE the spawn: a stale file can never prove the UI
         engine = spawn_engine(engine_path(checkout), env)
         ui = None
         up = False
+        engine_exited = None
         stopped = {}
         # everything after the first process starts is guarded: any exception (UI spawn, pointer write) reaps it
         try:
             time.sleep(SETTLE_S)
             if engine.poll() is not None:
-                return refuse("the engine exited immediately (rc=%s) - read its log, nothing was armed"
-                              % engine.returncode)
-            ui = spawn_ui(args.ui_port, engine_path(checkout), env)
-            deadline = time.time() + UI_WAIT_S
-            while time.time() < deadline and not ui_proven(ui, engine, args.ui_port, state, started_ms):
-                time.sleep(1.0)
-            up = ui_proven(ui, engine, args.ui_port, state, started_ms)
-            if up:
-                # proven: only now does the pointer move, through a temp file so a kill mid-write cannot leave it empty
-                _tmp = pointer.with_name(pointer.name + '.tmp')
-                _tmp.write_text(str(state) + chr(10), encoding='utf-8')
-                os.replace(str(_tmp), str(pointer))
+                engine_exited = engine.returncode        # fall through: the report must still say what was reaped
+            else:
+                ui = spawn_ui(args.ui_port, engine_path(checkout), env)
+                deadline = time.time() + UI_WAIT_S
+                while time.time() < deadline and not ui_proven(ui, engine, args.ui_port, state, before):
+                    time.sleep(1.0)
+                up = ui_proven(ui, engine, args.ui_port, state, before)
+                if up:
+                    # proven: only now does the pointer move, through a temp file so a kill mid-write cannot
+                    # leave it empty
+                    _tmp = pointer.with_name(pointer.name + '.tmp')
+                    _tmp.write_text(str(state) + chr(10), encoding='utf-8')
+                    os.replace(str(_tmp), str(pointer))
         finally:
             if not up:
                 stopped = {'ui': stop_proc(ui), 'engine': stop_proc(engine)}
@@ -301,8 +336,9 @@ def main(argv=None):
                 except Exception as exc:
                     print("WARNING: could not restore the pointer %s: %r" % (pointer, exc), file=sys.stderr)
         print(json.dumps({
-            "pair": "STARTED" if up else "UI_NOT_LISTENING",
+            "pair": "STARTED" if up else ("ENGINE_EXITED" if engine_exited is not None else "UI_NOT_LISTENING"),
             "sha": sha, "state": str(state), "engine_pid": engine.pid, "ui_pid": ui.pid if ui else None,
+            "engine_exit_rc": engine_exited,
             "ui_port": args.ui_port, "listener": bool(SP.listener(args.ui_port)),
             "pointer": str(pointer), "pointer_state": pstate, "started_at": utc(),
             "stopped_on_failure": stopped,

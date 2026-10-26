@@ -12,6 +12,8 @@ The refusals that matter, and why:
   * engine already running for that state dir        -> two writers on one dir
   * something already listening on the UI port       -> the second UI would fail or fight the first
 """
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -195,6 +197,7 @@ class FakeProc(object):
         self.returncode = None
         self.terminated = 0
         self.killed = 0
+        self.waits = 0
         self._ignore = ignore_terminate
 
     def poll(self):
@@ -210,6 +213,15 @@ class FakeProc(object):
     def kill(self):
         self.killed += 1
         self.returncode = -9
+
+    def wait(self, timeout=None):
+        self.waits += 1
+        deadline = time.time() + (0 if timeout is None else timeout)
+        while self.returncode is None:
+            if time.time() >= deadline:
+                raise subprocess.TimeoutExpired('fake', timeout)
+            time.sleep(0.01)
+        return self.returncode
 
     def die(self):
         self.returncode = 0
@@ -278,14 +290,14 @@ ui_dead = FakeProc(40003)
 ui_dead.die()
 real_listener2 = M.SP.listener
 M.SP.listener = lambda p: 40003                     # someone IS listening on the port, as our pid
-check('AN_EXITED_UI_IS_NOT_UP', not M.ui_proven(ui_dead, eng_up, PORT, st_pa, 0),
+check('AN_EXITED_UI_IS_NOT_UP', not M.ui_proven(ui_dead, eng_up, PORT, st_pa, None),
       'an exited UI was reported as up - the false positive the review found')
 M.SP.listener = lambda p: 40004                     # our live UI owns the port
 ui_live = FakeProc(40004)
-check('A_LIVE_UI_HOLDING_THE_PORT_IS_UP', M.ui_proven(ui_live, eng_up, PORT, st_pa, 0),
+check('A_LIVE_UI_HOLDING_THE_PORT_IS_UP', M.ui_proven(ui_live, eng_up, PORT, st_pa, None),
       'a live UI on its own port was not proven')
 M.SP.listener = lambda p: 40099                     # a listener, but not ours
-check('A_FOREIGN_LISTENER_DOES_NOT_PROVE_OUR_UI', not M.ui_proven(ui_live, eng_up, PORT, st_pa, int(time.time() * 1000)),
+check('A_FOREIGN_LISTENER_DOES_NOT_PROVE_OUR_UI', not M.ui_proven(ui_live, eng_up, PORT, st_pa, M.state_identity(st_pa)),
       'a listener with another pid proved our UI up')
 M.SP.listener = real_listener2
 
@@ -323,12 +335,91 @@ p_stub = FakeProc(40006, ignore_terminate=1)
 check('A_PROCESS_THAT_IGNORES_TERMINATE_ONCE_IS_KILLED', M.stop_proc(p_stub) == 'killed',
       'the escalate-to-kill path did not report killed')
 check('THE_KILL_ACTUALLY_HAPPENED', p_stub.killed == 1, 'killed=%d' % p_stub.killed)
+check('THE_TERMINATE_STAGE_WAITS_ON_THE_CHILD', p_ok.waits == 1, 'waits=%d' % p_ok.waits)
 p_stuck = FakeProc(40007, ignore_terminate=99)
 p_stuck.kill = lambda: None                          # ignores kill too
 check('A_PROCESS_THAT_SURVIVES_KILL_IS_REPORTED_UNREAPED', M.stop_proc(p_stuck) == 'unreaped',
       'an unkillable process was reported as cleanly stopped')
+check('AN_UNREAPED_PROCESS_IS_STILL_WAITED_FOR_AFTER_KILL', p_stuck.waits == 2,
+      'waits=%d - the unreaped verdict came back without a final wait/reap' % p_stuck.waits)
 check('AN_EXITED_PROCESS_IS_NOT_SIGNALLED', M.stop_proc(ui_dead) == 'already_exited', 'it was signalled again')
 check('A_MISSING_PROCESS_IS_HANDLED', M.stop_proc(None) == 'none', 'None was not handled')
+
+# 7. LOCK ORDER: the lock comes first, and a launcher that waited its turn re-checks and refuses
+check('THE_LOCK_IS_TAKEN_BEFORE_THE_RUNNING_CHECKS',
+      srcp.find('acquire_lock(lock)') < srcp.find('SP.pids(state)'),
+      'the running-process check runs before the lock, so two launchers can both pass it')
+st_lo = seeded_state('lo', 'stack_lo')
+spawns = []
+M.spawn_engine = lambda f, e: (spawns.append(f), FakeProc(40010))[1]
+M.spawn_ui = lambda p, f, e: FakeProc(40011)
+real_ui_proven = M.ui_proven
+M.ui_proven = lambda *a: True
+M.SETTLE_S = 0.0
+M.SP.listener = lambda p: None
+lo_lock = st_lo.parent.parent / '.start_pair.lock'
+lo_lock.write_text(str(os.getpid()), encoding='utf-8')      # A is still inside its start
+M.SP.pids = lambda d: []
+rc = M.main(['--checkout', str(fake), '--state', str(st_lo), '--ui-port', str(PORT)])
+check('A_LAUNCHER_THAT_WAITED_ON_THE_LOCK_IS_REFUSED_BY_IT', rc == 1 and not spawns,
+      'rc=%s spawns=%d' % (rc, len(spawns)))
+lo_lock.unlink()                                            # A finished and released its lock
+M.SP.pids = lambda d: [40010]                               # ... and its pair is now running
+rc = M.main(['--checkout', str(fake), '--state', str(st_lo), '--ui-port', str(PORT)])
+check('A_LAUNCHER_RECHECKS_AFTER_THE_LOCK_AND_REFUSES_A_RUNNING_PAIR', rc == 1 and not spawns,
+      'rc=%s spawns=%d - a second pair was started on a running dir' % (rc, len(spawns)))
+M.ui_proven = real_ui_proven
+
+# 8. EARLY ENGINE EXIT: still emits the structured report, and never spawns the UI
+def _ui_must_not_spawn(port, f, env):
+    raise AssertionError('the UI was spawned although the engine had already exited')
+
+st_ee = seeded_state('ee', 'stack_ee')
+dead_engine = FakeProc(40020)
+dead_engine.die()
+M.spawn_engine = lambda f, e: dead_engine
+M.spawn_ui = _ui_must_not_spawn
+M.SP.pids = lambda d: []
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    rc = M.main(['--checkout', str(fake), '--state', str(st_ee), '--ui-port', str(PORT)])
+try:
+    rep = json.loads(buf.getvalue())
+except ValueError:
+    rep = {}
+check('AN_EARLY_ENGINE_EXIT_STILL_EMITS_THE_STRUCTURED_REPORT',
+      rc == 1 and rep.get('pair') == 'ENGINE_EXITED' and isinstance(rep.get('stopped_on_failure'), dict)
+      and rep['stopped_on_failure'].get('engine') == 'already_exited',
+      'rc=%s report=%s' % (rc, buf.getvalue()[:240]))
+
+# 9. UI PROOF CANNOT BE FORGED BY AN MTIME
+st_fu = seeded_state('fu', 'stack_fu')
+sf_fu = st_fu / 'live_service_state.json'
+sf_fu.write_text('{}', encoding='utf-8')
+future = time.time() + 3600
+os.utime(str(sf_fu), (future, future))
+ui_alive = FakeProc(40012)
+M.SP.listener = lambda p: 40099                             # a listener, but not ours
+before_fu = M.state_identity(st_fu)
+check('A_FUTURE_MTIME_ON_A_PRE_EXISTING_STATE_FILE_DOES_NOT_PROVE_THE_UI',
+      not M.ui_proven(ui_alive, eng_up, PORT, st_fu, before_fu),
+      'a pre-existing future-dated state file certified a hung UI')
+st_rw = seeded_state('rw', 'stack_rw')
+sf_rw = st_rw / 'live_service_state.json'
+sf_rw.write_text('{"tick": 0}', encoding='utf-8')
+past = time.time() - 600
+os.utime(str(sf_rw), (past, past))
+before_rw = M.state_identity(st_rw)
+sf_rw.write_text('{"tick": 1, "started": true}', encoding='utf-8')     # the new UI process rewrites it
+check('A_STATE_FILE_REWRITTEN_BY_THE_NEW_PROCESS_PROVES_THE_UI',
+      M.ui_proven(ui_alive, eng_up, PORT, st_rw, before_rw),
+      'a genuinely rewritten state file did not prove the UI')
+st_nf = seeded_state('nf', 'stack_nf')
+M.SP.listener = lambda p: 40012                             # ours holds the port
+check('A_LISTENER_OWNED_BY_THE_SPAWNED_UI_STILL_PROVES_IT',
+      M.ui_proven(ui_alive, eng_up, PORT, st_nf, M.state_identity(st_nf)),
+      'listener-pid proof stopped working')
+M.SP.listener = real_listener2
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
