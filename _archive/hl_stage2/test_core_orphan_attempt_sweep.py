@@ -62,6 +62,8 @@ check('THE_SWEEP_TAKES_ITS_INPUT_PATHS',
       'signature is %s - a test could not run it against its own files' % (params,))
 
 import csv
+import json
+import os
 import tempfile
 
 FIELDS = ['created_at', 'created_at_ms', 'attempt_id', 'intent_id', 'leader_fill_id', 'leader_wallet', 'coin',
@@ -406,6 +408,32 @@ _nm = [r for r in _o if str(r.get('exchange_order_id')) in ('NaN', '')]
 check('A_NAN_OID_CANNOT_MATCH_ANOTHER_NAN_OID',
       not any(r.get('outcome') == 'CLOSED_FULL_FILL' for r in _nm),
       'two corrupt oids matched each other: %r' % ([r.get('outcome') for r in _nm],))
+
+# ---- the hot switch: absent/false = OFF, true = ON, env still forces off, and an edit applies without a restart ----
+_cd = Path(tempfile.mkdtemp(prefix='orphansw_'))
+_cf = _cd / 'live_config.json'
+_C.LIVE_CONFIG_FILE = _cf
+
+
+def _sw(value, present=True):
+    gc = {} if not present else {'orphan_sweep': value}
+    _cf.write_text(json.dumps({'global_controls': gc}), encoding='utf-8')
+    return _C.journal_sweeps_enabled()
+
+
+check('SWEEP_IS_OFF_WHEN_THE_KEY_IS_ABSENT', _sw(None, present=False) is False, 'absent key must mean OFF')
+check('SWEEP_IS_OFF_WHEN_FALSE', _sw(False) is False)
+check('SWEEP_IS_ON_WHEN_TRUE', _sw(True) is True)
+os.environ['HL_LIVE_MATCHER_SWEEP'] = '0'
+_forced = _sw(True)
+os.environ.pop('HL_LIVE_MATCHER_SWEEP', None)
+check('THE_ENV_STILL_FORCES_IT_OFF', _forced is False, 'HL_LIVE_MATCHER_SWEEP=0 must beat a config that says true')
+_cf.write_text(json.dumps({'global_controls': {}}), encoding='utf-8')
+_first = _C.journal_sweeps_enabled()
+_cf.write_text(json.dumps({'global_controls': {'orphan_sweep': True}}), encoding='utf-8')
+_second = _C.journal_sweeps_enabled()
+check('THE_SWITCH_IS_HOT_RELOADABLE', _first is False and _second is True,
+      'off=%r then on=%r - a config edit did not take effect without a restart' % (_first, _second))
 
 check('THE_STARTUP_SWEEP_HONOURS_THE_SAME_SWITCH',
       src.count('close_orphan_attempt_rows(apply=True) if journal_sweeps_enabled() else []') == 2

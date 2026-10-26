@@ -16549,12 +16549,24 @@ _PARTIAL_ROWS_WRITTEN = set()
 
 
 def journal_sweeps_enabled() -> bool:
-    """HL_LIVE_MATCHER_SWEEP=0 turns BOTH journal sweeps off - the startup one and the matcher one.
+    """Are the journal sweeps on? HOT-reloadable: `global_controls.orphan_sweep` in live_config.json, read on mtime.
 
-    They are the same unit with two triggers, and Codex's findings were in it, so the first live run carries neither.
-    Off is the safe direction: attempt rows stay open and NAMED rather than being wrongly closed.
+    ABSENT OR FALSE MEANS OFF. One switch for both triggers - the startup sweep and the matcher close - because they
+    are one unit with two call sites, and Codex's findings were in it. Off is the safe direction: attempt rows stay
+    open and NAMED rather than being wrongly closed, and turning it on later does not need a restart.
+    HL_LIVE_MATCHER_SWEEP=0 still forces it off, for tests and for a launch that must not sweep whatever the config says.
     """
-    return os.getenv("HL_LIVE_MATCHER_SWEEP", "1") == "1"
+    if os.getenv("HL_LIVE_MATCHER_SWEEP", "1") == "0":
+        return False
+    try:
+        raw = json.loads(LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+        gc = (raw.get("global_controls") or {}) if isinstance(raw, dict) else {}
+        val = gc.get("orphan_sweep", False)
+        if isinstance(val, bool):
+            return val
+        return str(val).strip().lower() in ("1", "true", "yes", "on")
+    except Exception:
+        return False          # unreadable config: no sweep. Unknown is not permission to write rows.
 
 
 def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fills_csv: Optional[str] = None,
