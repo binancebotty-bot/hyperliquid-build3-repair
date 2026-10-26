@@ -369,6 +369,36 @@ _done = [r for r in _out if r.get('exchange_order_id') == '123']
 check('A_FLOAT_SHAPED_OID_CANONICALISES', bool(_done) and _done[0].get('outcome') == 'CLOSED_FULL_FILL',
       '1.23e2 did not match 123: %r' % ([r.get('outcome') for r in _out],))
 
+
+# ---------------------------------------------------------------- codex final pass
+# a corrupt oid must not canonicalise to itself and close an unrelated attempt
+_o, _r = run_sweep([attempt('x1', 'ORDER_RESTING', oid='777', copy_size='10.0')],
+                   [dict(fill('x1', 'NaN'), exchange_order_id='NaN')])
+_x = [r for r in _o if r.get('exchange_order_id') in ('777', 'NaN')]
+check('A_NON_FINITE_OID_MATCHES_NOTHING',
+      not any(r.get('outcome') == 'CLOSED_FULL_FILL' for r in _x),
+      'a NaN oid closed an attempt: %r' % ([r.get('outcome') for r in _x],))
+
+# a fill a hair under the ask is NOT complete - no rounding to pass
+_o, _r = run_sweep([attempt('q1', 'ORDER_RESTING', oid='780', copy_size='10.0000000001')],
+                   [dict(fill('q1', '780'), fill_size='10.0')])
+_d = [r for r in _o if r.get('exchange_order_id') == '780'][0]
+check('A_SUB_QUANTUM_SHORTFALL_IS_NOT_FILLED', _d.get('outcome') == 'ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED',
+      'a 1e-10 shortfall was called filled: %r' % (_d.get('outcome'),))
+
+# idempotency survives a RESTART: clearing the in-process set must not re-append
+import HL_Live_Copy_Service_Core as _C
+_rd = Path(tempfile.mkdtemp(prefix='restart_'))
+_ap, _fp = _rd / 'send_attempts.csv', _rd / 'live_fills.csv'
+write_csv(_ap, [attempt('z1', 'ORDER_RESTING', oid='790', copy_size='20.0')])
+write_csv(_fp, [fill('z1', '790')])
+_rc = _rd / 'reconciliation.csv'
+_o1 = C.close_orphan_attempt_rows(send_attempts_csv=str(_ap), live_fills_csv=str(_fp), recon_csv=str(_rc), apply=True)
+_C._PARTIAL_ROWS_WRITTEN.clear()          # simulate a fresh process: only the JOURNAL remembers
+_o2 = C.close_orphan_attempt_rows(send_attempts_csv=str(_ap), live_fills_csv=str(_fp), recon_csv=str(_rc), apply=True)
+check('PARTIAL_ROW_IDEMPOTENT_ACROSS_A_RESTART', not [r for r in _o2 if r.get('applied')],
+      'a restart re-appended the same partial row: %r' % ([r.get('outcome') for r in _o2],))
+
 _rep = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(_rep)))
 if _rep:

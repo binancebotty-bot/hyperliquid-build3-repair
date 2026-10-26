@@ -16544,7 +16544,9 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
         try:
             dec = decimal.Decimal(text)          # '123.00' and '1.23e2' are both 123
             if not dec.is_finite():
-                return text                       # 'NaN'/'Infinity' never match anything
+                return ""                         # 'NaN'/'Infinity' must match nothing - returning the text made a
+                                                  # corrupt cell in BOTH files canonicalise to one key and close an
+                                                  # unrelated attempt
             if dec == dec.to_integral_value():
                 return str(int(dec))
         except (decimal.InvalidOperation, ValueError, OverflowError):
@@ -16552,6 +16554,9 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
         return text                               # non-integral stays raw and therefore unmatched
     # EXACT decimal arithmetic: CSV sizes are decimal strings, and summing them as binary floats then rounding is not
     # the same thing. Parse and add as Decimal, quantise once to the size quantum.
+    # A restart clears any in-process set, so the partial marker is keyed INTO the row it writes and read back from the
+    # journal: one row per (oid, filled total, asked size) across restarts, not just within one process.
+    _existing_partial = set()   # filled from the recon read below, which the sweep already does
     _QUANT = decimal.Decimal("0.0000000001")
     filled_dec = {}
     # A journal that lists the same fill twice must not double-count it: identity first, then sum. fill_id/tid is the
@@ -16585,6 +16590,7 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
             log_error("sweep_non_finite_size_rows", RuntimeError("%d row(s) with an unreadable size" % _bad_rows))
         except Exception:
             pass
+    filled_exact = dict(filled_dec)              # unquantised: the completion test uses THIS, never the float
     filled_total = {}
     for oid, total in filled_dec.items():
         try:
@@ -16593,6 +16599,10 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
             filled_total[oid] = 0.0
     by_oid = {oid: {"filled_size": total} for oid, total in filled_total.items()}
     for row in read_csv_rows(rp):
+        if str(row.get("status") or "") == "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED":
+            _n = str(row.get("notes") or "")
+            if "partial_key=" in _n:
+                _existing_partial.add(_n.split("partial_key=", 1)[1].split(";", 1)[0])
         oid = _canon_oid(row.get("exchange_order_id"))
         if oid and str(row.get("event") or "").upper() == "COPY_FILL":
             by_oid.setdefault(oid, {"filled_size": 0.0})   # on the exchange, but a recon row carries no size
@@ -16651,7 +16661,11 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
         try:
             # EXACT: compare the already-quantised values as decimals. Rounding both sides is how a 5e-10 shortfall
             # on a cancelled order gets called filled.
-            complete = want_sz > 0 and decimal.Decimal(str(filled_sz)) >= decimal.Decimal(str(want_sz))
+            # BOTH sides exact and unquantised. Comparing the float that came back out of the map let a fill a hair
+            # under the request round upward and be called ORDER_FILLED.
+            _want_dec = decimal.Decimal(str(row.get("copy_size") or want_sz or "0").strip() or "0")
+            _fill_dec = filled_exact.get(oid, decimal.Decimal("0"))
+            complete = _want_dec > 0 and _fill_dec >= _want_dec
         except (decimal.InvalidOperation, ValueError):
             complete = False
         # A second attempt row for an order id that is ALREADY claimed is superseded whatever its own size says -
@@ -16687,11 +16701,12 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
             # Record it and leave the attempt open. Writing nothing (the previous shape) and then summarising it as
             # CLOSED upstream made the journal claim a closure that never happened.
             rec["outcome"] = "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED"
-            _pkey = (oid, str(filled_sz), str(want_sz))
-            if apply and _pkey in _PARTIAL_ROWS_WRITTEN:
+            _pkey_str = "%s|%s|%s" % (oid, filled_exact.get(oid, decimal.Decimal("0")), _want_dec)
+            _pkey = _pkey_str
+            if apply and (_pkey in _PARTIAL_ROWS_WRITTEN or _pkey in _existing_partial):
                 rec["applied"] = False
                 rec["duplicate_of_earlier_pass"] = True
-            if apply and _pkey not in _PARTIAL_ROWS_WRITTEN:
+            if apply and _pkey not in _PARTIAL_ROWS_WRITTEN and _pkey not in _existing_partial:
                 try:
                     append_csv(rp, RECONCILIATION_FIELDS, {
                         "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
@@ -16700,12 +16715,13 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
                         "coin": row.get("coin") or "", "action": "JOURNAL_LEFT_OPEN",
                         "terminal_state": "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED",
                         "exchange_order_id": oid, "engine_can_send": "False",
-                        "notes": ("attempt row left open: fills for this order total %.6f of %.6f asked; the order was "
-                                  "partially filled and is not proven complete, so it is NOT marked filled"
-                                  % (filled_sz, want_sz)),
+                        "notes": ("partial_key=%s; attempt row left open: fills for this order total %.6f of %.6f "
+                                  "asked; the order was partially filled and is not proven complete, so it is NOT "
+                                  "marked filled" % (_pkey_str, filled_sz, want_sz)),
                     })
                     rec["applied"] = True
                     _PARTIAL_ROWS_WRITTEN.add(_pkey)
+                    _existing_partial.add(_pkey)
                 except Exception as exc:
                     rec["error"] = repr(exc)
             done.append(rec)
