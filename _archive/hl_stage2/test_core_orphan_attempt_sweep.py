@@ -275,6 +275,25 @@ gblock = src3[gi:gi+900]
 check('THE_GATE_REFUSAL_ROW_CARRIES_THE_FILL_ID', 'leader_fill_id=' in gblock,
       'the gate row omits leader_fill_id, so the caller cannot see it and writes a duplicate')
 
+
+# ---- one physical order is never two filled orders (EXIT_RECOVERY writes two attempt rows) ----
+d8 = Path(tempfile.mkdtemp(prefix='two_rows_'))
+ap8, fp8 = d8 / 'send_attempts.csv', d8 / 'live_fills.csv'
+write_csv(ap8, [attempt('a1', 'ORDER_RESTING', '909090', copy_size='10.0'),
+                attempt('a2', 'ORDER_RESTING', '909090', copy_size='10.0')])
+write_csv(fp8, [fill('a1', '909090')])
+try:
+    out8 = fn(send_attempts_csv=str(ap8), live_fills_csv=str(fp8), apply=True)
+except TypeError:
+    out8 = fn(str(ap8), str(fp8), True)
+rows8 = list(csv.DictReader(open(ap8, encoding='utf-8')))
+filled8 = [r for r in rows8 if r['status'] == 'ORDER_FILLED']
+superseded8 = [r for r in rows8 if str(r['status']).startswith('SUPERSEDED_BY_')]
+check('ONE_ORDER_IS_NEVER_TWO_FILLED_ORDERS', len(filled8) == 1,
+      '%d rows were marked ORDER_FILLED for one exchange order' % len(filled8))
+check('THE_SECOND_ROW_IS_SUPERSEDED', len(superseded8) == 1,
+      'the second attempt row was not superseded: %r' % ([r['status'] for r in rows8],))
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:

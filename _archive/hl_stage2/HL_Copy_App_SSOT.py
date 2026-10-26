@@ -1000,7 +1000,14 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
     # can say. Anything not in the defaults is passed through untouched (no fnum, no coercion).
     for key, value in raw.items():
         if key not in out:
-            out[key] = value
+            # A control the defaults do not model is passed through, but only as a JSON-safe scalar or list: a dict,
+            # bytes or an object from a hand-edited file must not 500 the whole /api/global-controls response.
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                out[key] = value
+            elif isinstance(value, list):
+                out[key] = [v for v in value if isinstance(v, (str, int, float, bool))]
+            else:
+                out[key] = str(value)[:120]
     return out
 
 
@@ -7696,7 +7703,8 @@ function renderBanner(){
  let _basis='';
  try{
    const _s=(lcAudit&&lcAudit.exchange_account_snapshot)||{};
-   const _f=(v)=>v==null?'—':'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+   // a malformed or half-written snapshot must read as a dash, not as '$NaN' in the most-read strip
+   const _f=(v)=>{const n=Number(v);return (v==null||!Number.isFinite(n))?'—':'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});};
    if(_s&&_s.available){_basis='<span class="lc-muted" style="font-size:11px;display:block;font-weight:400">perp equity '+_f(_s.account_value)+' · margin available '+_f(_s.withdrawable)+'</span>';}
  }catch(e){_basis='';}
  // The banner's own account_value can be absent while the follower_account total (spot + perps) is known: the
@@ -7704,7 +7712,8 @@ function renderBanner(){
  let _acctTxt='';
  try{
    const _fa=(lcAudit&&lcAudit.follower_account)||{};
-   if(b.account_value!=null){_acctTxt='$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+   const _money=(v)=>{const n=Number(v);return Number.isFinite(n)?'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):null;};
+   if(_money(b.account_value)){_acctTxt=_money(b.account_value);}
    else if(_fa&&_fa.ok&&_fa.value!=null){_acctTxt='$'+Number(_fa.value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
    else {_acctTxt=dash(b.account_value_reason||(_fa&&_fa.reason));}
  }catch(e){_acctTxt=dash(b.account_value_reason);}

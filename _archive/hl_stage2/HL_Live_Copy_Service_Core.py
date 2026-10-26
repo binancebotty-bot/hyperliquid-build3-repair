@@ -6221,20 +6221,20 @@ class SenderGateway:
         # that is precisely the state an operator is in after a scare, reading the journal to find out what happened.
         try:
             _swept = close_orphan_attempt_rows(apply=True)
-            _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL"]
-            _partial = [r for r in _swept if r.get("outcome") != "CLOSED_FULL_FILL"]
-            if _closed or _partial:
+            # a spilled append is NOT a closure: only rows whose write actually landed may be called closed
+            _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL" and r.get("applied")]
+            _not_closed = [r for r in _swept if r not in _closed]
+            if _closed or _not_closed:
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "ORPHAN_ATTEMPT_ROWS_SWEPT", action="JOURNAL_SWEEP",
                     terminal_state="ORPHAN_ATTEMPT_ROWS_SWEPT", engine_can_send="False",
-                    notes=("closed=%d [%s]; left_open_partial=%d [%s]"
+                    notes=("closed=%d [%s]; left_open=%d [%s]"
                            % (len(_closed),
                               "; ".join("%s oid=%s filled=%s" % (r.get("coin"), r.get("exchange_order_id"),
                                                                  r.get("filled_size")) for r in _closed),
-                              len(_partial),
-                              "; ".join("%s oid=%s filled=%s of %s" % (r.get("coin"), r.get("exchange_order_id"),
-                                                                      r.get("filled_size"), r.get("want_size"))
-                                        for r in _partial))))
+                              len(_not_closed),
+                              "; ".join("%s oid=%s %s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                          r.get("outcome")) for r in _not_closed))))
         except Exception as exc:
             log_error("orphan_attempt_sweep_failed", exc)
         if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
@@ -6246,20 +6246,20 @@ class SenderGateway:
         # a start: a sweep failure is logged and startup continues.
         try:
             _swept = close_orphan_attempt_rows(apply=True)
-            _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL"]
-            _partial = [r for r in _swept if r.get("outcome") != "CLOSED_FULL_FILL"]
-            if _closed or _partial:
+            # a spilled append is NOT a closure: only rows whose write actually landed may be called closed
+            _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL" and r.get("applied")]
+            _not_closed = [r for r in _swept if r not in _closed]
+            if _closed or _not_closed:
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "ORPHAN_ATTEMPT_ROWS_SWEPT", action="JOURNAL_SWEEP",
                     terminal_state="ORPHAN_ATTEMPT_ROWS_SWEPT", engine_can_send="False",
-                    notes=("closed=%d [%s]; left_open_partial=%d [%s]"
+                    notes=("closed=%d [%s]; left_open=%d [%s]"
                            % (len(_closed),
                               "; ".join("%s oid=%s filled=%s" % (r.get("coin"), r.get("exchange_order_id"),
                                                                  r.get("filled_size")) for r in _closed),
-                              len(_partial),
-                              "; ".join("%s oid=%s filled=%s of %s" % (r.get("coin"), r.get("exchange_order_id"),
-                                                                      r.get("filled_size"), r.get("want_size"))
-                                        for r in _partial))))
+                              len(_not_closed),
+                              "; ".join("%s oid=%s %s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                          r.get("outcome")) for r in _not_closed))))
         except Exception as exc:
             log_error("orphan_attempt_sweep_failed", exc)
         cloids, oids = self._engine_owned_cloids_and_oids()
@@ -16431,6 +16431,7 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
     candidates.sort(key=lambda r: (0 if _is_close(r) else 1, int(fnum(r.get("created_at_ms"), 0))))
 
     done = []
+    _claimed_oid = {}
     for row in candidates:
         oid = _canon_oid(row.get("exchange_order_id"))
         src = by_oid[oid]
@@ -16447,6 +16448,29 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         # or the exchange is still working it - stays open and is named, so the journal never claims a fill that did
         # not happen. This is the case an "a fill row exists" test cannot distinguish without an exchange call.
         complete = want_sz > 0 and filled_sz + 1e-9 >= want_sz
+        if complete and oid in _claimed_oid:
+            # EXIT_RECOVERY writes TWO attempt rows for one physical order. Only the first may be called FILLED; the
+            # second is closed as SUPERSEDED so derived counts cannot see one exchange fill as two filled orders.
+            _sup = dict(row)
+            _sup.update({
+                "status": "SUPERSEDED_BY_%s" % str(_claimed_oid[oid])[:24],
+                "terminal_state": "SUPERSEDED_SAME_ORDER_ROW",
+                "action": "JOURNAL_SUPERSEDED",
+                "notes": ("superseded: this attempt row shares exchange order %s with attempt %s, which is the one "
+                          "marked filled; one order is never two fills" % (oid, _claimed_oid[oid])),
+            })
+            rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
+                   "was": row.get("status"), "filled_size": filled_sz, "want_size": want_sz,
+                   "is_close": _is_close(row), "applied": False, "outcome": "SUPERSEDED_SAME_ORDER_ROW"}
+            if apply:
+                try:
+                    rec["applied"] = bool(append_csv(ap, SEND_ATTEMPT_FIELDS, _sup))
+                except Exception as exc:
+                    rec["error"] = repr(exc)
+            done.append(rec)
+            continue
+        if complete:
+            _claimed_oid[oid] = row.get("attempt_id")
         rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
                "was": row.get("status"), "filled_size": filled_sz, "want_size": want_sz,
                "is_close": _is_close(row), "applied": False,
