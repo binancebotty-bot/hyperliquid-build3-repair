@@ -11503,6 +11503,80 @@ def load_existing_intents() -> Dict[str, Intent]:
     return {}
 
 
+
+# ------------------------------------------------------------------ follower entry exclusions
+# Two exclusions, ONE path: a market the follower network does not list, and a book too thin to trade. Decided on
+# ENTRIES only, before any price or risk gate, one terminal row per leader fill, no order and no diff. A close or a
+# reduction is never excluded. Both are TESTNET-ONLY: on mainnet a leader coin is always copied, so the guard returns
+# "no exclusion" before anything is read or measured.
+_VOL_CACHE: Dict[str, Any] = {"ts": 0.0, "vol": {}, "listed": set(), "ok": False}
+
+
+def follower_volumes_24h(refresh: bool = False) -> Tuple[bool, Dict[str, float], set]:
+    """coin -> 24h notional volume on the FOLLOWER network, from metaAndAssetCtxs, cached 5 minutes.
+
+    Fails OPEN: an unreadable exchange returns ok=False and the caller treats every coin as tradable. A skip needs
+    evidence that the book is thin; the absence of a reading is not evidence.
+    """
+    now = time.time()
+    if not refresh and _VOL_CACHE["ok"] and now - float(_VOL_CACHE["ts"]) < 300.0:
+        return True, dict(_VOL_CACHE["vol"]), set(_VOL_CACHE["listed"])
+    try:
+        res = _XNET.post_many(None, [{"type": "metaAndAssetCtxs"}], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        data = res[0] if res else None
+        if not isinstance(data, (list, tuple)) or len(data) < 2:
+            raise ValueError("metaAndAssetCtxs returned %r" % (type(data).__name__,))
+        universe = data[0].get("universe") or []
+        ctxs = data[1] or []
+        vol, listed = {}, set()
+        for asset, ctx in zip(universe, ctxs):
+            name = str((asset or {}).get("name") or "")
+            if not name:
+                continue
+            listed.add(name)
+            try:
+                vol[name] = float((ctx or {}).get("dayNtlVlm") or 0.0)
+            except (TypeError, ValueError):
+                vol[name] = 0.0
+        if not listed:
+            raise ValueError("empty follower universe")
+        _VOL_CACHE.update({"ts": now, "vol": vol, "listed": listed, "ok": True})
+        return True, vol, listed
+    except Exception as exc:
+        try:
+            log_error("follower_volume_read_failed", exc)
+        except Exception:
+            pass
+        return False, {}, set()
+
+
+def follower_entry_exclusion(coin: str, is_entry: bool,
+                             global_controls: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
+    """("", "") means copy normally; otherwise (status, note) for exactly one terminal row."""
+    if not is_entry:
+        return "", ""
+    if FOLLOWER_NETWORK == "mainnet":
+        return "", ""                                  # hard guard: mainnet copies every leader coin
+    ok, vol, listed = follower_volumes_24h()
+    if not ok:
+        return "", ""                                  # fail open; the read failure is already logged
+    name = str(coin or "").strip()
+    if listed and name not in listed and name.upper() not in listed:
+        return ("EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK",
+                "excluded_not_listed_on_follower_network; coin=%s; the follower network does not list this market; "
+                "source=metaAndAssetCtxs" % name)
+    try:
+        threshold = max(0.0, fnum((global_controls or {}).get("min_24h_notional_usd"), 0.0))
+    except Exception:
+        threshold = 0.0
+    if threshold > 0:
+        got = vol.get(name, vol.get(name.upper()))
+        if got is not None and got < threshold:
+            return ("ILLIQUID_SKIP",
+                    "illiquid_skip; coin=%s; 24h_notional_usd=%.2f; threshold_usd=%.2f; "
+                    "source=metaAndAssetCtxs.dayNtlVlm" % (name, got, threshold))
+    return "", ""
+
 class LiveCopyCore:
     def __init__(self, source_csv: Optional[Path] = None):
         ensure_dirs()
@@ -12722,6 +12796,32 @@ class LiveCopyCore:
                 ),
             )
             return False, stale_reason, None
+        # Follower entry exclusions, BEFORE any price or risk gate. Entries only: a close or a reduction is never
+        # excluded, and on mainnet this returns nothing at once.
+        try:
+            _dir_txt = _fill_dir(fill).lower()
+            _is_entry = _dir_txt.startswith(("open ", "increase "))
+            _gc = getattr(self.cfg, "config", {}) or {}
+            _status, _note = follower_entry_exclusion(fill.coin, _is_entry, (_gc.get("global_controls") or {}))
+        except Exception as _exc:
+            _status, _note = "", ""
+            try:
+                log_error("follower_entry_exclusion_failed", _exc)
+            except Exception:
+                pass
+        if _status:
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", _status,
+                leader_wallet=fill.leader_wallet,
+                leader_fill_id=fill.leader_fill_id,
+                coin=fill.coin,
+                action="NO_SEND_EXCLUDED_MARKET",
+                reject_category=_status,
+                terminal_state=_status,
+                engine_can_send="False",
+                notes=_note + "; one terminal row per leader fill; no order and no diff by design",
+            )
+            return False, _status, None
         # PRE-SEND IDEMPOTENCY GUARD â€" checked before _send_lock so it catches:
         #   â€¢ same fill_id from two WS messages (duplicate delivery)
         #   â€¢ same fill_id in both hot-queue and ws.queue / source CSV
