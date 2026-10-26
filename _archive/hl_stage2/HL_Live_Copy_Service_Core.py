@@ -831,6 +831,7 @@ RECONCILIATION_FIELDS = [
     "created_at", "created_at_ms", "event", "status", "leader_wallet", "leader_fill_id", "intent_id",
     "copy_fill_id", "coin", "manual_net", "exchange_net", "action", "reject_category", "terminal_state",
     "exchange_order_id", "engine_can_close", "engine_can_send", "notes",
+    "cap_name", "cap_value", "measured_exposure_usd", "cap_coin",
 ]
 
 ERROR_FIELDS = ["created_at", "created_at_ms", "context", "error_type", "message", "traceback"]
@@ -3872,6 +3873,7 @@ class Intent:
     reduce_only_sent_planned: bool
     created_at_ms: int = 0
     notes: str = ""
+    cap_detail: Any = None  # cap that refused this intent, with the numbers it used
 
     @property
     def send_allowed(self) -> bool:
@@ -5066,6 +5068,10 @@ class IntentBuilder:
                    "pending_n": len(pend),
                    "pending_usd": round(sum(abs(u) * px for _c, u, px, _a in pend), 2),
                    "decision": "BLOCKED" if block else "ALLOWED", "reason": block or ""}
+            _cd = getattr(_CAP_TLS, "cap_detail", None) or {}
+            if _cd:
+                rec["cap_name"], rec["cap_value"] = _cd.get("cap_name", ""), _cd.get("cap_value", "")
+                rec["measured_exposure_usd"] = _cd.get("measured_exposure_usd", "")
             with open(AUDIT_DIR / "exposure_cap_trace.jsonl", "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec, separators=(",", ":")) + chr(10))
         except Exception:
@@ -5101,6 +5107,9 @@ class IntentBuilder:
             remaining = cap_total - (fnum(exp.get("total_usd")) + pending_total + resting_total)
             if remaining < copy_notional - 1e-9:
                 if not size_down or remaining < max(min_n, 1e-9):
+                    _CAP_TLS.cap_detail = {"cap_name": "max_total_exposure", "cap_value": cap_total,
+                                           "measured_exposure_usd": fnum(exp.get("total_usd")) + pending_total + resting_total,
+                                           "coin": coin}
                     return "max total exposure exceeded (positions + resting limits)" if resting_total > 0 else "max total exposure exceeded"
                 frac = max(0.0, remaining) / copy_notional
         if cap_asset > 0:
@@ -5112,6 +5121,8 @@ class IntentBuilder:
                 return max(abs(after_f + buy_u), abs(after_f - sell_u)) * value_px
             if _worst(frac) > cap_asset + 1e-9:
                 if not size_down or _worst(0.0) > cap_asset + 1e-9:
+                    _CAP_TLS.cap_detail = {"cap_name": "max_asset_exposure", "cap_value": cap_asset,
+                                           "measured_exposure_usd": _worst(0.0), "coin": coin}
                     return "max asset directional exposure exceeded"
                 lo, hi = 0.0, frac
                 for _i in range(40):  # _worst is convex in f: bisect the largest fraction that fits
@@ -5120,6 +5131,11 @@ class IntentBuilder:
                 frac = lo
         if frac < 1.0 - 1e-9:
             if frac * copy_notional < max(min_n, 1e-9):
+                _CAP_TLS.cap_detail = ({"cap_name": "max_total_exposure", "cap_value": cap_total,
+                                        "measured_exposure_usd": fnum(exp.get("total_usd")) + pending_total + resting_total,
+                                        "coin": coin} if cap_total > 0 else
+                                       {"cap_name": "max_asset_exposure", "cap_value": cap_asset,
+                                        "measured_exposure_usd": _worst(0.0), "coin": coin})
                 return "max total exposure exceeded" if cap_total > 0 else "max asset directional exposure exceeded"
             _CAP_TLS.scale = frac  # build() sizes the order down by this fraction
             units *= frac
@@ -5176,6 +5192,7 @@ class IntentBuilder:
             position_id = str(existing.get("position_id") or self.ledger.position_id(wallet, coin, direction_before, str(existing.get("opened_by_intent_id") or intent_id)))
         coin_net_before = self.ledger.coin_net(coin)
         _CAP_TLS.scale = 1.0
+        _CAP_TLS.cap_detail = None
         decision, reason = self._decision(wallet, fill, lifecycle, copy_notional, before)
         _cap_frac = float(getattr(_CAP_TLS, "scale", 1.0) or 1.0)
         _CAP_TLS.scale = 1.0
@@ -5204,6 +5221,7 @@ class IntentBuilder:
             coin_net_before=coin_net_before,
             reduce_only_intended=reduce_only_intended,
             reduce_only_sent_planned=reduce_only_sent_planned,
+            cap_detail=getattr(_CAP_TLS, "cap_detail", None),
             created_at_ms=utc_now_ms(),
             notes=f"lifecycle={lifecycle}" + (";rebuild_origin=true" if fill.source.upper() in {"WS_SNAPSHOT", "REBUILD", "REPLAY"} else "")
                   + (f";merged_leader_fills={fill.raw.get('merged_fill_count')}:{','.join(fill.raw.get('merged_fill_ids') or [])}"
@@ -5275,6 +5293,9 @@ class IntentBuilder:
         order_notional = copy_notional / fill.price * value_px if fill.price > 0 else 0.0
         max_order = self.cfg.max_order_notional()
         if max_order > 0 and order_notional > max_order:
+            _CAP_TLS.cap_detail = {"cap_name": "max_order_notional", "cap_value": max_order,
+                                   "measured_exposure_usd": order_notional, "coin": canonical_coin_key(fill.coin)}
+            self._trace_exposure_cap(fill, order_notional, "max order notional exceeded")
             return "SEND_BLOCKED_RISK", "max order notional exceeded"
         max_wallet = self.cfg.max_wallet_exposure(wallet)
         if max_wallet > 0:
@@ -5284,6 +5305,9 @@ class IntentBuilder:
                 return "SEND_BLOCKED_RISK", "resting limits unreadable; entries fail closed while a cap is set"
             current += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
             if current + order_notional > max_wallet:
+                _CAP_TLS.cap_detail = {"cap_name": "max_wallet_exposure", "cap_value": max_wallet,
+                                       "measured_exposure_usd": current + order_notional, "coin": canonical_coin_key(fill.coin)}
+                self._trace_exposure_cap(fill, order_notional, "max wallet exposure exceeded")
                 return "SEND_BLOCKED_RISK", "max wallet exposure exceeded"
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             # ENG-016: never net into inventory this engine does not own (checked whenever real orders are armed)
@@ -12419,6 +12443,7 @@ class LiveCopyCore:
             lifecycle = classify_send_lifecycle(intent)
             terminal_state = "ENTRY_BLOCKED_RISK" if lifecycle in {"ENTRY", "ADD", "UNKNOWN_LIFECYCLE"} else "MANUAL_REQUIRED_ONLY_IF_UNSAFE"
             event_name = "ENTRY_SAFETY_BLOCK" if lifecycle in {"ENTRY", "ADD", "UNKNOWN_LIFECYCLE"} else "EXIT_SAFETY_BLOCK"
+            _cd = getattr(intent, "cap_detail", None) or {}
             self.audit.append_reconciliation(
                 event_name, terminal_state,
                 leader_wallet=fill.leader_wallet,
@@ -12426,7 +12451,9 @@ class LiveCopyCore:
                 intent_id=intent.intent_id,
                 coin=fill.coin,
                 action="NO_SEND_RISK_OR_BUDGET_BLOCK",
-                reject_category="RISK_OR_BUDGET_BLOCK",
+                reject_category="CAP_REFUSED" if _cd.get("cap_name") else "RISK_OR_BUDGET_BLOCK",
+                cap_name=_cd.get("cap_name", ""), cap_value=_cd.get("cap_value", ""),
+                measured_exposure_usd=_cd.get("measured_exposure_usd", ""), cap_coin=_cd.get("coin", ""),
                 terminal_state=terminal_state,
                 engine_can_close=False,
                 engine_can_send=False,
