@@ -84,7 +84,24 @@ stale the honest move is to re-seed rather than to force.
 
 The identity tool and stop_pair both read this file, so if it is wrong they act on the wrong run.
 
+### 4b. Write the audit-dir pointer - every start
+
+    printf '%s\n' "$STATE" > <stack>/CURRENT_AUDIT_DIR
+
+`hl_monitor.py` is a SEPARATE process and does not inherit the engine's environment, so it cannot be
+trusted to resolve the audit dir from config: it silently fell back to
+`_archive/hl_stage2/hl_live_copy_audit_testnet/` and read a **six-day-old** `live_ws_health.json`,
+posting false "engine restart condition" alerts for that whole period (the alert's `ws_age=512972` was
+that file's age to the second). It now reads this one-line pointer first and only falls back to
+`hl_monitor.json` when the pointer is absent, names the directory and its source in every alert, and
+appends `STALE_OR_FALLBACK_DIRECTORY` when the directory it read is itself older than 300 s.
+
+**Rule: any separate process that needs a run's directory must be handed it explicitly - through a
+pointer the start writes, not through config that can drift, and not through the engine's environment
+it will never see.**
+
 ## 5. Start the engine (Python 3.11, headless)
+
 
     HL_LIVE_AUDIT_DIR=$STATE <3.11>/pythonw.exe HL_Live_Copy_Service_Core.py \
         --ws --loop --interval 10 --poll-live --poll-copy
