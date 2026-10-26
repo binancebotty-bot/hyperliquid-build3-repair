@@ -5586,7 +5586,12 @@ class SenderGateway:
         _blocked = self._master_gate_reason(intent, path)
         if _blocked:
             self._gate_refusal_row(intent, path, _blocked)
-            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _blocked}
+            # The exchange was NOT called. Say so in the result so no row built from it can claim a call,
+            # invent a reject category, or carry an exchange_call_started_ms stamp (Codex item 4).
+            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _blocked,
+                    "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
+                    "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
+                    "notes": "gate refusal, no exchange call: " + _blocked}
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
         slot_ms = self._reserve_exchange_order_slot(
@@ -5611,7 +5616,10 @@ class SenderGateway:
         _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
         if _late_block:
             self._gate_refusal_row(intent, path, _late_block)
-            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block}
+            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
+                    "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
+                    "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
+                    "notes": "late gate refusal, no exchange call: " + _late_block}
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
         try:
             response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
@@ -12201,9 +12209,14 @@ class LiveCopyCore:
         fill (follower-price freshness gate, margin-mode precondition, snapshot-only metadata, MARKET_HALTED) now run
         the missed-entry rule ONCE, here: a GTC rests at the leader's price when the symbol is tradable, else a named
         diff (or a named skip). The gates themselves are untouched and nothing is retained for a later replay."""
+        if str(send_status) == "MASTER_REAL_ORDERS_OFF":
+            # A deliberate OFF means do not even try. Returning None leaves the caller to write this fill's
+            # ONE terminal row (SEND_BLOCKED / master off) instead of one row per refused attempt: run 11
+            # attempted ~140 orders a minute that the gate then refused, all of them recorded. ENG-017 is
+            # untouched when sending is ON, which is the only mode where the rule has to act.
+            return None
         if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
             return None
-        reason = str(intent.reason or "")
         halted = self.sender._market_halted_until_ms.get(str(intent.fill.coin or "").strip().lower(), 0) > utc_now_ms()
         if send_status in {"INTENT_NOT_SEND_ALLOWED", "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE"} and (
                 "no fresh follower-network" in reason or send_status.endswith("FOLLOWER_PRICE_UNAVAILABLE")):

@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Sending OFF must not attempt orders at all, and a gate refusal must not look like an exchange call.
+
+Run 11 (2026-10-26) held the line: zero orders reached the exchange. It also attempted ~140 orders a
+minute for twelve minutes, each refused at the gate and each journalled, which spent the shared info
+budget. Two invariants are asserted here:
+
+  (a) with send_mode OFF the missed-entry rest is never attempted - the fill still ends with exactly ONE
+      terminal row (the caller writes it), while ENG-017 is untouched when sending is ON;
+  (b) a refusal at the physical call is exchange_called False with reject_category
+      BLOCKED_AT_PLACE_ORDER and no exchange_call_started_ms stamp, so no journal row can claim the
+      exchange was contacted.
+
+FAILING FIRST: neither guard exists before this branch. (a) raises AttributeError on an empty stub because
+the function goes on to classify the intent, and (b) omits exchange_called, so a row built from the result
+would default to True.
+"""
+import sys
+import types
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import HL_Live_Copy_Service_Core as C  # noqa: E402
+
+SRC = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8-sig', errors='replace')
+results = []
+
+
+def check(name, ok, detail=''):
+    results.append((name, bool(ok)))
+    print('RESULT::%s_%s%s' % (name, 'PASS' if ok else 'FAIL', (' | ' + str(detail)[:180]) if not ok else ''))
+
+
+class Audit:
+    def __init__(self):
+        self.rows = []
+
+    def append_reconciliation(self, kind, state, **kw):
+        self.rows.append((kind, state, kw))
+
+    def append_send_attempt(self, row):
+        self.rows.append(('SEND_ATTEMPT', row.get('status'), row))
+
+
+class Boom(Exception):
+    pass
+
+
+# ---- (a) OFF never reaches the rest path
+def rest_path_called():
+    raise Boom('the missed-entry rest path was attempted while send_mode is OFF')
+
+
+stub = types.SimpleNamespace(
+    sender=types.SimpleNamespace(_market_halted_until_ms={}, _missed_entry_rest_or_diff=rest_path_called),
+    audit=Audit())
+try:
+    out = C.LiveCopyCore._apply_missed_entry_rule_on_refusal(
+        stub, types.SimpleNamespace(coin='BTC', timestamp_ms=0), types.SimpleNamespace(reason=''), 'MASTER_REAL_ORDERS_OFF')
+    check('OFF_REFUSAL_NEVER_REACHES_THE_REST_PATH', out is None, 'returned %r instead of None' % (out,))
+except Boom as exc:
+    check('OFF_REFUSAL_NEVER_REACHES_THE_REST_PATH', False, exc)
+except Exception as exc:
+    check('OFF_REFUSAL_NEVER_REACHES_THE_REST_PATH', False, '%s: %s' % (type(exc).__name__, str(exc)[:120]))
+
+# the caller writes the ONE row per fill when the rule declines to act
+check('ONE_ROW_PER_FILL_IS_THE_CALLERS', 'if _refusal_outcome is None:' in SRC
+      and '_append_send_terminal(fill, intent, send_status)' in SRC)
+
+# ---- (a) ENG-017 stays live when sending is ON: the guard names that one status, nothing else
+guard = SRC[SRC.find('if str(send_status) == "MASTER_REAL_ORDERS_OFF":'):]
+guard_block = guard[:guard.find('return None')] if 'return None' in guard else ''
+check('GUARD_IS_EXACTLY_MASTER_OFF_ONLY',
+      'MASTER_REAL_ORDERS_OFF' in guard_block and guard_block.count('send_status) ==') == 1,
+      'guard block: %r' % guard_block[:120])
+
+# ---- (b) a gate refusal is not an exchange call
+gw = types.SimpleNamespace(
+    cfg=types.SimpleNamespace(send_mode_now=lambda: 'OFF', wallet_enabled=lambda w: True, wallet_mode=lambda w: 'LIVE'),
+    sender_key_invalid=False, audit=Audit(), _gate_journal_failures=0)
+# the gate is a method: bind the real ones to the stub so this tests the engine, not a re-implementation
+gw._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw, intent, path)
+gw._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw, intent, path, reason)
+try:
+    res = C.SenderGateway._place_order(gw, None, 'BTC', True, 0.001, 100.0, 'Ioc', False, intent=types.SimpleNamespace())
+    check('GATE_REFUSAL_SAYS_THE_EXCHANGE_WAS_NOT_CALLED', res.get('exchange_called') is False, res)
+    check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', res.get('reject_category') == 'BLOCKED_AT_PLACE_ORDER', res)
+    timing = res.get('timing') or {}
+    check('GATE_REFUSAL_HAS_NO_CALL_STAMP', 'exchange_call_started_ms' not in timing, timing)
+except Exception as exc:
+    check('GATE_REFUSAL_SAYS_THE_EXCHANGE_WAS_NOT_CALLED', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
+    check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', False, 'unreached')
+    check('GATE_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
+
+# ---- the row the gate writes must not invite a call stamp either
+check('GATE_ROW_IS_NO_EXCHANGE_CALL', 'action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER"' in SRC)
+
+failed = [n for n, ok in results if not ok]
+print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
+if failed:
+    print('FAILED: ' + ', '.join(failed))
+sys.exit(1 if failed else 0)
