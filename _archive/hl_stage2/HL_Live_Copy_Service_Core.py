@@ -257,15 +257,23 @@ def follower_dex_scope() -> List[str]:
     return [""] + sorted(names | learned)
 
 
-def follower_mid(coin: str, force: bool = False) -> float:
+def follower_mid(coin: str) -> float:
     """Fresh follower-network mid for `coin` over the follower DEX scope (allMids per DEX, read
     concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
-    older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none. force=True (the refusal path) always refetches once."""
+    older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none. There is no bypass: a caller that
+    needs a price gets one no older than the TTL, which is what OD-01 requires."""
     now, m, dexes = utc_now_ms(), _FOLLOWER_MIDS, follower_dex_scope()
 
+    ttl_ms = int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000)
+
     def stale() -> bool:
-        return (force or not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
-                or utc_now_ms() - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
+        # force no longer bypasses the cache: it means "the mid must be fresh to within the TTL",
+        # which is all OD-01 needs (5 s). A per-call refetch is what took run 12 over the info budget -
+        # 562 forced allMids reads from the refusal path with zero orders sent. A value older than the
+        # TTL is refetched either way, so nothing is served staler than before.
+        if not m["px"] or m.get("scope") != dexes:   # a newly learned DEX is priced at once
+            return True
+        return utc_now_ms() - m["ms"] > ttl_ms
     if stale():
         with _FOLLOWER_MIDS_REFRESH_LOCK:
             now = utc_now_ms()
@@ -5400,7 +5408,7 @@ class SenderGateway:
                                    timing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """PART 2 (rev): a REFUSED entry/add is not a lost fill, and it is not priced from scratch here either. The
         normal path's own functions run in the normal path's own order: _ensure_margin_mode first (no order may go
-        unless it succeeds), then ONE forced fresh follower mid (follower_mid(force=True)), then missed_entry_decision
+        unless it succeeds), then ONE fresh follower mid (follower_mid, cached to the 2 s TTL), then missed_entry_decision
         with the REAL follower price, the normal relative-price conversion and the normal tolerance (marketable_bps).
         Inside tolerance: execute now. Beyond it: rest a GTC at the leader's price. No fresh mid, or a refused margin
         setup: NO order - a NAMED DIFF plus an OPEN incident for the convergence path to retry."""
@@ -5433,7 +5441,7 @@ class SenderGateway:
                                        else "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED"),
                         notes=(f"named diff: {cause}; _ensure_margin_mode refused "
                                f"({margin_block[2].get('error')}); no order sent or rested"))
-        follower_px = follower_mid(sdk_coin, force=True)
+        follower_px = follower_mid(sdk_coin)
         market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
         bps = self.cfg.marketable_bps()
         missed = missed_entry_decision(intent.copy_side, leader_px, market_px, follower_px, bps)
