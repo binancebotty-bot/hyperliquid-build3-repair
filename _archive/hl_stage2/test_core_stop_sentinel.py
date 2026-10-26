@@ -24,6 +24,25 @@ PYW = r'C:/Users/wigmore/AppData/Local/Programs/Python/Python311/pythonw.exe'
 spec = json.load(open(os.path.expanduser('~/.hermes/state/core_launch_env.json'), encoding='utf-8'))
 results = []
 
+# This suite starts a real engine, and the product allows only one engine per machine. When the pair
+# is running, a second engine is refused by the global lock - that is correct behaviour, not a test
+# failure, so say SKIP with the reason instead of reporting eight red checks.
+_GLOBAL_LOCK = Path(os.path.expanduser('~/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock'))
+if _GLOBAL_LOCK.exists():
+    try:
+        _holder = json.loads(_GLOBAL_LOCK.read_text(encoding='utf-8-sig'))
+    except PermissionError:
+        # the running engine holds it exclusively, so its contents are not readable - which is itself
+        # proof that another engine is live
+        _holder = {'note': 'lock file held exclusively by another engine'}
+    except Exception:
+        _holder = {}
+    _h = _holder.get('holder') if isinstance(_holder.get('holder'), dict) else _holder
+    print('SKIP: another engine holds the machine-wide lock%s; this suite needs the machine to itself.'
+          % ('' if _h.get('note') else ' (pid=%s state_dir=%s)' % (_h.get('pid'), _h.get('state_dir'))))
+    print('TOTAL=0 FAILED=0 SKIPPED=GLOBAL_ENGINE_LOCK_HELD')
+    sys.exit(0)
+
 
 def check(name, ok, detail=''):
     results.append((name, bool(ok)))
