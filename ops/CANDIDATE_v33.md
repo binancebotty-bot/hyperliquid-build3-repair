@@ -137,3 +137,40 @@ green record. Fixed, with the reviewer's other findings:
 | Core line endings | CRLF 12,697 / bare-LF 3,203 |
 
 187 checks, zero failures.
+
+---
+
+## v36: the master gate (hermes/v36-master-gate)
+
+Beyond the three pieces above, v36 closes the defect that let 1,549 limit orders reach the exchange
+with `send_mode` OFF on 2026-10-25.
+
+**What was wrong.** `send_if_allowed()` checked the master switch and refused; the refusal was handed
+to `_apply_missed_entry_rule_on_refusal`, which for a fill older than 30 s called
+`_missed_entry_rest_or_diff` -> `_place_order` -> `exchange.order` with no further check. The gate was
+a convention at one entry point, not a property of the physical call.
+
+**What it is now.** `_master_gate_reason(intent, path)` is the first statement of `_place_order`, before
+the pacing slot and before the write-ahead row. It re-reads `send_mode_now()` at the call and refuses
+on: mode OFF, global CLOSE for an ENTRY/ADD, wallet disabled, wallet OFF, CLO for an ENTRY/ADD, an
+invalid sender key, or no intent at all (fails closed). A refusal writes `BLOCKED_AT_PLACE_ORDER` and
+returns without touching the client. All seven call sites pass intent and a path label.
+
+**Tests (test_core_master_gate, 20).** AST guard: exactly one order-placing client call, inside
+`_place_order`, with the gate before the pacing slot and before the write-ahead row; withdrawals are
+asserted separately in `_cancel_order`, because sending OFF must withdraw resting orders and a cancel
+is therefore not a bypass. Behavioural: a 7 routes x 7 cases matrix (master OFF, global CLOSE entry,
+wallet disabled mid-flight, wallet OFF, CLO entry, CLO close allowed, ON entry allowed), plus the
+refusal journal, the counted loud failure when that journal cannot be written, and the rest path's
+outcome being derived from the exchange reply rather than from `take`.
+
+**Two review rounds found real things.** Round one: the clamp was read off the wrong object, and the
+gate's mode boundary. Round two: the outcome derived from `take` (a filled GTC journalled as resting),
+a silent finalisation failure, and a refusal mislabelled as an exchange error. All fixed with
+assertions that fail on the old code.
+
+**Known open.** `test_core_missed_entry_rule.py` sets `master_switch_now -> True` to model a sending
+engine; without it, 7 M2 checks fail. The suite therefore cannot yet distinguish "armed" from
+"production says OFF" end to end. The fix is a case with that stub removed, real config,
+`auto_send_enabled: False`, asserting zero exchange calls and a `BLOCKED_AT_PLACE_ORDER` row. Not
+written yet.
