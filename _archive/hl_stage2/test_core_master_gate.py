@@ -206,6 +206,51 @@ check('FINALISATION_FAILURE_IS_LOUD',
       and ('except Exception:' + chr(10) + '                pass') not in rest_src)
 
 
+# ---- RACE: the mode changes DURING the pacing-slot wait (Codex 6406031822)
+# The early gate runs before the wait; the point of the late recheck is that a change while the slot
+# is being reserved cannot let the order through. Each of the 7 routes is exercised twice.
+class FlippingCfg(FakeCfg):
+    def __init__(self, flip_to):
+        super().__init__(mode='ON')
+        self._flip_to = flip_to
+
+    def flip(self):
+        self._mode = self._flip_to
+
+
+race_failures = []
+for route in ROUTES:
+    for flip_to in ('OFF', 'CLOSE'):
+        cfg = FlippingCfg(flip_to)
+        s = sender(cfg)
+
+        def slot(**k):
+            cfg.flip()          # the operator changes the mode while the slot is being reserved
+            return 0
+        s._reserve_exchange_order_slot = slot
+        ex = RecExchange()
+        r = place(s, ex, intent(reason='ENTRY'), route)
+        if ex.calls:
+            race_failures.append((route, flip_to, r))
+check('MODE_CHANGE_DURING_THE_SLOT_WAIT_BLOCKS_ALL_7_ROUTES', race_failures == [], race_failures)
+
+# and a wallet disabled during the wait is caught by the same recheck
+disable_failures = []
+for route in ROUTES:
+    cfg = FakeCfg(mode='ON')
+    s = sender(cfg)
+
+    def slot2(**k):
+        cfg._enabled = False
+        return 0
+    s._reserve_exchange_order_slot = slot2
+    ex = RecExchange()
+    r = place(s, ex, intent(reason='ENTRY'), route)
+    if ex.calls:
+        disable_failures.append((route, r))
+check('WALLET_DISABLED_DURING_THE_SLOT_WAIT_BLOCKS_ALL_7_ROUTES', disable_failures == [], disable_failures)
+
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 sys.exit(1 if failed else 0)

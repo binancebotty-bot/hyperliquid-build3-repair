@@ -641,7 +641,11 @@ def main() -> None:
     core.sender.sender_key_invalid = "User or API Wallet does not exist"
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
-    check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before, f"{cur} {before}")
+    # instrumented so a rare failure says WHY: was the flag still set, and what did the hold branch keep
+    check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before,
+          f"{cur} {before} flag={bool(core.sender.sender_key_invalid)!r} "
+          f"held={dict(getattr(core, '_held_read_cursor', {}))} "
+          f"sender_is_same={core.sender is core.sender}")
     core.sender.sender_key_invalid = ""
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
@@ -685,6 +689,24 @@ def main() -> None:
           and c.classify_reject_category("User or API Wallet 0xabc does not exist.") == "SENDER_KEY_NOT_VALID")
     open_orders["rows"] = [{"coin": "BTC", "side": "B", "limitPx": "100.0", "sz": "0.4", "origSz": "1.0", "oid": 605}]
     check("R7_PART_FILLED_LIMIT_FOUND_BY_ORIGINAL_SIZE", gw9.find_open_entry_order("BTC", "BTC", "BUY", 100.0, 1.0) == "605")
+
+    # ---- GUARD (controller 6406078216 / review 6406031822): with PRODUCTION sends-off, the rest path
+    # must place nothing and journal the refusal. This case deliberately does NOT stub the switch - the
+    # gateway above sets master_switch_now/send_mode_now to ON, which is what made this suite unable to
+    # tell "the operator armed it" from "production says OFF".
+    config()                                        # auto_send_enabled False, no send_mode key -> OFF
+    fake_off = FakeExchange()
+    gw_off = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw_off._resolve_coin = lambda coin: dict(resolved)
+    gw_off._exchange_client_for_coin = lambda coin: (fake_off, "BTC")
+    gw_off._ensure_margin_mode = lambda *a, **k: None
+    old_fill = fill("BUY", ts=c.utc_now_ms() - 600000)      # >30 s: routes into the rest path
+    off_intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "off1.json")).build(old_fill)
+    outcome = gw_off._missed_entry_rest_or_diff(off_intent, "ORD_010_ENTRY_AGE_OVER_30S")
+    check("GUARD_SENDS_OFF_REST_PATH_MAKES_ZERO_EXCHANGE_CALLS", fake_off.calls == [], str(fake_off.calls))
+    check("GUARD_SENDS_OFF_REST_PATH_JOURNALS_THE_REFUSAL",
+          str(outcome).find("BLOCKED_AT_PLACE_ORDER") >= 0 and outcome.get("exchange_called") is False,
+          str(outcome)[:200])
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")

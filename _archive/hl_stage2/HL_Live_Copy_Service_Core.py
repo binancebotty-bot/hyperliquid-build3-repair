@@ -5605,6 +5605,13 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
+        # FINAL recheck, immediately before the physical call. The pacing slot wait and the
+        # write-ahead row can take seconds; a mode or wallet change during them must stop this
+        # order (Codex 6406031822: the early gate alone leaves that race open).
+        _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+        if _late_block:
+            self._gate_refusal_row(intent, path, _late_block)
+            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block}
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
         try:
             response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
