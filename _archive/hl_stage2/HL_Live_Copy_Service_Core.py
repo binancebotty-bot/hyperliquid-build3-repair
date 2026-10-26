@@ -110,6 +110,7 @@ load_env_file(ENV_FILE)
 # legacy URLs pointing at the other network refuse to start.
 sys.path.insert(0, str(BASE_DIR))
 import exchange_truth as _XNET  # noqa: E402
+import hotswap as _HOTSWAP  # noqa: E402  allowlisted live-swap seam, driven by HOTSWAP_REQUEST.json
 try:
     NETWORKS = _XNET.resolve_networks()
 except _XNET.NetworkConfigError as _net_exc:
@@ -1310,6 +1311,7 @@ def _process_identity() -> Dict[str, Any]:
         "cwd": str(Path.cwd()),
         "script": str(SCRIPT_FILE),
         "started_at": PROCESS_STARTED_AT,
+        "exchange_truth_sha": _HOTSWAP.loaded_sha("exchange_truth"),  # loaded, not what is on disk
         "started_at_ms": PROCESS_STARTED_AT_MS,
     }
 
@@ -16071,6 +16073,7 @@ def main() -> None:
                     except OSError:
                         pass
                     break
+                _HOTSWAP.tick(AUDIT_DIR)  # never raises: a bad request leaves the old module running
                 now = time.monotonic()
                 main_due = (not args.loop) or now >= next_main_at
                 copy_due = bool(args.poll_copy and not copy_thread and ((not args.loop) or now >= next_copy_poll_at))
