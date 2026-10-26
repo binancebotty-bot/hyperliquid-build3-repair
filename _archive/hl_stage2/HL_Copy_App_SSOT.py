@@ -29,6 +29,7 @@ import os
 import html
 import io
 import shutil
+import subprocess
 import time
 import threading
 import traceback
@@ -87,6 +88,9 @@ PNL_RUN_START_FILE = LIVE_COPY_AUDIT_DIR / "pnl_run_start.json"  # the screen's 
 PNL_FILLS_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_fills_cache.json"
 PNL_FUNDING_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_funding_cache.json"
 LIVE_COPY_RECONCILIATION_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"
+APPEND_ONLY_DIR = LIVE_COPY_AUDIT_DIR / "append_only"
+ERRORS_CSV = APPEND_ONLY_DIR / "errors.csv"  # where the engine writes its SYMBOL_NOT_LISTED refusals
+ASSET_UNIVERSE_FILE = LIVE_COPY_AUDIT_DIR / "asset_universe_snapshot.json"  # what this network lists
 LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_intents.csv"
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
 SEND_ATTEMPTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "send_attempts.csv"
@@ -199,6 +203,10 @@ _MODEL_DASHBOARD_HTML_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_CACHE: Dict[str, Any] = {"data": None, "built_at": 0.0}
 _AUDIT_SUMMARY_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_TTL = 2.0  # seconds
+# The exchange is read on a slow off-thread cache only: the 8 s UI tick must never reach the network.
+_SLOW_EXCHANGE_TTL = 60.0
+_SLOW_EXCHANGE: Dict[str, Any] = {"snapshot": {}, "follower": {}, "built_at": 0.0, "refreshing": False}
+_SLOW_EXCHANGE_LOCK = threading.Lock()
 
 # Incremental CSV reader cache: keyed by (path, inode, size) holding parsed rows read so far and byte offset.
 # Modelled on HL_Live_Copy_Service_Core.send_attempt_rows() but independent (no engine import).
@@ -705,6 +713,101 @@ def load_json(path: Path, default: Any) -> Any:
     return default
 
 
+# --- Build identity strip: files only, plus git at import (never per request) ---
+_UI_DIR = Path(__file__).resolve().parent
+_UI_STARTED_AT = datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def _git_short_sha(folder: Path) -> str:
+    try:
+        r = subprocess.run(["git", "-C", str(folder), "rev-parse", "--short=7", "HEAD"], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "unknown"
+    except Exception:
+        return "unknown"
+
+
+_UI_SHA7 = _git_short_sha(_UI_DIR)
+
+
+def _engine_identity() -> Dict[str, Any]:
+    """Engine pid/build/start from the state files. The state carries no SHA, so sha7 comes from the
+    build folder the engine was started from (e.g. v33_6c69310) - inferred, not authoritative."""
+    rec = load_json(LIVE_COPY_AUDIT_DIR / "core_start_record.json", {})
+    st = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    rec = rec if isinstance(rec, dict) else {}
+    st = st if isinstance(st, dict) else {}
+    sha7, sha_src = "unknown", "the state files carry no SHA"
+    for key in ("script", "cwd"):
+        for part in str(rec.get(key) or "").replace(chr(92), "/").split("/"):
+            tail = part.split("_")[-1].lower()
+            if "_" in part and len(tail) == 7 and all(c in "0123456789abcdef" for c in tail):
+                sha7, sha_src = tail, "core_start_record.json " + key + " folder '" + part + "'"
+                break
+        if sha7 != "unknown":
+            break
+    return {"pid": rec.get("pid") or st.get("process_id"), "started_at": rec.get("started_at") or st.get("started_at"), "sha7": sha7, "sha_source": sha_src}
+
+
+def _pid_running(pid: Any) -> bool:
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if os.name == "nt":
+        import ctypes
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)  # QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        ctypes.windll.kernel32.CloseHandle(h)
+        return True
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def _engine_same_family(sha7: str) -> bool:
+    """Family rule: the engine sha7 is in the UI's own history (ancestor of, or equal to, the UI commit).
+    Strict equality would be permanently amber because the UI branch is based on 8ce6763."""
+    if sha7 == "unknown" or _UI_SHA7 == "unknown":
+        return False
+    try:
+        r = subprocess.run(["git", "-C", str(_UI_DIR), "merge-base", "--is-ancestor", sha7, "HEAD"], capture_output=True, timeout=5)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def render_build_identity() -> str:
+    """Grey when the engine is running and its build is in the UI's history; amber otherwise. Never claims an unverified match."""
+    e = _engine_identity()
+    pid_ok = _pid_running(e["pid"])
+    same = _engine_same_family(e["sha7"])
+    problems = []
+    if not pid_ok:
+        problems.append("the engine pid in the state file (" + str(e["pid"] or "unknown") + ") is not a running process")
+    if e["sha7"] == "unknown":
+        problems.append("the engine build SHA is unknown, so a match cannot be checked")
+    elif _UI_SHA7 == "unknown":
+        problems.append("the UI build SHA is unknown, so a match cannot be checked")
+    elif not same:
+        problems.append("the UI build " + _UI_SHA7 + " does not contain the engine build " + e["sha7"])
+    if problems:
+        verdict = "build identity MISMATCH: " + "; ".join(problems)
+    else:
+        verdict = "build identity consistent: engine build " + e["sha7"] + " is in the UI's own history"
+    esc = lambda v: html.escape(str(v))
+    bits = ["Engine pid " + esc(e["pid"] or "unknown") + (" (running)" if pid_ok else " (NOT running)"),
+            "engine build " + esc(e["sha7"]) + ("" if e["sha7"] == "unknown" else " (inferred from " + esc(e["sha_source"]) + ")"),
+            "UI build " + esc(_UI_SHA7),
+            "audit dir " + esc(LIVE_COPY_AUDIT_DIR.name),
+            "engine started " + esc(e["started_at"] or "unknown"),
+            "UI started " + esc(_UI_STARTED_AT.isoformat()) + " (module import)"]
+    return ('<div class="lc-source-strip" id="buildIdentity"><span class="lc-pill ' + ("lc-amber" if problems else "lc-grey")
+            + '" style="white-space:normal">' + " &middot; ".join(bits) + " &mdash; " + esc(verdict) + "</span></div>")
+
+
 def load_engine_truth() -> Dict[str, Any]:
     truth = load_json(ENGINE_TRUTH_JSON, None)
     if not isinstance(truth, dict):
@@ -1148,6 +1251,26 @@ def _plain_block_reason(code: str) -> str:
     return c.replace("_", " ").lower()
 
 
+# the biggest positive integrity count, said in plain words: an amber banner names the worst thing, never a tab
+_INTEGRITY_REASON_WORDS = {
+    "missed_entry": "the engine missed leader entries",
+    "missed_add": "the engine missed leader adds",
+    "hard_copy_active_red": "copy rows are still active red",
+    "blocked_fills_window": "fills were blocked in the last hour",
+    "exchange_manual_mismatch": "the engine records and the exchange disagree on a position",
+    "unclassified_row_names": "a reconciliation row has no recognised name",
+    "generic_terminal_state": "a send ended in a generic terminal state",
+    "latency_warnings": "sends are slower than the warning threshold",
+    "close_reject_or_recovery_required": "a close is failing",
+}
+
+
+def _plain_integrity_reason(counts: Dict[str, Any]) -> str:
+    best = max(((v, k) for k, v in (counts or {}).items()
+                if isinstance(v, (int, float)) and v > 0 and k in _INTEGRITY_REASON_WORDS), default=None)
+    return _INTEGRITY_REASON_WORDS[best[1]] if best else ""
+
+
 _CLOSE_FAILURE_MARKERS = ("MANUAL_EXIT_RECOVERY_REQUIRED", "EXIT_RECOVERY_QUEUE_FAILED")
 
 
@@ -1213,7 +1336,8 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     elif st.get("entry_sends_blocked_reason"):
         level, text = "red", "Stopped: new entries paused because " + _plain_block_reason(str(st.get("entry_sends_blocked_reason"))) + " (exits still run)"
     elif integ in {"RED", "AMBER"}:
-        level, text = "amber", "Needs a look: see the Reconciliation tab"
+        # amber names the largest reason in words; red stays reserved for "the engine cannot send"
+        level, text = "amber", "Needs a look: " + (_plain_integrity_reason(counts) or "see the Reconciliation tab")
     return {"level": level, "text": text, "technical": technical, "integrity_status": integ,
             "engine_heartbeat_ms": beat}
 
@@ -1323,6 +1447,48 @@ def _slim_ui_payload(obj: Any, depth: int = 0) -> Any:
     return obj
 
 
+def _exchange_slow_refresh() -> None:
+    """The only place the request path's exchange figures come from: one read, off the request thread."""
+    try:
+        snapshot = _fetch_exchange_account_snapshot()
+        follower = _follower_account_value_safe()
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE.update({"snapshot": snapshot, "follower": follower, "built_at": time.time()})
+    except Exception as exc:  # a failed refresh keeps the last good value
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE["last_error"] = "%s: %s" % (type(exc).__name__, exc)
+    finally:
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE["refreshing"] = False
+
+
+def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
+    """Last-good exchange figures plus their age. Reads files and memory only; never the network."""
+    now = time.time()
+    kick = False
+    with _SLOW_EXCHANGE_LOCK:
+        if not _SLOW_EXCHANGE["snapshot"]:
+            seeded = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+            if isinstance(seeded, dict) and seeded:
+                _SLOW_EXCHANGE["snapshot"] = seeded
+                try:  # the seeded figures are as old as the file, not as old as the epoch
+                    _SLOW_EXCHANGE["built_at"] = EXCHANGE_ACCOUNT_SNAPSHOT_FILE.stat().st_mtime
+                except OSError:
+                    pass
+        _have_snapshot = bool(_SLOW_EXCHANGE["built_at"])
+        # no usable snapshot yet is UNKNOWN, not a huge age: built_at of 0 must never
+        # render as seconds-since-the-epoch
+        age = (now - float(_SLOW_EXCHANGE["built_at"])) if _have_snapshot else None
+        if (age is None or age > _SLOW_EXCHANGE_TTL) and not _SLOW_EXCHANGE["refreshing"]:
+            _SLOW_EXCHANGE["refreshing"] = True
+            kick = True
+        snapshot = dict(_SLOW_EXCHANGE["snapshot"] or {})
+        follower = dict(_SLOW_EXCHANGE["follower"] or {})
+    if kick:
+        threading.Thread(target=_exchange_slow_refresh, name="hl-exchange-slow", daemon=True).start()
+    return snapshot, follower, (round(max(0.0, age), 1) if age is not None else None)
+
+
 def _live_audit_summary() -> Dict[str, Any]:
     result = _live_audit_summary_full()
     rows = result.get("execution_quality_rows")
@@ -1381,9 +1547,8 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     recent_send_attempts = _load_recent_send_attempts(100)
     metric_send_attempts = _load_recent_send_attempts(5000)
     send_attempt_counts = _load_send_attempt_counts()
-    exchange_snapshot = _fetch_exchange_account_snapshot()
+    exchange_snapshot, follower_account, exchange_cache_age = _exchange_slow_cached()
     manual_live_summary = _manual_live_summary(manual_positions, recent_send_attempts, exchange_snapshot)
-    follower_account = _follower_account_value_safe()
     _append_exchange_history(exchange_snapshot, manual_live_summary,
                              follower_account.get("value") if follower_account.get("ok") else None)
     ws_health = _load_live_ws_health()
@@ -1448,6 +1613,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "net_pnl_start_time": pnl_tally.get("start_time", ""),
         "net_pnl_reason": pnl_tally.get("reason", ""),
         "net_pnl_partial": bool(pnl_tally.get("partial")),
+        "exchange_age_seconds": exchange_cache_age,  # how old the exchange figures are; the tick shows it
         "open_positions": len(open_positions_now) if isinstance(open_positions_now, list) else None,
         "resting_orders": live_top_status.get("resting_entry_limits"),
     }
@@ -1533,6 +1699,80 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "send_block_reason": live_top_status.get("send_block_reason"),
         "live_integrity_status": integrity_status,
         "live_top_status": live_top_status,
+    }
+
+
+
+def _symbol_not_listed_summary() -> Dict[str, Any]:
+    """Leader trades in coins this network does not list, counted per coin and per leader wallet.
+
+    Keyed strictly on the SYMBOL_NOT_LISTED status the engine writes - never on a reject category - and a coin
+    the asset universe does list (XYZ:CRCL, XYZ:IBM) is excluded however it was labelled on the way.
+    shortcut: reads only the newest journal files and a bounded tail of errors.csv, so an older refusal is not counted.
+    """
+    uni = load_json(ASSET_UNIVERSE_FILE, {})
+    syms = uni.get("symbols") if isinstance(uni, dict) else None
+    listed = {str(k).upper() for k in (syms.keys() if isinstance(syms, dict) else (syms if isinstance(syms, list) else []))}
+    found: Dict[str, Dict[str, Any]] = {}
+
+    def add(coin: str, wallet: str, key: str) -> None:
+        c = str(coin or "").strip().upper()
+        if not c or c in listed or key in found:
+            return
+        found[key] = {"coin": c, "wallet": str(wallet or "").strip()}
+
+    partial_reads: List[str] = []  # every bounded tail and every skipped read error is named here, never silent
+    try:
+        journals = sorted(APPEND_ONLY_DIR.glob("reconciliation*.csv"), key=lambda f: f.name)
+    except OSError as exc:
+        journals = []
+        partial_reads.append("reconciliation journals: listing failed (%s)" % type(exc).__name__)
+    if not journals:
+        # no journal at all is not nothing-to-report: the counts cannot be known
+        partial_reads.append("reconciliation journals: none found (%s)" % APPEND_ONLY_DIR.name)
+    if len(journals) > 2:
+        partial_reads.append("reconciliation journals: newest 2 of %d read" % len(journals))
+    journals = journals[-2:]
+    for jf in journals:
+        try:
+            rows, _ = _read_csv_incremental(jf, limit=None, tail_bytes=8 * 1024 * 1024)
+            partial_reads.append("%s: last %d bytes only" % (jf.name, 8 * 1024 * 1024))
+        except Exception as exc:
+            partial_reads.append("%s: read failed (%s)" % (jf.name, type(exc).__name__))
+            continue
+        for r in rows:
+            if "SYMBOL_NOT_LISTED" not in " ".join(str(r.get(k) or "") for k in ("status", "terminal_state")).upper():
+                continue
+            add(r.get("coin"), r.get("leader_wallet"), "r|%s|%s" % (r.get("intent_id") or r.get("leader_fill_id") or "", r.get("coin")))
+    if ERRORS_CSV.exists():
+        try:
+            erows, _ = _read_csv_incremental(ERRORS_CSV, limit=None, tail_bytes=16 * 1024 * 1024)
+            partial_reads.append("%s: last %d bytes only" % (ERRORS_CSV.name, 16 * 1024 * 1024))
+        except Exception as exc:
+            erows = []
+            partial_reads.append("%s: read failed (%s)" % (ERRORS_CSV.name, type(exc).__name__))
+        for r in erows:
+            msg = str(r.get("message") or "")
+            if "SYMBOL_NOT_LISTED" not in msg.upper():
+                continue
+            rest = msg.split("symbol unresolved:", 1)[-1].strip()
+            add(rest.split()[0] if rest else "", "", "e|%s|%s" % (r.get("created_at_ms"), rest[:24]))
+    coins: Dict[str, int] = {}
+    wallets: Dict[str, int] = {}
+    for f in found.values():
+        coins[f["coin"]] = coins.get(f["coin"], 0) + 1
+        if f["wallet"]:
+            wallets[f["wallet"]] = wallets.get(f["wallet"], 0) + 1
+    return {
+        # ok:true means the endpoint answered; partial says the counts do not cover everything on disk
+        "ok": True,
+        "partial": bool(partial_reads),
+        "partial_reads": partial_reads,
+        "total": len(found),
+        "coins": [{"coin": k, "count": v} for k, v in sorted(coins.items(), key=lambda kv: (-kv[1], kv[0]))],
+        "wallets": [{"wallet": k, "count": v} for k, v in sorted(wallets.items(), key=lambda kv: (-kv[1], kv[0]))],
+        "listed_symbols": len(listed),
+        "source": "append_only/reconciliation*.csv + append_only/errors.csv",
     }
 
 
@@ -6998,12 +7238,15 @@ async def admin_purge_wallet(request: Request):
 def render_live_copy_control_panel() -> str:
     return """
 <div class="section live-copy-centre" id="liveCopyPanel">
+  """ + render_build_identity() + """
   <header class="lc-header">
     <div class="lc-title">Live Copy Command Centre</div>
     <div class="lc-header-pills">
-      <span class="lc-pill">Wallets: <b id="lcWalletCount">0 / 10</b></span>
       <span id="lcModeCounts" style="display:contents"></span>
       <span class="lc-pill" id="lcFeedPill">Leader feed: <b id="lcWsOverall">—</b></span>
+      <span class="lc-pill lc-grey" id="lcAsOf" hidden></span>
+      <span class="lc-pill lc-amber" id="lcStaleNote" hidden>figures could not be rebuilt</span>
+      <span class="lc-pill lc-grey" id="lcExchangeAge" hidden></span>
     </div>
     <div class="lc-header-actions">
       <button type="button" id="lcRefresh">Refresh</button>
@@ -7052,6 +7295,12 @@ def render_live_copy_control_panel() -> str:
     <h3>Does the P&amp;L add up?</h3>
     <p>Start value to now, from the exchange: every fill and funding payment in the window is counted.</p>
     <div id="lcTally" class="lc-tally"><span class="lc-muted">Loading…</span></div>
+  </section>
+
+  <section class="lc-panel" id="lcNotListedPanel">
+    <h3>Leader trades in markets not listed on testnet</h3>
+    <p class="lc-muted">Counted from rows whose engine status is SYMBOL_NOT_LISTED. A coin this network does list is never counted.</p>
+    <div id="lcNotListed" class="lc-muted">Loading...</div>
   </section>
 
   <section class="lc-panel lc-top-status">
@@ -7197,6 +7446,7 @@ const root=document.getElementById('liveCopyPanel'); if(!root) return;
 const status=root.querySelector('#lcStatus');
 let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
 let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStartMs=0, lcGraphEndMs=0;
+let lcNotListed=null, lcNotListedAt=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function msg(t,bad){if(status){status.textContent=t||'';status.className='lc-status '+(bad?'lc-bad':'lc-ok');}}
 async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});return await r.json();}
@@ -7213,6 +7463,10 @@ function pill(text,kind){const t=String(text||'n/a');const token=String(kind||t)
  return `<span class="lc-pill ${cls}">${h(t)}</span>`;}
 const ROUTINE_REJECTS=['UNSUPPORTED_SYMBOL_OR_METADATA','SPOT_MARKET_SKIPPED','SYMBOL_UNAVAILABLE','META_UNAVAILABLE','SDK_SYMBOL_MAP_UNAVAILABLE','SYMBOL_NOT_TRADABLE_BY_SENDER','IOC_NO_IMMEDIATE_MATCH'];
 function isRoutineReject(r){r=r||{};return ROUTINE_REJECTS.some(k=>[r.reject_category,r.status,r.terminal_state].map(x=>String(x||'').toUpperCase()).some(x=>x.indexOf(k)>=0));}
+const REJECT_WORDS={'SYMBOL_CACHE_MISS':'missing from the local symbol list, cache needs refreshing','SYMBOL_UNRESOLVED':'not listed on this network','SPOT_MARKET_SKIPPED':'spot markets are not copied','SYMBOL_NOT_TRADABLE_BY_SENDER':'the follower account cannot trade this market','IOC_NO_IMMEDIATE_MATCH':'no fill at the limit price'};
+// the named code for a send/reject row, or '' — an unknown code is shown raw, never swallowed
+function rejectCode(r){r=r||{};const codes=[r.reject_category,r.terminal_state,r.status].map(x=>String(x||'').toUpperCase());for(const k of Object.keys(REJECT_WORDS)){if(codes.some(x=>x.indexOf(k)>=0))return k;}return '';}
+function rejectText(r){const k=rejectCode(r);return k?REJECT_WORDS[k]:String(first(r,['reject_category','terminal_state','status'])||'');}
 // stop-level: a close that is failing or a resting order that could not be cancelled
 const STOP_LEVEL=['MANUAL_EXIT_RECOVERY_REQUIRED','EXIT_RECOVERY_QUEUE_FAILED','RESTING_ENTRY_CANCEL_FAILED','MANUAL_REVIEW_CANCEL_RESTING_ENTRY'];
 function isStopLevel(v){const s=String(v||'').toUpperCase();return (s.startsWith('CLOSE_')&&s!=='CLOSE_ONLY')||STOP_LEVEL.some(k=>s.indexOf(k)>=0);}
@@ -7353,9 +7607,9 @@ function renderTopStatus(){
   statusCard('Leader feed',feed.text,feed.cls,st.ws_enabled?'websocket':'the engine polls each leader'),
   statusCard('Follower account read',pollTxt,pollOk?'lc-green':'lc-grey',''),
   statusCard('Wallets',`${st.live_wallets||0} live / ${st.active_wallets||0} followed`,'','live + close-only are followed'),
-  statusCard('Last send',lastSend.created_at?`${lastSend.coin||''} ${isRoutineReject(lastSend)?'market not available':(lastSend.status||'')}`:'—',isRoutineReject(lastSend)?'lc-grey':terminalCls(lastSend.terminal_state||lastSend.status),lastSend.terminal_state||''),
+  statusCard('Last send',lastSend.created_at?`${lastSend.coin||''} ${rejectText(lastSend)}`:'—',(isRoutineReject(lastSend)||rejectCode(lastSend))?'lc-grey':terminalCls(lastSend.terminal_state||lastSend.status),lastSend.terminal_state||''),
   statusCard('Last fill',lastFill.created_at?`${lastFill.coin||''} ${lastFill.side||''} ${lastFill.fill_size||''}`:'—','',lastFill.created_at||''),
-  statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${isRoutineReject(lastReject)?'market not available':(lastReject.reject_category||lastReject.status||'')}`:'—',isRoutineReject(lastReject)?'lc-grey':terminalCls(lastReject.terminal_state||lastReject.status),lastReject.reject_category||lastReject.terminal_state||''),
+  statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${rejectText(lastReject)}`:'—',(isRoutineReject(lastReject)||rejectCode(lastReject))?'lc-grey':terminalCls(lastReject.terminal_state||lastReject.status),lastReject.reject_category||lastReject.terminal_state||''),
   statusCard('Last latency warning',lastLat.created_at?String(lastLat.notes||lastLat.status||'SEND_LATENCY_WARN'):'—',lastLat.created_at?'lc-amber':'',lastLat.created_at||''),
  ];
  const box=root.querySelector('#lcTruthStatus'); if(box) box.innerHTML=cards.join('');
@@ -7383,6 +7637,30 @@ function renderBanner(){
  const tech=root.querySelector('#lcHealthTechBody');if(tech)tech.innerHTML=(hl.technical||[]).map(t=>`<li>${h(t)}</li>`).join('')||'<li>nothing to report</li>';
  const rn=root.querySelector('#lcRestartNote');if(rn)rn.hidden=!st.ws_restart_needed;
 }
+// how old the figures are: the integrity file's own created_at_ms, amber-grey past a minute
+function renderFreshness(){
+ const el=root.querySelector('#lcAsOf');
+ const ms=Number((lcAudit.live_integrity_status||{}).created_at_ms||0);
+ const stale=!!lcAudit.stale;
+ const old=ms>0&&(Date.now()-ms)>60000;
+ if(el){el.hidden=!ms;el.className='lc-pill '+(old||stale?'lc-amber':'lc-grey');el.textContent=ms?((old||stale?'numbers as of ':'as of ')+new Date(ms).toLocaleTimeString()):'';}
+ const sn=root.querySelector('#lcStaleNote');if(sn){sn.hidden=!stale;sn.title=String(lcAudit.error||'');}
+ // the exchange is read on a slow cache, so say how old its figures are
+ const ex=root.querySelector('#lcExchangeAge');const b=lcAudit.status_banner||{};const secs=b.exchange_age_seconds;
+ if(ex){const known=secs!=null&&secs!=='';ex.hidden=false;if(known){const n=Number(secs);ex.className='lc-pill '+(n>=60?'lc-amber':'lc-grey');ex.textContent='exchange figures: '+(n<60?n+'s old':Math.round(n/60)+' min old');ex.title='the exchange is polled on a 60 s cache, never by this refresh';}else{ex.className='lc-pill lc-amber';ex.textContent='exchange figures: not loaded yet';ex.title='no snapshot from the slow cache yet; the figures are unknown, not zero';}}
+ renderNotListed();
+}
+function renderNotListed(){
+ const box=root.querySelector('#lcNotListed'); if(!box) return;
+ if(!lcNotListedAt||Date.now()-lcNotListedAt>60000){lcNotListedAt=Date.now();jget('/api/symbol-not-listed').then(d=>{lcNotListed=d;renderNotListed();}).catch(e=>{lcNotListed={ok:false,error:e.message||String(e)};renderNotListed();});}
+ const d=lcNotListed; if(!d){return;}
+ if(!d.ok){box.textContent='could not read: '+String(d.error||'unknown');return;}
+ const pills=a=>(a||[]).map(c=>`<span class="lc-pill lc-grey" title="${h(c.coin||c.wallet)}">${h(c.coin||shortWallet(c.wallet))}: <b>${h(c.count)}</b></span>`).join(' ');
+ // a bounded read is disclosed, never left looking complete
+ const partial=d.partial?'<div style="margin-top:6px"><span class="lc-pill lc-amber" title="'+h((d.partial_reads||[]).join(' | '))+'" data-lc-partial="1">partial: older rows not counted</span></div>':'';
+ box.innerHTML='<div>by coin: '+(pills(d.coins)||'<span class="lc-muted">none recorded</span>')+'</div>'
+  +'<div style="margin-top:6px">by leader wallet: '+(pills(d.wallets)||'<span class="lc-muted">none recorded</span>')+'</div>'+partial;
+}
 function renderTally(){
  const t=lcAudit.pnl_tally||{}, box=root.querySelector('#lcTally'); if(!box)return;
  const row=(label,val,cls,extra)=>`<div class="t-label ${extra||''}">${label}</div><div class="t-val ${extra||''} ${cls||''}">${val}</div>`;
@@ -7401,7 +7679,7 @@ function renderTally(){
  if(t.available){
   const u=t.unexplained, big=u!=null&&Math.abs(u)>Math.max(1,Math.abs(t.start_value||0)*0.005);
   out+=row('Unexplained difference',u!=null?m(u):dash('a part above is unknown'),big?'lc-amber':'lc-grey','t-sum');
-  out+=`<div class="t-note">Counted ${h(t.fill_count)} exchange fills${t.fill_pages>1?' ('+h(t.fill_pages)+' pages)':''} and ${h(t.funding_count)} funding payments since the start.${t.partial?' <span class="lc-tag lc-amber">partial</span> <span class="lc-amber">'+(t.history_limited?'The exchange keeps only the latest ~10,000 fills, so early history may be missing':'Some history could not be fetched')+(t.notes?': '+h(t.notes):'')+'.</span>':''}${big?' Deposits, withdrawals or transfers also show here.':''}</div>`;
+  out+=`<div class="t-note">Counted ${h(t.fill_count)} exchange fills${t.fill_pages>1?' ('+h(t.fill_pages)+' pages)':''} and ${h(t.funding_count)} funding payments since the start.${t.partial?' <span class="lc-tag lc-amber">partial</span> <span class="lc-amber">'+(t.history_limited?'The exchange keeps only the latest ~10,000 fills, so early history may be missing':'Some history could not be fetched')+(t.notes?': '+h(t.notes):'')+'.</span>':''}${u!=null?' The unexplained part is account value the fills and funding above do not explain: a deposit, withdrawal or transfer, or exchange history older than the ~10,000 fills the exchange keeps ('+(t.history_limited?'history_limited is true, so early fills are missing':'history_limited is false')+').':''}</div>`;
  } else {
   out+=`<div class="t-note">${h(t.reason||'')}</div>`;
  }
@@ -7663,17 +7941,15 @@ function renderHealth(){
 }
 function render(){
  const wallets=lcConfig.wallets||{}, walletEntries=Object.values(wallets);
- const tracked=walletEntries.length;
  const liveCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='LIVE').length;
  const cloCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='CLO').length;
  const offCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='OFF').length;
- root.querySelector('#lcWalletCount').textContent=`${tracked} / 10`;
  const mc=root.querySelector('#lcModeCounts');
  // wallet counts by mode; whether orders are SENT is the master switch, shown once in the banner
- if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">Live wallets: ${liveCount}</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">Close-only wallets: ${cloCount}</span> <span class="lc-pill lc-grey">Off: ${offCount}</span>`;
+ if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">${liveCount} live</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">${cloCount} close-only</span> <span class="lc-pill lc-grey">${offCount} off</span>`;
  const feed=feedLabel(lcAudit.live_top_status||{});
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
- renderBanner(); renderTally(); renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
+ renderBanner(); renderTally(); renderTopStatus(); renderFreshness(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
 async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
@@ -7729,6 +8005,7 @@ root.querySelector('#lcWalletRows').addEventListener('click',async e=>{
  tr.insertAdjacentElement('afterend',detRow);
 });
 refresh();
+setInterval(()=>{if(!document.hidden)refresh(true);},8000);  // the DOM used to freeze at the last manual click
 })();
 </script>
 """
@@ -8017,6 +8294,15 @@ def get_live_audit_summary():
             stale = _AUDIT_SUMMARY_CACHE.get("data")
         if stale is not None:
             return JSONResponse({**stale, "cache_hit": True, "stale": True, "error": str(exc)})
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+@app.get("/api/symbol-not-listed")
+def get_symbol_not_listed():
+    """Leader trades in coins this network does not list: per coin and per leader wallet, grey information."""
+    try:
+        return JSONResponse(_symbol_not_listed_summary())
+    except Exception as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
 
