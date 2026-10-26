@@ -164,6 +164,15 @@ def main():
             diff = [k for k in set(list(written) + list(seed)) if written.get(k) != seed.get(k)]
             print('NOT VERIFIED: the config in the state dir no longer equals the seed (differs in %s)' % diff)
             return 21
+        anchor_p = os.path.join(state, 'PAIR_START_ANCHOR.json')
+        if not os.path.exists(anchor_p):
+            print('NOT VERIFIED: %s is missing - without it a poll can read before T0' % anchor_p)
+            return 22
+        a0 = int(json.load(open(anchor_p, encoding='utf-8')).get('t0_ms') or 0)
+        if a0 <= 0 or a0 > min(got.values()):
+            print('NOT VERIFIED: anchor %s is not before the cursors' % a0)
+            return 22
+        print('  pair-start anchor      %d (%s)' % (a0, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(a0 / 1000))))
         print('  config sha256    %s (equals the seed)' % _sha(cfg_path))
         print('  cursors          %d wallets, engine would start %s'
               % (len(got), time.strftime('%H:%M:%SZ', time.gmtime(now_start / 1000))))
@@ -200,6 +209,15 @@ def main():
         'seed': {'written_at_ms': now_ms, 't0_ms': t0, 'interval_ms': interval_ms,
                  'overlap_ms': OVERLAP_MS, 'source': os.path.basename(seed_abs)},
     }
+    # The pair-start anchor: the engine clamps every leader poll to this and never moves it, so a
+    # fresh start cannot read before T0 while a later restart still replays from its own cursor.
+    anchor_path = os.path.join(state, 'PAIR_START_ANCHOR.json')
+    anchor = {'t0_ms': t0, 'written_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+              'source': os.path.basename(seed_abs), 'interval_ms': interval_ms, 'overlap_ms': OVERLAP_MS}
+    tmp_anchor = anchor_path + '.tmp'
+    with open(tmp_anchor, 'w', encoding='utf-8') as fh:
+        json.dump(anchor, fh, indent=2, sort_keys=True)
+    os.replace(tmp_anchor, anchor_path)
     tmp_cur = cursors + '.tmp'
     with open(tmp_cur, 'w', encoding='utf-8') as fh:
         json.dump(seeded, fh, indent=2, sort_keys=True)
@@ -219,6 +237,7 @@ def main():
     print('  WROTE live_config.json (%d wallets) and clean_core_runtime_state.json (%d cursors)'
           % (len(wallets), len(seeded['last_leader_poll_cursor_ms'])))
     print('  send_mode written        %s' % (seed.get('global_controls') or {}).get('send_mode'))
+    print('  pair-start anchor        %d (%s)' % (t0, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(t0 / 1000))))
     print('VERDICT=PASS')
     return 0
 

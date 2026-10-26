@@ -667,6 +667,41 @@ class TimedLock:
 # leader re-read on each poll after the first: enough for the info API to index a fill (was the 5 min copy overlap)
 LEADER_POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_LEADER_POLL_OVERLAP_MS", "30000"))
 POLL_WINDOW_MS = int(os.getenv("HL_LIVE_POLL_WINDOW_MS", str(24 * 60 * 60 * 1000)))
+
+PAIR_START_ANCHOR_NAME = "PAIR_START_ANCHOR.json"
+
+
+def read_pair_start_anchor_ms(audit_dir=None):
+    """The pair-start anchor, written ONCE by ops/seed_pair_state.py and never moved by a restart.
+
+    A leader poll must never reach back before this, or a fresh pair start re-reads history it was
+    seeded to ignore (2026-10-25). It is NOT live_start_ms on purpose: a restart has to keep replaying
+    fills missed since its own cursor, and clamping to live_start_ms would silently drop them.
+    0 means "no anchor" (an older state dir), which leaves the previous behaviour intact.
+    """
+    try:
+        d = json.loads((Path(audit_dir or AUDIT_DIR) / PAIR_START_ANCHOR_NAME).read_text(encoding="utf-8-sig"))
+        return max(0, int(d.get("t0_ms") or 0))
+    except Exception:
+        return 0
+
+
+def leader_poll_start_ms(cursor_ms, now_ms, interval_ms, overlap_ms, retention_ms, anchor_ms=0):
+    """Where the leader poll starts: Core:13572's window, floored by the pair-start anchor.
+
+    The anchor is a hard lower bound, so no sequence of cursor updates can walk the read backwards
+    before the pair started - which is what a deferred pre-cutover fill used to do, one interval at a
+    time, each step fetching more history to defer.
+    """
+    cursor_ms, now_ms = int(cursor_ms or 0), int(now_ms or 0)
+    if cursor_ms > 0:
+        start = max(cursor_ms - int(interval_ms) - int(overlap_ms), now_ms - int(retention_ms))
+    else:
+        start = max(0, now_ms - POLL_WINDOW_MS - POLL_OVERLAP_MS)
+    start = max(start, now_ms - int(retention_ms))
+    if anchor_ms and int(anchor_ms) > 0:
+        start = max(start, int(anchor_ms))
+    return start
 POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "40"))
 LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
 MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
@@ -4173,6 +4208,7 @@ class DedupeStore:
         self.copy_account_baseline_fill_count: int = int(fnum(state.get("copy_account_baseline_fill_count"), 0))
         self.copy_account_baseline_max_ts_ms: int = int(fnum(state.get("copy_account_baseline_max_ts_ms"), 0))
         self.live_start_ms: int = int(fnum(state.get("live_start_ms"), 0))
+        self.pair_start_anchor_ms: int = read_pair_start_anchor_ms()
         self._lock = threading.RLock()  # the copy thread, send workers and the cycle's state write share these sets
         self._state_dir = Path(state_dir) if state_dir else None
         self._jsonl_new_leader: List[str] = []
@@ -11842,11 +11878,16 @@ class LiveCopyCore:
         queued or in flight: those fills exist only in memory, so after a crash or restart the poll must re-read
         them (they were once lost this way; the ledger/idempotency guard makes the re-read harmless)."""
         w = str(wallet).lower()
+        # A fill older than this instance's cutover is refused as PRE_CUTOVER_NOT_SENT and can never
+        # be sent, so it must not pin the cursor: doing that walked the read backwards 150 s per poll
+        # on 2026-10-25, each step fetching more history to defer.
+        _cutover = int(getattr(self.dedupe, "live_start_ms", 0) or 0)
         with self._queued_lock:
-            floor = min((ts for (pw, ts) in self._pending_ts.values() if pw == w and ts > 0), default=0)
+            floor = min((ts for (pw, ts) in self._pending_ts.values()
+                         if pw == w and ts > 0 and (not _cutover or ts >= _cutover)), default=0)
         with self._deferred_lock:  # a fill held for unreadable truth lives only in memory too
             held = [int(fnum(f.timestamp_ms, 0)) for (f, _at) in self._deferred.values() if str(f.leader_wallet).lower() == w]
-        held = [t for t in held if t > 0]
+        held = [t for t in held if t > 0 and (not _cutover or t >= _cutover)]
         if held:
             floor = min([floor, *held]) if floor else min(held)
         return min(int(proposed_ms), floor) if floor and proposed_ms else int(proposed_ms)
@@ -13569,8 +13610,9 @@ class LiveCopyCore:
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
-                    _start = (max(_cursor - _overlap_ms, _retention_floor)
-                              if _cursor > 0 else max(0, now - POLL_WINDOW_MS - POLL_OVERLAP_MS))
+                    _start = leader_poll_start_ms(
+                        _cursor, now, _overlap_ms - LEADER_POLL_OVERLAP_MS, LEADER_POLL_OVERLAP_MS,
+                        LEADER_POLL_RETENTION_MS, getattr(self, "pair_start_anchor_ms", 0))
                     if _cursor > 0 and _cursor < _retention_floor:
                         if _cursor > _reported_outage_gap_floors.get(w, 0):
                             self.audit.append_reconciliation(
