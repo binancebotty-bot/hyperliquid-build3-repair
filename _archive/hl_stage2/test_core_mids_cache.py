@@ -26,6 +26,29 @@ def check(name, ok, detail=''):
     print('RESULT::%s_%s%s' % (name, 'PASS' if ok else 'FAIL', (' | ' + str(detail)[:180]) if not ok else ''))
 
 
+
+class FailingFetcher:
+    """The info endpoint is unreachable: the refresh raises."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def __call__(self, name, payloads, url, timeout):
+        self.calls += 1
+        raise RuntimeError('refresh failed')
+
+
+class EmptyFetcher:
+    """The refresh succeeds but carries no price for the coin."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def __call__(self, name, payloads, url, timeout):
+        self.calls += 1
+        return [{'ok': True, 'data': {}} for _ in payloads]
+
+
 class Fetcher:
     """Counts allMids reads and serves a fixed price."""
 
@@ -69,6 +92,42 @@ clock['ms'] += 5_100
 C._FOLLOWER_MIDS.update({'ms': clock['ms'] - 5_100})
 p5 = C.follower_mid('DOGE')
 check('STALE_BEYOND_MAX_AGE_IS_NONE', p5 == 0.0, 'p=%r' % (p5,))
+
+# ---- Codex 6407326445: the max-age check must be proved directly. An over-age cached value that the
+# refresh cannot replace must NOT be served - not even as a sizing input.
+C._FOLLOWER_MIDS.update({'px': {'BTC': 100.0}, 'ms': clock['ms'] - 6_000, 'scope': ['']})   # 6 s old > 5 s limit
+C._XNET.post_many = FailingFetcher()
+try:
+    p6 = C.follower_mid('BTC')
+    check('OVER_AGE_VALUE_IS_NOT_SERVED_WHEN_THE_REFRESH_FAILS', p6 == 0.0, 'returned %r, expected 0.0' % (p6,))
+except Exception as exc:
+    check('OVER_AGE_VALUE_IS_NOT_SERVED_WHEN_THE_REFRESH_FAILS', False,
+          'the refresh failure escaped follower_mid as %s: %s' % (type(exc).__name__, str(exc)[:100]))
+
+# same, but the refresh succeeds and simply has no price for the coin
+C._FOLLOWER_MIDS.update({'px': {'BTC': 100.0}, 'ms': clock['ms'] - 6_000, 'scope': ['']})
+C._XNET.post_many = EmptyFetcher()
+p7 = C.follower_mid('BTC')
+check('OVER_AGE_VALUE_IS_NOT_SERVED_WHEN_THE_REFRESH_IS_EMPTY', p7 == 0.0, 'returned %r, expected 0.0' % (p7,))
+
+# ---- Codex 6407326445: the cache must not change what we SIZE. Same mid, warm cache vs a fresh read,
+# must produce the identical quantity - the engine's own sizing expression (copy_notional / mid).
+def units(notional, mid):
+    return (notional / mid) if mid > 0 else 0.0
+
+C._FOLLOWER_MIDS.update({'px': {}, 'ms': 0, 'scope': None})
+fresh_fetch = Fetcher()
+C._XNET.post_many = fresh_fetch
+clock['ms'] += 10_000
+mid_fresh = C.follower_mid('BTC')                  # cold: fetches
+clock['ms'] += 500
+mid_cached = C.follower_mid('BTC')                 # warm: reuses
+check('SIZING_IDENTICAL_WITH_AND_WITHOUT_THE_CACHE',
+      mid_fresh == mid_cached == 100.0
+      and units(250.0, mid_fresh) == units(250.0, mid_cached) == 2.5
+      and fresh_fetch.calls == 1,
+      'fresh=%r cached=%r units=%r/%r fetches=%d'
+      % (mid_fresh, mid_cached, units(250.0, mid_fresh), units(250.0, mid_cached), fresh_fetch.calls))
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))

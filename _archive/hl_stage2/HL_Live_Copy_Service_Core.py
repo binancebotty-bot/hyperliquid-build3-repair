@@ -280,11 +280,17 @@ def follower_mid(coin: str) -> float:
             if stale():
                 out: Dict[str, float] = {}
                 payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
-                for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
-                    data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
-                    for key, value in data.items():
-                        if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                            out[str(key).upper()] = fnum(value, 0.0)
+                try:
+                    for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
+                        data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
+                        for key, value in data.items():
+                            if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                                out[str(key).upper()] = fnum(value, 0.0)
+                except Exception as exc:
+                    # A price we cannot fetch is NO price, not a crashed fill: the age check below returns 0.0
+                    # and the caller refuses the order with FOLLOWER_PRICE_UNAVAILABLE. Before this guard the
+                    # exception escaped follower_mid into the send path.
+                    log_error("follower_mid_refresh_failed", exc)
                 if out:
                     m["px"], m["ms"], m["scope"] = out, now, dexes
                     m["refresh_ms"] = utc_now_ms() - now
