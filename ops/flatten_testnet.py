@@ -295,6 +295,69 @@ def report(rows: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+
+def ledger_fingerprint(path: Path) -> Dict[str, Any]:
+    """sha256 + mtime of the real ledger at copy time, so a later change can be detected and refused."""
+    import hashlib
+    try:
+        raw = path.read_bytes()
+        return {"sha256": hashlib.sha256(raw).hexdigest(), "mtime_ns": path.stat().st_mtime_ns, "size": len(raw)}
+    except Exception as exc:
+        return {"error": repr(exc)}
+
+
+def ledger_unchanged(path: Path, fp: Dict[str, Any]) -> bool:
+    if "sha256" not in fp:
+        return False
+    return ledger_fingerprint(path).get("sha256") == fp.get("sha256")
+
+
+def client_endpoint(exchange: Any) -> Optional[str]:
+    """The base URL of the object that will actually send. Unknown is None, and None must refuse."""
+    if exchange is None:
+        return None
+    for attr in ("base_url", "url", "endpoint", "api_url", "_base_url", "_url"):
+        v = getattr(exchange, attr, None)
+        if isinstance(v, str) and v:
+            return v
+    for attr in ("session", "client", "_session", "_client"):
+        obj = getattr(exchange, attr, None)
+        if obj is not None:
+            u = getattr(obj, "base_url", None) or getattr(obj, "url", None)
+            if isinstance(u, str) and u:
+                return u
+    try:
+        for v in vars(exchange).values():
+            if isinstance(v, str) and v.startswith("http"):
+                return v
+    except Exception:
+        pass
+    return None
+
+
+def client_is_testnet(exchange: Any) -> Optional[bool]:
+    """True/False, or None when the endpoint cannot be read - and None refuses."""
+    ep = client_endpoint(exchange)
+    if not ep:
+        return None
+    return is_testnet(ep)
+
+
+def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Optional[Dict[str, Any]] = None) -> Path:
+    """Written and fsynced BEFORE any early return: evidence survives an abort."""
+    out = state / ("FLATTEN_%s_%s.json" % ("LIVE" if live else "DRYRUN",
+                                           time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
+    payload = {"live": live, "rows": rows, "extra": extra or {}}
+    try:
+        with open(out, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2, default=str)
+            fh.flush()
+            os.fsync(fh.fileno())
+    except Exception as exc:
+        print("report write failed: %r" % (exc,))
+    return out
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="flatten TESTNET positions one coin at a time (dry run by default)")
     ap.add_argument("--state", required=True, help="audit/state dir of the run being retired")
@@ -306,15 +369,18 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "is unaccounted - the ARCHIVE GATE")
     args = ap.parse_args(argv)
     state = Path(args.state)
+    live = bool(args.live)
 
     wallet = os.getenv("HL_USER_WALLET") or os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS") or ""
     if not wallet:
         print("REFUSED: no follower wallet in the environment")
         return 2
-    live = bool(args.live)
     print("MODE " + ("LIVE" if live else "DRY_RUN (nothing will be sent)"))
+    rows: List[Dict[str, Any]] = []
+    extra: Dict[str, Any] = {}
 
-    if args.reconcile:                      # read-only: safe while the engine runs, and needed before the stop too
+    # read-only, so it runs before the engine check (needed both before the stop and at the archive gate)
+    if args.reconcile:
         rec = reconcile_cloids(state, wallet)
         print(json.dumps(rec, indent=2))
         print("ARCHIVE_GATE " + ("PASS" if rec["ok"] else "BLOCKED"))
@@ -325,50 +391,74 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("REFUSED: an engine is running (pids %s). Stop the pair first." % pids)
         return 3
 
-    if live and not is_testnet(os.getenv("HL_INFO_URL") or "https://api.hyperliquid-testnet.xyz/info"):
-        print("REFUSED: --live with an endpoint that is not testnet (%r)" % (os.getenv("HL_INFO_URL"),))
+    # ---- endpoints: BOTH must be testnet, and an unreadable endpoint refuses
+    info_url = os.getenv("HL_INFO_URL") or "https://api.hyperliquid-testnet.xyz/info"
+    if not is_testnet(info_url):
+        print("REFUSED: info endpoint is not testnet (%r)" % (info_url,))
         return 6
 
+    # ---- ledger: disposable copy + fingerprint of the original
+    real_ledger = state / "manual_live_positions.json"
+    fp = ledger_fingerprint(real_ledger)
+    _ltmp = Path(tempfile.mkdtemp(prefix="flatten_ledger_")) / "manual_live_positions.json"
+    try:
+        _ltmp.write_bytes(real_ledger.read_bytes())
+    except Exception:
+        _ltmp.write_text("{}", encoding="utf-8")
+    extra["ledger_fingerprint"] = fp
+
     nets = ledger_nets(state)
-    _meta = _info({"type": "meta"})
-    sz_dec = sz_decimals_from_meta(_meta)
+    sz_dec = sz_decimals_from_meta(_info({"type": "meta"}))
     positions = open_positions(wallet)
     if args.only:
         positions = [p for p in positions if p["coin"].upper() == args.only.upper()]
     print("positions=%d ledger_coins_with_net=%d" % (len(positions), len(nets)))
 
-    rows: List[Dict[str, Any]] = []
-
-    # ---- 3a. resting orders FIRST: a resting order must never fill into a flattened book
+    # ---- 3a. cancels are MANDATORY for a live run, verified, and a failure is a hard stop
+    if live and not args.cancel_resting:
+        print("REFUSED: --live requires --cancel-resting (a resting order must not fill into a flattened book)")
+        return 8
     if args.cancel_resting:
+        try:
+            from HL_Live_Copy_Service_Core import SenderGateway, ConfigManager, AuditLogWriter
+            _gw = SenderGateway(ConfigManager(), AuditLogWriter())
+        except Exception as exc:
+            print("REFUSED: cannot build the engine gateway (%r)" % (exc,))
+            return 9
         for o in resting_orders(wallet):
             coin, oid = coin_key(o.get("coin")), str(o.get("oid") or "")
-            print("%s resting cancel %s %s oid=%s" % ("WOULD" if not live else "DOING", coin, o.get("side"), oid))
-            rows.append({"coin": coin, "before": float(o.get("sz") or 0), "after": 0.0,
-                         "action": "CANCEL_RESTING", "reason": "" if live else "DRY_RUN"})
-            if live and oid:
-                try:
-                    from HL_Live_Copy_Service_Core import SenderGateway, ConfigManager, AuditLogWriter
-                    gw = SenderGateway(ConfigManager(), AuditLogWriter())
-                    exch, _sdk = gw._exchange_client_for_coin(coin)
-                    gw._cancel_order(exch, _sdk, oid)
-                except Exception as exc:
-                    rows[-1]["reason"] = "CANCEL_FAILED %r" % (exc,)
+            print("%s resting cancel %s %s oid=%s" % ("DOING" if live else "WOULD", coin, o.get("side"), oid))
+            r = {"coin": coin, "before": float(o.get("sz") or 0), "after": 0.0, "action": "CANCEL_RESTING"}
+            rows.append(r)
+            if not live or not oid:
+                r["reason"] = "DRY_RUN"
+                continue
+            try:
+                exch, sdk = _gw._exchange_client_for_coin(coin)
+                tn = client_is_testnet(exch)
+                if tn is not True:
+                    r["reason"] = "ENDPOINT_NOT_PROVEN_TESTNET(%r)" % (client_endpoint(exch),)
+                    write_report(state, live, rows, extra)
+                    print("ABORT: order endpoint not proven testnet - refusing to send")
+                    return 6
+                _gw._cancel_order(exch, sdk, oid)
+            except Exception as exc:
+                r["reason"] = "CANCEL_FAILED %r" % (exc,)
+                write_report(state, live, rows, extra)
+                print("ABORT: cancel failed on %s - hard stop" % coin)
+                return 10
         if live:
             still = resting_orders(wallet)
             print("resting after cancel: %d" % len(still))
             if still:
-                # a surviving order can fill into the flattened book: refuse rather than flatten around it
                 for o in still:
                     print("STILL RESTING %s oid=%s - refusing to flatten" % (o.get("coin"), o.get("oid")))
-                print(report(rows))
+                write_report(state, live, rows, extra)
                 return 7
-            # the book is only frozen once the cancels are confirmed: everything below reads AFTER this point
             positions = [p for p in open_positions(wallet)
                          if not args.only or p["coin"].upper() == args.only.upper()]
             print("positions after cancels: %d (frozen book)" % len(positions))
 
-    # ---- the flatten plan (built before any order, so the whole book is decided at once)
     plan = build_plan(positions, nets, sz_dec, None, journal=journal_coins(state))
     payload = mids_now() if plan else {"mids": {}, "ts": time.time()}
     for step in plan:
@@ -386,25 +476,30 @@ def main(argv: Optional[List[str]] = None) -> int:
             r.update(action="WOULD_FLATTEN", reason="mid=%.6g size=%.6f" % (mid, step["size"]))
             rows.append(r)
             continue
-        # ---- the real path: build the engine's own intent, then send through _place_order
         try:
             from HL_Live_Copy_Service_Core import (SenderGateway, ConfigManager, AuditLogWriter, IntentBuilder,
-                                                   LeaderFill, utc_now_ms)
-            from HL_Live_Copy_Service_Core import ManualLedger
-            # A COPY, never the real ledger: IntentBuilder.build() may touch a sleeve, and a ledger that saves would
-            # rewrite the engine's own file from a maintenance script. The copy is read-only in effect and discarded.
-            _ltmp = Path(tempfile.mkdtemp(prefix="flatten_ledger_")) / "manual_live_positions.json"
-            try:
-                _ltmp.write_bytes((state / "manual_live_positions.json").read_bytes())
-            except Exception:
-                _ltmp.write_text("{}", encoding="utf-8")
-            _ledger = ManualLedger(path=_ltmp)
+                                                   LeaderFill, ManualLedger, utc_now_ms)
             gw = SenderGateway(ConfigManager(), AuditLogWriter())
+            exch, sdk_coin = gw._exchange_client_for_coin(step["coin"])
+            tn = client_is_testnet(exch)
+            if tn is not True:
+                # an unreadable endpoint is not a pass: refuse before the first order
+                r.update(action="ABORTED_ENDPOINT_NOT_PROVEN_TESTNET",
+                         reason="endpoint=%r" % (client_endpoint(exch),))
+                rows.append(r)
+                write_report(state, live, rows, extra)
+                print("ABORT: order endpoint not proven testnet for %s" % step["coin"])
+                return 6
+            if not ledger_unchanged(real_ledger, fp):
+                r.update(action="ABORTED_LEDGER_CHANGED", reason="the real ledger changed after the copy")
+                rows.append(r)
+                write_report(state, live, rows, extra)
+                print("ABORT: the ledger changed under us - refusing to send")
+                return 11
             fill = LeaderFill("flatten-%s-%d" % (step["coin"], int(time.time())), wallet, step["coin"],
                               "SELL" if not step["is_buy"] else "BUY", mid, step["size"], utc_now_ms(), "FLATTEN", 0,
                               {"oid": "flat", "dir": "Close Long" if not step["is_buy"] else "Close Short"})
-            intent = IntentBuilder(ConfigManager(), _ledger).build(fill)
-            exch, sdk_coin = gw._exchange_client_for_coin(step["coin"])
+            intent = IntentBuilder(ConfigManager(), ManualLedger(path=_ltmp)).build(fill)
             done = False
             for attempt in (1, 2):
                 px = limit_price(mid, step["is_buy"], attempt)
@@ -419,32 +514,44 @@ def main(argv: Optional[List[str]] = None) -> int:
                     r["reason"] = "attempt=%d px=%.6g" % (attempt, px)
                     break
                 r["reason"] = "attempt=%d status=%s" % (attempt, _st)
-                if _st.startswith(("ORDER_UNKNOWN", "ERROR", "EXCEPTION")) or not _st:
-                    # a reply we cannot classify must STOP the run: continuing past ORDER_UNKNOWN can double-close
+                # ONLY a clean "IOC no match" may retry. Anything else is uncertainty, and uncertainty aborts.
+                if not _st.startswith(("SKIPPED_IOC_NO_IMMEDIATE_MATCH", "IOC_NO_MATCH", "ORDER_IOC_NO_MATCH")):
                     r.update(action="ABORTED_UNEXPECTED_RESULT")
-                    print("ABORT: unexpected result %r on %s - stopping the whole run" % (_st, step["coin"]))
-                    rows.append(r)
-                    print(report(rows))
-                    return 5
+                    print("ABORT: unclassified or rejected result %r on %s" % (_st, step["coin"]))
+                    break
                 payload = mids_now()
                 mid = fresh_mid(payload, step["coin"], time.time()) or mid
-            if not done:
+            if not done and not str(r.get("action", "")).startswith("ABORTED"):
                 r.update(action="FLATTEN_NO_LIQUIDITY")
         except Exception as exc:
-            r.update(action="FLATTEN_FAILED", reason=repr(exc))
+            # ANY exception during a send is uncertainty: record, write, re-read, stop
+            r.update(action="ABORTED_EXCEPTION", reason=repr(exc))
+            rows.append(r)
+            extra["final_positions"] = {p["coin"]: p["net"] for p in open_positions(wallet)}
+            write_report(state, live, rows, extra)
+            print("ABORT: %r - stopping the whole run" % (exc,))
+            return 5
         rows.append(r)
+        if str(r.get("action", "")).startswith("ABORTED"):
+            extra["final_positions"] = {p["coin"]: p["net"] for p in open_positions(wallet)}
+            write_report(state, live, rows, extra)
+            return 5
+        if live:
+            # re-read AFTER each coin: the next decision is made from the exchange, not from a stale snapshot
+            _now = {p["coin"]: p["net"] for p in open_positions(wallet)}
+            r["after"] = _now.get(step["coin"], 0.0)
+            extra.setdefault("post_coin_positions", {})[step["coin"]] = r["after"]
 
-    # ---- after: re-read the exchange, so the report is the exchange's answer, not ours
     after = {p["coin"]: p["net"] for p in open_positions(wallet)}
+    extra["final_positions"] = after
     for r in rows:
-        r["after"] = after.get(r["coin"], 0.0) if r["action"].startswith(("FLATTEN", "WOULD")) else r.get("after")
+        if r["action"].startswith(("FLATTEN", "WOULD")):
+            r["after"] = after.get(r["coin"], 0.0)
     print(report(rows))
-    out = state / ("FLATTEN_%s_%s.json" % ("LIVE" if live else "DRYRUN", time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
-    try:
-        out.write_text(json.dumps({"live": live, "rows": rows}, indent=2), encoding="utf-8")
-        print("report written to %s" % out)
-    except Exception as exc:
-        print("report write failed: %r" % (exc,))
+    out = write_report(state, live, rows, extra)
+    if live and not ledger_unchanged(real_ledger, fp):
+        print("WARNING: the ledger changed during the run (edited by something else?)")
+    print("report written to %s" % out)
     return 0
 
 

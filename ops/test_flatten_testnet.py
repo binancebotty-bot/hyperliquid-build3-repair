@@ -114,11 +114,39 @@ check("THE_BOOK_IS_RE_READ_AFTER_THE_CANCELS",
       "positions after cancels" in src and "frozen book" in src,
       "the plan must be built from the post-cancel book, not the pre-cancel one")
 check("THE_INTENT_BUILDER_GETS_A_LEDGER",
-      "IntentBuilder(ConfigManager(), _ledger)" in src and "ManualLedger(path=_ltmp)" in src,
+      "IntentBuilder(ConfigManager(), ManualLedger(path=_ltmp))" in src,
       "build() dereferences ledger.sleeve_id; None crashes the live path before its first order")
 check("THE_LEDGER_IS_A_DISPOSABLE_COPY",
       "tempfile.mkdtemp(prefix=\"flatten_ledger_\")" in src and "ManualLedger(path=state" not in src,
       "the real engine ledger must never be handed to a maintenance script that could save over it")
+
+# ---- the controller's five items, each pinned to the code that closes it
+check("THE_ORDER_CLIENT_ENDPOINT_IS_CHECKED",
+      "client_is_testnet(exch)" in src and "client_endpoint(exch)" in src,
+      "checking the info URL does not prove the ORDER endpoint is testnet")
+check("AN_UNREADABLE_ENDPOINT_REFUSES",
+      "endpoint_not_proven" in src.lower() and "return 6" in src,
+      "an unreadable client endpoint must refuse, not pass")
+check("THE_LEDGER_FINGERPRINT_IS_TAKEN_AND_RECHECKED",
+      "ledger_fingerprint(real_ledger)" in src and "ledger_unchanged(real_ledger, fp)" in src,
+      "a ledger edited after the copy must stop the run")
+check("CANCELS_ARE_MANDATORY_FOR_LIVE",
+      "requires --cancel-resting" in src and "return 8" in src,
+      "a live run without verified cancels must refuse")
+check("A_CANCEL_FAILURE_IS_A_HARD_STOP",
+      'CANCEL_FAILED' in src and "return 10" in src,
+      "a recorded note is not a hard stop")
+check("ONLY_A_CLEAN_IOC_NO_MATCH_MAY_RETRY",
+      'SKIPPED_IOC_NO_IMMEDIATE_MATCH' in src and "ABORTED_UNEXPECTED_RESULT" in src,
+      "retrying a rejected or unclassified reply can double-close")
+check("THE_REPORT_IS_WRITTEN_BEFORE_AN_EARLY_RETURN",
+      "write_report(state, live, rows, extra)" in src and "os.fsync" in src,
+      "evidence must survive an abort")
+check("POSITIONS_ARE_RE_READ_AFTER_EACH_COIN",
+      "post_coin_positions" in src,
+      "the next decision must come from the exchange, not a stale snapshot")
+check("THE_LEDGER_IS_A_DISPOSABLE_COPY", "ManualLedger(path=_ltmp)" in src,
+      "the real ledger must never be handed to a maintenance script")
 
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
