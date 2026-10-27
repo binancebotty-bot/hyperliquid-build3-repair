@@ -143,6 +143,11 @@ def main() -> None:
     check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1, str(ex.calls))
     check("S3_STANDING_CLOSE_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s3", 1), str(ex.calls))
     check("S3_STANDING_CLOSE_STILL_REDUCE_ONLY", bool(ex.calls) and ex.calls[0]["ro"] is True)
+    recovery_rows = [r for r in disk_rows(c.SEND_ATTEMPTS_CSV) if r.get("cloid") == ex.calls[0]["cloid"]]
+    check("S3_STANDING_CLOSE_PENDING_ATTEMPT_FINALISED",
+          len(recovery_rows) == 2 and recovery_rows[-1].get("terminal_state") == "EXIT_RECOVERY_ACTIVE"
+          and recovery_rows[-1].get("pending_send_done_ms") and recovery_rows[-1].get("status") != "pending_send",
+          str([(r.get("status"), r.get("terminal_state"), r.get("pending_send_done_ms")) for r in recovery_rows]))
 
     # ---- S4: every non-first physical send site passes its own cloid and a pre_send hook
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")

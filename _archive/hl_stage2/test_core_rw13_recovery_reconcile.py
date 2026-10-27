@@ -187,6 +187,27 @@ def main() -> None:
     g, it, ex, seen = standing("a6", E429("too many requests"))
     check("A6_STANDING_CLOSE_DEFINITE_429_NO_RECONCILE", seen == [] and len(ex.calls) == 1, "seen=%s" % seen)
 
+    # ---- A7: SDK Cloid construction fails after the durable pending row, before exchange.order is reached
+    real_sdk_cloid = c._sdk_cloid
+
+    def fail_sdk_cloid(_cloid):
+        raise RuntimeError("SDK Cloid construction failed")
+
+    c._sdk_cloid = fail_sdk_cloid
+    try:
+        g, it, ex, seen = standing("a7", None)
+    finally:
+        c._sdk_cloid = real_sdk_cloid
+    row = next(iter(attempt_status("a7").values()), {})
+    failures = [r for r in disk_rows(c.RECONCILIATION_CSV)
+                if r.get("intent_id") == "a7" and r.get("status") == "EXIT_RECOVERY_QUEUE_FAILED"]
+    check("A7_SETUP_FAILURE_FINALISES_PENDING_ATTEMPT",
+          not ex.calls and not seen and row.get("terminal_state") == "EXIT_RECOVERY_QUEUE_FAILED"
+          and row.get("pending_send_done_ms") and "SDK Cloid construction failed" in row.get("error", ""),
+          str({"calls": ex.calls, "seen": seen, "row": {k: row.get(k) for k in
+                                                               ("status", "terminal_state", "pending_send_done_ms", "error")}}))
+    check("A7_SETUP_FAILURE_WRITES_RECOVERY_ERROR_ROW", bool(failures), str(failures))
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)

@@ -7231,6 +7231,18 @@ class SenderGateway:
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
             return
         _sc_t: Dict[str, Any] = {"send_real_started_ms": utc_now_ms()}  # the standing-close send's own attempt/cloid record
+
+        def _finish_recovery_attempt(status: str, result: Dict[str, Any]) -> None:
+            try:
+                self._append_real_attempt(intent, status, result)
+            except Exception as journal_exc:
+                SenderGateway._gate_journal_failures += 1
+                log_error("finalise_exit_recovery_attempt", journal_exc)
+                print("ALERT: exit recovery could not finalise its pending send row: %r" % journal_exc,
+                      file=sys.stderr)
+            finally:
+                self.signal_ambiguous_send_attempt_written(_sc_t)
+
         try:
             # Boss (12 Oct): not reduce-only, because the follower may need to move its exposure the other way. Safe instead
             # by sizing to the follower's net target from a fresh account read at placement, and by guard_standing_closes():
@@ -7256,9 +7268,36 @@ class SenderGateway:
             _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC_RECOVERY_CLOSE", limit_px, close_size, _ro,
                                                   _sc_t, "standing_close")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                  limit_px, "Gtc", _ro, timing=_sc_t,
+                                                  started_key="exchange_call_started_ms", cloid=_cl,
+                                                  bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre, intent=intent, path="exit_recovery")
             ok, status, oid, error = self._parse_hl_response(recovery_response)
+            _recovery_called = not (isinstance(recovery_response, dict)
+                                    and recovery_response.get("exchange_called") is False)
+            _recovery_category = (
+                str(recovery_response.get("reject_category") or
+                    (classify_reject_category(error, recovery_response) if status == "ORDER_REJECTED" else ""))
+                if isinstance(recovery_response, dict) else "")
+            _recovery_terminal = (
+                (recovery_response.get("terminal_state") if isinstance(recovery_response, dict) else "")
+                or ("FILLED_AWAITING_COPY_POLL" if status == "ORDER_FILLED" else
+                    "EXIT_RECOVERY_ACTIVE" if ok else "EXIT_RECOVERY_REQUIRED"))
+            _recovery_action = (
+                (recovery_response.get("operator_action") if isinstance(recovery_response, dict) else "")
+                or ("WAIT_FOR_COPY_POLL" if status == "ORDER_FILLED" else
+                    "WAIT_FOR_CLOSE_RECONCILIATION" if ok else
+                    classify_operator_action(status, _recovery_category, "EXIT", _recovery_called)))
+            if _sc_t.get("pending_send_done_ms"):
+                _finish_recovery_attempt(status, {
+                    "exchange_response": recovery_response, "oid": oid, "limit_px": limit_px,
+                    "wire_size": close_size, "copy_notional": abs(close_size * limit_px),
+                    "exchange_called": _recovery_called, "error": error, "timing": _sc_t,
+                    "reject_category": _recovery_category, "terminal_state": _recovery_terminal,
+                    "operator_action": _recovery_action, "reduce_only_sent": _ro,
+                    "order_type": "REAL_GTC_RECOVERY_CLOSE",
+                    "notes": "finalised by exit recovery; %s" % (error or status),
+                })
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
                 with self._resting_lock:
@@ -7286,11 +7325,26 @@ class SenderGateway:
                 notes=f"{notes}; recovery_status={status}; recovery_error={error}; recovery_response={json.dumps(recovery_response, default=str)}",
             )
         except Exception as exc:
-            if _sc_t.get("send_cloid"):  # the standing-close send itself raised: it may exist, reconcile before anything else
+            if _sc_t.get("pending_send_done_ms") and _sc_t.get("exchange_call_started_ms"):
+                # Before exchange_call_started_ms, setup (including SDK Cloid construction) failed before any order call.
                 _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, close_size, limit_px, _ro, _sc_t)
                 if _out is not None:
+                    _finish_recovery_attempt(_out[1], dict(_out[2], order_type="REAL_GTC_RECOVERY_CLOSE",
+                                                           reduce_only_sent=_ro))
                     self._recovery_intent_ids.add(intent.intent_id)  # no second blind standing close for this intent
                     return
+            if _sc_t.get("pending_send_done_ms"):
+                _not_called = not bool(_sc_t.get("exchange_call_started_ms"))
+                _finish_recovery_attempt("EXCHANGE_ERROR", {
+                    "exchange_response": {}, "oid": "", "limit_px": limit_px,
+                    "wire_size": close_size, "copy_notional": abs(close_size * limit_px),
+                    "exchange_called": not _not_called, "error": repr(exc), "timing": _sc_t,
+                    "reject_category": "SDK_SEND_SETUP_FAILED" if _not_called else "",
+                    "terminal_state": "EXIT_RECOVERY_QUEUE_FAILED",
+                    "operator_action": "REVIEW_STANDING_CLOSE_FAILURE", "reduce_only_sent": _ro,
+                    "order_type": "REAL_GTC_RECOVERY_CLOSE",
+                    "notes": "exit recovery attempt failed: %r" % exc,
+                })
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUE_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
