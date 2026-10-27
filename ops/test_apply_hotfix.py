@@ -133,30 +133,32 @@ def _scratch_swap_flow(root: Path) -> None:
     events: list[str] = []
     output = io.StringIO()
 
-    with patch.object(HOTFIX, "launch_spec", return_value=(spec, dict(spec["env"]), state)), \
-            patch.object(HOTFIX, "validate_pair", side_effect=[(identity, old_root, old_sha, 5678),
-                                                                   (identity, old_root, old_sha, 5678)]), \
-            patch.object(HOTFIX, "checkout_info", return_value=(new_root, new_sha)), \
-            patch.object(HOTFIX, "precompile", side_effect=lambda _path: events.append("precompile")), \
-            patch.object(HOTFIX, "snapshot_state", return_value=baseline), \
-            patch.object(HOTFIX, "sent_keys", return_value=set()), \
-            patch.object(HOTFIX, "stop_pair", side_effect=lambda *_args: events.append("stop")), \
-            patch.object(HOTFIX, "rewrite_launch_spec", side_effect=lambda *_args: events.append("rewrite")), \
-            patch.object(HOTFIX, "start_pair", side_effect=lambda *_args: (events.append("start") or
-                                                                              {"pair": "STARTED", "engine_pid": 4321})), \
-            patch.object(HOTFIX, "tracked_start_ui", side_effect=lambda *_args: events.append("track-ui")), \
-            patch.object(HOTFIX, "save_swap_record", side_effect=lambda *_args: events.append("save-record")), \
-            patch.object(HOTFIX, "first_healthy_cycle", side_effect=lambda _s, _p, after: (after + 12_345, {})), \
-            patch.object(HOTFIX, "replay_proof", return_value={"gap_fills": 0, "gap_intent_rows": 0,
-                                                                "duplicate_attempts": 0, "unresolved": 0,
-                                                                "cursors_caught_up": 1}):
-        with redirect_stdout(output):
-            result = HOTFIX.perform_swap(new_root, new_sha, 8031, False)
+    for gap_ms in (12_345, 20_000):
+        with patch.object(HOTFIX, "launch_spec", return_value=(spec, dict(spec["env"]), state)), \
+                patch.object(HOTFIX, "validate_pair", side_effect=[(identity, old_root, old_sha, 5678),
+                                                                       (identity, old_root, old_sha, 5678)]), \
+                patch.object(HOTFIX, "checkout_info", return_value=(new_root, new_sha)), \
+                patch.object(HOTFIX, "precompile", side_effect=lambda _path: events.append("precompile")), \
+                patch.object(HOTFIX, "snapshot_state", return_value=baseline), \
+                patch.object(HOTFIX, "sent_keys", return_value=set()), \
+                patch.object(HOTFIX, "stop_pair", side_effect=lambda *_args: events.append("stop")), \
+                patch.object(HOTFIX, "rewrite_launch_spec", side_effect=lambda *_args: events.append("rewrite")), \
+                patch.object(HOTFIX, "start_pair", side_effect=lambda *_args: (events.append("start") or
+                                                                                  {"pair": "STARTED", "engine_pid": 4321})), \
+                patch.object(HOTFIX, "tracked_start_ui", side_effect=lambda *_args: events.append("track-ui")), \
+                patch.object(HOTFIX, "save_swap_record", side_effect=lambda *_args: events.append("save-record")), \
+                patch.object(HOTFIX, "first_healthy_cycle", side_effect=lambda _s, _p, after: (after + gap_ms, {})), \
+                patch.object(HOTFIX, "replay_proof", return_value={"gap_fills": 0, "gap_intent_rows": 0,
+                                                                    "duplicate_attempts": 0, "unresolved": 0,
+                                                                    "cursors_caught_up": 1}):
+            with redirect_stdout(output):
+                result = HOTFIX.perform_swap(new_root, new_sha, 8031, False)
 
-    assert result == 0
-    assert events == ["precompile", "stop", "rewrite", "start", "track-ui", "save-record"]
-    assert "deactivation_to_healthy_ms   12345 / 20000" in output.getvalue()
-    assert "HOTFIX SWAP PASS" in output.getvalue()
+        assert result == (0 if gap_ms < 20_000 else 1)
+        assert events == ["precompile", "stop", "rewrite", "start", "track-ui", "save-record"]
+        assert "deactivation_to_healthy_ms   %d / 20000" % gap_ms in output.getvalue()
+        assert ("HOTFIX SWAP PASS" in output.getvalue()) == (gap_ms < 20_000)
+        assert ("FAIL: pair downtime" in output.getvalue()) == (gap_ms >= 20_000)
 
 
 def _scratch_failure_flow(root: Path) -> None:
@@ -182,6 +184,13 @@ def _scratch_failure_flow(root: Path) -> None:
                 "xyz_position_state_sha256": "xyz", "user_owned_sha256": "user"}
     for failed_at in ("stop", "rewrite", "pointer", "start", "track", "proof"):
         events = []
+        rollback_starts = []
+        def start_action(build, sha, *args, **kwargs):
+            events.append("start")
+            rollback_starts.append((build, sha))
+            if failed_at == "start" and len(rollback_starts) == 1:
+                raise HOTFIX.HotfixError("injected start")
+            return {"engine_pid": 4321}
         def action(name, result=None):
             def fn(*args, **kwargs):
                 events.append(name)
@@ -190,23 +199,23 @@ def _scratch_failure_flow(root: Path) -> None:
                 return result
             return fn
 
-        with patch.object(HOTFIX, "launch_spec", return_value=(spec.copy(), dict(spec["env"]), state)), \\
-                patch.object(HOTFIX, "validate_pair", return_value=({"pid": 1234}, old_root, old_sha, 5678)), \\
-                patch.object(HOTFIX, "checkout_info", return_value=(new_root, new_sha)), \\
-                patch.object(HOTFIX, "precompile"), \\
-                patch.object(HOTFIX, "snapshot_state", return_value=baseline), \\
-                patch.object(HOTFIX, "backup_state", return_value=root / "backup"), \\
-                patch.object(HOTFIX, "sent_keys", return_value=set()), \\
-                patch.object(HOTFIX, "stop_pair", side_effect=action("stop")), \\
-                patch.object(HOTFIX, "rewrite_launch_spec", side_effect=action("rewrite")), \\
-                patch.object(HOTFIX, "atomic_text", side_effect=action("pointer")), \\
-                patch.object(HOTFIX, "start_pair", side_effect=action("start", {"engine_pid": 4321})), \\
-                patch.object(HOTFIX, "tracked_start_ui", side_effect=action("track")), \\
-                patch.object(HOTFIX, "first_healthy_cycle", side_effect=lambda _s, _p, after: (after + 12345, {})), \\
-                patch.object(HOTFIX, "replay_proof", side_effect=action("proof", {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0, "unresolved": 0, "cursors_caught_up": 1})), \\
-                patch.object(HOTFIX, "save_swap_record"), \\
-                patch.object(HOTFIX.SP, "pids", return_value=[]), \\
-                patch.object(HOTFIX.SP, "listener", return_value=None), \\
+        with patch.object(HOTFIX, "launch_spec", return_value=(spec.copy(), dict(spec["env"]), state)), \
+                patch.object(HOTFIX, "validate_pair", return_value=({"pid": 1234}, old_root, old_sha, 5678)), \
+                patch.object(HOTFIX, "checkout_info", return_value=(new_root, new_sha)), \
+                patch.object(HOTFIX, "precompile"), \
+                patch.object(HOTFIX, "snapshot_state", return_value=baseline), \
+                patch.object(HOTFIX, "backup_state", return_value=root / "backup"), \
+                patch.object(HOTFIX, "sent_keys", return_value=set()), \
+                patch.object(HOTFIX, "stop_pair", side_effect=action("stop")), \
+                patch.object(HOTFIX, "rewrite_launch_spec", side_effect=action("rewrite")), \
+                patch.object(HOTFIX, "atomic_text", side_effect=action("pointer")), \
+                patch.object(HOTFIX, "start_pair", side_effect=start_action), \
+                patch.object(HOTFIX, "tracked_start_ui", side_effect=action("track")), \
+                patch.object(HOTFIX, "first_healthy_cycle", side_effect=lambda _s, _p, after: (after + 12345, {})), \
+                patch.object(HOTFIX, "replay_proof", side_effect=action("proof", {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0, "unresolved": 0, "cursors_caught_up": 1})), \
+                patch.object(HOTFIX, "save_swap_record"), \
+                patch.object(HOTFIX.SP, "pids", return_value=[]), \
+                patch.object(HOTFIX.SP, "listener", return_value=None), \
                 patch.object(HOTFIX.time, "sleep"):
             try:
                 HOTFIX.perform_swap(new_root, new_sha, 8031, False)
@@ -216,7 +225,7 @@ def _scratch_failure_flow(root: Path) -> None:
                     assert events == ["stop"], events
                 else:
                     assert "previous pair restored" in str(exc), (failed_at, exc)
-                    assert events.count("start") >= 1, events
+                    assert rollback_starts and rollback_starts[-1] == (old_root, old_sha), rollback_starts
             else:
                 raise AssertionError("injected failure unexpectedly passed: " + failed_at)
 
