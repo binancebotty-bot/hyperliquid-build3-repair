@@ -5,29 +5,17 @@ description: Change the global send switch only under order and identify unsuppo
 
 # Sending and liquidity filter
 
-Require a fresh signed order naming the intended mode and run. `OFF` means no sends; `CLOSE` is not the same as `OFF`; `ON` enables normal sending. The live-copy dashboard's global-controls form does not submit `send_mode`.
+Require a fresh signed order naming the run and the exact control change. `OFF` blocks sends; `CLOSE` blocks entries/adds while allowing closes; `ON` enables normal sending.
 
-The runbook requires editing a staged copy of `live_config.json`, keeping a timestamped backup and before/after hashes, then applying the change as part of a graceful pair restart. Do not edit the file watched by a running engine. After a signed order, use this sequence from the approved checkout (set `$Mode` to the ordered value, `ON` or `OFF`):
+The running pair reads these controls from its state directory's `live_config.json`. The dashboard's `/api/global-controls` form does not submit `send_mode`, `min_24h_notional_usd`, or `liq_parity`; do not treat a successful form save as changing them.
 
-```powershell
-if ($Mode -notin @('ON', 'OFF')) { throw 'Only an explicitly ordered ON or OFF is allowed' }
-$Original = Join-Path $State 'live_config.json'
-$Backup = "$Original.bak-$((Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ'))-send-mode"
-$Stage = Join-Path $State 'live_config.operator-staged.json'
-$Before = (Get-FileHash -Algorithm SHA256 -LiteralPath $Original).Hash
-Copy-Item -LiteralPath $Original -Destination $Backup
-Copy-Item -LiteralPath $Original -Destination $Stage
-python -c "import json,pathlib; p=pathlib.Path(r'$Stage'); d=json.loads(p.read_text(encoding='utf-8')); d.setdefault('global_controls', {})['send_mode']='$Mode'; p.write_text(json.dumps(d,indent=2)+chr(10),encoding='utf-8')"
-$Staged = (Get-FileHash -Algorithm SHA256 -LiteralPath $Stage).Hash
-if ($Before -eq $Staged) { throw 'Staged config did not change' }
-ops/stop_pair.py --all
-if ($LASTEXITCODE -ne 0) { throw 'Pair stop failed; do not apply the staged config' }
-Copy-Item -LiteralPath $Stage -Destination $Original -Force
-$After = (Get-FileHash -Algorithm SHA256 -LiteralPath $Original).Hash
-"$(Get-Date -Format o) send_mode=$Mode before=$Before after=$After backup=$Backup" | Add-Content -LiteralPath (Join-Path $HOME '.hermes/state/pair_launch.log') -Encoding Ascii
-ops/start_pair.py --checkout $Checkout --state $State --expect-sha $ApprovedSha
-```
+## Liquidation parity
 
-Use these commands only when the signed order explicitly authorizes the restart. Verify the effective mode from the new identity/health evidence before declaring completion.
+Set `global_controls.liq_parity` explicitly to `false` on testnet and `true` on mainnet. The Core gate is read at construction and defaults to `true`, so seed it correctly before start; a live file edit does not change the active gate. If the approved launcher uses a parity override, it must agree with the selected network. Do not dump environment values.
 
-No `liquidity_filter` setting or command is implemented in this checkout. Do not substitute `liq_parity`: that is a separate liquidation-parity gate. Leave it unchanged and report the missing control as a blocker.
+## Ordered live edits
+
+For an explicitly ordered change to a running pair, make a timestamped backup of that run's `live_config.json`, edit a staged copy, validate the JSON and the single changed field, then atomically replace the file. Record the before/after SHA-256 and UTC time. Never edit another run's file or change any other controls in the same operation.
+
+- **`send_mode`:** Core re-reads the file when its mtime changes. This supports a live change on an instance that started with sending enabled. An instance started `OFF` remains fail-closed and cannot be armed by a live edit; enabling it requires a separate fresh order and the approved start procedure. Verify the effective mode from engine-owned status after the next cycle.
+- **Liquidity filter:** set `global_controls.min_24h_notional_usd`. Core re-reads this threshold from the same file for the next fill; absent or `0` means the filter is off. Verify the effective threshold/status and the resulting named skip rows after the next cycle. This is independent of `liq_parity`.

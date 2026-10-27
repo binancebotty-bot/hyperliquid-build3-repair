@@ -5,7 +5,9 @@ description: Apply an approved code artifact while retaining the current process
 
 # Hot fix with state retained
 
-This is a live module swap, not a process restart. Require a fresh signed order naming the artifact, target module, run, and rollback plan. Never swap the engine, UI, launcher, wallet, send, key, or gate code. This checkout currently allowlists only `exchange_truth`.
+This is a live module swap, not a process restart. Require a fresh signed order naming the artifact, target module, run, and rollback plan. Never swap the engine, UI, launcher, wallet, send, key, or gate code. The current seam allowlists `exchange_truth` and `follower_volume`; Core remains protected.
+
+A hot fix that needs Core goes into the mainnet restart queue. Do not apply it to the running pair or restart the pair to load it; wait for the separately authorized mainnet restart.
 
 1. Confirm the artifact is the reviewed build and compute its full digest:
 
