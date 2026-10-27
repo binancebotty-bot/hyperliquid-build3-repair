@@ -11786,29 +11786,34 @@ def follower_volumes_24h(refresh: bool = False, cache_only: bool = False) -> Tup
         # cold cache means STAND ASIDE (fail open to copying), never a fetch.
         return False, {}, set()
     try:
-        res = _XNET.post_many(None, [{"type": "metaAndAssetCtxs"}], HL_INFO_URL, HTTP_TIMEOUT_SEC)
-        result = res[0] if res else None
-        if not isinstance(result, dict) or not result.get("ok"):
-            raise ValueError("metaAndAssetCtxs unavailable")
-        data = result.get("data")
-        if not isinstance(data, (list, tuple)) or len(data) < 2:
-            raise ValueError("metaAndAssetCtxs returned %r" % (type(data).__name__,))
-        universe = data[0].get("universe") or []
-        ctxs = data[1] or []
+        dexes = follower_dex_scope()
+        payloads = [{"type": "metaAndAssetCtxs", **({"dex": dex} if dex else {})} for dex in dexes]
+        res = _XNET.post_many(None, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        if len(res) != len(payloads):
+            raise ValueError("metaAndAssetCtxs scope count mismatch")
         vol, listed = {}, set()
-        for asset, ctx in zip(universe, ctxs):
-            name = str((asset or {}).get("name") or "")
-            if not name:
-                continue
-            listed.add(name)
-            _raw_vol = (ctx or {}).get("dayNtlVlm")
-            if _raw_vol is None or str(_raw_vol).strip() == "":
-                continue          # a missing reading is not evidence of a thin book: leave the coin OUT of the map
-            try:
-                _v = float(_raw_vol)
-                vol[name] = _v if math.isfinite(_v) else None
-            except (TypeError, ValueError):
-                vol[name] = None
+        for dex, result in zip(dexes, res):
+            if not isinstance(result, dict) or not result.get("ok"):
+                raise ValueError("metaAndAssetCtxs unavailable for %s" % (dex or "default"))
+            data = result.get("data")
+            if not isinstance(data, (list, tuple)) or len(data) < 2:
+                raise ValueError("metaAndAssetCtxs returned %r" % (type(data).__name__,))
+            universe = data[0].get("universe") or []
+            ctxs = data[1] or []
+            for asset, ctx in zip(universe, ctxs):
+                name = str((asset or {}).get("name") or "")
+                if not name:
+                    continue
+                coin = ("%s:%s" % (dex, name) if dex and ":" not in name else name).upper()
+                listed.add(coin)
+                _raw_vol = (ctx or {}).get("dayNtlVlm")
+                if _raw_vol is None or str(_raw_vol).strip() == "":
+                    continue          # a missing reading is not evidence of a thin book: leave the coin OUT of the map
+                try:
+                    _v = float(_raw_vol)
+                    vol[coin] = _v if math.isfinite(_v) else None
+                except (TypeError, ValueError):
+                    vol[coin] = None
         if not listed:
             raise ValueError("empty follower universe")
         _VOL_CACHE.update({"ts": now, "vol": vol, "listed": listed, "ok": True})
