@@ -7391,6 +7391,10 @@ class SenderGateway:
                 terminal_state="EXIT_RECOVERY_SETUP_FAILED" if not _sc_t.get("exchange_call_started_ms") else "EXIT_RECOVERY_QUEUE_FAILED",
                 notes=f"{notes}; recovery_error={repr(exc)}; original_ioc_response={json.dumps(response, default=str)}",
             )
+            if _sc_t.get("pending_send_done_ms") and not _sc_t.get("exchange_call_started_ms"):
+                # A proven SDK setup failure never reached the exchange. Drop only the
+                # in-memory fence after durable terminal + reconciliation bookkeeping.
+                self._recovery_intent_ids.discard(intent.intent_id)
 
     def _resolve_ambiguous_send_outcome(
         self, sdk_coin: str, intent: Intent, cloid: str, wire_size: float, limit_px: float,
