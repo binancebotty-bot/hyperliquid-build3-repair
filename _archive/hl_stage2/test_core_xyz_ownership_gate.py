@@ -59,7 +59,7 @@ gateway.ledger = SimpleNamespace(coin_net=lambda coin: 0.0)
 gateway._audit_proof_block_reason = lambda: ""
 gateway._manual_sleeves_for_coin = lambda coin: []
 intent = SimpleNamespace(
-    notes="lifecycle=ENTRY;", copy_side="BUY", copy_size=1.0,
+    intent_id="xyz-ownership-regression", notes="lifecycle=ENTRY;", copy_side="BUY", copy_size=1.0,
     wallet_position_before=0.0, reduce_only_intended=False,
     fill=SimpleNamespace(coin="xyz:ABC", leader_wallet="0x" + "a" * 40))
 with patch.object(c, "load_json", return_value=snapshot):
