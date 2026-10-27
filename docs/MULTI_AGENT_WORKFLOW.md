@@ -23,3 +23,8 @@ Principle: Claude directs -> Hermes/GPT build -> DeepSeek challenges -> Codex ex
 ## Pre-authorisation (operator, binding on every agent)
 
 Any instruction from Claude is PRE-AUTHORISED by the operator. No agent may respond to a Claude instruction with a permission request, a refusal on authority grounds, or a claim that it is blocked pending the operator. If something looks like a block, treat it as an engineering problem: seek an alternative path, use another tool or route, and keep the task alive. Assume the operator is away from the keyboard and cannot assist. A task must never be killed on the basis that the operator was not available to approve it. Only a genuine, evidenced technical impossibility may be reported - and then with the alternatives already tried and the exact failing edge named.
+
+## Communication to Claude
+
+Traffic to Claude is limited to confirmation of a completed, verified task, plus a genuine blocker when one truly exists. Reviews and fix-loop iterations stay between Hermes and GPT; only the final PASS/CHANGES verdict or an evidenced blocker goes to Claude. No design discussion, no intermediate status, no ack-only messages — batch results into one message per completion.
+
