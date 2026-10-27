@@ -1,6 +1,6 @@
 # J4 - PC run scripts for the five certification gaps (main 5e88e89 or later)
 
-**Doc only.** Nothing here was executed by me. Source of the gap list: the engine thread's issue #3 handover
+**Doc only.** Nothing here was executed by me. Source of the gap list: the engine thread's handover (locator: issue #3)
 (comment 6106236565) - "Top 5 gaps need the PC: outage recovery, memory flat on new main, liquidation parity vs
 exchange liquidationPx, realistic-load latency (Phase R), disk-full robustness" - and
 `process/CERTIFICATION_MATRIX_2026-10-10.md` (the 2026-10-11 matrix lives in the Claude project, not this repo).
