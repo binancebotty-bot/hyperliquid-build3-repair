@@ -6191,6 +6191,8 @@ class SenderGateway:
             t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
             self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
             t["pending_send_done_ms"] = utc_now_ms()
+            if label == "standing_close":
+                self._recovery_intent_ids.add(intent.intent_id)  # durable pending row fences concurrent sends
         return cloid, _pre
 
     @staticmethod
@@ -7082,6 +7084,12 @@ class SenderGateway:
             for row in iter_audit_history(RECONCILIATION_CSV):
                 if str(row.get("status") or "").startswith("EXIT_RECOVERY") and row.get("intent_id"):
                     known.add(str(row.get("intent_id")))
+            # Fsync-persisted pending send fences restart even if a crash happens
+            # before reconciliation is written. Never discard historical rows.
+            for row in iter_audit_history(SEND_ATTEMPTS_CSV):
+                if (str(row.get("order_type") or "") == "REAL_GTC_RECOVERY_CLOSE"
+                        and row.get("intent_id")):
+                    known.add(str(row["intent_id"]))
             self._recovery_intent_ids = known
         return intent.intent_id in known
 
@@ -7232,7 +7240,13 @@ class SenderGateway:
             return
         _sc_t: Dict[str, Any] = {"send_real_started_ms": utc_now_ms()}  # the standing-close send's own attempt/cloid record
 
+        _finalisation_started = False
+
         def _finish_recovery_attempt(status: str, result: Dict[str, Any]) -> None:
+            nonlocal _finalisation_started
+            if _finalisation_started:
+                return  # a later exception cannot append a second terminal result
+            _finalisation_started = True
             try:
                 self._append_real_attempt(intent, status, result)
             except Exception as journal_exc:
@@ -7308,10 +7322,8 @@ class SenderGateway:
                         "led_net": _led_net,
                         "sleeve_tol": max(0.0, abs(wire_size) - abs(remainder)) if remainder is not None else 0.0}
                     atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
-            if ok and oid:
-                self._record_placed_order(intent, oid, close_size, limit_px, _ro, "REAL_GTC_RECOVERY_CLOSE",
-                                          "EXIT_RECOVERY_ACTIVE", "STANDING_LIMIT_CLOSE",
-                                          f"standing close (reduce_only={_ro}) for what the IOC close did not fill; {notes}")
+            # Pending/finalised rows already identify this physical order by
+            # attempt_id/cloid/OID; never append a synthetic second attempt.
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUED" if ok else "EXIT_RECOVERY_QUEUE_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
