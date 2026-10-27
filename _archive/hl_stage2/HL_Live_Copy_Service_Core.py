@@ -6047,8 +6047,7 @@ class SenderGateway:
         raw = snap.get("raw") if isinstance(snap.get("raw"), dict) else None
         if raw is None:
             return None, "no follower account state to project from"
-        summary = raw.get("crossMarginSummary") or raw.get("marginSummary") or {}
-        account_value = fnum(summary.get("accountValue"), 0.0)
+        account_value = _summary_account_value(raw)
         maint = fnum(raw.get("crossMaintenanceMarginUsed"), 0.0)
         now_signed = 0.0
         for ap in raw.get("assetPositions") or []:
@@ -11258,6 +11257,24 @@ class CopyFillMatcher:
 
 
 
+def _summary_account_value(raw: Dict[str, Any]) -> float:
+    """Equity from a clearinghouseState `raw`.
+
+    On an isolated-margin dex (xyz) `crossMarginSummary` is PRESENT BUT ZERO. So the old
+    `crossMarginSummary or marginSummary` short-circuited onto the zero dict and the account
+    read 0.0 while `marginSummary.accountValue` held the truth (39.67). Take the larger of the
+    two account values instead of trusting dict truthiness (controller 6431520668 item 1).
+    """
+    if not isinstance(raw, dict):
+        return 0.0
+    vals = []
+    for key in ("crossMarginSummary", "marginSummary"):
+        summary = raw.get(key)
+        if isinstance(summary, dict):
+            vals.append(fnum(summary.get("accountValue"), 0.0))
+    return max(vals) if vals else 0.0
+
+
 def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 2000,
                                  min_gap_sec: float = 60.0) -> bool:
     """Append one account-value point from a snapshot the engine ALREADY read, so the equity graph stops depending on
@@ -11271,8 +11288,7 @@ def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 200
         raw = snapshot.get("raw") if isinstance(snapshot, dict) else None
         if not isinstance(raw, dict):
             return False
-        summary = raw.get("crossMarginSummary") or raw.get("marginSummary") or {}
-        account_value = fnum(summary.get("accountValue"), 0.0)
+        account_value = _summary_account_value(raw)
         if account_value <= 0:
             return False                       # an unreadable/zero account is not a data point
         path = AUDIT_DIR / "exchange_account_history.json"
@@ -11326,15 +11342,26 @@ class ExchangeReconciler:
         try:
             # SINGLE object: the live /info endpoint REJECTS a JSON array (proven: HTTP 422 "Failed to deserialize the
             # JSON body into the target type"), so the batch shape must never ship.
-            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
-            data = r.json()
+            # ONE SINGLE OBJECT per dex: the live /info endpoint rejects a JSON array, and a request
+            # without `dex` only ever returns the default dex, so a HIP-3 (xyz) account was invisible
+            # here (controller 6431520668 item 2).
+            raw_by_dex: Dict[str, Any] = {}
+            for dex in follower_dex_scope():
+                payload = {"type": "clearinghouseState", "user": USER_WALLET}
+                if dex:
+                    payload["dex"] = dex
+                part = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+                if isinstance(part, dict):
+                    raw_by_dex[dex] = part
+            data = raw_by_dex.get("", {})
             if isinstance(data, dict):
                 positions_by_coin = self._positions_from_snapshot(data)
                 # clearinghouseState omits XYZ/exotic perp positions; supplement from fill history.
                 xyz_positions = self._xyz_positions_from_app_snapshot()
                 xyz_positions.update(xyz_state_positions(include_zero=False))
                 positions_by_coin.update(xyz_positions)
-                snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data, "positions_by_coin": positions_by_coin}
+                snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data,
+                            "raw_by_dex": raw_by_dex, "positions_by_coin": positions_by_coin}
                 atomic_write_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, snapshot)
                 # the equity series is recorded from the read the engine just made: no extra call, no extra process
                 append_account_history_point(snapshot)
