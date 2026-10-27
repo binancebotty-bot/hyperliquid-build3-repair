@@ -8788,11 +8788,13 @@ class SenderGateway:
                 # leader fill price, even if the optional missed rule was disabled.
                 rest_px = self._px_passive(fnum(intent.fill.price, 0.0), price_max_dec,
                                            intent.copy_side == "BUY")
-                rest_safe, _rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
+                rest_safe, rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
+                rest_valid, rest_block = self._validate_final_wire_order(
+                    intent, resolved, sdk_coin, wire_size, rest_px, timing) if rest_safe else (False, rest_unsafe)
                 max_order = self.cfg.max_order_notional()
                 within_cap = max_order <= 0 or abs(wire_size * rest_px) <= max_order + 1e-9
-                if rest_safe and rest_px > 0 and within_cap and self.resting_entry_for(
-                        intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is None:
+                existing_rest = self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side)
+                if rest_safe and rest_valid and rest_px > 0 and within_cap and existing_rest is None:
                     gtc_px = rest_px
                     self._supersede_attempt(timing, response, intent)
                     _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", rest_px, wire_size, False, timing,
@@ -8816,6 +8818,22 @@ class SenderGateway:
                     return self._resting_entry_result(
                         intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
                         f"IOC found no match; GTC at leader price ({parsed_error})")
+                # Do not let a declined follow-up vanish as a bare IOC-no-match.
+                # A pre-existing resting limit is already the idempotent follow-up.
+                reason = ("a resting entry already exists" if existing_rest is not None else
+                          "risk cap exceeded" if not within_cap else
+                          str((rest_block or {}).get("error") or "GTC price/size fails safety"))
+                return False, "ORDER_REJECTED", {
+                    "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                    "wire_size": wire_size, "copy_notional": wire_notional,
+                    "exchange_called": True, "error": parsed_error, "timing": timing,
+                    "reject_category": "IOC_NO_IMMEDIATE_MATCH",
+                    "terminal_state": ("MISSED_ENTRY_ALREADY_RESTING" if existing_rest is not None
+                                       else "MISSED_ENTRY_GTC_BLOCKED"),
+                    "operator_action": ("NO_ACTION_LIMIT_ALREADY_RESTING" if existing_rest is not None
+                                        else "REVIEW_MISSED_ENTRY_GTC_BLOCK"),
+                    "notes": f"IOC no-match; leader-price GTC not sent: {reason}; intent_id={intent.intent_id}",
+                }
             if (not ok and status == "ORDER_REJECTED"
                     and lifecycle in {"ENTRY", "ADD"}
                     and classify_reject_category(parsed_error, response) == "SIZE_OR_NOTIONAL_REJECTED"):
