@@ -6056,8 +6056,7 @@ class SenderGateway:
         raw = snap.get("raw") if isinstance(snap.get("raw"), dict) else None
         if raw is None:
             return None, "no follower account state to project from"
-        summary = raw.get("crossMarginSummary") or raw.get("marginSummary") or {}
-        account_value = fnum(summary.get("accountValue"), 0.0)
+        account_value = _summary_account_value(raw)
         maint = fnum(raw.get("crossMaintenanceMarginUsed"), 0.0)
         now_signed = 0.0
         for ap in raw.get("assetPositions") or []:
@@ -9326,26 +9325,34 @@ class SenderGateway:
         self._meta_fetch_end(dex, err)
 
     def _fetch_all_mids(self) -> Dict[str, float]:
+        """Every follower mid: one allMids read PER DEX in scope, cached HL_LIVE_MIDS_CACHE_TTL_SEC.
+
+        A single default-dex allMids left HIP-3 (xyz) prices invisible on the send path. Each read is
+        one SINGLE object - the endpoint rejects an array."""
         now = utc_now_ms()
         ttl_ms = int(float(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC", "2")) * 1000)
         if self._mids_cache and ttl_ms > 0 and now - self._mids_fetched_ms <= ttl_ms:
             return self._mids_cache
         if requests is None:
             return self._mids_cache
+        out: Dict[str, float] = {}
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "allMids"}, timeout=HTTP_TIMEOUT_SEC)
-            data = r.json()
-            if isinstance(data, dict):
-                out: Dict[str, float] = {}
+            for dex in follower_dex_scope():
+                payload = {"type": "allMids"}
+                if dex:
+                    payload["dex"] = dex
+                data = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+                if not isinstance(data, dict):
+                    continue
                 for key, value in data.items():
                     px = fnum(value, 0.0)
                     if px > 0 and math.isfinite(px):
                         out[str(key).upper()] = px
-                if out:
-                    self._mids_cache = out
-                    self._mids_fetched_ms = now
         except Exception:
             pass
+        if out:
+            self._mids_cache = out
+            self._mids_fetched_ms = now
         return self._mids_cache
 
     def _reference_price(self, sdk_coin: str) -> float:
@@ -11267,6 +11274,57 @@ class CopyFillMatcher:
 
 
 
+def _summary_account_value(raw: Dict[str, Any]) -> float:
+    """Equity from a clearinghouseState `raw`.
+
+    On an isolated-margin dex (xyz) `crossMarginSummary` is PRESENT BUT ZERO. So the old
+    `crossMarginSummary or marginSummary` short-circuited onto the zero dict and the account
+    read 0.0 while `marginSummary.accountValue` held the truth (39.67). Take the larger of the
+    two account values instead of trusting dict truthiness (controller 6431520668 item 1).
+    """
+    if not isinstance(raw, dict):
+        return 0.0
+    vals = []
+    for key in ("crossMarginSummary", "marginSummary"):
+        summary = raw.get(key)
+        if isinstance(summary, dict):
+            vals.append(fnum(summary.get("accountValue"), 0.0))
+    return max(vals) if vals else 0.0
+
+
+def _unified_account_value(raw: Dict[str, Any]) -> Optional[float]:
+    """Spot USDC net of the perp hold, plus perp equity across the follower DEX scope.
+
+    None when any scope is unreadable: the caller then records the equity the engine already
+    read for this snapshot rather than dropping the point (an xyz-only account reads 39.67 here).
+    """
+    perp_total = 0.0
+    dexes = [dex for dex in follower_dex_scope() if dex]
+    payloads = [{"type": "spotClearinghouseState", "user": USER_WALLET}]
+    payloads.extend({"type": "clearinghouseState", "user": USER_WALLET, "dex": dex} for dex in dexes)
+    results = _XNET.post_many(EXPOSURE_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+    if len(results) != len(payloads) or any(not result.get("ok") for result in results):
+        return None
+    spot = results[0].get("data")
+    balances = spot.get("balances") if isinstance(spot, dict) else None
+    usdc = next((b for b in balances or [] if isinstance(b, dict)
+                 and str(b.get("coin") or "").upper() == "USDC"), None)
+    if not isinstance(usdc, dict) or usdc.get("total") in (None, ""):
+        return None
+    spot_total = fnum(usdc.get("total"), None)
+    hold = usdc.get("hold")
+    spot_hold = fnum(hold, None) if hold not in (None, "") else 0.0
+    if spot_total is None or spot_hold is None:
+        return None
+    for result in results[1:]:
+        state = result.get("data")
+        if not isinstance(state, dict):
+            return None
+        perp_total += _summary_account_value(state)
+    # Perp margin is held inside spot USDC; subtract the hold before adding back perp equity.
+    return spot_total - spot_hold + perp_total
+
+
 def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 2000,
                                  min_gap_sec: float = 60.0) -> bool:
     """Append one unified account-value point per minute, so the equity graph does not depend on page loads.
@@ -11277,10 +11335,7 @@ def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 200
         raw = snapshot.get("raw") if isinstance(snapshot, dict) else None
         if not isinstance(raw, dict):
             return False
-        summary = raw.get("crossMarginSummary") or raw.get("marginSummary") or {}
-        perp_total = fnum(summary.get("accountValue"), None)
-        if perp_total is None:
-            return False
+        perp_total = _summary_account_value(raw)   # isolated-margin dex: crossMarginSummary is present but ZERO
         path = AUDIT_DIR / "exchange_account_history.json"
         history = load_json(path, [])
         if not isinstance(history, list):
@@ -11294,32 +11349,11 @@ def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 200
                 last_ms = 0
         if last_ms and now_ms - last_ms < int(min_gap_sec * 1000):
             return False                       # one point per minute is a series, not a flood
-        dexes = [dex for dex in follower_dex_scope() if dex]
-        payloads = [{"type": "spotClearinghouseState", "user": USER_WALLET}]
-        payloads.extend({"type": "clearinghouseState", "user": USER_WALLET, "dex": dex} for dex in dexes)
-        results = _XNET.post_many(EXPOSURE_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC)
-        if len(results) != len(payloads) or any(not result.get("ok") for result in results):
-            return False
-        spot = results[0].get("data")
-        balances = spot.get("balances") if isinstance(spot, dict) else None
-        usdc = next((b for b in balances or [] if isinstance(b, dict)
-                     and str(b.get("coin") or "").upper() == "USDC"), None)
-        if not isinstance(usdc, dict) or usdc.get("total") in (None, ""):
-            return False
-        spot_total = fnum(usdc.get("total"), None)
-        hold = usdc.get("hold")
-        spot_hold = fnum(hold, None) if hold not in (None, "") else 0.0
-        if spot_total is None or spot_hold is None:
-            return False
-        for result in results[1:]:
-            state = result.get("data")
-            extra = (state.get("crossMarginSummary") or state.get("marginSummary") or {}) if isinstance(state, dict) else {}
-            extra_value = fnum(extra.get("accountValue"), None) if isinstance(extra, dict) else None
-            if extra_value is None:
-                return False
-            perp_total += extra_value
-        # Perp margin is held inside spot USDC; subtract the hold before adding back perp equity.
-        account_value = spot_total - spot_hold + perp_total
+        # A snapshot tagged with its own `dex` is that dex's account: read its own equity, no scope read.
+        unified = None if str((snapshot or {}).get("dex") or "") else _unified_account_value(raw)
+        account_value = unified if unified is not None else perp_total   # snapshot equity is the fallback
+        value_source = ("(spot USDC total - hold) + perp equity across follower DEX scope" if unified is not None
+                        else "clearinghouseState accountValue (larger of crossMargin/margin summary)")
         if account_value <= 0:
             return False                       # an unreadable/zero account is not a data point
         total_notional = 0.0
@@ -11331,7 +11365,7 @@ def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 200
             "timestamp": snapshot.get("created_at") or utc_now_iso(),
             "account_value": account_value,
             "unified_portfolio_value": account_value,
-            "unified_portfolio_value_source": "(spot USDC total - hold) + perp equity across follower DEX scope",
+            "unified_portfolio_value_source": value_source,
             "withdrawable": fnum(raw.get("withdrawable"), 0.0),
             "unrealized_pnl": None,
             "open_position_count": len(raw.get("assetPositions") or []),
@@ -11362,15 +11396,26 @@ class ExchangeReconciler:
         try:
             # SINGLE object: the live /info endpoint REJECTS a JSON array (proven: HTTP 422 "Failed to deserialize the
             # JSON body into the target type"), so the batch shape must never ship.
-            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
-            data = r.json()
+            # ONE SINGLE OBJECT per dex: the live /info endpoint rejects a JSON array, and a request
+            # without `dex` only ever returns the default dex, so a HIP-3 (xyz) account was invisible
+            # here (controller 6431520668 item 2).
+            raw_by_dex: Dict[str, Any] = {}
+            for dex in follower_dex_scope():
+                payload = {"type": "clearinghouseState", "user": USER_WALLET}
+                if dex:
+                    payload["dex"] = dex
+                part = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+                if isinstance(part, dict):
+                    raw_by_dex[dex] = part
+            data = raw_by_dex.get("", {})
             if isinstance(data, dict):
                 positions_by_coin = self._positions_from_snapshot(data)
                 # clearinghouseState omits XYZ/exotic perp positions; supplement from fill history.
                 xyz_positions = self._xyz_positions_from_app_snapshot()
                 xyz_positions.update(xyz_state_positions(include_zero=False))
                 positions_by_coin.update(xyz_positions)
-                snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data, "positions_by_coin": positions_by_coin}
+                snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data,
+                            "raw_by_dex": raw_by_dex, "positions_by_coin": positions_by_coin}
                 atomic_write_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, snapshot)
                 # the equity series is recorded from the read the engine just made: no extra call, no extra process
                 append_account_history_point(snapshot)
