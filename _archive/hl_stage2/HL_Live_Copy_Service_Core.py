@@ -9336,8 +9336,10 @@ class SenderGateway:
         if requests is None:
             return self._mids_cache
         out: Dict[str, float] = {}
-        try:
-            for dex in follower_dex_scope():
+        for dex in follower_dex_scope():
+            # Each dex is isolated: one bad dex must not abort the rest nor let a partial map be
+            # cached as if it were complete.
+            try:
                 payload = {"type": "allMids"}
                 if dex:
                     payload["dex"] = dex
@@ -9347,9 +9349,16 @@ class SenderGateway:
                 for key, value in data.items():
                     px = fnum(value, 0.0)
                     if px > 0 and math.isfinite(px):
-                        out[str(key).upper()] = px
-        except Exception:
-            pass
+                        # A non-default DEX's coins are namespaced: the exchange already prefixes
+                        # them (measured: `xyz:AAPL`), but a BARE name from a named DEX must be
+                        # prefixed here or two DEXes returning the same string silently overwrite
+                        # each other (D2). The default DEX keeps its bare/numbered keys.
+                        k = str(key)
+                        if dex and ":" not in k:
+                            k = f"{dex}:{k}"
+                        out[k.upper()] = px
+            except Exception as exc:
+                log_error(f"all_mids_dex_failed dex={dex or 'default'}", exc)
         if out:
             self._mids_cache = out
             self._mids_fetched_ms = now
@@ -11289,7 +11298,13 @@ def _summary_account_value(raw: Dict[str, Any]) -> float:
         summary = raw.get(key)
         if isinstance(summary, dict):
             vals.append(fnum(summary.get("accountValue"), 0.0))
-    return max(vals) if vals else 0.0
+    if not vals:
+        return 0.0
+    # Opposite signs mean the summaries disagree about solvency: max() takes the optimistic side
+    # and overstates equity, loosening the liq_parity_block gate. Fail CLOSED on the smaller value.
+    if min(vals) < 0.0 < max(vals):
+        return float(min(vals))
+    return float(max(vals))
 
 
 def _unified_account_value(raw: Dict[str, Any]) -> Optional[float]:
