@@ -93,6 +93,7 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
 
     stack.enter_context(patch.object(module, "save_swap_record", side_effect=save_record))
     stack.enter_context(patch.object(module, "LAUNCH_ENV", pair["launch_env"]))
+    stack.enter_context(patch.object(module, "REPLAY_WATCH_S", 0.0))
     stack.enter_context(patch.object(module, "LAST_SWAP", pair["last_swap"]))
     stack.enter_context(patch.object(module, "launch_spec", return_value=(
         dict(pair["spec"]), dict(pair["spec"]["env"]), pair["state"])))
@@ -231,6 +232,73 @@ def check_replay_proof(root, source):
             assert "another send attempt" in str(exc)
         else:
             raise AssertionError("previously-sent gap fill must not pass")
+
+
+def check_api_replay_pagination_and_join(root, source):
+    # Deterministic pages. 2000 rows cap; the overlap at t=2100 must be
+    # deduped by tid, not hash (every mocked hash is deliberately identical).
+    first = [{"tid": i, "hash": "same-order-hash", "coin": "BTC",
+              "side": "B", "px": "101", "sz": "1", "time": i + 100}
+             for i in range(1, 2001)]
+    extra = [
+        dict(first[-1]),
+        {"tid": 2001, "hash": "same-order-hash", "coin": "BTC", "side": "B",
+         "px": "101", "sz": "1", "time": 2101},
+    ]
+    calls = []
+    def fetch(payload):
+        calls.append(dict(payload))
+        return first if len(calls) == 1 else extra
+    fills = HOTFIX.api_leader_fills(100, 2200, ["0xwallet"], fetcher=fetch)
+    assert len(fills) == 2001, len(fills)
+    assert len(calls) == 2 and calls[1]["startTime"] == 2100, calls
+    assert all(call["type"] == "userFillsByTime" and call["aggregateByTime"] is False
+               and call["user"] == "0xwallet" for call in calls), calls
+
+    # Two full pages at one timestamp cannot establish complete coverage.
+    same_ms = [dict(row, time=101) for row in first]
+    def full_same_ms(_payload):
+        return same_ms
+    try:
+        HOTFIX.api_leader_fills(100, 2200, ["0xwallet"], fetcher=full_same_ms)
+    except HOTFIX.HotfixError as exc:
+        assert "millisecond pagination" in str(exc), str(exc)
+    else:
+        raise AssertionError("2000 fill same-ms cap falsely declared completeness")
+
+    api = {("0xwallet", "37"): {"tid": 37, "user": "0xwallet", "coin": "BTC",
+                               "side": "B", "px": "101", "sz": "1", "time": 130}}
+    good = {"created_at_ms": "140", "leader_wallet": "0xwallet", "leader_tid": "37",
+            "leader_fill_timestamp_ms": "130", "leader_fill_id": "engine-derived-37"}
+    HOTFIX.prove_api_to_ledger(api, [good], 100, 200)
+    for bad in ([], [dict(good, leader_tid="")], [good, dict(good)]):
+        try:
+            HOTFIX.prove_api_to_ledger(api, bad, 100, 200)
+        except HOTFIX.HotfixError as exc:
+            assert "leader_tid" in str(exc) or "API tid" in str(exc), str(exc)
+        else:
+            raise AssertionError("missing/duplicate API fill incorrectly passed")
+
+    # Current Core has no leader_tid in order_intents.csv. The real swap MUST
+    # hold rather than guessing from repeated order hash or tuple coincidence.
+    state = _replay_fixture(root / "real_schema", source)
+    runtime = json.loads((state / "clean_core_runtime_state.json").read_text(encoding="utf-8"))
+    runtime["last_leader_poll_cursor_ms"]["0xwallet"] = 200
+    (state / "clean_core_runtime_state.json").write_text(json.dumps(runtime), encoding="utf-8")
+    with patch.object(HOTFIX, "api_leader_fills", return_value=api), \
+         patch.object(HOTFIX, "snapshot_state", return_value=BASELINE):
+        try:
+            HOTFIX.replay_proof(state, BASELINE, set(), None, 100, 200, ["0xwallet"])
+        except HOTFIX.HotfixError as exc:
+            assert "Core must persist leader_tid" in str(exc), str(exc)
+        else:
+            raise AssertionError("API replay falsely passed without persisted exchange tid")
+
+    # Explicit file source still wins; no API request when override present.
+    with patch.object(HOTFIX, "api_leader_fills", side_effect=AssertionError("API called")), \
+         patch.object(HOTFIX, "snapshot_state", return_value=BASELINE):
+        assert HOTFIX.replay_proof(state, BASELINE, set(), source,
+                                   100, 150, ["0xwallet"])["gap_fills"] == 1
 
 
 def check_mutation_semantic_config_guard(root, source):
@@ -391,6 +459,7 @@ def main():
         checks = [
             ("APPLY_HOTFIX_TIMESTAMP_RULES", lambda: check_timestamp_and_digest_rules(root)),
             ("APPLY_HOTFIX_REPLAY_PROOF", lambda: check_replay_proof(root / "replay", raw)),
+            ("APPLY_HOTFIX_API_TID_FAILCLOSED", lambda: check_api_replay_pagination_and_join(root / "api", raw)),
             ("APPLY_HOTFIX_SWAP_PASS_AND_GAP_BOUNDARY", lambda: check_swap_pass_and_boundary(root)),
             ("APPLY_HOTFIX_MUTATION_GAP_THRESHOLD", lambda: check_mutation_gap_threshold(root)),
             ("APPLY_HOTFIX_PRECOMPILE_FAILURE_NEVER_STOPS",
