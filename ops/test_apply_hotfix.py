@@ -102,6 +102,7 @@ def main() -> None:
             else:
                 raise AssertionError("previously-sent gap fill must not pass")
         _scratch_swap_flow(root)
+        _scratch_failure_flow(root)
     print("RESULT::APPLY_HOTFIX_TIMESTAMP_RULES_PASS")
     print("RESULT::APPLY_HOTFIX_REPLAY_PROOF_PASS")
     print("RESULT::APPLY_HOTFIX_SWAP_FLOW_PASS")
@@ -156,6 +157,68 @@ def _scratch_swap_flow(root: Path) -> None:
     assert events == ["precompile", "stop", "rewrite", "start", "track-ui", "save-record"]
     assert "deactivation_to_healthy_ms   12345 / 20000" in output.getvalue()
     assert "HOTFIX SWAP PASS" in output.getvalue()
+
+
+def _scratch_failure_flow(root: Path) -> None:
+    """Injection proof: ambiguity before confirmed stop never triggers another control action;
+    later metadata/pointer/start/track/proof failures restore the original pair."""
+    from unittest.mock import Mock
+    root = root / "failure_flow"
+    state = root / "run8" / "state_scratch"
+    state.mkdir(parents=True)
+    (state / "live_config.json").write_text(
+        json.dumps({"wallets": {"live": {"mode": "LIVE"}}}), encoding="utf-8")
+    (root / "CURRENT_AUDIT_DIR").write_text(str(state), encoding="utf-8")
+    source = root / "source.csv"
+    source.write_text("leader_fill_id,time\\n", encoding="utf-8")
+    old_root, new_root = root / "old", root / "new"
+    old_root.mkdir()
+    new_root.mkdir()
+    old_sha, new_sha = "a" * 40, "b" * 40
+    spec = {"env": {"HL_LIVE_AUDIT_DIR": str(state), "HL_LIVE_SOURCE_FILLS": str(source)}}
+    baseline = {"anchor_sha256": "a", "anchor_t0_ms": 1,
+                "live_config_semantic_sha256": "config",
+                "manual_live_positions_sha256": "manual",
+                "xyz_position_state_sha256": "xyz", "user_owned_sha256": "user"}
+    for failed_at in ("stop", "rewrite", "pointer", "start", "track", "proof"):
+        events = []
+        def action(name, result=None):
+            def fn(*args, **kwargs):
+                events.append(name)
+                if name == failed_at:
+                    raise HOTFIX.HotfixError("injected " + name)
+                return result
+            return fn
+
+        with patch.object(HOTFIX, "launch_spec", return_value=(spec.copy(), dict(spec["env"]), state)), \\
+                patch.object(HOTFIX, "validate_pair", return_value=({"pid": 1234}, old_root, old_sha, 5678)), \\
+                patch.object(HOTFIX, "checkout_info", return_value=(new_root, new_sha)), \\
+                patch.object(HOTFIX, "precompile"), \\
+                patch.object(HOTFIX, "snapshot_state", return_value=baseline), \\
+                patch.object(HOTFIX, "backup_state", return_value=root / "backup"), \\
+                patch.object(HOTFIX, "sent_keys", return_value=set()), \\
+                patch.object(HOTFIX, "stop_pair", side_effect=action("stop")), \\
+                patch.object(HOTFIX, "rewrite_launch_spec", side_effect=action("rewrite")), \\
+                patch.object(HOTFIX, "atomic_text", side_effect=action("pointer")), \\
+                patch.object(HOTFIX, "start_pair", side_effect=action("start", {"engine_pid": 4321})), \\
+                patch.object(HOTFIX, "tracked_start_ui", side_effect=action("track")), \\
+                patch.object(HOTFIX, "first_healthy_cycle", side_effect=lambda _s, _p, after: (after + 12345, {})), \\
+                patch.object(HOTFIX, "replay_proof", side_effect=action("proof", {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0, "unresolved": 0, "cursors_caught_up": 1})), \\
+                patch.object(HOTFIX, "save_swap_record"), \\
+                patch.object(HOTFIX.SP, "pids", return_value=[]), \\
+                patch.object(HOTFIX.SP, "listener", return_value=None), \\
+                patch.object(HOTFIX.time, "sleep"):
+            try:
+                HOTFIX.perform_swap(new_root, new_sha, 8031, False)
+            except HOTFIX.HotfixError as exc:
+                if failed_at == "stop":
+                    assert "injected stop" in str(exc)
+                    assert events == ["stop"], events
+                else:
+                    assert "previous pair restored" in str(exc), (failed_at, exc)
+                    assert events.count("start") >= 1, events
+            else:
+                raise AssertionError("injected failure unexpectedly passed: " + failed_at)
 
 
 if __name__ == "__main__":
