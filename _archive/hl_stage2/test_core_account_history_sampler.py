@@ -26,9 +26,9 @@ def check(name, ok, detail=''):
 
 
 if not hasattr(C, 'append_account_history_point'):
-    for n in ('THE_ENGINE_RECORDS_A_POINT_FROM_ITS_OWN_READ', 'ONE_POINT_PER_MINUTE_AT_MOST',
-              'A_ZERO_DEFAULT_DEX_VALUE_STILL_RECORDS_THE_FIRST_POINT', 'THE_SERIES_IS_CAPPED', 'THE_POINT_IS_ENGINE_SOURCED',
-              'THE_SAMPLER_MAKES_NO_HTTP_CALL'):
+    for n in ('A_ZERO_DEFAULT_DEX_VALUE_STILL_RECORDS_THE_FIRST_POINT', 'THE_GRAPH_USES_UNIFIED_ACCOUNT_VALUE',
+              'THE_SAMPLE_READS_SPOT_AND_NONDEFAULT_MARGIN', 'THE_POINT_IS_ENGINE_SOURCED',
+              'ONE_POINT_PER_MINUTE_AT_MOST', 'THE_MINUTE_THROTTLE_SKIPS_EXTRA_READS'):
         check(n, False, 'no engine sampler exists on this build - the graph depends on page loads')
     print('TOTAL=6 FAILED=6')
     sys.exit(1)

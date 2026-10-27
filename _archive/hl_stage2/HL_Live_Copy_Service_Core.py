@@ -279,6 +279,22 @@ def follower_dex_scope() -> List[str]:
     return [""] + sorted(names | learned)
 
 
+def mids_dex_key(dex: str, key: Any) -> str:
+    """The cache key for one allMids entry: upper-cased, NAMESPACED for a non-default DEX.
+
+    The exchange already prefixes a named DEX coins today (measured on testnet 2026-10-27:
+    a dex=xyz allMids read returns xyz:AAPL and zero bare names), but nothing in the write path made
+    that true. A named DEX returning a BARE name would be stored beside the default DEX price for the
+    same string and silently overwrite it, and a namespaced caller (xyz:AMD, the sdk_coin shape every
+    HIP-3 copy uses) would read 0.0 -> PRICE_SANITY_REJECTED on every HIP-3 asset.
+    ONE rule for every reader of the allMids payload: _fetch_all_mids, follower_mid and leader_mid.
+    Already-prefixed keys are not double-prefixed; the default DEX keeps its bare/numbered keys."""
+    k = str(key).upper()
+    if dex and ":" not in k:
+        k = f"{dex}:{k}".upper()
+    return k
+
+
 def follower_mid(coin: str, force: bool = False) -> float:
     """Fresh follower-network mid for `coin` over the follower DEX scope (allMids per DEX, read
     concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
@@ -294,11 +310,11 @@ def follower_mid(coin: str, force: bool = False) -> float:
             if stale():
                 out: Dict[str, float] = {}
                 payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
-                for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
+                for dex, res in zip(dexes, _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC)):
                     data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
                     for key, value in data.items():
                         if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                            out[str(key).upper()] = fnum(value, 0.0)
+                            out[mids_dex_key(dex, key)] = fnum(value, 0.0)
                 if out:
                     m["px"], m["ms"], m["scope"] = out, now, dexes
                     m["refresh_ms"] = utc_now_ms() - now
@@ -400,10 +416,10 @@ def leader_mid(coin: str, use_cached: bool = False) -> float:
                 dexes = sorted(set(m["dexes"]) | {"", dex})
                 out: Dict[str, float] = {}
                 payloads = [{"type": "allMids", **({"dex": d} if d else {})} for d in dexes]
-                for res in _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC):
+                for d, res in zip(dexes, _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC)):
                     for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
                         if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                            out[str(key).upper()] = fnum(value, 0.0)
+                            out[mids_dex_key(d, key)] = fnum(value, 0.0)
                 if out:
                     m["px"], m["ms"], m["dexes"] = out, now, dexes
     if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
@@ -9349,14 +9365,9 @@ class SenderGateway:
                 for key, value in data.items():
                     px = fnum(value, 0.0)
                     if px > 0 and math.isfinite(px):
-                        # A non-default DEX's coins are namespaced: the exchange already prefixes
-                        # them (measured: `xyz:AAPL`), but a BARE name from a named DEX must be
-                        # prefixed here or two DEXes returning the same string silently overwrite
-                        # each other (D2). The default DEX keeps its bare/numbered keys.
-                        k = str(key)
-                        if dex and ":" not in k:
-                            k = f"{dex}:{k}"
-                        out[k.upper()] = px
+                        # Namespaced by the SAME helper as follower_mid/leader_mid: one rule for
+                        # every reader of the allMids payload (a bare name from a named DEX collides).
+                        out[mids_dex_key(dex, key)] = px
             except Exception as exc:
                 log_error(f"all_mids_dex_failed dex={dex or 'default'}", exc)
         if out:
