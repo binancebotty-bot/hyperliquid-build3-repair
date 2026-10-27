@@ -41,6 +41,10 @@ def fetcher(payload):
     return {}
 
 UI.ACCOUNT_TILE_FETCHER = fetcher
+UI.ACCOUNT_VALUE_FETCHER = lambda payload: [["day", {
+    "pnlHistory": [[0, "0"], [1, "0"]],
+    "accountValueHistory": [[1, "972.432572"]],
+}]]
 UI._ACCOUNT_TILE_CACHE.clear()
 tile = UI._follower_account_tile(force=True)
 print("TILE::", {k: tile.get(k) for k in ("ok", "perp_account_value", "spot_usdc", "spot_hold", "free_spot_usdc", "total_account_value", "decomposition_usd", "dexes_read")})
@@ -56,6 +60,21 @@ check("THE_SOURCE_EXPLAINS_THE_HOLD", "held inside" in str(tile.get("account_val
 check("SPOT_WAS_ACTUALLY_QUERIED", any(p.get("type") == "spotClearinghouseState" for p in SEEN), str([p.get("type") for p in SEEN]))
 check("THE_XYZ_SCOPE_WAS_ACTUALLY_QUERIED", any((p.get("dex") or "") == "xyz" for p in SEEN), str([p.get("dex") for p in SEEN]))
 
+UI.ACCOUNT_VALUE_FETCHER = lambda payload: [["day", {
+    "pnlHistory": [[0, "0"], [1, "0"]],
+    "accountValueHistory": [[1, "2000.0"]],
+}]]
+UI._ACCOUNT_TILE_CACHE.clear()
+incomplete = UI._follower_account_tile(force=True)
+check("READABLE_INCOMPLETE_SCOPE_FAILS_CLOSED", incomplete.get("ok") is False
+      and incomplete.get("reason") == "DEX_SCOPE_INCOMPLETE", str(incomplete.get("reason")))
+UI._ACCOUNT_TILE_CACHE.clear()
+incomplete_card = " ".join(UI._account_card_lines())
+check("INCOMPLETE_SCOPE_DOES_NOT_SHOW_PARTIAL_VALUE",
+      "UNAVAILABLE" in incomplete_card and "DEX_SCOPE_INCOMPLETE" in incomplete_card
+      and "Account value (spot + perp)" not in incomplete_card and "Perp equity" not in incomplete_card,
+      incomplete_card[:400])
+
 def dead(payload):
     if payload.get("type") == "spotClearinghouseState":
         return {"balances": [{"coin": "USDC", "total": "900.0"}]}
@@ -64,6 +83,11 @@ def dead(payload):
         raise RuntimeError("boom")
     return {"marginSummary": {"accountValue": "0.0"}, "assetPositions": []}
 
+UI.ACCOUNT_VALUE_FETCHER = lambda payload: [["day", {
+    "pnlHistory": [[0, "0"], [1, "0"]],
+    "accountValueHistory": [[1, "972.432572"]],
+}]]
+UI._ACCOUNT_TILE_CACHE.clear()
 LINES = UI._account_card_lines()
 joined = " ".join(LINES)
 check("THE_CARD_SAYS_SPOT_PLUS_PERP", "spot + perp" in joined.lower(), joined[:300])

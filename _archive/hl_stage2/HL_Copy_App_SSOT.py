@@ -6808,6 +6808,8 @@ def _follower_account_tile(force: bool = False) -> Dict[str, Any]:
             gap = round(whole_v - float(out["total_account_value"]), 8)
             out["unexplained_gap_usd"] = gap
             if abs(gap) > 0.01:
+                out["ok"] = False
+                out.setdefault("reason", "DEX_SCOPE_INCOMPLETE")
                 out["scope_incomplete"] = True
                 out.setdefault("errors", []).append(
                     "dex scope incomplete: exchange whole account %.2f vs tile %.2f (gap %.2f)"
