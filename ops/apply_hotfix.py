@@ -515,9 +515,10 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         raise HotfixError("pre-stop identity or state changed during staging")
 
     original_spec = copy.deepcopy(spec)
+    # Do not touch either process after an unproven/ambiguous stop. Restart is safe
+    # only once stop_pair has positively established that both old processes exited.
+    stop_pair(state, port)
     try:
-        # Once stop is requested, any exception must restore the original build.
-        stop_pair(state, port)
         old_pair_down_ms = int(time.time() * 1000)
         rewrite_launch_spec(spec, new_root, target_sha, state)
         atomic_text(pointer_path(state), str(state))
