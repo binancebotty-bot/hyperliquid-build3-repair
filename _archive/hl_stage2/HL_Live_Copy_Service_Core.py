@@ -6817,8 +6817,10 @@ class SenderGateway:
     def _resting_entry_result(self, intent: Intent, sdk_coin: str, response: Any, px: float, size: float,
                               timing: Dict[str, Any], missed: Dict[str, Any], why: str) -> Tuple[bool, str, Dict[str, Any]]:
         ok, status, oid, error = self._parse_hl_response(response)
-        note = (f"Boss missed-entry rule: {why}; leader_price={missed.get('leader_px')}; price_now={missed.get('market_px')}; "
-                f"moved_against_bps={missed.get('adverse_bps', 0.0):.2f}; limit at leader price={px}; "
+        proof = missed if isinstance(missed, dict) else {}
+        note = (f"Boss missed-entry rule: {why}; leader_price={proof.get('leader_px', intent.fill.price)}; "
+                f"price_now={proof.get('market_px', 'not measured')}; "
+                f"moved_against_bps={proof.get('adverse_bps', 'not measured')}; limit at leader price={px}; "
                 "rests until filled or the leader reduces/closes; reconcile on the exchange if needed")
         if ok and status == "ORDER_RESTING":
             self._register_resting_entry(intent, sdk_coin, oid, px, size, why)
@@ -8779,54 +8781,18 @@ class SenderGateway:
                     "reject_category": "", "reduce_only_sent": use_reduce_only,
                 })
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
-            if (
-                not ok
-                and status == "ORDER_REJECTED"
-                and lifecycle in {"ENTRY", "ADD"}
-                and reject_category == "IOC_NO_IMMEDIATE_MATCH"
-            ):
-                retry_bps = max(bps, fnum(os.getenv("HL_LIVE_ENTRY_IOC_RETRY_BPS"), 100.0))
-                max_retry_bps = max(retry_bps, fnum(os.getenv("HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"), retry_bps))
-                retry_bps = min(retry_bps, max_retry_bps)
-                if retry_bps > bps:
-                    retry_mult = (1.0 + retry_bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - retry_bps / 10000.0)
-                    retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec)
-                    if missed is not None:  # Boss's rule: the retry never goes past leader price + tolerance
-                        cap = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
-                        retry_px = min(retry_px, cap) if intent.copy_side == "BUY" else max(retry_px, cap)
-                    more_aggressive = retry_px > limit_px if intent.copy_side == "BUY" else retry_px < limit_px
-                    retry_notional = abs(wire_size * retry_px)
-                    retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
-                    if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
-                        timing["entry_ioc_retry_started_ms"] = utc_now_ms()
-                        self._supersede_attempt(timing, response, intent)
-                        _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
-                                                              timing, "ioc_retry")
-                        retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
-                                                           retry_px, "Ioc", False, cloid=_cl, pre_send=_pre, intent=intent, path="send_retry")
-                        timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
-                        retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
-                        if retry_ok:
-                            return True, retry_status, {
-                                "exchange_response": retry_response, "oid": retry_oid,
-                                "limit_px": retry_px, "wire_size": wire_size, "copy_notional": retry_notional,
-                                "exchange_called": True, "error": retry_error, "timing": timing,
-                                "reject_category": "",
-                                "reduce_only_sent": use_reduce_only,
-                                "notes": f"entry IOC retry filled; initial_error={parsed_error}; initial_limit={limit_px}; retry_bps={retry_bps}",
-                            }
-                        response, status, oid, parsed_error = retry_response, retry_status, retry_oid, retry_error
-                        accepted_result = None
-                        reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
-                        limit_px = retry_px
-                        wire_notional = retry_notional
-            if (not ok and status == "ORDER_REJECTED" and missed is not None
+            if (not ok and status == "ORDER_REJECTED" and lifecycle in {"ENTRY", "ADD"}
                     and classify_reject_category(parsed_error, response) == "IOC_NO_IMMEDIATE_MATCH"):
-                # missed while sending (price ran within the tolerance window): diff + limit at the leader's price
-                rest_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
+                # OD-01's follower-mid +/-20bps governs only the FIRST IOC. On a
+                # definite no-match the next send must be a resting GTC at the
+                # leader fill price, even if the optional missed rule was disabled.
+                rest_px = self._px_passive(fnum(intent.fill.price, 0.0), price_max_dec,
+                                           intent.copy_side == "BUY")
                 rest_safe, _rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
-                if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
-                                                                        intent.copy_side) is None:
+                max_order = self.cfg.max_order_notional()
+                within_cap = max_order <= 0 or abs(wire_size * rest_px) <= max_order + 1e-9
+                if rest_safe and rest_px > 0 and within_cap and self.resting_entry_for(
+                        intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is None:
                     gtc_px = rest_px
                     self._supersede_attempt(timing, response, intent)
                     _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", rest_px, wire_size, False, timing,
@@ -8847,8 +8813,9 @@ class SenderGateway:
                                                 else "WAIT_FOR_COPY_POLL"),
                             "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT",
                         })
-                    return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
-                                                      f"copy order found no match ({parsed_error})")
+                    return self._resting_entry_result(
+                        intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
+                        f"IOC found no match; GTC at leader price ({parsed_error})")
             if (not ok and status == "ORDER_REJECTED"
                     and lifecycle in {"ENTRY", "ADD"}
                     and classify_reject_category(parsed_error, response) == "SIZE_OR_NOTIONAL_REJECTED"):
