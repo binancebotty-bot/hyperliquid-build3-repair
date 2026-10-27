@@ -444,7 +444,7 @@ def stop_pair(state: Path, port: int) -> dict[str, Any]:
             or int(record.get("timestamp_ms") or 0) < request_ms - 500):
         raise HotfixError("shutdown record does not prove this clean stop")
     if SP.pids(state) or SP.listener(port):
-        raise HotfixError("old pair is still present after stop_pair")
+        raise HotfixError("post-stop identity check failed: pair state ambiguous; check whether pair is down and use --rollback only after operator verification")
     return record
 
 
