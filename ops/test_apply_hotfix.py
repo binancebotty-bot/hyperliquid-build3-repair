@@ -185,7 +185,7 @@ def _scratch_failure_flow(root: Path) -> None:
         def action(name, result=None):
             def fn(*args, **kwargs):
                 events.append(name)
-                if name == failed_at:
+                if name == failed_at and events.count(name) == 1:
                     raise HOTFIX.HotfixError("injected " + name)
                 return result
             return fn
