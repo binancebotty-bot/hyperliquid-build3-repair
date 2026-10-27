@@ -6879,6 +6879,25 @@ class SenderGateway:
         if not isinstance(snapshot, dict):
             return {}, "exchange snapshot unavailable"
         raw = snapshot.get("raw") if isinstance(snapshot.get("raw"), dict) else snapshot
+        # The default DEX is only one leg of the follower account. The persisted
+        # raw_by_dex also carries HIP-3/xyz positions; avoid counting raw twice.
+        by_dex = snapshot.get("raw_by_dex")
+        if isinstance(by_dex, dict) and by_dex:
+            merged: Dict[str, float] = {}
+            default_seen = False
+            for dex, part in by_dex.items():
+                if not isinstance(part, dict) or not isinstance(part.get("assetPositions"), list):
+                    return {}, "exchange raw_by_dex[%s].assetPositions unavailable" % dex
+                if dex == "":
+                    default_seen = True
+                for coin, size in ExchangeReconciler._positions_from_snapshot(part).items():
+                    merged[coin] = merged.get(coin, 0.0) + size
+            if not default_seen:
+                if not isinstance(raw, dict) or not isinstance(raw.get("assetPositions"), list):
+                    return {}, "exchange default raw.assetPositions unavailable"
+                for coin, size in ExchangeReconciler._positions_from_snapshot(raw).items():
+                    merged[coin] = merged.get(coin, 0.0) + size
+            return merged, ""
         if not isinstance(raw, dict) or not isinstance(raw.get("assetPositions"), list):
             positions = snapshot.get("positions_by_coin")
             if isinstance(positions, dict):
