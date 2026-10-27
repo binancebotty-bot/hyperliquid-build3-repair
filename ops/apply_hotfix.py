@@ -257,6 +257,7 @@ def snapshot_state(state: Path) -> dict[str, Any]:
         "anchor_sha256": hashlib.sha256(anchor_bytes).hexdigest(),
         "anchor_t0_ms": t0,
         "live_config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        "live_config_semantic_sha256": digest_json(config_path, "live_config.json"),
         "manual_live_positions_sha256": digest_json(state / "manual_live_positions.json", "manual_live_positions.json"),
         "xyz_position_state_sha256": digest_json(state / "xyz_position_state.json", "xyz_position_state.json"),
         "user_owned_sha256": user_owned_digest(config),
@@ -395,7 +396,7 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
     if unresolved:
         raise HotfixError("attached watch still reports unresolved rows")
     after = snapshot_state(state)
-    for key in ("anchor_sha256", "anchor_t0_ms", "live_config_sha256",
+    for key in ("anchor_sha256", "anchor_t0_ms", "live_config_semantic_sha256",
                 "manual_live_positions_sha256", "xyz_position_state_sha256", "user_owned_sha256"):
         if after[key] != baseline[key]:
             raise HotfixError("same-state invariant changed: " + key)
@@ -497,8 +498,8 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     print("BUILD: %s -> %s" % (old_sha, target_sha))
     print("STATE: same directory; no seeding or clearing")
     print("PRECOMPILE: engine, UI, start_pair.py, stop_pair.py passed")
-    print("STATE SHA: PAIR_START_ANCHOR=%s live_config=%s USER/ledger invariants captured"
-          % (baseline["anchor_sha256"], baseline["live_config_sha256"]))
+    print("STATE SHA: PAIR_START_ANCHOR=%s live_config_semantic=%s USER/ledger invariants captured"
+          % (baseline["anchor_sha256"], baseline["live_config_semantic_sha256"]))
     if dry_run:
         print("DRY RUN: no backup, state write, stop, or start performed")
         return 0
@@ -514,66 +515,66 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         raise HotfixError("pre-stop identity or state changed during staging")
 
     original_spec = copy.deepcopy(spec)
-    stop_pair(state, port)
-    old_pair_down_ms = int(time.time() * 1000)
-    rewrite_launch_spec(spec, new_root, target_sha, state)
-    atomic_text(pointer_path(state), str(state))
     try:
+        # Once stop is requested, any exception must restore the original build.
+        stop_pair(state, port)
+        old_pair_down_ms = int(time.time() * 1000)
+        rewrite_launch_spec(spec, new_root, target_sha, state)
+        atomic_text(pointer_path(state), str(state))
         start_info = start_pair(new_root, target_sha, state, port, dict(env))
         tracked_start_ui(port)
-    except Exception as start_error:
+        engine_pid = int(start_info["engine_pid"])
+        deadline = time.monotonic() + REPLAY_TIMEOUT_S
+        first_cycle: tuple[int, dict[str, Any]] | None = None
+        proof: dict[str, int] | None = None
+        while time.monotonic() < deadline:
+            first_cycle = first_healthy_cycle(state, engine_pid, old_pair_down_ms)
+            if first_cycle is not None:
+                try:
+                    proof = replay_proof(state, baseline, sent_before, source, old_pair_down_ms,
+                                         first_cycle[0], wallets)
+                    break
+                except HotfixError as exc:
+                    # A lagging poll/copy cycle is expected during the attached watch; invariant drift is not.
+                    if "not caught up" not in str(exc) and "unresolved rows" not in str(exc) and "missing order_intents" not in str(exc):
+                        raise
+            time.sleep(POLL_S)
+        if first_cycle is None or proof is None:
+            raise HotfixError("attached replay watch timed out; the pair remains up for operator review")
+        gap_ms = first_cycle[0] - old_pair_down_ms
+        print("PROOF TABLE")
+        print("  same_state_dir              PASS")
+        print("  pair_start_anchor_sha/t0    PASS (%s / %d)" % (baseline["anchor_sha256"], baseline["anchor_t0_ms"]))
+        print("  live_config_semantic_sha    PASS (%s; ignored timestamp fields: none)" % baseline["live_config_semantic_sha256"])
+        print("  sleeve_ledger_sha            PASS (ignored: manual_live_positions.last_updated_at; xyz_position_state.updated_at, updated_at_ms)")
+        print("  USER-OWNED sleeves           PASS (content digest unchanged)")
+        print("  one_engine + tracked_UI      PASS")
+        print("  old_pair_down_ms             %d" % old_pair_down_ms)
+        print("  first_healthy_cycle_ms       %d" % first_cycle[0])
+        print("  deactivation_to_healthy_ms   %d / %d" % (gap_ms, MAX_GAP_MS))
+        print("  missed_fills / intent_rows   %d / %d" % (proof["gap_fills"], proof["gap_intent_rows"]))
+        print("  duplicate_attempts           %d" % proof["duplicate_attempts"])
+        print("  UNRESOLVED                   %d" % proof["unresolved"])
+        print("  poll_wallets_caught_up       %d" % proof["cursors_caught_up"])
+        # Preserve explicit rollback target when the new build stays running (including gap failure).
+        save_swap_record(old_root, old_sha, new_root, target_sha, state, port, backup)
+        if gap_ms >= MAX_GAP_MS:
+            print("FAIL: pair downtime must be under 20 seconds")
+            return 1
+        print("HOTFIX SWAP PASS: %s" % target_sha)
+        print("STATE BACKUP: %s" % backup)
+        return 0
+    except Exception as swap_error:
         try:
             if SP.pids(state) or SP.listener(port):
                 stop_pair(state, port)
-            rewrite_launch_spec(original_spec, old_root, old_sha, state)
+            rewrite_launch_spec(copy.deepcopy(original_spec), old_root, old_sha, state)
             atomic_text(pointer_path(state), str(state))
             start_pair(old_root, old_sha, state, port, dict(original_spec["env"]))
             tracked_start_ui(port)
         except Exception as rollback_error:
-            raise HotfixError("target start failed and previous pair could not be restored") from rollback_error
-        raise HotfixError("target start failed; previous pair was restored") from start_error
-    engine_pid = int(start_info["engine_pid"])
-    # Keep rollback metadata as soon as the new pair is proven up, even if the replay watch later fails.
-    save_swap_record(old_root, old_sha, new_root, target_sha, state, port, backup)
-    deadline = time.monotonic() + REPLAY_TIMEOUT_S
-    first_cycle: tuple[int, dict[str, Any]] | None = None
-    proof: dict[str, int] | None = None
-    while time.monotonic() < deadline:
-        first_cycle = first_healthy_cycle(state, engine_pid, old_pair_down_ms)
-        if first_cycle is not None:
-            try:
-                proof = replay_proof(state, baseline, sent_before, source, old_pair_down_ms,
-                                     first_cycle[0], wallets)
-                break
-            except HotfixError as exc:
-                # A lagging poll/copy cycle is expected during the attached watch; invariant drift is not.
-                if "not caught up" not in str(exc) and "unresolved rows" not in str(exc) and "missing order_intents" not in str(exc):
-                    raise
-        time.sleep(POLL_S)
-    if first_cycle is None or proof is None:
-        raise HotfixError("attached replay watch timed out; the pair remains up for operator review")
-    gap_ms = first_cycle[0] - old_pair_down_ms
-    print("PROOF TABLE")
-    print("  same_state_dir              PASS")
-    print("  pair_start_anchor_sha/t0    PASS (%s / %d)" % (baseline["anchor_sha256"], baseline["anchor_t0_ms"]))
-    print("  live_config_sha             PASS (%s; ignored timestamp fields: none)" % baseline["live_config_sha256"])
-    print("  sleeve_ledger_sha            PASS (ignored: manual_live_positions.last_updated_at; xyz_position_state.updated_at, updated_at_ms)")
-    print("  USER-OWNED sleeves           PASS (content digest unchanged)")
-    print("  one_engine + tracked_UI      PASS")
-    print("  old_pair_down_ms             %d" % old_pair_down_ms)
-    print("  first_healthy_cycle_ms       %d" % first_cycle[0])
-    print("  deactivation_to_healthy_ms   %d / %d" % (gap_ms, MAX_GAP_MS))
-    print("  missed_fills / intent_rows   %d / %d" % (proof["gap_fills"], proof["gap_intent_rows"]))
-    print("  duplicate_attempts           %d" % proof["duplicate_attempts"])
-    print("  UNRESOLVED                   %d" % proof["unresolved"])
-    print("  poll_wallets_caught_up       %d" % proof["cursors_caught_up"])
-    if gap_ms >= MAX_GAP_MS:
-        print("FAIL: pair downtime must be under 20 seconds")
-        return 1
-    print("HOTFIX SWAP PASS: %s" % target_sha)
-    print("STATE BACKUP: %s" % backup)
-    return 0
-
+            raise HotfixError("swap failed and previous pair could not be restored") from rollback_error
+        raise HotfixError("swap failed; previous pair restored") from swap_error
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Same-state Build 3 Core/UI hotfix swap")
