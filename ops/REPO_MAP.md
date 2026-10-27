@@ -38,6 +38,15 @@ None of the following may ever be deleted, renamed, force-pushed over or re-poin
 | Runs 3-7 | `trading_stack/hl-build3-testnet-cert-evidence/run3..run7` | Superseded run evidence. Frozen. |
 | This repo | `C:/Users/wigmore/hyperliquid-build3-repair` | Control surface, ops, certification, EVIDENCE. Not the running product. |
 
+## OPS FILES ON THE PR #95 LANE (`hermes/fresh-pair-launcher`)
+
+| File | What it is | State |
+|---|---|---|
+| `ops/fresh_pair.py` | fresh start script; `--no-spawn` dry run and injectable start path; not applied to run19 | pushed, PR #95 (draft) |
+| `ops/HOTFIX_QUEUE.md` | hot-fix queue; every row a live hot fix routed per `ops/HOTFIX.md` | pushed, PR #95 (draft) |
+| `ops/HOTFIX.md` | hot-fix route, pre-checks, load, proof, rollback | pending Codex |
+| `ops/apply_hotfix.py` | the helper that applies one queue item per `ops/HOTFIX.md` | pending Codex |
+
 ## RULES
 
 1. The running folder is read-only. Changes go on a branch elsewhere, get reviewed, then get re-pinned to a new SHA.
