@@ -8529,10 +8529,14 @@ class SenderGateway:
             else:  # moved too far: no chase, rest a limit at the leader's price
                 base_px, mult = missed["desired_px"], 1.0
         rest_now = missed is not None and not missed["take"]
-        if rest_now:
-            already = self._already_resting_block(intent, timing)
-            if already is not None:
-                return already
+        if lifecycle in {"ENTRY", "ADD"}:
+            existing = self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side)
+            # A previous run of THIS intent already owns a working GTC. A replay
+            # must not issue even another IOC before reaching the fallback guard.
+            if existing is not None and (rest_now or existing.get("intent_id") == intent.intent_id):
+                already = self._already_resting_block(intent, timing)
+                if already is not None:
+                    return already
         raw_px = base_px * mult
         limit_px = self._format_limit_px(raw_px, price_max_dec)
         if rest_now:  # never worse than the leader's price
