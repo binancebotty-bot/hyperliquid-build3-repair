@@ -27,7 +27,7 @@ def check(name, ok, detail=''):
 
 if not hasattr(C, 'append_account_history_point'):
     for n in ('THE_ENGINE_RECORDS_A_POINT_FROM_ITS_OWN_READ', 'ONE_POINT_PER_MINUTE_AT_MOST',
-              'A_ZERO_ACCOUNT_IS_NOT_A_POINT', 'THE_SERIES_IS_CAPPED', 'THE_POINT_IS_ENGINE_SOURCED',
+              'A_ZERO_DEFAULT_DEX_VALUE_STILL_RECORDS_THE_FIRST_POINT', 'THE_SERIES_IS_CAPPED', 'THE_POINT_IS_ENGINE_SOURCED',
               'THE_SAMPLER_MAKES_NO_HTTP_CALL'):
         check(n, False, 'no engine sampler exists on this build - the graph depends on page loads')
     print('TOTAL=6 FAILED=6')
@@ -70,12 +70,13 @@ try:
                         "assetPositions": [{"position": {"coin": "A%d" % i, "positionValue": "10.0"}}
                                            for i in range(positions)]}}
 
-    wrote = C.append_account_history_point(snap(value=20.0))
+    wrote = C.append_account_history_point(snap(value=0.0))
     hist = json.loads(path.read_text()) if path.exists() else []
-    check('THE_ENGINE_RECORDS_A_POINT_FROM_ITS_OWN_READ', wrote and len(hist) == 1,
+    check('A_ZERO_DEFAULT_DEX_VALUE_STILL_RECORDS_THE_FIRST_POINT', wrote and len(hist) == 1
+          and hist[0].get('unified_portfolio_value') == 80.0,
           'wrote=%r points=%d' % (wrote, len(hist)))
-    check('THE_GRAPH_USES_UNIFIED_ACCOUNT_VALUE', bool(hist) and hist[0].get('unified_portfolio_value') == 100.0
-          and hist[0].get('account_value') == 100.0,
+    check('THE_GRAPH_USES_UNIFIED_ACCOUNT_VALUE', bool(hist) and hist[0].get('unified_portfolio_value') == 80.0
+          and hist[0].get('account_value') == 80.0,
           'entry=%r' % (hist[0] if hist else None,))
     check('THE_SAMPLE_READS_SPOT_AND_NONDEFAULT_MARGIN',
           [p.get('type') for p in _reads] == ['spotClearinghouseState', 'clearinghouseState'],
@@ -91,9 +92,6 @@ try:
           'a second point landed inside the minute: wrote=%r points=%d' % (again, len(hist)))
     check('THE_MINUTE_THROTTLE_SKIPS_EXTRA_READS', len(_reads) == reads_before,
           'the sampler made more exchange reads inside the minute')
-
-    zero = C.append_account_history_point(snap(value=0.0))
-    check('A_ZERO_ACCOUNT_IS_NOT_A_POINT', zero is False, 'a zero account value was recorded as a point')
 
     # cap: write past the limit with distinct timestamps
     C.append_account_history_point  # keep the reference used above
