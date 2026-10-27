@@ -33,6 +33,10 @@ def main() -> None:
 
         config.write_text(json.dumps({"wallets": {"user": {"mode": "USER", "sleeve": 1}}}), encoding="utf-8")
         config_before = HOTFIX.digest_json(config, config.name)
+        raw_before = config.read_bytes()
+        config.write_text(json.dumps({"wallets": {"user": {"sleeve": 1, "mode": "USER"}}}, indent=4), encoding="utf-8")
+        assert config.read_bytes() != raw_before
+        assert HOTFIX.digest_json(config, config.name) == config_before
         config.write_text(json.dumps({"wallets": {"user": {"mode": "USER", "sleeve": 2}}}), encoding="utf-8")
         assert HOTFIX.digest_json(config, config.name) != config_before
 
@@ -61,7 +65,7 @@ def main() -> None:
             writer.writeheader()
             writer.writerow({"leader_fill_id": "fill-1", "user": "leader", "coin": "BTC",
                              "side": "B", "px": "1", "sz": "1", "time": 120})
-        baseline = {"anchor_sha256": "anchor", "anchor_t0_ms": 1, "live_config_sha256": "config",
+        baseline = {"anchor_sha256": "anchor", "anchor_t0_ms": 1, "live_config_sha256": "config", "live_config_semantic_sha256": "config_semantic",
                     "manual_live_positions_sha256": "manual", "xyz_position_state_sha256": "xyz",
                     "user_owned_sha256": "user"}
         with patch.object(HOTFIX, "snapshot_state", return_value=baseline):
@@ -77,6 +81,16 @@ def main() -> None:
             proof = HOTFIX.replay_proof(state, baseline, set(), source, 100, 150, ["0xwallet"])
             assert proof == {"gap_fills": 1, "gap_intent_rows": 1, "duplicate_attempts": 0,
                              "unresolved": 0, "cursors_caught_up": 1}
+            with patch.object(HOTFIX, "snapshot_state", return_value=dict(baseline, live_config_sha256="raw_changed")):
+                HOTFIX.replay_proof(state, baseline, set(), source, 100, 150, ["0xwallet"])
+            with patch.object(HOTFIX, "snapshot_state",
+                              return_value=dict(baseline, live_config_semantic_sha256="semantic_changed")):
+                try:
+                    HOTFIX.replay_proof(state, baseline, set(), source, 100, 150, ["0xwallet"])
+                except HOTFIX.HotfixError as exc:
+                    assert "live_config_semantic_sha256" in str(exc)
+                else:
+                    raise AssertionError("semantic live config change must fail")
             with (append_only / "send_attempts.csv").open("a", newline="", encoding="utf-8") as stream:
                 writer = csv.DictWriter(stream, fieldnames=["created_at_ms", "wallet", "leader_fill_id"])
                 writer.writerow({"created_at_ms": 130, "wallet": "0xwallet", "leader_fill_id": "fill-1"})
@@ -91,6 +105,7 @@ def main() -> None:
     print("RESULT::APPLY_HOTFIX_TIMESTAMP_RULES_PASS")
     print("RESULT::APPLY_HOTFIX_REPLAY_PROOF_PASS")
     print("RESULT::APPLY_HOTFIX_SWAP_FLOW_PASS")
+    print("RESULT::APPLY_HOTFIX_CONFIG_SEMANTIC_GATE_PASS")
 
 
 def _scratch_swap_flow(root: Path) -> None:
@@ -111,7 +126,7 @@ def _scratch_swap_flow(root: Path) -> None:
     spec = {"env": {"HL_LIVE_AUDIT_DIR": str(state), "HL_LIVE_SOURCE_FILLS": str(source)}}
     identity = {"pid": 1234}
     old_sha, new_sha = "a" * 40, "b" * 40
-    baseline = {"anchor_sha256": "anchor", "anchor_t0_ms": 1, "live_config_sha256": "config",
+    baseline = {"anchor_sha256": "anchor", "anchor_t0_ms": 1, "live_config_sha256": "config", "live_config_semantic_sha256": "config_semantic",
                 "manual_live_positions_sha256": "manual", "xyz_position_state_sha256": "xyz",
                 "user_owned_sha256": "user"}
     events: list[str] = []
