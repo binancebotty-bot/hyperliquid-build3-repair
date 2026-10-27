@@ -156,6 +156,30 @@ try:
 except Exception as exc:
     check('GOOD_ARTIFACT_SWAPS_IN_ONE_STEP', False, '%s: %s' % (type(exc).__name__, exc))
 
+# --- FOLLOWER_VOLUME_MODULE_IS_ALLOWLISTED_BUT_CORE_STAYS_PROTECTED ---
+audit = tempfile.mkdtemp(prefix='hotswap_audit_')
+box, _src = fake_importer(name='follower_volume', body='def read_24h_volumes():\n    return "old"\n')
+art, art_sha = write_artifact('def read_24h_volumes():\n    return "new"\n')
+try:
+    request(audit, module='follower_volume', action='apply', artifact=str(art), sha256=art_sha)
+    ok = hotswap.tick(audit)
+    check('FOLLOWER_VOLUME_MODULE_IS_ALLOWLISTED',
+          ok is True and box['X'].read_24h_volumes() == 'new'
+          and hotswap.loaded_sha('follower_volume') == art_sha,
+          'ok=%r value=%r' % (ok, box['X'].read_24h_volumes()))
+finally:
+    saved_allow = hotswap.ALLOWLIST
+    hotswap.ALLOWLIST = frozenset({'follower_volume', 'HL_Live_Copy_Service_Core'})
+    audit = tempfile.mkdtemp(prefix='hotswap_audit_')
+    art, art_sha = write_artifact('def unexpected():\n    return True\n')
+    request(audit, module='HL_Live_Copy_Service_Core', action='apply', artifact=str(art), sha256=art_sha)
+    refused = hotswap.tick(audit) is False and 'REFUSED_PROTECTED_MODULE' in log_text(audit)
+    hotswap.ALLOWLIST = saved_allow
+    check('CORE_REMAINS_PROTECTED_WITH_VOLUME_ALLOWLIST', refused
+          and 'HL_Live_Copy_Service_Core' not in sys.modules)
+check('VOLUME_SWAP_GUARD_ISOLATED_FROM_EXCHANGE_TRUTH',
+      hotswap.guard('follower_volume') is not hotswap.guard())
+
 # --- STAGED_MODULE_IDENTITY ---
 try:
     staged = hotswap._build(Path(str(art)), art.read_bytes(), 'exchange_truth')
