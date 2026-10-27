@@ -407,7 +407,9 @@ def prove_api_to_ledger(api_fills: dict[tuple[str, str], dict[str, Any]],
     for key, raw in api_fills.items():
         matches = [row for row in ledger_ids.get(key, []) if (
             csv_int(row.get("created_at_ms"), "order_intents.created_at_ms")
-            >= leader_fill_time(raw))]
+            >= leader_fill_time(raw)
+            and csv_int(row.get("leader_fill_timestamp_ms"),
+                        "order_intents.leader_fill_timestamp_ms") == leader_fill_time(raw))]
         if len(matches) != 1 or not str(matches[0].get("leader_fill_id") or ""):
             raise HotfixError(
                 "API tid cannot be proven in the ledger (missing, duplicate or late row); "
@@ -422,7 +424,10 @@ def source_gap_fills(source: Path, stop_ms: int, first_cycle_ms: int) -> dict[st
     for row in csv_rows(source):
         at = leader_fill_time(row)
         if stop_ms <= at <= first_cycle_ms:
-            fills[leader_fill_id(row)] = at
+            fid = str(row.get("leader_fill_id") or "").strip()
+            if not fid or fid in fills:
+                raise HotfixError("explicit source CSV must have unique leader_fill_id per fill")
+            fills[fid] = at
     return fills
 
 
