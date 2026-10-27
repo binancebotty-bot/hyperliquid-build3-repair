@@ -1,5 +1,14 @@
 # Runtime + UI audit — 27 Oct 2026 19:49Z
 
+> **CORRECTIONS (2026-10-27 20:07Z, after counted verification — this header supersedes the body).**
+> Three figures below are RETRACTED:
+> 1. `margin_used 894.6 / account_value 933.97` — not reproducible anywhere on disk. Live at 19:57:42Z: account_value 871.475182, margin_used 870.636230 (99.9% of equity). The *condition* (margin exhaustion) is real; the numbers were not.
+> 2. `3.65 h stale account snapshot` — wrong file. Engine truth is FRESH (live_service_state 1.4 s, exchange_account_snapshot 2.1 s). The genuinely stale artefacts are `exchange_account_snapshot_app.json` (8.4 min) and `xyz_position_state.json` (6.60 h).
+> 3. `min cycle 518 s vs 2160 s` — no such field, constant or config value exists in state, source or UI. Do not cite it. Real pacing: 10 s loop, copy poll 2.0 s, snapshot refresh 5 s, leader poll 120 s, scope sweep 273 DEX ≈ 68.9 s measured.
+>
+> Also corrected: margin is 100% ENGINE_OWNED sleeves (user-owned 0.00, unattributed 0.00) — not user-owned; the orphan set is self-clearing (active 15 → 0 in ~16 min); and 100% of leader closes on unowned coins are SKIPPED before `exchange.order` (6787/6787 `NO_SEND_NO_WALLET_OWNED_POSITION`).
+> Counts hold as of their read timestamps: rejects 2501 (82.7% insufficient margin) at 20:04:52Z; "no owned sleeve" intents 17733 at 20:01:01Z. Files move fast — always quote the timestamp.
+
 Read-only. Nothing was started, stopped, clicked or written during the audit.
 
 ## Identity
