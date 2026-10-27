@@ -114,15 +114,20 @@ rc, out = run(['--checkout', str(fake), '--state', str(state_ok), '--expect-sha'
 check('AN_EXPECT_SHA_THAT_DOES_NOT_MATCH_IS_REFUSED', rc == 1 and ('expected' in out or 'rev-parse' in out.lower()),
       'rc=%s out=%s' % (rc, out[:200]))
 
-# the "already running" refusal, proved against the engine that IS running (read-only, nothing started):
-# its state dir has a live engine, so the tool must refuse before doing anything at all.
-LIVE_STATE = Path('C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run13/state_20261026')
-if LIVE_STATE.exists():
-    rc, out = run(['--checkout', str(fake), '--state', str(LIVE_STATE), '--ui-port', str(PORT), '--dry-run'])
-    check('AN_ALREADY_RUNNING_ENGINE_IS_REFUSED', rc == 1 and 'already running' in out,
-          'rc=%s out=%s' % (rc, out[:240]))
-else:
-    print('SKIP::AN_ALREADY_RUNNING_ENGINE_IS_REFUSED (no live state dir to point at)')
+# Running-engine refusal against a seeded SCRATCH state. No real process is contacted:
+# the process detector is stubbed and main() executes only its --dry-run branch.
+from unittest.mock import patch
+sys.path.insert(0, str(HERE))
+import start_pair as M
+capture = io.StringIO()
+with patch.object(M.SP, 'pids', return_value=[999999]), \
+        patch.object(M.SP, 'listener', return_value=None), \
+        contextlib.redirect_stdout(capture):
+    rc = M.main(['--checkout', str(fake), '--state', str(state_ok),
+                 '--ui-port', str(PORT), '--dry-run'])
+out = capture.getvalue()
+check('AN_ALREADY_RUNNING_ENGINE_IS_REFUSED', rc == 1 and 'already running' in out
+      and '999999' in out, 'rc=%s out=%s' % (rc, out[:240]))
 
 import socket
 busy = socket.socket(); busy.bind(('127.0.0.1', 0)); busy.listen(1)
