@@ -11364,8 +11364,10 @@ def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 200
                 last_ms = 0
         if last_ms and now_ms - last_ms < int(min_gap_sec * 1000):
             return False                       # one point per minute is a series, not a flood
-        # A snapshot tagged with its own `dex` is that dex's account: read its own equity, no scope read.
-        unified = None if str((snapshot or {}).get("dex") or "") else _unified_account_value(raw)
+        # Every snapshot is the default-dex clearinghouse read (no writer sets a `dex` tag), so the
+        # unified portfolio value is always computed across the follower DEX scope. The former
+        # `snapshot["dex"]` branch was unreachable and has been deleted (controller 6434630878, D4).
+        unified = _unified_account_value(raw)
         account_value = unified if unified is not None else perp_total   # snapshot equity is the fallback
         value_source = ("(spot USDC total - hold) + perp equity across follower DEX scope" if unified is not None
                         else "clearinghouseState accountValue (larger of crossMargin/margin summary)")
