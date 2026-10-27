@@ -11760,7 +11760,10 @@ def follower_volumes_24h(refresh: bool = False, cache_only: bool = False) -> Tup
         return False, {}, set()
     try:
         res = _XNET.post_many(None, [{"type": "metaAndAssetCtxs"}], HL_INFO_URL, HTTP_TIMEOUT_SEC)
-        data = res[0] if res else None
+        result = res[0] if res else None
+        if not isinstance(result, dict) or not result.get("ok"):
+            raise ValueError("metaAndAssetCtxs unavailable")
+        data = result.get("data")
         if not isinstance(data, (list, tuple)) or len(data) < 2:
             raise ValueError("metaAndAssetCtxs returned %r" % (type(data).__name__,))
         universe = data[0].get("universe") or []
