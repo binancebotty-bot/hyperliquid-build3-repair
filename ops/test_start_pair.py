@@ -122,7 +122,7 @@ import start_pair as M
 capture = io.StringIO()
 with patch.object(M.SP, 'pids', return_value=[999999]), \
         patch.object(M.SP, 'listener', return_value=None), \
-        contextlib.redirect_stdout(capture):
+        contextlib.redirect_stderr(capture):
     rc = M.main(['--checkout', str(fake), '--state', str(state_ok),
                  '--ui-port', str(PORT), '--dry-run'])
 out = capture.getvalue()
