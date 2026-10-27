@@ -41,7 +41,7 @@ STATE_FILE = "HOTSWAP_STATE.json"
 LOG_FILE = "hotswap.log"
 
 # Only these may ever be swapped. Widen deliberately; everything else is refused by name.
-ALLOWLIST = frozenset({"exchange_truth"})
+ALLOWLIST = frozenset({"exchange_truth", "follower_volume"})
 
 # Never swappable, even if the allowlist is widened later.
 PROTECTED_MODULES = frozenset({
@@ -115,11 +115,16 @@ class _Guard:
 
 
 _GUARD = _Guard()
+_MODULE_GUARDS = {"exchange_truth": _GUARD, "follower_volume": _Guard()}
 
 
-def guard() -> _Guard:
-    """Hold this around a use of a swappable module; a swap cannot straddle the block."""
-    return _GUARD
+def _module_guard(name: str) -> _Guard:
+    return _MODULE_GUARDS.get(name, _GUARD)
+
+
+def guard(name: str = "exchange_truth") -> _Guard:
+    """Hold this around one swappable module; its swap cannot straddle the block."""
+    return _module_guard(name)
 
 
 class _GuardedModule:
@@ -150,7 +155,7 @@ class _GuardedModule:
         name = object.__getattribute__(self, "_name")
 
         def _call(*args: Any, **kwargs: Any) -> Any:
-            with _GUARD:  # lookup AND call under one hold: a swap waits for both
+            with _module_guard(name):  # lookup AND call under one hold: a swap waits for both
                 target = sys.modules.get(name) or _current.get(name)
                 if target is None:
                     target = object.__getattribute__(self, "_fallback")
@@ -311,7 +316,8 @@ def _install(audit_dir: Any, name: str, new_module: types.ModuleType, digest: st
     if setter is None:
         return _refuse(audit_dir, "REFUSED_NO_SETTER", name,
                        "importer registered no rebind setter; refusing a half swap")
-    if not _GUARD.acquire_exclusive(GUARD_SWAP_TIMEOUT_SEC):
+    module_guard = _module_guard(name)
+    if not module_guard.acquire_exclusive(GUARD_SWAP_TIMEOUT_SEC):
         return _refuse(audit_dir, "REFUSED_BUSY", name,
                        "a call stayed in flight for %.1fs; nothing installed" % GUARD_SWAP_TIMEOUT_SEC)
     _state_file = _state_path(audit_dir)
@@ -335,7 +341,7 @@ def _install(audit_dir: Any, name: str, new_module: types.ModuleType, digest: st
             pass
         return _refuse(audit_dir, "REFUSED_SETTER_RAISED", name, "%s: %s" % (type(exc).__name__, exc))
     finally:
-        _GUARD.release_exclusive()
+        module_guard.release_exclusive()
     return True
 
 
