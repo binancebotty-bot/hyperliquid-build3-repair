@@ -119,6 +119,39 @@ def main() -> None:
     check("S1_SUPERSEDED_ATTEMPT_NOT_LEFT_PENDING", len(st) == 2 and st.count("pending_send") == 1, str(st))
     check("S1_FOLLOWUP_NOT_REDUCE_ONLY", all(x["ro"] is False for x in ex.calls))
 
+    # S1b: repricing is a SECOND decision point. If the max order cap
+    # contracts after the IOC, no GTC may violate it.
+    ex = Ex("s1cap", [NOMATCH])
+    g = gw(ex)
+    g.cfg.max_order_notional = lambda: 1000.0
+    original_order = ex.order
+    def cap_after_first_ioc(*args, **kwargs):
+        reply = original_order(*args, **kwargs)
+        g.cfg.max_order_notional = lambda: 5.0
+        return reply
+    ex.order = cap_after_first_ioc
+    it = mk_intent("s1cap")
+    g.audit.append_order_intent(it)
+    ok, status, res = g._send_real(it)
+    check("S1_GTC_RECHECKS_ORDER_CAP_AFTER_IOC",
+          not ok and [x["tif"] for x in ex.calls] == ["Ioc"]
+          and res.get("terminal_state") == "MISSED_ENTRY_GTC_BLOCKED"
+          and "cap exceeded" in res.get("notes", ""), str((ex.calls, res)))
+
+    # S1c: the same intent replayed while its GTC is still on-book must
+    # never submit another IOC or another GTC.
+    ex = Ex("s1rest", [NOMATCH, RESTING])
+    g = gw(ex)
+    it = mk_intent("s1rest")
+    g.audit.append_order_intent(it)
+    first_ok, first_status, _ = g._send_real(it)
+    second_ok, second_status, second_result = g._send_real(it)
+    check("S1_SAME_INTENT_REPLAY_DOES_NOT_SEND_AGAIN",
+          first_ok and first_status == "ORDER_RESTING"
+          and not second_ok and second_status == "SEND_NOT_ATTEMPTED_MISSED_ENTRY_ALREADY_RESTING"
+          and [x["tif"] for x in ex.calls] == ["Ioc", "Gtc"],
+          str((ex.calls, second_status, second_result)))
+
     # ---- S2: 429 recovery
     ex = Ex("s2", [RESTING])
     g = gw(ex)
