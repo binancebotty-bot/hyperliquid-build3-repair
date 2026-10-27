@@ -1,0 +1,270 @@
+From 26777513b44113883c2f662d695cbe48b5e14f7f Mon Sep 17 00:00:00 2001
+From: Hermes <hermes@local>
+Date: Tue, 27 Oct 2026 16:47:31 +0000
+Subject: [PATCH 1/3] fix(#94): fence recovery only after exchange call starts
+ (GPT handoff, hunks 1-6)
+
+---
+ _archive/hl_stage2/HL_Live_Copy_Service_Core.py | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+index 0fb49dd..233565e 100644
+--- a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
++++ b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+@@ -6191,8 +6191,6 @@ class SenderGateway:
+             t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
+             self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
+             t["pending_send_done_ms"] = utc_now_ms()
+-            if label == "standing_close":
+-                self._recovery_intent_ids.add(intent.intent_id)  # durable pending row fences concurrent sends
+         return cloid, _pre
+ 
+     @staticmethod
+@@ -7088,7 +7086,8 @@ class SenderGateway:
+             # before reconciliation is written. Never discard historical rows.
+             for row in iter_audit_history(SEND_ATTEMPTS_CSV):
+                 if (str(row.get("order_type") or "") == "REAL_GTC_RECOVERY_CLOSE"
+-                        and row.get("intent_id")):
++                        and row.get("intent_id")
++                        and str(row.get("reject_category") or "") != "SDK_SEND_SETUP_FAILED"):
+                     known.add(str(row["intent_id"]))
+             self._recovery_intent_ids = known
+         return intent.intent_id in known
+@@ -7303,6 +7302,8 @@ class SenderGateway:
+                     "WAIT_FOR_CLOSE_RECONCILIATION" if ok else
+                     classify_operator_action(status, _recovery_category, "EXIT", _recovery_called)))
+             if _sc_t.get("pending_send_done_ms"):
++                if _sc_t.get("exchange_call_started_ms"):
++                    self._recovery_intent_ids.add(intent.intent_id)
+                 _finish_recovery_attempt(status, {
+                     "exchange_response": recovery_response, "oid": oid, "limit_px": limit_px,
+                     "wire_size": close_size, "copy_notional": abs(close_size * limit_px),
+@@ -7338,6 +7339,7 @@ class SenderGateway:
+             )
+         except Exception as exc:
+             if _sc_t.get("pending_send_done_ms") and _sc_t.get("exchange_call_started_ms"):
++                self._recovery_intent_ids.add(intent.intent_id)
+                 # Before exchange_call_started_ms, setup (including SDK Cloid construction) failed before any order call.
+                 _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, close_size, limit_px, _ro, _sc_t)
+                 if _out is not None:
+@@ -7352,20 +7354,20 @@ class SenderGateway:
+                     "wire_size": close_size, "copy_notional": abs(close_size * limit_px),
+                     "exchange_called": not _not_called, "error": repr(exc), "timing": _sc_t,
+                     "reject_category": "SDK_SEND_SETUP_FAILED" if _not_called else "",
+-                    "terminal_state": "EXIT_RECOVERY_QUEUE_FAILED",
++                    "terminal_state": "EXIT_RECOVERY_SETUP_FAILED" if _not_called else "EXIT_RECOVERY_QUEUE_FAILED",
+                     "operator_action": "REVIEW_STANDING_CLOSE_FAILURE", "reduce_only_sent": _ro,
+                     "order_type": "REAL_GTC_RECOVERY_CLOSE",
+                     "notes": "exit recovery attempt failed: %r" % exc,
+                 })
+             self.audit.append_reconciliation(
+-                "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUE_FAILED",
++                "EXIT_RECOVERY", "EXIT_RECOVERY_SETUP_FAILED" if not _sc_t.get("exchange_call_started_ms") else "EXIT_RECOVERY_QUEUE_FAILED",
+                 leader_wallet=intent.fill.leader_wallet,
+                 leader_fill_id=intent.fill.leader_fill_id,
+                 intent_id=intent.intent_id,
+                 coin=intent.fill.coin,
+                 action="REDUCE_ONLY_STANDING_LIMIT_CLOSE",
+                 reject_category="IOC_NO_IMMEDIATE_MATCH",
+-                terminal_state="EXIT_RECOVERY_QUEUE_FAILED",
++                terminal_state="EXIT_RECOVERY_SETUP_FAILED" if not _sc_t.get("exchange_call_started_ms") else "EXIT_RECOVERY_QUEUE_FAILED",
+                 notes=f"{notes}; recovery_error={repr(exc)}; original_ioc_response={json.dumps(response, default=str)}",
+             )
+ 
+-- 
+2.53.0.windows.3
+
+
+From 4beb4dce9bf8e823e9eaa122070242e51b360973 Mon Sep 17 00:00:00 2001
+From: Hermes <hermes@local>
+Date: Tue, 27 Oct 2026 16:53:47 +0000
+Subject: [PATCH 2/3] test(#94): crash-injection coverage for recovery
+ finalisation (GPT handoff hunks)
+
+---
+ .../test_core_rw13_recovery_reconcile.py      | 38 ++++++++++++++++---
+ 1 file changed, 33 insertions(+), 5 deletions(-)
+
+diff --git a/_archive/hl_stage2/test_core_rw13_recovery_reconcile.py b/_archive/hl_stage2/test_core_rw13_recovery_reconcile.py
+index 1224db9..3d328f4 100644
+--- a/_archive/hl_stage2/test_core_rw13_recovery_reconcile.py
++++ b/_archive/hl_stage2/test_core_rw13_recovery_reconcile.py
+@@ -200,19 +200,26 @@ def main() -> None:
+         c._sdk_cloid = real_sdk_cloid
+     row = next(iter(attempt_status("a7").values()), {})
+     failures = [r for r in disk_rows(c.RECONCILIATION_CSV)
+-                if r.get("intent_id") == "a7" and r.get("status") == "EXIT_RECOVERY_QUEUE_FAILED"]
++                if r.get("intent_id") == "a7" and r.get("status") == "EXIT_RECOVERY_SETUP_FAILED"]
+     check("A7_SETUP_FAILURE_FINALISES_PENDING_ATTEMPT",
+-          not ex.calls and not seen and row.get("terminal_state") == "EXIT_RECOVERY_QUEUE_FAILED"
++          not ex.calls and not seen and row.get("terminal_state") == "EXIT_RECOVERY_SETUP_FAILED"
+           and row.get("pending_send_done_ms") and "SDK Cloid construction failed" in row.get("error", ""),
+           str({"calls": ex.calls, "seen": seen, "row": {k: row.get(k) for k in
+                                                                ("status", "terminal_state", "pending_send_done_ms", "error")}}))
+     check("A7_SETUP_FAILURE_WRITES_RECOVERY_ERROR_ROW", bool(failures), str(failures))
+ 
++    fresh = gw(ex)
++    fresh.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
++    check("A7_SETUP_FAILURE_DOES_NOT_FENCE_RESTART", not fresh._exit_recovery_exists(it))
++    check("A7_SETUP_FAILURE_NO_EXCHANGE_ORDER", not ex.calls)
++
+     # ---- A8: three crash windows (after exchange reply, after terminal append,
+     # after reconciliation append). SystemExit models a process death: no
+     # exception handler/finaliser runs. A fresh gateway must fence blind resend
+     # from the original durable pending/finalised send attempt.
+-    for name, stage in (("a8_parse", "parse"), ("a8_final", "final"), ("a8_reconcile", "reconcile")):
++    for name, stage in (("a8_parse", "parse"), ("a8_final", "final"),
++                        ("a8_registry", "registry"), ("a8_reconcile", "reconcile"),
++                        ("a8_reconcile_fail", "reconcile_fail")):
+         ex = Ex([{"status": "ok", "response": {"type": "order", "data": {"statuses":
+                   [{"resting": {"oid": 78}}]}}}])
+         g = gw(ex)
+@@ -221,6 +228,7 @@ def main() -> None:
+             c.LeaderFill("f_" + name, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
+         it.intent_id = name
+         g.audit.append_order_intent(it)
++        crashed = [False]
+         if stage == "parse":
+             real = g._parse_hl_response
+             def crash_parse(*args, **kwargs):
+@@ -233,11 +241,22 @@ def main() -> None:
+                 real(*args, **kwargs)
+                 raise SystemExit("injected crash after terminal append")
+             g._append_real_attempt = crash_final
++        elif stage == "registry":
++            real = c.atomic_write_json
++            def crash_registry(path, *args, **kwargs):
++                real(path, *args, **kwargs)
++                if path == c.STANDING_CLOSES_FILE:
++                    crashed[0] = True
++                    raise SystemExit("injected crash after standing closes registry")
++            c.atomic_write_json = crash_registry
+         else:
+             real = g.audit.append_reconciliation
+             def crash_reconcile(*args, **kwargs):
+                 real(*args, **kwargs)
+                 if args and args[0] == "EXIT_RECOVERY" and args[1] == "EXIT_RECOVERY_QUEUED":
++                    crashed[0] = True
++                    if stage == "reconcile_fail":
++                        raise RuntimeError("injected reconciliation failure")
+                     raise SystemExit("injected crash after reconciliation")
+             g.audit.append_reconciliation = crash_reconcile
+         try:
+@@ -245,7 +264,11 @@ def main() -> None:
+         except SystemExit:
+             pass
+         else:
+-            check(name.upper() + "_CRASH_INJECTED", False)
++            check(name.upper() + "_CRASH_INJECTED",
++                  stage == "reconcile_fail" and crashed[0])
++        finally:
++            if stage == "registry":
++                c.atomic_write_json = real
+         prior = [row for row in disk_rows(c.SEND_ATTEMPTS_CSV)
+                  if row.get("intent_id") == name and row.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
+         terminals = [row for row in prior if row.get("status") != "pending_send"]
+@@ -256,7 +279,12 @@ def main() -> None:
+         check(name.upper() + "_NO_BLIND_SECOND_SEND", len(ex.calls) == 1, str(ex.calls))
+         check(name.upper() + "_ONE_ATTEMPT_ID", len({row.get("attempt_id") for row in prior}) == 1,
+               str([(row.get("attempt_id"), row.get("status")) for row in prior]))
+-        check(name.upper() + "_MAX_ONE_TERMINAL", len(terminals) <= 1, str(terminals))
++        check(name.upper() + "_EXACT_TERMINAL_COUNT",
++              len(terminals) == (0 if stage == "parse" else 1), str(terminals))
++        check(name.upper() + "_SAME_CLOID", len({r.get("cloid") for r in prior}) == 1
++              and all(r.get("cloid") for r in prior), str(prior))
++        check(name.upper() + "_NO_SYNTHETIC_ORDER_ROW",
++              all(r.get("attempt_id") == prior[0].get("attempt_id") for r in prior), str(prior))
+ 
+     failed = [n for n, ok in RESULTS if not ok]
+     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
+-- 
+2.53.0.windows.3
+
+
+From 63e596271bb74c4aaddcc454cd025202b1f21071 Mon Sep 17 00:00:00 2001
+From: hermes <hermes@local>
+Date: Tue, 27 Oct 2026 17:06:53 +0000
+Subject: [PATCH 3/3] fix(#94): a setup-failed recovery attempt must not fence
+ the next standing close
+
+_exit_recovery_exists treated any historical EXIT_RECOVERY* reconciliation row and any
+REAL_GTC_RECOVERY_CLOSE attempt row as a fence. The append-only attempt file keeps the
+pre-exchange pending row even after the attempt is finalised as a setup failure, so
+SDK_SEND_SETUP_FAILED permanently blocked every later standing close (GPT review flag,
+observed RED: A7_SETUP_FAILURE_DOES_NOT_FENCE_RESTART).
+
+- EXIT_RECOVERY_SETUP_FAILED never fences; unknown statuses still do.
+- attempt rows decide on the LATEST row per attempt_id/cloid, not any row.
+- hunk-4 comment corrected (exchange order cannot exist before exchange_call_started_ms).
+---
+ .../hl_stage2/HL_Live_Copy_Service_Core.py    | 37 +++++++++++++++----
+ 1 file changed, 29 insertions(+), 8 deletions(-)
+
+diff --git a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+index 233565e..f5ae588 100644
+--- a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
++++ b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+@@ -7073,6 +7073,10 @@ class SenderGateway:
+                 "notes": str(result.get("notes") or result.get("error") or status),
+             })
+ 
++    # Statuses that never fence a restart: the exchange call was never started, so no
++    # order can exist and the close must stay retryable. An UNKNOWN status still fences.
++    _NON_FENCING_RECOVERY_STATUS = {"EXIT_RECOVERY_SETUP_FAILED"}
++
+     def _exit_recovery_exists(self, intent: Intent) -> bool:
+         """One standing recovery close per intent. Kept in memory (the reconciliation file used to be re-read in
+         full for every unmatched close, on the send path); loaded from the file once per run."""
+@@ -7080,15 +7084,31 @@ class SenderGateway:
+         if known is None:
+             known = set()
+             for row in iter_audit_history(RECONCILIATION_CSV):
+-                if str(row.get("status") or "").startswith("EXIT_RECOVERY") and row.get("intent_id"):
++                status = str(row.get("status") or "").upper()
++                if (status.startswith("EXIT_RECOVERY")
++                        and status not in self._NON_FENCING_RECOVERY_STATUS
++                        and row.get("intent_id")):
+                     known.add(str(row.get("intent_id")))
+-            # Fsync-persisted pending send fences restart even if a crash happens
+-            # before reconciliation is written. Never discard historical rows.
++            # Fsync-persisted pending send fences restart even if a crash happens before
++            # reconciliation is written. This file is APPEND-ONLY, so only the LATEST row
++            # per attempt may decide: an attempt that ended in a setup failure leaves a
++            # historical pending row behind, and that row must not fence a retry.
++            # Historical rows are never discarded - only superseded.
++            latest: Dict[str, Dict[str, str]] = {}
+             for row in iter_audit_history(SEND_ATTEMPTS_CSV):
+-                if (str(row.get("order_type") or "") == "REAL_GTC_RECOVERY_CLOSE"
+-                        and row.get("intent_id")
+-                        and str(row.get("reject_category") or "") != "SDK_SEND_SETUP_FAILED"):
+-                    known.add(str(row["intent_id"]))
++                if (str(row.get("order_type") or "") != "REAL_GTC_RECOVERY_CLOSE"
++                        or not row.get("intent_id")):
++                    continue
++                key = (str(row.get("attempt_id") or "").strip()
++                       or str(row.get("cloid") or "").strip()
++                       or "intent:" + str(row["intent_id"]))
++                latest[key] = row
++            for row in latest.values():
++                if (str(row.get("reject_category") or "").upper() == "SDK_SEND_SETUP_FAILED"
++                        or str(row.get("terminal_state") or "").upper()
++                        in self._NON_FENCING_RECOVERY_STATUS):
++                    continue
++                known.add(str(row["intent_id"]))
+             self._recovery_intent_ids = known
+         return intent.intent_id in known
+ 
+@@ -7340,7 +7360,8 @@ class SenderGateway:
+         except Exception as exc:
+             if _sc_t.get("pending_send_done_ms") and _sc_t.get("exchange_call_started_ms"):
+                 self._recovery_intent_ids.add(intent.intent_id)
+-                # Before exchange_call_started_ms, setup (including SDK Cloid construction) failed before any order call.
++                # Only after exchange_call_started_ms may the exchange order exist; reconcile before resending.
++                # A setup failure BEFORE that stamp never reached the exchange and is finalised below.
+                 _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, close_size, limit_px, _ro, _sc_t)
+                 if _out is not None:
+                     _finish_recovery_attempt(_out[1], dict(_out[2], order_type="REAL_GTC_RECOVERY_CLOSE",
+-- 
+2.53.0.windows.3
+
