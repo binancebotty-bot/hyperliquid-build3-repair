@@ -396,9 +396,6 @@ def prove_api_to_ledger(api_fills: dict[tuple[str, str], dict[str, Any]],
     """
     ledger_ids: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in intents:
-        created = csv_int(row.get("created_at_ms"), "order_intents.created_at_ms")
-        if not start_ms <= created <= end_ms:
-            continue
         tid = str(row.get("leader_tid") or "").strip()
         if not tid:
             continue
@@ -472,14 +469,14 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
                  source: Path | None, stop_ms: int, first_cycle_ms: int, live_wallets: list[str]) -> dict[str, int]:
     api_fills = None if source is not None else api_leader_fills(
         stop_ms - 60_000, first_cycle_ms, live_wallets)
-    fills = (source_gap_fills(source, stop_ms, first_cycle_ms) if source is not None
+    fills = (source_gap_fills(source, stop_ms - 60_000, first_cycle_ms) if source is not None
              else {wallet + ":" + tid: leader_fill_time(raw)
                    for (wallet, tid), raw in api_fills.items()})
     intents = csv_rows(state / "append_only" / "order_intents.csv")
     if api_fills is not None:
         prove_api_to_ledger(api_fills, intents, stop_ms - 60_000, first_cycle_ms)
     new_intents = [r for r in intents if csv_int(r.get("created_at_ms"), "order_intents.created_at_ms") >= stop_ms]
-    intent_fill_ids = {str(r.get("leader_fill_id") or "") for r in new_intents}
+    intent_fill_ids = {str(r.get("leader_fill_id") or "") for r in intents}
     missing_rows = sorted(set(fills) - intent_fill_ids) if source is not None else []
     if missing_rows:
         raise HotfixError("gap replay is missing order_intents rows")
