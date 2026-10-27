@@ -134,6 +134,9 @@ def _scratch_swap_flow(root: Path) -> None:
     output = io.StringIO()
 
     for gap_ms in (12_345, 20_000):
+        events.clear()
+        output.seek(0)
+        output.truncate(0)
         with patch.object(HOTFIX, "launch_spec", return_value=(spec, dict(spec["env"]), state)), \
                 patch.object(HOTFIX, "validate_pair", side_effect=[(identity, old_root, old_sha, 5678),
                                                                        (identity, old_root, old_sha, 5678)]), \
