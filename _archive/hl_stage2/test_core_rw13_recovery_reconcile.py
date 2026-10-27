@@ -165,7 +165,7 @@ def main() -> None:
     check("A4_DEFINITE_429_ATTEMPT_SUPERSEDED", bool(st) and "pending_send" not in st, str(st))
 
     # ---- A5/A6: standing close
-    def standing(label, exc):
+    def standing(label, exc, before_send=None):
         ex = Ex([exc])
         g = gw(ex)
         g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
@@ -173,6 +173,8 @@ def main() -> None:
             c.LeaderFill("f_" + label, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
         it.intent_id = label
         g.audit.append_order_intent(it)
+        if before_send:
+            before_send(g, it, ex)
         seen = spy(g)
         g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
         return g, it, ex, seen
@@ -212,6 +214,88 @@ def main() -> None:
     fresh.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
     check("A7_SETUP_FAILURE_DOES_NOT_FENCE_RESTART", not fresh._exit_recovery_exists(it))
     check("A7_SETUP_FAILURE_NO_EXCHANGE_ORDER", not ex.calls)
+
+    # A7b: simulate the legacy premature latch within _pre(), then prove a
+    # definite SDK setup failure clears it once terminal evidence is durable.
+    def legacy_pre_latch(g, it, _ex):
+        real_hooks = g._recovery_send_hooks
+        def hooks(*args, **kwargs):
+            cloid, pre = real_hooks(*args, **kwargs)
+            def old_pre():
+                pre()
+                g._recovery_intent_ids.add(it.intent_id)
+            return cloid, old_pre
+        g._recovery_send_hooks = hooks
+
+    c._sdk_cloid = fail_sdk_cloid
+    try:
+        lg, lit, lex, _ = standing("a7_legacy", None, legacy_pre_latch)
+    finally:
+        c._sdk_cloid = real_sdk_cloid
+    check("A7_LEGACY_PRECALL_LATCH_DISCARDED_ON_SETUP_FAILURE",
+          not lex.calls and not lg._exit_recovery_exists(lit),
+          str(getattr(lg, "_recovery_intent_ids", None)))
+
+    # A9: a successful standing close must add the in-memory latch AFTER the
+    # actual exchange.order call, never inside _pre(). Test-only mutation:
+    # HL_RW13_MUTATE_PRECALL_LATCH=1 deliberately restores the early add;
+    # A9 must turn RED (non-vacuity proof), while default remains GREEN.
+    early_adds = []
+    mutate = os.environ.get("HL_RW13_MUTATE_PRECALL_LATCH") == "1"
+
+    def monitor_latch(g, it, ex):
+        g._exit_recovery_exists(it)
+        class WatchedSet(set):
+            def add(self, item):
+                if not ex.calls:
+                    early_adds.append(item)
+                super().add(item)
+        g._recovery_intent_ids = WatchedSet(g._recovery_intent_ids)
+        if mutate:
+            legacy_pre_latch(g, it, ex)
+
+    good_reply = {"status": "ok", "response": {"type": "order", "data": {
+        "statuses": [{"resting": {"oid": 78}}]}}}
+    g9, it9, ex9, _ = standing("a9_order", good_reply, monitor_latch)
+    check("A9_NO_LATCH_BEFORE_EXCHANGE",
+          not early_adds and len(ex9.calls) == 1
+          and it9.intent_id in g9._recovery_intent_ids,
+          "early_adds=%s calls=%s" % (early_adds, ex9.calls))
+    if mutate:
+        print("MUTATION_CONTROL::PRECALL_LATCH_ENABLED (A9 MUST FAIL)")
+
+    # A10: process death immediately after the durable pending row, at SDK
+    # cloid construction, proves there is NO in-memory pre-call latch. The
+    # unfinalised pending row still conservatively fences a cold restart:
+    # after a crash we cannot infer from that row alone whether a send began.
+    captured = {}
+    def capture_case(g, it, ex):
+        captured.update(g=g, it=it, ex=ex)
+    def crash_before_exchange(_cloid):
+        raise SystemExit("crash after pending but before exchange call")
+    crashed = False
+    c._sdk_cloid = crash_before_exchange
+    try:
+        standing("a10_preexchange_crash", None, capture_case)
+    except SystemExit:
+        crashed = True
+    finally:
+        c._sdk_cloid = real_sdk_cloid
+    if captured:
+        cg, ci, ce = captured["g"], captured["it"], captured["ex"]
+        prior = [row for row in disk_rows(c.SEND_ATTEMPTS_CSV)
+                 if row.get("intent_id") == ci.intent_id
+                 and row.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
+        cold = gw(ce)
+        check("A10_PREEXCHANGE_CRASH_NO_EARLY_LATCH",
+              crashed and not ce.calls and ci.intent_id not in cg._recovery_intent_ids,
+              "crashed=%s calls=%s memory=%s" %
+              (crashed, ce.calls, cg._recovery_intent_ids))
+        check("A10_PENDING_CRASH_CONSERVATIVELY_FENCES_RESTART",
+              len(prior) == 1 and prior[0].get("status") == "pending_send"
+              and cold._exit_recovery_exists(ci), str(prior))
+    else:
+        check("A10_CASE_SETUP", False, "no gateway constructed")
 
     # ---- A8: three crash windows (after exchange reply, after terminal append,
     # after reconciliation append). SystemExit models a process death: no
