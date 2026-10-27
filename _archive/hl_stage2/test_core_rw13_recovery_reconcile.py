@@ -200,19 +200,26 @@ def main() -> None:
         c._sdk_cloid = real_sdk_cloid
     row = next(iter(attempt_status("a7").values()), {})
     failures = [r for r in disk_rows(c.RECONCILIATION_CSV)
-                if r.get("intent_id") == "a7" and r.get("status") == "EXIT_RECOVERY_QUEUE_FAILED"]
+                if r.get("intent_id") == "a7" and r.get("status") == "EXIT_RECOVERY_SETUP_FAILED"]
     check("A7_SETUP_FAILURE_FINALISES_PENDING_ATTEMPT",
-          not ex.calls and not seen and row.get("terminal_state") == "EXIT_RECOVERY_QUEUE_FAILED"
+          not ex.calls and not seen and row.get("terminal_state") == "EXIT_RECOVERY_SETUP_FAILED"
           and row.get("pending_send_done_ms") and "SDK Cloid construction failed" in row.get("error", ""),
           str({"calls": ex.calls, "seen": seen, "row": {k: row.get(k) for k in
                                                                ("status", "terminal_state", "pending_send_done_ms", "error")}}))
     check("A7_SETUP_FAILURE_WRITES_RECOVERY_ERROR_ROW", bool(failures), str(failures))
 
+    fresh = gw(ex)
+    fresh.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+    check("A7_SETUP_FAILURE_DOES_NOT_FENCE_RESTART", not fresh._exit_recovery_exists(it))
+    check("A7_SETUP_FAILURE_NO_EXCHANGE_ORDER", not ex.calls)
+
     # ---- A8: three crash windows (after exchange reply, after terminal append,
     # after reconciliation append). SystemExit models a process death: no
     # exception handler/finaliser runs. A fresh gateway must fence blind resend
     # from the original durable pending/finalised send attempt.
-    for name, stage in (("a8_parse", "parse"), ("a8_final", "final"), ("a8_reconcile", "reconcile")):
+    for name, stage in (("a8_parse", "parse"), ("a8_final", "final"),
+                        ("a8_registry", "registry"), ("a8_reconcile", "reconcile"),
+                        ("a8_reconcile_fail", "reconcile_fail")):
         ex = Ex([{"status": "ok", "response": {"type": "order", "data": {"statuses":
                   [{"resting": {"oid": 78}}]}}}])
         g = gw(ex)
@@ -221,6 +228,7 @@ def main() -> None:
             c.LeaderFill("f_" + name, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
         it.intent_id = name
         g.audit.append_order_intent(it)
+        crashed = [False]
         if stage == "parse":
             real = g._parse_hl_response
             def crash_parse(*args, **kwargs):
@@ -233,11 +241,22 @@ def main() -> None:
                 real(*args, **kwargs)
                 raise SystemExit("injected crash after terminal append")
             g._append_real_attempt = crash_final
+        elif stage == "registry":
+            real = c.atomic_write_json
+            def crash_registry(path, *args, **kwargs):
+                real(path, *args, **kwargs)
+                if path == c.STANDING_CLOSES_FILE:
+                    crashed[0] = True
+                    raise SystemExit("injected crash after standing closes registry")
+            c.atomic_write_json = crash_registry
         else:
             real = g.audit.append_reconciliation
             def crash_reconcile(*args, **kwargs):
                 real(*args, **kwargs)
                 if args and args[0] == "EXIT_RECOVERY" and args[1] == "EXIT_RECOVERY_QUEUED":
+                    crashed[0] = True
+                    if stage == "reconcile_fail":
+                        raise RuntimeError("injected reconciliation failure")
                     raise SystemExit("injected crash after reconciliation")
             g.audit.append_reconciliation = crash_reconcile
         try:
@@ -245,7 +264,11 @@ def main() -> None:
         except SystemExit:
             pass
         else:
-            check(name.upper() + "_CRASH_INJECTED", False)
+            check(name.upper() + "_CRASH_INJECTED",
+                  stage == "reconcile_fail" and crashed[0])
+        finally:
+            if stage == "registry":
+                c.atomic_write_json = real
         prior = [row for row in disk_rows(c.SEND_ATTEMPTS_CSV)
                  if row.get("intent_id") == name and row.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
         terminals = [row for row in prior if row.get("status") != "pending_send"]
@@ -256,7 +279,12 @@ def main() -> None:
         check(name.upper() + "_NO_BLIND_SECOND_SEND", len(ex.calls) == 1, str(ex.calls))
         check(name.upper() + "_ONE_ATTEMPT_ID", len({row.get("attempt_id") for row in prior}) == 1,
               str([(row.get("attempt_id"), row.get("status")) for row in prior]))
-        check(name.upper() + "_MAX_ONE_TERMINAL", len(terminals) <= 1, str(terminals))
+        check(name.upper() + "_EXACT_TERMINAL_COUNT",
+              len(terminals) == (0 if stage == "parse" else 1), str(terminals))
+        check(name.upper() + "_SAME_CLOID", len({r.get("cloid") for r in prior}) == 1
+              and all(r.get("cloid") for r in prior), str(prior))
+        check(name.upper() + "_NO_SYNTHETIC_ORDER_ROW",
+              all(r.get("attempt_id") == prior[0].get("attempt_id") for r in prior), str(prior))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
