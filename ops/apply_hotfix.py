@@ -33,6 +33,7 @@ LAST_SWAP = Path.home() / ".hermes" / "state" / "apply_hotfix_last.json"
 MAX_GAP_MS = 20_000
 REPLAY_TIMEOUT_S = 30 * 60
 POLL_S = 1.0
+REPLAY_WATCH_S = 30.0  # observe the new pair after the first healthy cycle
 
 
 class HotfixError(RuntimeError):
@@ -385,57 +386,33 @@ def api_leader_fills(start_ms: int, end_ms: int, wallets: list[str],
     return seen
 
 
-def replay_signature(wallet: str, coin: str, side: str, px: Any, size: Any):
-    """Secondary identity only. A real tid must ultimately be persisted by Core."""
-    from decimal import Decimal, InvalidOperation
-    try:
-        p, sz = Decimal(str(px)), Decimal(str(size))
-    except (InvalidOperation, ValueError, TypeError) as exc:
-        raise HotfixError("missing price/size in replay join") from exc
-    if not p.is_finite() or not sz.is_finite() or p <= 0 or sz <= 0:
-        raise HotfixError("invalid price/size in replay join")
-    normal_side = str(side).strip().upper()
-    if normal_side in ("B", "BUY"):
-        normal_side = "BUY"
-    elif normal_side in ("A", "S", "SELL"):
-        normal_side = "SELL"
-    else:
-        raise HotfixError("unknown leader side in replay join")
-    return (str(wallet).lower(), str(coin).strip().upper(), normal_side, p.normalize(), sz.normalize())
-
-
 def prove_api_to_ledger(api_fills: dict[tuple[str, str], dict[str, Any]],
                         intents: list[dict[str, str]], start_ms: int, end_ms: int) -> None:
-    """Conservative composite proof; ambiguous matches are NEVER marked covered.
+    """Join on (wallet, tid) only. No hash/composite fallback may claim PASS.
 
-    Existing order_intents lacks the API tid and original fill timestamp.
-    In unique, unmerged cases an exact wallet+coin+side+price+size and
-    created_at window can corroborate one row. Identical executions or
-    merged intents must fail, not be arbitrarily paired.
+    The current Core does NOT write leader_tid into order_intents.csv, so a
+    nonempty window must be blocked pending an authorised ledger schema change.
+    This is intentional: multiple executions can share hash, price and time.
     """
-    index: dict[tuple, list[dict[str, str]]] = {}
+    ledger_ids: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in intents:
         created = csv_int(row.get("created_at_ms"), "order_intents.created_at_ms")
         if not start_ms <= created <= end_ms:
             continue
-        sig = replay_signature(row.get("leader_wallet"), row.get("coin"),
-                               row.get("leader_side"), row.get("leader_price"),
-                               row.get("leader_size"))
-        index.setdefault(sig, []).append(row)
-    used_intents = set()
-    for (wallet, tid), fill in api_fills.items():
-        sig = replay_signature(wallet, fill.get("coin"), fill.get("side"),
-                               fill.get("px"), fill.get("sz"))
-        matches = [row for row in index.get(sig, [])
-                   if csv_int(row.get("created_at_ms"), "order_intents.created_at_ms")
-                   >= leader_fill_time(fill)]
+        tid = str(row.get("leader_tid") or "").strip()
+        if not tid:
+            continue
+        wallet = str(row.get("leader_wallet") or "").lower()
+        ledger_ids.setdefault((wallet, tid), []).append(row)
+    for key, raw in api_fills.items():
+        matches = [row for row in ledger_ids.get(key, []) if (
+            csv_int(row.get("created_at_ms"), "order_intents.created_at_ms")
+            >= leader_fill_time(raw))]
         if len(matches) != 1 or not str(matches[0].get("leader_fill_id") or ""):
-            raise HotfixError("API tid has no unambiguous order_intents join; "
-                              "Core must persist leader_tid + leader_fill_timestamp_ms")
-        iid = str(matches[0].get("intent_id") or matches[0]["leader_fill_id"])
-        if iid in used_intents:
-            raise HotfixError("multiple API tids map to one ledger intent; merged fills need leader_tid evidence")
-        used_intents.add(iid)
+            raise HotfixError(
+                "API tid cannot be proven in the ledger (missing, duplicate or late row); "
+                "Core must persist leader_tid and leader_fill_timestamp_ms per source fill "
+                "including merged sibling fills before an API-backed swap can be certified")
 
 
 def source_gap_fills(source: Path, stop_ms: int, first_cycle_ms: int) -> dict[str, int]:
@@ -487,7 +464,7 @@ def first_healthy_cycle(state: Path, wanted_pid: int, after_ms: int) -> tuple[in
 
 
 def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[str, str]],
-                 source: Path, stop_ms: int, first_cycle_ms: int, live_wallets: list[str]) -> dict[str, int]:
+                 source: Path | None, stop_ms: int, first_cycle_ms: int, live_wallets: list[str]) -> dict[str, int]:
     api_fills = None if source is not None else api_leader_fills(
         stop_ms - 60_000, first_cycle_ms, live_wallets)
     fills = (source_gap_fills(source, stop_ms, first_cycle_ms) if source is not None
@@ -612,9 +589,10 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     source = Path(source_spec).expanduser() if source_spec else None
     if source is not None and not source.is_file():
         raise HotfixError("explicit HL_LIVE_SOURCE_FILLS override does not exist")
-    # Default path (for documentation/diagnostics): %s. Production uses the
-    # independent mainnet API because WS + poll-live does not write this CSV.
-    _ = default_source
+    # The default on-disk path is inside hl_copy_output, but WS+poll-live
+    # does not populate it; without an override the API is authoritative.
+    print("REPLAY SOURCE: %s" % (str(source) if source is not None
+                                 else "mainnet API (default CSV path: %s)" % default_source))
     keys = ",".join(sorted(env))
     print("PREFLIGHT: one Core + tracked UI; identity, SHA, state, anchor, config, ledger and env-key checks passed")
     print("ENV KEYS (values withheld): " + keys)
@@ -650,13 +628,19 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         engine_pid = int(start_info["engine_pid"])
         deadline = time.monotonic() + REPLAY_TIMEOUT_S
         first_cycle: tuple[int, dict[str, Any]] | None = None
+        healthy_observed_at: float | None = None
         proof: dict[str, int] | None = None
         while time.monotonic() < deadline:
             first_cycle = first_healthy_cycle(state, engine_pid, old_pair_down_ms)
             if first_cycle is not None:
+                if healthy_observed_at is None:
+                    healthy_observed_at = time.monotonic()
+                if time.monotonic() - healthy_observed_at < REPLAY_WATCH_S:
+                    time.sleep(POLL_S)
+                    continue
                 try:
                     proof = replay_proof(state, baseline, sent_before, source, old_pair_down_ms,
-                                         first_cycle[0], wallets)
+                                         max(first_cycle[0], int(time.time() * 1000)), wallets)
                     break
                 except HotfixError as exc:
                     # A lagging poll/copy cycle is expected during the attached watch; invariant drift is not.
