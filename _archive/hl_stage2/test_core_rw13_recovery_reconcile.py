@@ -165,7 +165,7 @@ def main() -> None:
     check("A4_DEFINITE_429_ATTEMPT_SUPERSEDED", bool(st) and "pending_send" not in st, str(st))
 
     # ---- A5/A6: standing close
-    def standing(label, exc):
+    def standing(label, exc, before_send=None):
         ex = Ex([exc])
         g = gw(ex)
         g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
@@ -173,6 +173,8 @@ def main() -> None:
             c.LeaderFill("f_" + label, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
         it.intent_id = label
         g.audit.append_order_intent(it)
+        if before_send:
+            before_send(g, it, ex)
         seen = spy(g)
         g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
         return g, it, ex, seen
@@ -186,6 +188,187 @@ def main() -> None:
     check("A5_STANDING_CLOSE_NOT_REQUEUED", g._exit_recovery_exists(it))
     g, it, ex, seen = standing("a6", E429("too many requests"))
     check("A6_STANDING_CLOSE_DEFINITE_429_NO_RECONCILE", seen == [] and len(ex.calls) == 1, "seen=%s" % seen)
+
+    # ---- A7: SDK Cloid construction fails after the durable pending row, before exchange.order is reached
+    real_sdk_cloid = c._sdk_cloid
+
+    def fail_sdk_cloid(_cloid):
+        raise RuntimeError("SDK Cloid construction failed")
+
+    c._sdk_cloid = fail_sdk_cloid
+    try:
+        g, it, ex, seen = standing("a7", None)
+    finally:
+        c._sdk_cloid = real_sdk_cloid
+    row = next(iter(attempt_status("a7").values()), {})
+    failures = [r for r in disk_rows(c.RECONCILIATION_CSV)
+                if r.get("intent_id") == "a7" and r.get("status") == "EXIT_RECOVERY_SETUP_FAILED"]
+    check("A7_SETUP_FAILURE_FINALISES_PENDING_ATTEMPT",
+          not ex.calls and not seen and row.get("terminal_state") == "EXIT_RECOVERY_SETUP_FAILED"
+          and row.get("pending_send_done_ms") and "SDK Cloid construction failed" in row.get("error", ""),
+          str({"calls": ex.calls, "seen": seen, "row": {k: row.get(k) for k in
+                                                               ("status", "terminal_state", "pending_send_done_ms", "error")}}))
+    check("A7_SETUP_FAILURE_WRITES_RECOVERY_ERROR_ROW", bool(failures), str(failures))
+
+    fresh = gw(ex)
+    fresh.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+    check("A7_SETUP_FAILURE_DOES_NOT_FENCE_RESTART", not fresh._exit_recovery_exists(it))
+    check("A7_SETUP_FAILURE_NO_EXCHANGE_ORDER", not ex.calls)
+
+    # A7b: simulate the legacy premature latch within _pre(), then prove a
+    # definite SDK setup failure clears it once terminal evidence is durable.
+    def legacy_pre_latch(g, it, _ex):
+        real_hooks = g._recovery_send_hooks
+        def hooks(*args, **kwargs):
+            cloid, pre = real_hooks(*args, **kwargs)
+            def old_pre():
+                pre()
+                g._recovery_intent_ids.add(it.intent_id)
+            return cloid, old_pre
+        g._recovery_send_hooks = hooks
+
+    c._sdk_cloid = fail_sdk_cloid
+    try:
+        lg, lit, lex, _ = standing("a7_legacy", None, legacy_pre_latch)
+    finally:
+        c._sdk_cloid = real_sdk_cloid
+    check("A7_LEGACY_PRECALL_LATCH_DISCARDED_ON_SETUP_FAILURE",
+          not lex.calls and not lg._exit_recovery_exists(lit),
+          str(getattr(lg, "_recovery_intent_ids", None)))
+
+    # A9: a successful standing close must add the in-memory latch AFTER the
+    # actual exchange.order call, never inside _pre(). Test-only mutation:
+    # HL_RW13_MUTATE_PRECALL_LATCH=1 deliberately restores the early add;
+    # A9 must turn RED (non-vacuity proof), while default remains GREEN.
+    early_adds = []
+    mutate = os.environ.get("HL_RW13_MUTATE_PRECALL_LATCH") == "1"
+
+    def monitor_latch(g, it, ex):
+        g._exit_recovery_exists(it)
+        class WatchedSet(set):
+            def add(self, item):
+                if not ex.calls:
+                    early_adds.append(item)
+                super().add(item)
+        g._recovery_intent_ids = WatchedSet(g._recovery_intent_ids)
+        if mutate:
+            legacy_pre_latch(g, it, ex)
+
+    good_reply = {"status": "ok", "response": {"type": "order", "data": {
+        "statuses": [{"resting": {"oid": 78}}]}}}
+    g9, it9, ex9, _ = standing("a9_order", good_reply, monitor_latch)
+    check("A9_NO_LATCH_BEFORE_EXCHANGE",
+          not early_adds and len(ex9.calls) == 1
+          and it9.intent_id in g9._recovery_intent_ids,
+          "early_adds=%s calls=%s" % (early_adds, ex9.calls))
+    if mutate:
+        print("MUTATION_CONTROL::PRECALL_LATCH_ENABLED (A9 MUST FAIL)")
+
+    # A10: process death immediately after the durable pending row, at SDK
+    # cloid construction, proves there is NO in-memory pre-call latch. The
+    # unfinalised pending row still conservatively fences a cold restart:
+    # after a crash we cannot infer from that row alone whether a send began.
+    captured = {}
+    def capture_case(g, it, ex):
+        captured.update(g=g, it=it, ex=ex)
+    def crash_before_exchange(_cloid):
+        raise SystemExit("crash after pending but before exchange call")
+    crashed = False
+    c._sdk_cloid = crash_before_exchange
+    try:
+        standing("a10_preexchange_crash", None, capture_case)
+    except SystemExit:
+        crashed = True
+    finally:
+        c._sdk_cloid = real_sdk_cloid
+    if captured:
+        cg, ci, ce = captured["g"], captured["it"], captured["ex"]
+        prior = [row for row in disk_rows(c.SEND_ATTEMPTS_CSV)
+                 if row.get("intent_id") == ci.intent_id
+                 and row.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
+        cold = gw(ce)
+        check("A10_PREEXCHANGE_CRASH_NO_EARLY_LATCH",
+              crashed and not ce.calls and ci.intent_id not in cg._recovery_intent_ids,
+              "crashed=%s calls=%s memory=%s" %
+              (crashed, ce.calls, cg._recovery_intent_ids))
+        check("A10_PENDING_CRASH_CONSERVATIVELY_FENCES_RESTART",
+              len(prior) == 1 and prior[0].get("status") == "pending_send"
+              and cold._exit_recovery_exists(ci), str(prior))
+    else:
+        check("A10_CASE_SETUP", False, "no gateway constructed")
+
+    # ---- A8: three crash windows (after exchange reply, after terminal append,
+    # after reconciliation append). SystemExit models a process death: no
+    # exception handler/finaliser runs. A fresh gateway must fence blind resend
+    # from the original durable pending/finalised send attempt.
+    for name, stage in (("a8_parse", "parse"), ("a8_final", "final"),
+                        ("a8_registry", "registry"), ("a8_reconcile", "reconcile"),
+                        ("a8_reconcile_fail", "reconcile_fail")):
+        ex = Ex([{"status": "ok", "response": {"type": "order", "data": {"statuses":
+                  [{"resting": {"oid": 78}}]}}}])
+        g = gw(ex)
+        g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+        it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
+            c.LeaderFill("f_" + name, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
+        it.intent_id = name
+        g.audit.append_order_intent(it)
+        crashed = [False]
+        if stage == "parse":
+            real = g._parse_hl_response
+            def crash_parse(*args, **kwargs):
+                real(*args, **kwargs)
+                raise SystemExit("injected crash after order reply")
+            g._parse_hl_response = crash_parse
+        elif stage == "final":
+            real = g._append_real_attempt
+            def crash_final(*args, **kwargs):
+                real(*args, **kwargs)
+                raise SystemExit("injected crash after terminal append")
+            g._append_real_attempt = crash_final
+        elif stage == "registry":
+            real = c.atomic_write_json
+            def crash_registry(path, *args, **kwargs):
+                real(path, *args, **kwargs)
+                if path == c.STANDING_CLOSES_FILE:
+                    crashed[0] = True
+                    raise SystemExit("injected crash after standing closes registry")
+            c.atomic_write_json = crash_registry
+        else:
+            real = g.audit.append_reconciliation
+            def crash_reconcile(*args, **kwargs):
+                real(*args, **kwargs)
+                if args and args[0] == "EXIT_RECOVERY" and args[1] == "EXIT_RECOVERY_QUEUED":
+                    crashed[0] = True
+                    if stage == "reconcile_fail":
+                        raise RuntimeError("injected reconciliation failure")
+                    raise SystemExit("injected crash after reconciliation")
+            g.audit.append_reconciliation = crash_reconcile
+        try:
+            g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "no match")
+        except SystemExit:
+            pass
+        else:
+            check(name.upper() + "_CRASH_INJECTED",
+                  stage == "reconcile_fail" and crashed[0])
+        finally:
+            if stage == "registry":
+                c.atomic_write_json = real
+        prior = [row for row in disk_rows(c.SEND_ATTEMPTS_CSV)
+                 if row.get("intent_id") == name and row.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
+        terminals = [row for row in prior if row.get("status") != "pending_send"]
+        fresh = gw(ex)
+        fresh.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+        check(name.upper() + "_RESTART_FENCE", fresh._exit_recovery_exists(it), str(prior))
+        fresh._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "no match")
+        check(name.upper() + "_NO_BLIND_SECOND_SEND", len(ex.calls) == 1, str(ex.calls))
+        check(name.upper() + "_ONE_ATTEMPT_ID", len({row.get("attempt_id") for row in prior}) == 1,
+              str([(row.get("attempt_id"), row.get("status")) for row in prior]))
+        check(name.upper() + "_EXACT_TERMINAL_COUNT",
+              len(terminals) == (0 if stage == "parse" else 1), str(terminals))
+        check(name.upper() + "_SAME_CLOID", len({r.get("cloid") for r in prior}) == 1
+              and all(r.get("cloid") for r in prior), str(prior))
+        check(name.upper() + "_NO_SYNTHETIC_ORDER_ROW",
+              all(r.get("attempt_id") == prior[0].get("attempt_id") for r in prior), str(prior))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
