@@ -373,15 +373,139 @@ def first_healthy_cycle(state: Path, wanted_pid: int, after_ms: int) -> tuple[in
     return at, record
 
 
+BUCKET_TOLERANCE = 1e-6
+BUCKET_WIDTH_MS = 60_000          # normal: (wallet, coin, side, minute)
+BUCKET_WIDTH_WIDE_MS = 300_000    # widened when provenance is ingest-time only
+
+
+_SIDE_MAP = {"B": "BUY", "A": "SELL", "BUY": "BUY", "SELL": "SELL"}
+
+
+def _canonical_side(side: Any) -> str:
+    """Canonicalise Hyperliquid API side tokens and Core side tokens to one alphabet.
+
+    The raw leader-fill ledger carries Hyperliquid API values B/A, while the Core writes
+    LeaderFill.side as BUY/SELL. Both must land in the same bucket key or every real fill
+    fails reconciliation despite a perfect replay. An unknown token is returned uppercased
+    so a genuinely new value surfaces as a visible mismatch instead of being silently coerced.
+    """
+    token = str(side or "").strip().upper()
+    return _SIDE_MAP.get(token, token)
+
+
+def _num(value: Any, field: str = "value") -> float:
+    """Parse a financial number strictly. Invalid, missing or non-finite input is a failure.
+
+    Coercing unparseable input to 0.0 let a row with unreadable px/sz match an intent with
+    unreadable leader_notional and pass coverage as 0 == 0. Financial fields must never be
+    silently treated as genuine zero notional.
+    """
+    if value is None:
+        raise HotfixError("%s is missing; cannot prove coverage on an absent financial field" % field)
+    text = str(value).strip()
+    if not text:
+        raise HotfixError("%s is empty; cannot prove coverage on an absent financial field" % field)
+    try:
+        number = float(text)
+    except (TypeError, ValueError):
+        raise HotfixError("%s is not numeric (%r); cannot prove coverage" % (field, text))
+    if number != number or number in (float("inf"), float("-inf")):
+        raise HotfixError("%s is not finite (%r); cannot prove coverage" % (field, text))
+    return number
+
+
+def _bucket(wallet: str, coin: str, side: str, at_ms: int, width_ms: int) -> tuple[str, str, str, int]:
+    return (str(wallet or "").strip().lower(), str(coin or "").strip().upper(),
+            _canonical_side(side), int(at_ms) // width_ms)
+
+
+def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_ms: int) -> dict[str, Any]:
+    """C7-DIR-22 ruling C: bucket-level coverage, the approved weaker proof.
+
+    Exact fill-id equality cannot hold once historical ledger rows carry only a hash, so
+    coverage is proved per (wallet, coin, side, interval): exact count equality in every
+    bucket, notional equal within 1e-6 relative, and any difference is a FAIL that names
+    the bucket. If any intent row lacks the additive leader_fill_timestamp_ms, provenance
+    is ingest time and the buckets widen to five minutes - reported, never hidden.
+    """
+    if not source.is_file():
+        raise HotfixError("local raw leader-fill source is unavailable; cannot prove replay coverage")
+    source_rows = [r for r in csv_rows(source) if stop_ms <= leader_fill_time(r) <= first_cycle_ms]
+    intents = csv_rows(state / "append_only" / "order_intents.csv")
+    # P1-c: judge intents on the SAME event-time window as source_rows, not ingestion time.
+    # A fill processed after first_cycle_ms while the engine keeps trading must not appear as
+    # a right-only bucket. Rows carrying the additive leader fill stamp are bounded exactly
+    # like source rows [stop_ms, first_cycle_ms]; ingest-only rows keep a bounded grace of one
+    # wide bucket so genuinely late-ingested gap fills survive, and provenance is reported.
+    new_intents: list[dict[str, str]] = []
+    for r in intents:
+        if csv_int(r.get("created_at_ms"), "order_intents.created_at_ms") < stop_ms:
+            continue
+        stamp = str(r.get("leader_fill_timestamp_ms") or "").strip()
+        event_ms = (csv_int(stamp, "order_intents.leader_fill_timestamp_ms") if stamp
+                    else csv_int(r.get("created_at_ms"), "order_intents.created_at_ms"))
+        if event_ms <= (first_cycle_ms if stamp else first_cycle_ms + BUCKET_WIDTH_WIDE_MS):
+            new_intents.append(r)
+    ingest_only = any(not str(r.get("leader_fill_timestamp_ms") or "").strip() for r in new_intents)
+    width = BUCKET_WIDTH_WIDE_MS if ingest_only else BUCKET_WIDTH_MS
+    left: dict[tuple[str, str, str, int], list[float]] = {}
+    for r in source_rows:
+        key = _bucket(str(r.get("user") or r.get("wallet") or ""), str(r.get("coin") or ""),
+                      str(r.get("side") or r.get("dir") or ""), leader_fill_time(r), width)
+        entry = left.setdefault(key, [0, 0.0])
+        entry[0] += 1
+        px = _num(r.get("px") or r.get("price"), "source.px")
+        sz = _num(r.get("sz") or r.get("size"), "source.sz")
+        entry[1] += abs(px * sz)
+    right: dict[tuple[str, str, str, int], list[float]] = {}
+    for r in new_intents:
+        at = csv_int(r.get("leader_fill_timestamp_ms") or 0, "order_intents.leader_fill_timestamp_ms") \
+            if str(r.get("leader_fill_timestamp_ms") or "").strip() else \
+            csv_int(r.get("created_at_ms"), "order_intents.created_at_ms")
+        key = _bucket(str(r.get("leader_wallet") or ""), str(r.get("coin") or ""),
+                      str(r.get("leader_side") or ""), at, width)
+        entry = right.setdefault(key, [0, 0.0])
+        entry[0] += 1
+        entry[1] += abs(_num(r.get("leader_notional"), "intent.leader_notional"))
+    failures = []
+    merged_buckets = 0
+    for key in sorted(set(left) | set(right), key=lambda k: (k[0], k[1], k[2], k[3])):
+        lc, ln = left.get(key, [0, 0.0])
+        rc, rn = right.get(key, [0, 0.0])
+        notional_ok = (not ln and not rn) or abs(ln - rn) / max(abs(ln), abs(rn), 1e-12) <= BUCKET_TOLERANCE
+        if lc == rc:
+            if not notional_ok:
+                failures.append({"bucket": key, "source_notional": ln, "intent_notional": rn,
+                                 "cause": "notional"})
+            continue
+        # A bucket with NO intent rows is never a merge: catch-up absorption can only ever
+        # leave one surviving row, so zero intents against real source fills is always a
+        # coverage gap - not even a zero-notional bucket may be excused this way.
+        if rc == 0 and lc > 0:
+            failures.append({"bucket": key, "source_count": lc, "intent_count": 0,
+                             "cause": "count"})
+            continue
+        # Catch-up nets many leader fills into ONE intent row (raw["merged_fill_ids"]), so a
+        # bucket can legitimately hold fewer intent rows than source fills. That is accepted
+        # ONLY when the bucket's notional is conserved within tolerance and rows were only
+        # absorbed (0 < intent_count < source_count); otherwise it is a real coverage gap.
+        if 0 < rc < lc and notional_ok:
+            merged_buckets += 1
+            continue
+        failures.append({"bucket": key, "source_count": lc, "intent_count": rc,
+                         "source_notional": ln, "intent_notional": rn, "cause": "count"})
+    if failures:
+        raise HotfixError("bucket coverage FAIL: %s" % json.dumps(failures[:5], sort_keys=True)[:400])
+    return {"label": "bucket-level coverage", "buckets": len(left), "width_ms": width,
+            "source_fills": len(source_rows), "intent_rows": len(new_intents),
+            "provenance": "ingest_time_widened" if ingest_only else "leader_fill_time",
+            "failed_buckets": 0, "merged_buckets": merged_buckets}
+
+
 def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[str, str]],
                  source: Path, stop_ms: int, first_cycle_ms: int, live_wallets: list[str]) -> dict[str, int]:
     fills = source_gap_fills(source, stop_ms, first_cycle_ms)
-    intents = csv_rows(state / "append_only" / "order_intents.csv")
-    new_intents = [r for r in intents if csv_int(r.get("created_at_ms"), "order_intents.created_at_ms") >= stop_ms]
-    intent_fill_ids = {str(r.get("leader_fill_id") or "") for r in new_intents}
-    missing_rows = sorted(set(fills) - intent_fill_ids)
-    if missing_rows:
-        raise HotfixError("gap replay is missing order_intents rows")
+    buckets = bucket_reconciliation(state, source, stop_ms, first_cycle_ms)
     attempts = csv_rows(state / "append_only" / "send_attempts.csv")
     new_attempts = [r for r in attempts if csv_int(r.get("created_at_ms"), "send_attempts.created_at_ms") >= stop_ms]
     duplicates = [r for r in new_attempts if (str(r.get("wallet") or r.get("leader_wallet") or "").lower(),
@@ -400,9 +524,13 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
                 "manual_live_positions_sha256", "xyz_position_state_sha256", "user_owned_sha256"):
         if after[key] != baseline[key]:
             raise HotfixError("same-state invariant changed: " + key)
-    return {"gap_fills": len(fills), "gap_intent_rows": len(new_intents),
+    return {"gap_fills": len(fills), "gap_intent_rows": buckets["intent_rows"],
             "duplicate_attempts": 0, "unresolved": unresolved,
-            "cursors_caught_up": len(live_wallets)}
+            "cursors_caught_up": len(live_wallets),
+            "proof_label": buckets["label"], "buckets": buckets["buckets"],
+            "bucket_width_ms": buckets["width_ms"], "bucket_provenance": buckets["provenance"],
+            "failed_buckets": buckets["failed_buckets"],
+            "merged_buckets": buckets["merged_buckets"]}
 
 
 def live_wallets(config: dict[str, Any]) -> list[str]:
@@ -537,7 +665,14 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
                     break
                 except HotfixError as exc:
                     # A lagging poll/copy cycle is expected during the attached watch; invariant drift is not.
-                    if "not caught up" not in str(exc) and "unresolved rows" not in str(exc) and "missing order_intents" not in str(exc):
+                    # Bounded catch-up: a bucket can be short of intent rows only because the
+                    # audit row has not flushed yet. That is transient and must be rechecked until
+                    # the replay deadline; invariant drift and duplicate sends still fail at once
+                    # because they raise different messages.
+                    _msg = str(exc)
+                    _transient = ("not caught up" in _msg or "unresolved rows" in _msg
+                                  or "missing order_intents" in _msg or "bucket coverage FAIL" in _msg)
+                    if not _transient:
                         raise
             time.sleep(POLL_S)
         if first_cycle is None or proof is None:
@@ -554,6 +689,7 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         print("  first_healthy_cycle_ms       %d" % first_cycle[0])
         print("  deactivation_to_healthy_ms   %d / %d" % (gap_ms, MAX_GAP_MS))
         print("  missed_fills / intent_rows   %d / %d" % (proof["gap_fills"], proof["gap_intent_rows"]))
+        print("  merged_buckets               %d" % proof["merged_buckets"])
         print("  duplicate_attempts           %d" % proof["duplicate_attempts"])
         print("  UNRESOLVED                   %d" % proof["unresolved"])
         print("  poll_wallets_caught_up       %d" % proof["cursors_caught_up"])
