@@ -775,10 +775,32 @@ def atomic_text(path: Path, text: str) -> None:
     os.replace(temp, path)
 
 
+# Windows system utilities (including git and process inspection) need the real
+# parent process environment. Only the configured HL_* launch values may override
+# the parent; never let a saved launch spec shadow Windows' executable lookup.
+_CHILD_SYSTEM_KEYS = ("PATH", "SYSTEMROOT", "TEMP", "TMP", "PATHEXT", "COMSPEC")
+
+
+def child_env(launch_env: dict[str, str] | None = None) -> dict[str, str]:
+    """Parent environment + explicit launch values; system keys always from parent."""
+    merged = dict(os.environ)
+    merged.update(launch_env or {})
+    for key in _CHILD_SYSTEM_KEYS:
+        # Remove any system-key alias in the saved launch spec, including a
+        # differently cased spelling, before restoring the parent value.
+        for saved_key in tuple(merged):
+            if saved_key.upper() == key:
+                merged.pop(saved_key)
+        for parent_key, value in os.environ.items():
+            if parent_key.upper() == key:
+                merged[parent_key] = value
+    return merged
+
+
 def start_pair(build: Path, sha: str, state: Path, port: int, launch_env: dict[str, str]) -> dict[str, Any]:
     command = [sys.executable, str(build / "ops" / "start_pair.py"), "--checkout", str(build),
                "--state", str(state), "--expect-sha", sha, "--ui-port", str(port)]
-    result = subprocess.run(command, capture_output=True, text=True, env=launch_env, timeout=120)
+    result = subprocess.run(command, capture_output=True, text=True, env=child_env(launch_env), timeout=120)
     if result.returncode:
         try:
             failure = json.loads(result.stdout)
@@ -803,10 +825,10 @@ def start_pair(build: Path, sha: str, state: Path, port: int, launch_env: dict[s
     return payload
 
 
-def stop_pair(state: Path, port: int) -> dict[str, Any]:
+def stop_pair(state: Path, port: int, launch_env: dict[str, str] | None = None) -> dict[str, Any]:
     request_ms = int(time.time() * 1000)
     result = subprocess.run([sys.executable, str(OPS / "stop_pair.py"), "--all", "--port", str(port)],
-                            capture_output=True, text=True, timeout=120)
+                            capture_output=True, text=True, env=child_env(launch_env), timeout=120)
     if result.returncode:
         raise HotfixError("stop_pair did not prove a clean stop: " +
                           str(result.stderr or result.stdout or "no child output")[-2000:])
@@ -819,9 +841,9 @@ def stop_pair(state: Path, port: int) -> dict[str, Any]:
     return record
 
 
-def tracked_start_ui(port: int) -> None:
+def tracked_start_ui(port: int, launch_env: dict[str, str] | None = None) -> None:
     result = subprocess.run([sys.executable, str(OPS / "stop_pair.py"), "--track-ui", "--port", str(port)],
-                            capture_output=True, text=True, timeout=20)
+                            capture_output=True, text=True, env=child_env(launch_env), timeout=20)
     if result.returncode:
         raise HotfixError("could not record the new UI identity: " +
                           str(result.stderr or result.stdout or "no child output")[-2000:])
@@ -920,13 +942,13 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     original_spec = copy.deepcopy(spec)
     # Do not touch either process after an unproven/ambiguous stop. Restart is safe
     # only once stop_pair has positively established that both old processes exited.
-    stop_pair(state, port)
+    stop_pair(state, port, dict(env))
     try:
         old_pair_down_ms = int(time.time() * 1000)
         rewrite_launch_spec(spec, new_root, target_sha, state)
         atomic_text(pointer_path(state), str(state))
         start_info = start_pair(new_root, target_sha, state, port, dict(env))
-        tracked_start_ui(port)
+        tracked_start_ui(port, dict(env))
         engine_pid = int(start_info["engine_pid"])
         deadline = time.monotonic() + REPLAY_TIMEOUT_S
         first_cycle: tuple[int, dict[str, Any]] | None = None
@@ -996,16 +1018,19 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     except Exception as swap_error:
         try:
             if SP.pids(state) or SP.listener(port):
-                stop_pair(state, port)
+                stop_pair(state, port, dict(original_spec["env"]))
             rewrite_launch_spec(copy.deepcopy(original_spec), old_root, old_sha, state)
             atomic_text(pointer_path(state), str(state))
             restore_requested_ms = int(time.time() * 1000)
             restored = start_pair(old_root, old_sha, state, port, dict(original_spec["env"]))
-            tracked_start_ui(port)
+            tracked_start_ui(port, dict(original_spec["env"]))
             prove_restored_pair(state, port, restored, restore_requested_ms, old_root, old_sha)
         except Exception as rollback_error:
-            raise HotfixError("swap failed; previous pair NOT proven restored: " +
-                              str(rollback_error)[-2000:]) from rollback_error
+            # A second failure must never erase the initiating failure: both
+            # reasons are required for recovery decisions and operator diagnosis.
+            raise HotfixError("swap failed (original: %s); previous pair NOT proven restored "
+                              "(rollback: %s)" %
+                              (str(swap_error)[-2000:], str(rollback_error)[-2000:])) from rollback_error
         # Preserve the last named bucket in the operator-visible rollback error.
         # Leave unrelated failure messages generic.
         detail = ("; " + str(swap_error)) if "last failed bucket:" in str(swap_error) else ""

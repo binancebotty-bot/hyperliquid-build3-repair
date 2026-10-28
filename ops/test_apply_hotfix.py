@@ -512,6 +512,84 @@ def check_ambiguous_stop_isolated(root):
 
 
 
+
+def check_child_process_environment_inherits_system_keys(root):
+    """PATH-less HL-only launch env must still permit a real child to find git."""
+    from types import SimpleNamespace
+    parent = {
+        "PATH": "C:\\tools\\Git\\cmd;C:\\Windows\\System32",
+        "SYSTEMROOT": "C:\\Windows",
+        "TEMP": "C:\\Temp",
+        "TMP": "C:\\Tmp",
+        "PATHEXT": ".EXE;.BAT",
+        "COMSPEC": "C:\\Windows\\System32\\cmd.exe",
+        "HL_LEADER_NETWORK": "testnet",
+    }
+    launch = {"HL_LIVE_AUDIT_DIR": str(root), "HL_LEADER_NETWORK": "mainnet",
+              "PATH": "C:\\invalid_launch_path"}
+    observed = []
+
+    def fake_child(command, **kwargs):
+        env = kwargs.get("env", {})
+        observed.append((command, env))
+        if not env.get("PATH") or env["PATH"] != parent["PATH"]:
+            raise FileNotFoundError("WinError 2: git executable not found")
+        if "--track-ui" in command:
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        if "--all" in command:
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        return SimpleNamespace(returncode=0, stdout=json.dumps({
+            "pair": "STARTED", "engine_pid": 1234, "ui_pid": 5678}), stderr="")
+
+    with patch.dict(HOTFIX.os.environ, parent, clear=True), \
+         patch.object(HOTFIX.subprocess, "run", side_effect=fake_child):
+        started = HOTFIX.start_pair(root, NEW_SHA, root, 8031,
+                                    {k: v for k, v in launch.items() if k != "PATH"})
+        assert started["pair"] == "STARTED" and started["engine_pid"] == 1234
+        HOTFIX.tracked_start_ui(8031, launch)
+        # stop_pair needs a clean shutdown record; patch only the post-process proof.
+        with patch.object(HOTFIX, "read_json", return_value={
+                "reason": "stop_sentinel", "clean": True, "timestamp_ms": 9999999999999999}), \
+             patch.object(HOTFIX.SP, "pids", return_value=[]), \
+             patch.object(HOTFIX.SP, "listener", return_value=None):
+            HOTFIX.stop_pair(root, 8031, launch)
+
+    assert len(observed) == 3, observed
+    for command, env in observed:
+        for name in HOTFIX._CHILD_SYSTEM_KEYS:
+            assert env.get(name) == parent[name], (name, command, env.get(name))
+        assert env["HL_LEADER_NETWORK"] == "mainnet", command
+        assert env["HL_LIVE_AUDIT_DIR"] == str(root), command
+
+
+def check_both_swap_and_rollback_causes_are_visible(root):
+    """If rollback fails, preserve BOTH initial and recovery failure messages."""
+    pair = make_pair(root, "both_causes")
+    events = []
+
+    def original_failure(*_args):
+        raise HOTFIX.HotfixError("ORIGINAL_UI_START_MISSING_GIT_PATH")
+
+    def rollback_failure(*_args):
+        raise HOTFIX.HotfixError("ROLLBACK_START_CHILD_FAILED")
+
+    starts = {"count": 0}
+
+    def fails_twice(*_args):
+        starts["count"] += 1
+        if starts["count"] == 1:
+            return original_failure()
+        return rollback_failure()
+
+    result = run_swap(HOTFIX, pair, 12_345, events=events, start=fails_twice)
+    assert isinstance(result["raised"], HOTFIX.HotfixError), result
+    message = str(result["raised"])
+    assert "ORIGINAL_UI_START_MISSING_GIT_PATH" in message, message
+    assert "ROLLBACK_START_CHILD_FAILED" in message, message
+    assert "NOT proven restored" in message, message
+    assert starts["count"] == 2, starts
+
+
 def check_ui_child_failure_output_reaches_swap_caller(root):
     """Propagate the actual uvicorn log from start_pair; no withheld-output wrapper."""
     from types import SimpleNamespace
@@ -652,6 +730,10 @@ def main():
              lambda: check_api_one_shot_after_healthy(root)),
             ("APPLY_HOTFIX_AMBIGUOUS_STOP_ISOLATED", lambda: check_ambiguous_stop_isolated(root)),
             ("APPLY_HOTFIX_SINGLE_FAULT_ROLLBACK", lambda: check_single_fault_rollback_restores_state(root)),
+            ("APPLY_HOTFIX_CHILD_ENV_WITHOUT_LAUNCH_PATH",
+             lambda: check_child_process_environment_inherits_system_keys(root)),
+            ("APPLY_HOTFIX_SWAP_ROLLBACK_BOTH_CAUSES",
+             lambda: check_both_swap_and_rollback_causes_are_visible(root)),
             ("APPLY_HOTFIX_UI_CHILD_FAILURE_OUTPUT",
              lambda: check_ui_child_failure_output_reaches_swap_caller(root)),
             ("APPLY_HOTFIX_UNPROVEN_ROLLBACK_REFUSES",
