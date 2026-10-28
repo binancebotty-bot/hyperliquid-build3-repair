@@ -63,6 +63,12 @@ def fake_open(self, *a, **k):
     return PartialThenFull(f) if self == p and a and a[0] == "a" else f
 
 
+# append_csv caches the handle after its first successful append.
+# Reopen this TEST FILE to exercise the injected partial disk write.
+c._close_audit_handle(p)
+# Prevent asynchronous spill replay racing the explicit checks below.
+real_schedule = c._schedule_audit_flush
+c._schedule_audit_flush = lambda *_args, **_kwargs: None
 Path.open = fake_open
 raised = False
 ret = None
@@ -72,6 +78,7 @@ except OSError:
     raised = True
 finally:
     Path.open = real_open
+    c._schedule_audit_flush = real_schedule
 
 check("APPEND_FAILURE_NO_RAISE", not raised, "append_csv should never raise -- it spills")
 check("APPEND_FAILURE_RETURNS_FALSE", ret is False, f"ret={ret!r}")
