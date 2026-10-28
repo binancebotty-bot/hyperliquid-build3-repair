@@ -15,6 +15,7 @@ import tempfile
 import threading
 from collections import deque
 from pathlib import Path
+from test_offline_send_fixture import arm_offline_send, SleeveLedgerStub
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -96,14 +97,9 @@ RESOLVED = {"ok": True, "sdk_coin": "ZRO", "sz_decimals": 2, "price_max_decimals
             "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
 
-class Led:
-    def coin_net(self, key):
-        return 0.0
-
-
 def send(tag, block):
     fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw = c.SenderGateway(arm_offline_send(c, [LEADER]), c.AuditLogWriter())
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -113,7 +109,7 @@ def send(tag, block):
     gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
     gw._ensure_margin_mode = lambda *a, **k: None
     gw._fresh_exchange_net = lambda coin: 0.0
-    gw.ledger = Led()
+    gw.ledger = SleeveLedgerStub()
     i = object.__new__(c.Intent)
     i.intent_id = "i-" + tag
     i.fill = c.LeaderFill("fid-" + tag, LEADER, "ZRO", "BUY", 100.0, 10.0, 1, "WS_CAPTURED", 1_234_567, {})
