@@ -164,3 +164,91 @@ def test_terminal_clear_exchange_exception_keeps_red_and_durable(tmp_path, monke
     assert core.SenderGateway.clear_trackb_escalations(sender) == 0
     assert "s1" in core.load_json(path, {})
     assert not events
+
+
+@pytest.mark.parametrize("side,engine_size,requested_size", [
+    ("SELL", 5.0, 12.0),
+    ("BUY", -5.0, 12.0),
+    ("SELL", 0.0001, 2.0),
+])
+def test_dir131_unknown_exchange_sends_only_capped_engine_close(side, engine_size, requested_size):
+    """Unknown exchange net must not block a proven engine-sleeve close."""
+    parts, reason = core.SenderGateway._trackb_split_close(
+        side, requested_size, engine_size, None)
+    assert parts == [(abs(engine_size), False)]
+    assert reason == "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE"
+
+
+@pytest.mark.parametrize("sleeve,side", [
+    (None, "SELL"), (0.0, "SELL"), (float("nan"), "SELL"),
+    (-3.0, "SELL"), (3.0, "BUY"),
+])
+def test_dir131_unproven_or_wrong_side_engine_sleeve_never_sends(sleeve, side):
+    parts, reason = core.SenderGateway._trackb_split_close(side, 5.0, sleeve, None)
+    assert parts == []
+    assert reason in {"ENGINE_SLEEVE_UNPROVEN", "ENGINE_SLEEVE_NOT_CLOSABLE"}
+
+
+def test_dir131_unknown_exchange_planner_never_applies_remainder_gate():
+    wallet = "0x" + "d" * 40
+    led = SimpleNamespace(sleeve=lambda wallet, coin: {"signed_size": 3.0})
+    sender = SimpleNamespace(ledger=led, _reduce_only_for_intent=lambda intent: True,
+                             _fresh_exchange_net=lambda coin: None,
+                             _trackb_split_close=core.SenderGateway._trackb_split_close,
+                             _floor_wire_size=lambda qty, decimals: round(qty, decimals))
+    intent = SimpleNamespace(copy_side="SELL", wallet_position_before=12.0,
+                             fill=SimpleNamespace(leader_wallet=wallet, coin="ETH"))
+    timing = {}
+    plan = core.SenderGateway._close_wire_plan(
+        sender, intent, 12.0, 3, lambda qty: True, timing)
+    assert plan == (False, 3.0, "")
+    assert timing["trackb_close_split_reason"] == "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE"
+    assert timing["trackb_close_remainder"] == 0.0
+
+
+@pytest.mark.parametrize("owned,exchange_error,should_send", [
+    (3.0, "exchange snapshot unavailable", True),
+    (0.0, "exchange snapshot unavailable", False),
+    (-3.0, "exchange snapshot unavailable", False),
+    (None, "exchange snapshot unavailable", False),
+])
+def test_dir131_missing_exchange_snapshot_gate_allows_only_engine_close(
+        owned, exchange_error, should_send):
+    wallet = "0x" + "d" * 40
+    escalations = []
+    sleeve = {} if owned is None else {"signed_size": owned}
+    ledger = SimpleNamespace(sleeve=lambda w, c: sleeve)
+    sender = SimpleNamespace(
+        ledger=ledger, _audit_proof_block_reason=lambda: "",
+        _persisted_exchange_positions=lambda: ({}, exchange_error),
+        _trackb_escalate=lambda *args: escalations.append(args),
+        _ownership_gate_block=core.SenderGateway._ownership_gate_block,
+    )
+    intent = SimpleNamespace(
+        fill=SimpleNamespace(leader_wallet=wallet, coin="ETH"),
+        copy_side="SELL", copy_size=9.0, reduce_only_intended=True,
+        wallet_position_before=9.0, intent_id="dir131-i1")
+    allowed, refusal = core.SenderGateway._pre_send_ownership_gate(sender, intent)
+    assert allowed is should_send
+    assert bool(escalations)
+    if not should_send:
+        assert refusal["status"] == "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
+
+
+def test_dir131_known_exchange_retains_reduce_only_split():
+    parts, reason = core.SenderGateway._trackb_split_close("SELL", 12.0, 5.0, 2.0)
+    assert reason == "EXCHANGE_NET_CLOSE_SPLIT"
+    assert parts == [(2.0, True), (3.0, False)]
+
+
+def test_dir131_missing_engine_sleeve_does_not_use_intent_time_snapshot():
+    sender = SimpleNamespace(ledger=SimpleNamespace(sleeve=lambda *args: {}),
+                             _reduce_only_for_intent=lambda intent: True,
+                             _fresh_exchange_net=lambda coin: None,
+                             _trackb_split_close=core.SenderGateway._trackb_split_close)
+    intent = SimpleNamespace(copy_side="SELL", wallet_position_before=500.0,
+                             fill=SimpleNamespace(leader_wallet="0x" + "d" * 40, coin="ETH"))
+    timing = {}
+    first = core.SenderGateway._close_wire_plan(sender, intent, 500.0, 3, None, timing)
+    assert first[1] == 0.0
+    assert first[2] == "ENGINE_SLEEVE_UNPROVEN"

@@ -6946,8 +6946,32 @@ class SenderGateway:
         audit_reason = self._audit_proof_block_reason()
         if audit_reason:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_AUDIT_PROOF", audit_reason)
+        close_like = lifecycle in {"EXIT", "REDUCE"} or bool(intent.reduce_only_intended)
+        if close_like:
+            # Only the current copy-fill-owned ledger authorises a close.
+            # Without this sleeve, there is nothing the engine may sell/buy:
+            # keep the alert red but do not trade the USER sleeve.
+            owned = None
+            if self.ledger is not None:
+                try:
+                    owned = fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"),
+                                 float("nan"))
+                except Exception:
+                    owned = None
+            delta = ManualLedger.signed_delta(intent.copy_side, 1.0)
+            if owned is None or not math.isfinite(owned) or abs(owned) <= POSITION_EPSILON or owned * delta >= 0:
+                self._trackb_escalate(intent, "NO_KNOWN_ENGINE_SLEEVE_CLOSE_NOT_SENT")
+                return False, self._ownership_gate_block(
+                    intent, "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE",
+                    "no current engine-owned sleeve with the opposing close direction")
         exchange, exchange_reason = self._persisted_exchange_positions()
         if exchange_reason:
+            if close_like:
+                # Missing persisted exchange state is an ENTRY gate, not an EXIT gate.
+                # The physical close planner refreshes exchange truth and caps by
+                # the verified engine sleeve; keep red until terminal proof.
+                self._trackb_escalate(intent, "EXCHANGE_TRUTH_UNREADABLE_CLOSE_CAPPED: " + exchange_reason)
+                return True, {}
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF", exchange_reason)
         exchange_net = fnum(exchange.get(coin_key), 0.0)
         manual_net = self.ledger.coin_net(coin_key) if self.ledger else 0.0
@@ -7896,16 +7920,23 @@ class SenderGateway:
         """
         qty = abs(fnum(requested_size, 0.0))
         delta = 1.0 if side == "BUY" else -1.0
-        if engine_size is not None:
-            engine_size = fnum(engine_size, 0.0)
-            if abs(engine_size) <= POSITION_EPSILON or engine_size * delta >= 0:
-                return [], "ENGINE_SLEEVE_NOT_CLOSABLE"
-            qty = min(qty, abs(engine_size))
+        # No known ENGINE sleeve = no authority to trade any USER-owned inventory.
+        # Intent-time position snapshots do not prove current engine ownership.
+        signed = fnum(engine_size, float("nan"))
+        if not math.isfinite(signed):
+            return [], "ENGINE_SLEEVE_UNPROVEN"
+        if abs(signed) <= POSITION_EPSILON or signed * delta >= 0:
+            return [], "ENGINE_SLEEVE_NOT_CLOSABLE"
+        qty = min(qty, abs(signed))
         if qty <= POSITION_EPSILON:
             return [], "CLOSE_SIZE_DUST_OR_ZERO"
-        if exchange_net is None or engine_size is None:
-            return [(qty, False)], "PLAIN_CLOSE_UNKNOWN_EXCHANGE_OR_SLEEVE"
-        ro_size = min(qty, abs(exchange_net)) if exchange_net * delta < 0 else 0.0
+        # C7-DIR-131(1a): missing exchange truth does NOT suppress an
+        # engine-sleeve-capped close. No reduce-only claim without exchange proof.
+        # A later fresh exchange read/recovery recomputes the normal split.
+        net = fnum(exchange_net, float("nan"))
+        if not math.isfinite(net):
+            return [(qty, False)], "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE"
+        ro_size = min(qty, abs(net)) if net * delta < 0 else 0.0
         entry_size = max(0.0, qty - ro_size)
         parts = []
         if ro_size > POSITION_EPSILON:
@@ -8129,12 +8160,12 @@ class SenderGateway:
         sleeve = None
         if self.ledger is not None:
             try:
-                sleeve = fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"), 0.0)
+                sleeve = fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"), float("nan"))
             except Exception:
                 sleeve = None
-        if sleeve is None and intent.wallet_position_before is not None:
-            sleeve = fnum(intent.wallet_position_before, 0.0)
-        exchange_net = self._fresh_exchange_net(intent.fill.coin)
+        # Never fall back to an intent-time position when the current
+        # engine-owned sleeve cannot be proven. USER inventory is not ours.
+        exchange_net = self._fresh_exchange_net(intent.fill.coin) if sleeve is not None else None
         parts, reason = self._trackb_split_close(intent.copy_side, size, sleeve, exchange_net)
         if not parts:
             return False, 0.0, reason
@@ -8831,6 +8862,11 @@ class SenderGateway:
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
                 wire_size = close_size_planned
+            if timing.get("trackb_close_split_reason") == "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE":
+                # This is the ENGINE-owned close itself, NOT an entry remainder.
+                # Do not apply margin reserve/caps to it; journal owed-close RED
+                # until a later fresh exchange/open-order/terminal proof clears it.
+                self._trackb_escalate(intent, "UNKNOWN_EXCHANGE_NET_CAPPED_CLOSE_ATTEMPT", timing)
             if not use_reduce_only and timing.get("trackb_close_split_reason") == "EXCHANGE_NET_CLOSE_SPLIT":
                 block = self._trackb_remainder_entry_block(intent, wire_size, limit_px)
                 if block:
