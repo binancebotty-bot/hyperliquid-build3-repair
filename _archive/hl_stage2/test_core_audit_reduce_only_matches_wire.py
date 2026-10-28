@@ -67,11 +67,14 @@ RESOLVED = {'ok': True, 'sdk_coin': 'ZRO', 'sz_decimals': 2, 'price_max_decimals
 
 
 class Led:
-    def __init__(self, net):
-        self.net = net
+    def __init__(self, net, owned):
+        self.net, self.owned = net, owned
 
     def coin_net(self, key):
         return self.net
+
+    def sleeve(self, wallet, coin):
+        return {"signed_size": self.owned}
 
 
 def make_intent(side, size, lifecycle, tag):
@@ -108,7 +111,9 @@ def run(name, side, size, ledger_net, exchange_net, lifecycle):
     gw._ensure_margin_mode = lambda *a, **k: None
     gw._withdraw_standing_close = lambda exchange, intent, wire_size, sz_dec, timing: (wire_size, None)
     gw._fresh_exchange_net = lambda coin: exchange_net
-    gw.ledger = Led(ledger_net)
+    # Valid wire parity cases require a provable ENGINE sleeve, not just coin net.
+    owned = (-size if side == 'BUY' else size) if lifecycle in ('EXIT', 'REDUCE') else 0.0
+    gw.ledger = Led(ledger_net, owned)
     intent = make_intent(side, size, lifecycle, name)
     ok, status, result = gw._send_real(intent)
     gw._append_real_attempt(intent, status, result)
@@ -129,6 +134,38 @@ check('PURE_REDUCE_BOUNDARY_AUDIT_EQUALS_WIRE', run('BOUNDARY', 'BUY', 10.0, -10
 # The defect: a close trimmed to the follower's net target is NOT a pure reduction, so the wire carries False
 # even though the intent is an EXIT. The audit must say False too.
 check('TRIMMED_CLOSE_AUDIT_EQUALS_WIRE', run('TRIMMED', 'BUY', 10.0, 0.0, 6.0, 'EXIT') is False)
+
+
+# DIR131: no sleeve() cannot prove ENGINE ownership, so sender escalates RED
+# without making an exchange call; it must NEVER crash or borrow USER net.
+def test_missing_sleeve_returns_red_not_attribute_error():
+    fake = FakeExchange()
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw._resolve_coin = lambda coin: dict(RESOLVED)
+    gw._get_exchange_client = lambda *a, **k: fake
+    gw._exchange_client_has_symbol = lambda *a, **k: True
+    gw._validate_final_wire_order = lambda *a, **k: (True, {})
+    gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
+    gw._ensure_margin_mode = lambda *a, **k: None
+    gw._withdraw_standing_close = lambda exchange, intent, size, sz_dec, timing: (size, None)
+    gw._fresh_exchange_net = lambda coin: -10.0
+    class CoinNetOnly:
+        def coin_net(self, key):
+            return -10.0
+    gw.ledger = CoinNetOnly()
+    intent = make_intent('BUY', 5.0, 'EXIT', 'MISSING_SLEEVE')
+    try:
+        ok, status, result = gw._send_real(intent)
+        check('UNPROVEN_ENGINE_SLEEVE_RED_NO_WIRE',
+              not ok and not fake.calls and intent.sleeve_id in gw._trackb_escalations
+              and result.get('exchange_called') is False
+              and 'ENGINE_SLEEVE_UNPROVEN' in str(result.get('notes')),
+              'ok=%r status=%r result=%r' % (ok, status, result))
+    except Exception as exc:
+        check('UNPROVEN_ENGINE_SLEEVE_RED_NO_WIRE', False, repr(exc))
+
+
+test_missing_sleeve_returns_red_not_attribute_error()
 
 failed = [n for n, ok in R if not ok]
 print('TOTAL=%d FAILED=%d' % (len(R), len(failed)))

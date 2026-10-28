@@ -8012,11 +8012,39 @@ class SenderGateway:
             return True
         return abs(ex_net - led_net) > max(POSITION_EPSILON, 0.001 * abs(delta))
 
+    def _follower_order_account_for_proof(self) -> Optional[str]:
+        """Resolve the exact SDK trading account and bind all close proof to it.
+
+        SDK uses HL_LIVE_HL_ACCOUNT_ADDRESS if set, otherwise the signer's
+        public address. Never accept a different HL_USER_WALLET read account.
+        """
+        read_account = normalise_wallet(USER_WALLET)
+        configured = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
+        if configured:
+            trading_account = normalise_wallet(configured)
+        else:
+            trading_account = ""
+            key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+            if key and HLAccount is not None:
+                try:
+                    trading_account = normalise_wallet(HLAccount.from_key(key).address)
+                except Exception as exc:
+                    log_error("trackb_close_proof_signer_address", exc)
+        if (not is_valid_wallet(read_account) or not is_valid_wallet(trading_account)
+                or read_account != trading_account):
+            log_error("trackb_close_proof_account_mismatch", RuntimeError(
+                "close proof BLOCKED: HL_USER_WALLET=" + (read_account or "<unset>") +
+                " SDK_TRADING_ACCOUNT=" + (trading_account or "<unavailable>") +
+                "; different/unverifiable account identities, owed close remains RED"))
+            return None
+        return trading_account
+
     def _fresh_exchange_net(self, coin: str) -> Optional[float]:
         """The follower account's net position in one coin from a fresh read (scope DEXs plus the coin's own DEX), or
         None when the account cannot be read. Never raises."""
         try:
-            if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+            trading_account = self._follower_order_account_for_proof()
+            if trading_account is None:
                 return None
             key = canonical_coin_key(coin)
             dexes = list(follower_dex_scope())
@@ -8024,7 +8052,7 @@ class SenderGateway:
                 own = str(coin).split(":", 1)[0].lower()
                 if own and own not in dexes:
                     dexes.append(own)
-            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+            exp = _XNET.master_exposure(trading_account, dexes, fetcher=EXPOSURE_FETCHER,
                                         info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if not exp.get("ok"):
                 return None
@@ -8045,6 +8073,10 @@ class SenderGateway:
             return 0
         with self._resting_lock:
             candidates = [(key, dict(row)) for key, row in self._trackb_escalations.items()]
+        # Check identity independently of _fresh_exchange_net: even an injected
+        # stale/mock read may NEVER clear an escalation on the wrong account.
+        if candidates and self._follower_order_account_for_proof() is None:
+            return 0
         done = []
         exchange_by_coin: Dict[str, Optional[float]] = {}
         for key, row in candidates:
@@ -8657,7 +8689,14 @@ class SenderGateway:
             cap_px = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
             limit_px = min(limit_px, cap_px) if intent.copy_side == "BUY" else max(limit_px, cap_px)
         if lifecycle in {"EXIT", "REDUCE"}:
-            sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin) if self.ledger else {}
+            try:
+                sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin) if self.ledger else {}
+                if not isinstance(sleeve, dict):
+                    sleeve = {}
+            except Exception:
+                # Not proven. The close planner below records a RED owed-close
+                # escalation and REFUSES to trade USER inventory, rather than crash.
+                sleeve = {}
             avg_entry = fnum(sleeve.get("avg_entry_px"), 0.0)
             exec_px = follower_px * ((1.0 + bps / 10000.0) if intent.copy_side == "BUY"
                                      else (1.0 - bps / 10000.0))
