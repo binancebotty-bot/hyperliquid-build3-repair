@@ -17,6 +17,7 @@ import csv
 import importlib.util
 import io
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -368,6 +369,61 @@ def check_mutation_gap_threshold(root):
                                     mutated["result"])
 
 
+
+def check_backup_excludes_genuinely_locked_files(root):
+    """A held engine lock remains untouched; the backup names every excluded lock."""
+    pair = make_pair(root, "locked_backup")
+    state = pair["state"]
+    lock = state / "instance.lock"
+    lock.write_bytes(b"1")
+    nested = state / "append_only"
+    nested.mkdir()
+    (nested / "writer.lock").write_bytes(b"2")
+    (nested / "order_intents.csv").write_text("intent_id\nabc\n", encoding="utf-8")
+
+    # An actual OS file lock is held for the entire copy. On POSIX flock is advisory,
+    # so also make accidental lock-copy attempts raise, as on Windows's exclusive open.
+    original_copy2 = HOTFIX.shutil.copy2
+
+    def refuse_lock_copy(src, dst, *args, **kwargs):
+        if Path(src).name.lower().endswith(".lock"):
+            raise PermissionError("live runtime lock cannot be copied")
+        return original_copy2(src, dst, *args, **kwargs)
+
+    with lock.open("r+b") as held:
+        if os.name == "nt":
+            import msvcrt
+            held.seek(0)
+            msvcrt.locking(held.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(held.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            with patch.object(HOTFIX.shutil, "copy2", side_effect=refuse_lock_copy):
+                backup = HOTFIX.backup_state(state)
+            manifest_path = backup / "backup_manifest.json"
+            assert manifest_path.is_file(), "backup exclusions must be durable"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            assert manifest["source_state_dir"] == str(state), manifest
+            assert manifest["excluded_runtime_locks"] == [
+                "append_only/writer.lock", "instance.lock"], manifest
+            assert not (backup / "instance.lock").exists()
+            assert not (backup / "append_only" / "writer.lock").exists()
+            assert (backup / "PAIR_START_ANCHOR.json").read_bytes() == (
+                state / "PAIR_START_ANCHOR.json").read_bytes()
+            assert (backup / "live_config.json").read_bytes() == (
+                state / "live_config.json").read_bytes()
+            assert (backup / "append_only" / "order_intents.csv").read_bytes() == (
+                nested / "order_intents.csv").read_bytes()
+            assert lock.is_file(), "the live engine lock must not be released/deleted"
+        finally:
+            if os.name == "nt":
+                held.seek(0)
+                msvcrt.locking(held.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(held.fileno(), fcntl.LOCK_UN)
+
+
 def check_precompile_failure_never_stops_the_pair(root):
     """A failing preflight must leave the running pair completely untouched."""
     pair = make_pair(root, "precompile_fail")
@@ -524,6 +580,8 @@ def main():
             ("APPLY_HOTFIX_MUTATION_GAP_THRESHOLD", lambda: check_mutation_gap_threshold(root)),
             ("APPLY_HOTFIX_PRECOMPILE_FAILURE_NEVER_STOPS",
              lambda: check_precompile_failure_never_stops_the_pair(root)),
+            ("APPLY_HOTFIX_BACKUP_LIVE_LOCK_EXCLUDED",
+             lambda: check_backup_excludes_genuinely_locked_files(root)),
             ("APPLY_HOTFIX_API_UNREACHABLE_PRESTOP",
              lambda: check_api_unreachable_never_stops_the_pair(root)),
             ("APPLY_HOTFIX_API_ONE_SHOT_POST_HEALTHY",

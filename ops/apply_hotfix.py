@@ -278,9 +278,31 @@ def backup_state(state: Path) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists():
         raise HotfixError("unique backup path already exists")
-    shutil.copytree(state, target, copy_function=shutil.copy2)
+    excluded_runtime_locks: list[str] = []
+
+    def ignore_runtime_locks(directory: str, names: list[str]) -> set[str]:
+        skipped: set[str] = set()
+        for name in names:
+            if not name.lower().endswith(".lock"):
+                continue
+            path = Path(directory) / name
+            if path.is_dir():
+                raise HotfixError("state backup refuses to omit a lock-named directory")
+            skipped.add(name)
+            excluded_runtime_locks.append(path.relative_to(state).as_posix())
+        return skipped
+
+    # The running Core holds instance.lock exclusively; copying it can fail on Windows.
+    # Never open, release, remove or force-copy an engine liveness lock.
+    shutil.copytree(state, target, copy_function=shutil.copy2,
+                    ignore=ignore_runtime_locks)
     if not (target / "PAIR_START_ANCHOR.json").is_file():
         raise HotfixError("state backup did not preserve the pair anchor")
+    atomic_json(target / "backup_manifest.json", {
+        "source_state_dir": str(state),
+        "excluded_runtime_locks": sorted(excluded_runtime_locks),
+        "exclusion_reason": "active runtime lock files are deliberately not copied",
+    })
     return target
 
 
