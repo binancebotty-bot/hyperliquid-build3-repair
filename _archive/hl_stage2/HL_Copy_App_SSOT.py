@@ -1361,6 +1361,10 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     elif integ in {"RED", "AMBER"}:
         # amber names the largest reason in words; red stays reserved for "the engine cannot send"
         level, text = "amber", "Needs a look: " + (_plain_integrity_reason(counts) or "see the Reconciliation tab")
+    elif str(st.get("copy_account_status") or "").upper() == "COPY_ACCOUNT_POLL_DISABLED":
+        level, text = "amber", "Needs a look: copy polling disabled by config"
+    elif str(st.get("copy_account_status") or st.get("last_copy_account_status") or st.get("copy_status") or "").upper() not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_BASELINED"}:
+        level, text = "amber", "Needs a look: the follower account poll has not succeeded"
     return {"level": level, "text": text, "technical": technical, "integrity_status": integ,
             "engine_heartbeat_ms": beat}
 
