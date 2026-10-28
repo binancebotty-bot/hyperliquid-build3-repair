@@ -1041,15 +1041,16 @@ def union_poll_scopes(pre: dict[str, Any], post: dict[str, Any],
     required = dict(first_seen or {})
     for wallet in new:
         required.setdefault(wallet, post["captured_at_ms"])
-    followed = list(dict.fromkeys(pre["followed"] + post["followed"]))
-    followed_clo = set(pre["followed_nonflat_clo"]) | set(post["followed_nonflat_clo"])
+    followed = list(dict.fromkeys(pre["followed"] + post["followed"] + list(required)))
+    followed_clo = (set(pre["followed_nonflat_clo"]) | set(post["followed_nonflat_clo"])
+                    | set(required))
     return {
         "followed": followed,
         "followed_nonflat_clo": sorted(followed_clo),
         "excluded_flat_clo_no_close_owed": [
             w for w in pre["excluded_flat_clo_no_close_owed"] if w not in followed_clo],
         "off": pre["off"],
-        "newly_nonflat_clo": new,
+        "newly_nonflat_clo": sorted(required),
         "repoll_after_ms": required,
         "pre_stop_ledger": {"sha256": pre["ledger_sha256"],
                             "captured_at_ms": pre["captured_at_ms"],
@@ -1210,6 +1211,7 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     scope = wallet_coverage_scope(config, env)
     poll_scope = poll_wallet_coverage_scope(state, config, env, scope)
     wallets = poll_scope["followed"]
+    source_wallets = live_wallets(config)  # all LIVE/CLO, including excluded flat CLO
     if not wallets:
         raise HotfixError("no LIVE/CLO leader wallets are configured; cannot prove polling catch-up")
     print("WALLET SCOPE: WS followed %d / LIVE %d; excluded %d; CLO poll-only %d; WS cap %d" %
@@ -1239,7 +1241,7 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
                           ", ".join(poll_scope["excluded_live_not_followed"]))
     api_url = leader_api_url(state, env)
     # A header-only/stale local CSV is never sufficient. Probe external source BEFORE stop.
-    api_source_capability(wallets, api_url)
+    api_source_capability(source_wallets, api_url)
     keys = ",".join(sorted(env))
     print("PREFLIGHT: one Core + tracked UI; identity, SHA, state, anchor, config, ledger and env-key checks passed")
     print("ENV KEYS (values withheld): " + keys)
@@ -1259,7 +1261,10 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     if (int(current_identity.get("pid") or current_identity.get("process_id") or 0)
             != int(identity.get("pid") or identity.get("process_id") or 0)
             or current_root != old_root or current_sha != old_sha
-            or snapshot_state(state) != baseline):
+            or snapshot_state(state) != baseline
+            or (poll_scope["ledger_sha256"] is not None and
+                hashlib.sha256((state / "manual_live_positions.json").read_bytes()).hexdigest()
+                != poll_scope["ledger_sha256"])):
         raise HotfixError("pre-stop identity or state changed during staging")
 
     original_spec = copy.deepcopy(spec)
@@ -1279,6 +1284,9 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         source: Path | None = None
         source_meta: dict[str, Any] | None = None
         last_bucket_failure: str | None = None
+        post_scope: dict[str, Any] | None = None
+        union_scope: dict[str, Any] | None = None
+        repoll_after: dict[str, int] = {}
         while time.monotonic() < deadline:
             if first_cycle is None:
                 first_cycle = first_healthy_cycle(state, engine_pid, old_pair_down_ms)
@@ -1287,10 +1295,29 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
                 # Repeated retries only re-read the same proven source; no stale pre-stop CSV.
                 if source is None:
                     source, source_meta = export_api_source(
-                        wallets, old_pair_down_ms, first_cycle[0], target_sha, api_url)
+                        source_wallets, old_pair_down_ms, first_cycle[0], target_sha, api_url)
                 try:
-                    proof = replay_proof(state, baseline, sent_before, source, old_pair_down_ms,
-                                         first_cycle[0], wallets, source_meta)
+                    post_scope = poll_wallet_coverage_scope(state, config, env, scope)
+                    union_scope = union_poll_scopes(poll_scope, post_scope, repoll_after)
+                    repoll_after = union_scope["repoll_after_ms"]
+                    post_ledger_path = state / "manual_live_positions.json"
+                    if (post_scope["ledger_sha256"] is not None and
+                            hashlib.sha256(post_ledger_path.read_bytes()).hexdigest()
+                            != post_scope["ledger_sha256"]):
+                        raise HotfixError("leader poll coverage not caught up: post-gap ledger changed")
+                    current_ledger_sha = snapshot_state(state)["manual_live_positions_sha256"]
+                    permitted = (current_ledger_sha if union_scope["newly_nonflat_clo"] else None)
+                    proof = replay_proof(
+                        state, baseline, sent_before, source, old_pair_down_ms,
+                        first_cycle[0], source_wallets, source_meta,
+                        followed_wallets=union_scope["followed"],
+                        allowed_ledger_sha=permitted,
+                        min_poll_ms=repoll_after)
+                    if (post_scope["ledger_sha256"] is not None and
+                            hashlib.sha256(post_ledger_path.read_bytes()).hexdigest()
+                            != post_scope["ledger_sha256"]):
+                        proof = None
+                        raise HotfixError("leader poll coverage not caught up: post-gap ledger changed during proof")
                     break
                 except HotfixError as exc:
                     # A lagging poll/copy cycle is expected during the attached watch; invariant drift is not.
@@ -1315,15 +1342,28 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         if first_cycle is None or proof is None:
             raise HotfixError(_replay_timeout_message(last_bucket_failure))
         gap_ms = first_cycle[0] - old_pair_down_ms
-        # Keep source and replay checks against ALL configured LIVE/CLO wallets.
-        # This is only a truthful coverage declaration, not a filter/bypass.
+        if post_scope is None or union_scope is None:
+            raise HotfixError("post-gap ledger snapshot unavailable")
+        if (post_scope["ledger_sha256"] is not None and
+                hashlib.sha256((state / "manual_live_positions.json").read_bytes()).hexdigest()
+                != post_scope["ledger_sha256"]):
+            raise HotfixError("post-gap ledger changed before proof persistence")
         proof["wallet_scope"] = scope
-        proof["poll_scope"] = poll_scope
+        proof["poll_scope"] = union_scope
         print("PROOF TABLE")
-        print("  poll_wallets_followed        %d" % len(poll_scope["followed"]))
+        print("  poll_wallets_followed        %d" % len(union_scope["followed"]))
         print("  excluded_flat_CLO_no_close  %d: %s" %
-              (len(poll_scope["excluded_flat_clo_no_close_owed"]),
-               ", ".join(poll_scope["excluded_flat_clo_no_close_owed"]) or "none"))
+              (len(union_scope["excluded_flat_clo_no_close_owed"]),
+               ", ".join(union_scope["excluded_flat_clo_no_close_owed"]) or "none"))
+        print("  newly_nonflat_CLO_repolled   %d: %s" %
+              (len(union_scope["newly_nonflat_clo"]),
+               ", ".join(union_scope["newly_nonflat_clo"]) or "none"))
+        print("  ledger_pre_sha256            %s" % union_scope["pre_stop_ledger"]["sha256"])
+        print("  ledger_post_sha256           %s" % union_scope["post_gap_ledger"]["sha256"])
+        print("  excluded_gap_fills           %d" % proof.get("excluded_fill_count", 0))
+        for excluded_wallet, info in sorted(proof.get("excluded_fills_by_wallet", {}).items()):
+            print("    excluded %s: %d fills (no held follower close owed)" %
+                  (excluded_wallet, info["count"]))
         print("  OFF_not_followed             %d: %s" %
               (len(poll_scope["off"]), ", ".join(poll_scope["off"]) or "none"))
         print("  wallet_scope_complete       PASS (WS followed %d, excluded %d, CLO poll-only %d)" %
