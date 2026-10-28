@@ -536,6 +536,66 @@ def cursor_map(state: Path) -> dict[str, int]:
     return {}
 
 
+
+def poll_coverage(state: Path, wallets: list[str], stop_ms: int, first_cycle_ms: int,
+                  source_rows: list[dict[str, str]], cursors: dict[str, int]) -> None:
+    """Prove completed per-wallet polls; last-fill cursor is NOT a poll timestamp.
+
+    Core emits a trace record for each userFillsByTime request. POLL_OK means
+    a short (possibly empty) last page; new=0 confirms no unhandled fills for
+    a quiet leader. Only truncated wallet prefixes are stored; collisions fail.
+    """
+    prefixes: dict[str, str] = {}
+    for wallet in wallets:
+        prefix = wallet[:10].lower()
+        if prefix in prefixes and prefixes[prefix] != wallet:
+            raise HotfixError("leader poll coverage ambiguous wallet prefixes: %s, %s" %
+                              (prefixes[prefix], wallet))
+        prefixes[prefix] = wallet
+    records: dict[str, dict[str, Any]] = {}
+    path = state / "leader_poll_trace.jsonl"
+    if path.is_file():
+        # Bounded recent trace read; missing/rotated evidence fails closed.
+        with path.open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            fh.seek(max(0, size - 1024 * 1024))
+            if size > 1024 * 1024:
+                fh.readline()  # discard one partial line
+            for line in fh:
+                try:
+                    rec = json.loads(line)
+                except (UnicodeError, ValueError):
+                    continue
+                if not isinstance(rec, dict) or rec.get("kind") != "poll":
+                    continue
+                wallet = prefixes.get(str(rec.get("wallet") or "").lower())
+                if not wallet or csv_int(rec.get("ts"), "leader_poll_trace.ts") < stop_ms:
+                    continue
+                if (csv_int(rec.get("start_ms"), "leader_poll_trace.start_ms") <= stop_ms
+                        and csv_int(rec.get("end_ms"), "leader_poll_trace.end_ms") >= first_cycle_ms):
+                    records[wallet] = rec
+    newest: dict[str, int] = {}
+    for row in source_rows:
+        wallet = str(row.get("user") or row.get("wallet") or "").lower()
+        if wallet in wallets:
+            newest[wallet] = max(newest.get(wallet, 0), leader_fill_time(row))
+    failures: list[str] = []
+    for wallet in wallets:
+        rec = records.get(wallet)
+        if rec is None:
+            failures.append(wallet + "(no completed poll spanning gap)")
+        elif rec.get("status") != "POLL_OK":
+            failures.append(wallet + "(poll status=%s)" % rec.get("status"))
+        elif wallet not in newest and csv_int(rec.get("new"), "leader_poll_trace.new") != 0:
+            failures.append(wallet + "(no positive empty/new=0 poll evidence)")
+        elif wallet in newest and cursors.get(wallet, 0) < newest[wallet]:
+            failures.append(wallet + "(fill cursor=%d<newest fill=%d)" %
+                            (cursors.get(wallet, 0), newest[wallet]))
+    if failures:
+        raise HotfixError("leader poll coverage not caught up: " + ", ".join(failures))
+
+
 def unresolved_count(state: Path) -> int:
     status_path = state / "live_integrity_status.json"
     if not status_path.is_file():
@@ -741,10 +801,11 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
                                                   str(r.get("leader_fill_id") or "")) in sent_before]
     if duplicates:
         raise HotfixError("a fill already sent before the swap received another send attempt")
+    # Poll completion is proven separately from last-fill cursor progression.
     cursors = cursor_map(state)
-    required_ms = max(stop_ms, first_cycle_ms)
-    if any(cursors.get(wallet, 0) < required_ms for wallet in live_wallets):
-        raise HotfixError("leader poll cursors have not caught up to the swap gap")
+    poll_coverage(state, live_wallets, stop_ms, first_cycle_ms,
+                  [r for r in csv_rows(source)
+                   if stop_ms <= leader_fill_time(r) <= first_cycle_ms], cursors)
     unresolved = unresolved_count(state)
     if unresolved:
         raise HotfixError("attached watch still reports unresolved rows")
@@ -984,6 +1045,10 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
                                   or "missing order_intents" in _msg or "bucket coverage FAIL" in _msg)
                     if not _transient:
                         raise
+                    print("REPLAY WATCH transient: " + _msg[:1500], flush=True)
+            else:
+                print("REPLAY WATCH transient: first healthy cycle pending (engine pid %d)" %
+                      engine_pid, flush=True)
             time.sleep(POLL_S)
         if first_cycle is None or proof is None:
             raise HotfixError(_replay_timeout_message(last_bucket_failure))

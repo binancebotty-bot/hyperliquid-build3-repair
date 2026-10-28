@@ -388,3 +388,61 @@ def test_capguard_export_checks_tail_through_now_and_filters_gap(tmp_path):
     assert evidence["total_fills"] == 1
     assert len(AH.csv_rows(source)) == 1
     assert AH.csv_rows(source)[0]["tid"] == "1"
+
+
+
+def test_cursor_gate_quiet_wallet_passes_on_completed_empty_poll(tmp_path):
+    wallet = "0x" + "a" * 40
+    state, _ = build(tmp_path, [], [])
+    (state / "leader_poll_trace.jsonl").write_text(
+        __import__("json").dumps({"kind": "poll", "wallet": wallet[:10],
+                                  "ts": T0 + MIN, "start_ms": T0 - 1000,
+                                  "end_ms": T0 + MIN, "status": "POLL_OK",
+                                  "fills": 0, "new": 0}) + "\n", encoding="utf-8")
+    # A last-fill cursor from 19 hours ago is correct for an inactive leader.
+    AH.poll_coverage(state, [wallet], T0, T0 + MIN, [], {wallet: T0 - 19 * 60 * MIN})
+
+
+def test_cursor_gate_traded_wallet_with_stale_cursor_still_fails(tmp_path):
+    wallet = "0x" + "a" * 40
+    state, _ = build(tmp_path, [], [])
+    (state / "leader_poll_trace.jsonl").write_text(
+        __import__("json").dumps({"kind": "poll", "wallet": wallet[:10],
+                                  "ts": T0 + MIN, "start_ms": T0 - 1000,
+                                  "end_ms": T0 + MIN, "status": "POLL_OK",
+                                  "fills": 1, "new": 0}) + "\n", encoding="utf-8")
+    rows = [source_row(wallet, "BTC", "B", "100", "1", T0 + 5000)]
+    with pytest.raises(AH.HotfixError, match="fill cursor") as exc:
+        AH.poll_coverage(state, [wallet], T0, T0 + MIN, rows, {wallet: T0 + 4000})
+    assert wallet in str(exc.value)
+    AH.poll_coverage(state, [wallet], T0, T0 + MIN, rows, {wallet: T0 + 5000})
+
+
+def test_cursor_gate_missing_partial_or_ambiguous_poll_fails(tmp_path):
+    wallet = "0x" + "a" * 40
+    state, _ = build(tmp_path, [], [])
+    with pytest.raises(AH.HotfixError, match="no completed poll"):
+        AH.poll_coverage(state, [wallet], T0, T0 + MIN, [], {})
+    (state / "leader_poll_trace.jsonl").write_text(
+        __import__("json").dumps({"kind": "poll", "wallet": wallet[:10],
+                                  "ts": T0 + MIN, "start_ms": T0 - 1000,
+                                  "end_ms": T0 + MIN, "status": "POLL_NETWORK_ERROR",
+                                  "fills": 0, "new": 0}) + "\n", encoding="utf-8")
+    with pytest.raises(AH.HotfixError, match="POLL_NETWORK_ERROR"):
+        AH.poll_coverage(state, [wallet], T0, T0 + MIN, [], {})
+    collision = wallet[:10] + "b" * 32
+    with pytest.raises(AH.HotfixError, match="ambiguous wallet prefixes"):
+        AH.poll_coverage(state, [wallet, collision], T0, T0 + MIN, [], {})
+
+
+def test_cursor_gate_no_fill_requires_positive_no_new_record(tmp_path):
+    wallet = "0x" + "a" * 40
+    state, _ = build(tmp_path, [], [])
+    (state / "leader_poll_trace.jsonl").write_text(
+        __import__("json").dumps({"kind": "poll", "wallet": wallet[:10],
+                                  "ts": T0 + MIN, "start_ms": T0 - 1000,
+                                  "end_ms": T0 + MIN, "status": "POLL_OK",
+                                  "fills": 1, "new": 1}) + "\n", encoding="utf-8")
+    with pytest.raises(AH.HotfixError, match="positive empty/new=0"):
+        AH.poll_coverage(state, [wallet], T0, T0 + MIN, [], {})
+

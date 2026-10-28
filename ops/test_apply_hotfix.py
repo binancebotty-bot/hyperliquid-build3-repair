@@ -194,7 +194,11 @@ def _replay_fixture(root, source):
     append_only = state / "append_only"
     append_only.mkdir(parents=True)
     (state / "clean_core_runtime_state.json").write_text(
-        json.dumps({"last_leader_poll_cursor_ms": {"0xwallet": 149}}), encoding="utf-8")
+        json.dumps({"last_leader_poll_cursor_ms": {"0xwallet": 119}}), encoding="utf-8")
+    (state / "leader_poll_trace.jsonl").write_text(
+        json.dumps({"kind": "poll", "ts": 151, "wallet": "0xwallet",
+                    "start_ms": 90, "end_ms": 150, "status": "POLL_OK",
+                    "fills": 1, "new": 0}) + "\n", encoding="utf-8")
     (state / "live_integrity_status.json").write_text(json.dumps({
         "hard_copy_invariant": {"historical_unresolved_active_red_count": 0},
         "counts": {"open_late_fill_incidents": 0}}), encoding="utf-8")
@@ -203,14 +207,14 @@ def _replay_fixture(root, source):
     # coverage and would fail for the wrong reason.
     (append_only / "order_intents.csv").write_text(
         "created_at_ms,leader_fill_id,leader_wallet,coin,leader_side,leader_notional,"
-        "leader_fill_timestamp_ms\n121,fill-1,leader,BTC,B,1,120\n", encoding="utf-8")
+        "leader_fill_timestamp_ms\n121,fill-1,0xwallet,BTC,B,1,120\n", encoding="utf-8")
     (append_only / "send_attempts.csv").write_text("created_at_ms,wallet,leader_fill_id\n",
                                                     encoding="utf-8")
     with source.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=["leader_fill_id", "user", "coin", "side",
                                                     "px", "sz", "time"])
         writer.writeheader()
-        writer.writerow({"leader_fill_id": "fill-1", "user": "leader", "coin": "BTC",
+        writer.writerow({"leader_fill_id": "fill-1", "user": "0xwallet", "coin": "BTC",
                          "side": "B", "px": "1", "sz": "1", "time": 120})
     return state
 
@@ -231,11 +235,11 @@ def check_replay_proof(root, source):
         try:
             HOTFIX.replay_proof(state, BASELINE, set(), source, 100, 150, ["0xwallet"])
         except HOTFIX.HotfixError as exc:
-            assert "not caught up" in str(exc), exc
+            assert "not caught up" in str(exc) and "0xwallet" in str(exc), exc
         else:
             raise AssertionError("poll cursor before the first healthy cycle must not pass")
         runtime = json.loads((state / "clean_core_runtime_state.json").read_text(encoding="utf-8"))
-        runtime["last_leader_poll_cursor_ms"]["0xwallet"] = 150
+        runtime["last_leader_poll_cursor_ms"]["0xwallet"] = 120
         (state / "clean_core_runtime_state.json").write_text(json.dumps(runtime), encoding="utf-8")
         proof = HOTFIX.replay_proof(state, BASELINE, set(), source, 100, 150, ["0xwallet"])
         assert proof == {"gap_fills": 1, "gap_intent_rows": 1, "duplicate_attempts": 0,
@@ -262,7 +266,7 @@ def check_mutation_semantic_config_guard(root, source):
     """NEGATIVE CONTROL: drop the semantic key from the invariant loop; the check must go green."""
     state = _replay_fixture(root / "mut_sem", source)
     runtime = json.loads((state / "clean_core_runtime_state.json").read_text(encoding="utf-8"))
-    runtime["last_leader_poll_cursor_ms"]["0xwallet"] = 150
+    runtime["last_leader_poll_cursor_ms"]["0xwallet"] = 120
     (state / "clean_core_runtime_state.json").write_text(json.dumps(runtime), encoding="utf-8")
     drifted = dict(BASELINE, live_config_semantic_sha256="semantic_changed")
 
@@ -590,6 +594,29 @@ def check_both_swap_and_rollback_causes_are_visible(root):
     assert starts["count"] == 2, starts
 
 
+
+
+def check_transient_watch_emits_reason_and_wallet(root):
+    """A transient retry must print its reason and offending wallet."""
+    pair = make_pair(root, "transient_reason")
+    attempts = {"n": 0}
+
+    def delayed(*_args):
+        attempts["n"] += 1
+        if attempts["n"] == 1:
+            raise HOTFIX.HotfixError(
+                "leader poll coverage not caught up: 0xwallet(no completed poll spanning gap)")
+        return {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
+                "unresolved": 0, "cursors_caught_up": 1, "merged_buckets": 0,
+                "buckets": 0, "failed_buckets": 0}
+
+    out = run_swap(HOTFIX, pair, 12_345, proof=delayed)
+    assert out["raised"] is None and out["result"] == 0, out
+    assert attempts["n"] == 2, attempts
+    assert "REPLAY WATCH transient: leader poll coverage not caught up" in out["output"], out["output"]
+    assert "0xwallet(no completed poll spanning gap)" in out["output"], out["output"]
+
+
 def check_ui_child_failure_output_reaches_swap_caller(root):
     """Propagate the actual uvicorn log from start_pair; no withheld-output wrapper."""
     from types import SimpleNamespace
@@ -734,6 +761,8 @@ def main():
              lambda: check_child_process_environment_inherits_system_keys(root)),
             ("APPLY_HOTFIX_SWAP_ROLLBACK_BOTH_CAUSES",
              lambda: check_both_swap_and_rollback_causes_are_visible(root)),
+            ("APPLY_HOTFIX_TRANSIENT_WATCH_REASON_WALLET",
+             lambda: check_transient_watch_emits_reason_and_wallet(root)),
             ("APPLY_HOTFIX_UI_CHILD_FAILURE_OUTPUT",
              lambda: check_ui_child_failure_output_reaches_swap_caller(root)),
             ("APPLY_HOTFIX_UNPROVEN_ROLLBACK_REFUSES",
