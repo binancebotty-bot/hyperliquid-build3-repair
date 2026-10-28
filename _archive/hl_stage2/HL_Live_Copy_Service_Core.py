@@ -8003,28 +8003,61 @@ class SenderGateway:
             return None
 
     def clear_trackb_escalations(self) -> int:
-        """Clear an owed close only when copy-fill-owned ledger proves the engine sleeve flat."""
-        done = []
+        """Terminal clear requires BOTH engine-ledger flat and fresh exchange-net flat.
+
+        A ledger update alone is not exchange proof. Unknown/non-flat exchange
+        truth leaves the owed close persisted OPEN and therefore red in the UI.
+        This conservative rule also retains alerts where USER inventory remains
+        non-flat until that inventory can be proven separately.
+        """
         if self.ledger is None:
             return 0
         with self._resting_lock:
-            for key, row in list(self._trackb_escalations.items()):
-                try:
-                    sleeve = self.ledger.sleeve(row["leader_wallet"], row["coin"])
-                    if abs(fnum(sleeve.get("signed_size"), 0.0)) <= POSITION_EPSILON:
-                        done.append((key, dict(row)))
-                except Exception as exc:
-                    log_error("trackb_escalation_proof", exc)
-            for key, _row in done:
-                self._trackb_escalations.pop(key, None)
-            if done:
-                atomic_write_json(CLOSE_ESCALATIONS_FILE, dict(self._trackb_escalations))
-        for _key, row in done:
+            candidates = [(key, dict(row)) for key, row in self._trackb_escalations.items()]
+        done = []
+        exchange_by_coin: Dict[str, Optional[float]] = {}
+        for key, row in candidates:
+            try:
+                wallet, coin = row["leader_wallet"], row["coin"]
+                sleeve = self.ledger.sleeve(wallet, coin)
+                signed = fnum(sleeve.get("signed_size"), float("nan"))
+                if not math.isfinite(signed) or abs(signed) > POSITION_EPSILON:
+                    continue  # engine sleeve remains owed, irrespective of exchange net
+                coin_key = canonical_coin_key(coin)
+                if coin_key not in exchange_by_coin:
+                    # Fresh exchange truth is the mandatory terminal condition.
+                    raw_net = self._fresh_exchange_net(coin)
+                    try:
+                        exchange_by_coin[coin_key] = float(raw_net) if raw_net is not None else None
+                    except (TypeError, ValueError):
+                        exchange_by_coin[coin_key] = None
+                net = exchange_by_coin[coin_key]
+                if net is None or not math.isfinite(net) or abs(net) > POSITION_EPSILON:
+                    continue  # unavailable/USER net is never assumed to be flat
+                with self._resting_lock:
+                    if self._trackb_escalations.get(key) != row:
+                        continue  # a newer escalation superseded this one
+                    latest = self.ledger.sleeve(wallet, coin)
+                    latest_size = fnum(latest.get("signed_size"), float("nan"))
+                    if not math.isfinite(latest_size) or abs(latest_size) > POSITION_EPSILON:
+                        continue
+                    remaining = dict(self._trackb_escalations)
+                    remaining.pop(key)
+                    # Write the durable proof state before removing the in-memory red alert.
+                    atomic_write_json(CLOSE_ESCALATIONS_FILE, remaining)
+                    self._trackb_escalations = remaining
+                done.append(row)
+            except Exception as exc:
+                log_error("trackb_escalation_exchange_proof", exc)
+                # Any failed read/write leaves the escalation OPEN; never ledger-only clear.
+        for row in done:
             self.audit.append_reconciliation(
                 "CLOSE_ESCALATION", "CLOSE_ESCALATION_CLEARED",
                 leader_wallet=row["leader_wallet"], coin=row["coin"], intent_id=row["intent_id"],
-                action="ENGINE_SLEEVE_FLAT_PROVEN", terminal_state="CLOSE_ESCALATION_CLEARED",
-                notes="copy-fill ledger confirms ENGINE sleeve flat; USER sleeve unchanged")
+                action="ENGINE_LEDGER_AND_EXCHANGE_NET_FLAT_PROVEN",
+                terminal_state="CLOSE_ESCALATION_CLEARED",
+                notes="fresh exchange net FLAT AND engine-owned sleeve ledger FLAT; "
+                      "neither alone authorises terminal clear")
         return len(done)
 
     def _trackb_remainder_entry_block(self, intent: Intent, qty: float, px: float) -> str:

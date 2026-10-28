@@ -74,9 +74,11 @@ def test_escalation_survives_restart_and_only_clears_on_engine_sleeve_flat(tmp_p
     rows = []
     audit = SimpleNamespace(append_reconciliation=lambda *a, **kw: rows.append((a, kw)))
     signed = [3.0]
+    exchange_net = [3.0]
     ledger = SimpleNamespace(sleeve=lambda w, c: {"signed_size": signed[0]})
     sender = SimpleNamespace(audit=audit, ledger=ledger, _resting_lock=threading.RLock(),
-                             _trackb_escalations={})
+                             _trackb_escalations={},
+                             _fresh_exchange_net=lambda coin: exchange_net[0])
     intent = SimpleNamespace(sleeve_id="s1", intent_id="i1",
           fill=SimpleNamespace(leader_wallet="0x" + "d" * 40, coin="ETH",
                                leader_fill_id="f1", price=100, timestamp_ms=core.utc_now_ms()))
@@ -86,6 +88,12 @@ def test_escalation_survives_restart_and_only_clears_on_engine_sleeve_flat(tmp_p
     assert core.SenderGateway.clear_trackb_escalations(sender) == 0
     assert "s1" in core.load_json(path, {})
     signed[0] = 0.0
+    assert core.SenderGateway.clear_trackb_escalations(sender) == 0  # ledger-only is NOT proof
+    assert "s1" in core.load_json(path, {})
+    exchange_net[0] = None
+    assert core.SenderGateway.clear_trackb_escalations(sender) == 0  # unreadable remains red
+    assert "s1" in core.load_json(path, {})
+    exchange_net[0] = 0.0
     assert core.SenderGateway.clear_trackb_escalations(sender) == 1
     assert core.load_json(path, {}) == {}
     assert rows[-1][0][1] == "CLOSE_ESCALATION_CLEARED"
@@ -99,3 +107,60 @@ def test_unknown_price_keeps_close_waiting():
 def test_dust_below_executable_min_escalates_not_oversized():
     parts, state = core.SenderGateway._trackb_split_close("SELL", 0.00001, 0.00001, 0.00001)
     assert parts and parts[0][1]
+
+
+
+@pytest.mark.parametrize("engine_size,exchange_net,expected_clears", [
+    (0.0, None, 0),         # FAIL CLOSED: unreadable exchange
+    (0.0, 1.0, 0),          # USER or unexplained non-flat exchange net
+    (0.0, -2.0, 0),         # opposite exchange net remains OPEN
+    (3.0, 0.0, 0),          # exchange flat alone is insufficient
+    (0.0, float("nan"), 0), # corrupt exchange value is not flat
+    (0.0, "unknown", 0),    # malformed exchange result is not flat
+    (0.0, 0.0, 1),          # BOTH authoritative conditions are flat
+])
+def test_terminal_clear_requires_fresh_exchange_and_ledger(
+        engine_size, exchange_net, expected_clears, tmp_path, monkeypatch):
+    """Regression: removing _fresh_exchange_net() from clear makes these fail."""
+    path = tmp_path / "close_escalations.json"
+    monkeypatch.setattr(core, "CLOSE_ESCALATIONS_FILE", path)
+    records = []
+    original_row = {
+        "leader_wallet": "0x" + "d" * 40, "coin": "ETH", "intent_id": "owed-i1",
+        "leader_fill_id": "owed-f1", "state": "OPEN", "reason": "IOC_NO_MATCH",
+    }
+    core.atomic_write_json(path, {"s1": original_row})
+    sender = SimpleNamespace(
+        _resting_lock=threading.RLock(), _trackb_escalations=core.load_json(path, {}),
+        ledger=SimpleNamespace(sleeve=lambda wallet, coin: {"signed_size": engine_size}),
+        _fresh_exchange_net=lambda coin: exchange_net,
+        audit=SimpleNamespace(append_reconciliation=lambda *args, **kw: records.append((args, kw))),
+    )
+    cleared = core.SenderGateway.clear_trackb_escalations(sender)
+    assert cleared == expected_clears
+    assert ("s1" not in core.load_json(path, {})) == bool(expected_clears)
+    assert bool(records) == bool(expected_clears)
+    if expected_clears:
+        assert records[-1][0][1] == "CLOSE_ESCALATION_CLEARED"
+        assert records[-1][1]["action"] == "ENGINE_LEDGER_AND_EXCHANGE_NET_FLAT_PROVEN"
+
+
+def test_terminal_clear_exchange_exception_keeps_red_and_durable(tmp_path, monkeypatch):
+    path = tmp_path / "close_escalations.json"
+    monkeypatch.setattr(core, "CLOSE_ESCALATIONS_FILE", path)
+    row = {"leader_wallet": "0x" + "d" * 40, "coin": "ETH", "intent_id": "i1"}
+    core.atomic_write_json(path, {"s1": row})
+    events = []
+
+    def unavailable(_coin):
+        raise ConnectionError("follower exchange unavailable")
+
+    sender = SimpleNamespace(
+        _resting_lock=threading.RLock(), _trackb_escalations=core.load_json(path, {}),
+        ledger=SimpleNamespace(sleeve=lambda w, c: {"signed_size": 0.0}),
+        _fresh_exchange_net=unavailable,
+        audit=SimpleNamespace(append_reconciliation=lambda *args, **kw: events.append((args, kw))),
+    )
+    assert core.SenderGateway.clear_trackb_escalations(sender) == 0
+    assert "s1" in core.load_json(path, {})
+    assert not events
