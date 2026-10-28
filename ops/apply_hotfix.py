@@ -541,22 +541,20 @@ def cursor_map(state: Path) -> dict[str, int]:
 
 
 def poll_coverage(state: Path, wallets: list[str], stop_ms: int, first_cycle_ms: int,
-                  source_rows: list[dict[str, str]], cursors: dict[str, int]) -> None:
+                  source_rows: list[dict[str, str]], cursors: dict[str, int],
+                  min_poll_ms: dict[str, int] | None = None) -> None:
     """Prove completed per-wallet polls; last-fill cursor is NOT a poll timestamp.
 
     Core emits a trace record for each userFillsByTime request. POLL_OK means
     a short (possibly empty) last page; new=0 confirms no unhandled fills for
     a quiet leader. A subsequent poll may start after stop_ms when cursor_in
-    already covers it; this is still positive poll coverage. Only truncated
-    wallet prefixes are stored; collisions fail.
+    already covers it. Full-address trace IDs are exact; older ten-character
+    IDs remain usable only when unambiguous, otherwise fail closed.
     """
-    prefixes: dict[str, str] = {}
-    for wallet in wallets:
-        prefix = wallet[:10].lower()
-        if prefix in prefixes and prefixes[prefix] != wallet:
-            raise HotfixError("leader poll coverage ambiguous wallet prefixes: %s, %s" %
-                              (prefixes[prefix], wallet))
-        prefixes[prefix] = wallet
+    wanted = {w.lower() for w in wallets}
+    prefixes: dict[str, list[str]] = {}
+    for wallet in wanted:
+        prefixes.setdefault(wallet[:10], []).append(wallet)
     records: dict[str, dict[str, Any]] = {}
     path = state / "leader_poll_trace.jsonl"
     if path.is_file():
@@ -574,8 +572,19 @@ def poll_coverage(state: Path, wallets: list[str], stop_ms: int, first_cycle_ms:
                     continue
                 if not isinstance(rec, dict) or rec.get("kind") != "poll":
                     continue
-                wallet = prefixes.get(str(rec.get("wallet") or "").lower())
-                if not wallet or csv_int(rec.get("ts"), "leader_poll_trace.ts") < stop_ms:
+                identity = str(rec.get("wallet") or "").lower()
+                if identity in wanted:
+                    wallet = identity
+                elif len(identity) == 10 and identity in prefixes:
+                    matches = prefixes[identity]
+                    if len(matches) != 1:
+                        raise HotfixError("leader poll coverage ambiguous wallet prefixes: " +
+                                          ", ".join(sorted(matches)))
+                    wallet = matches[0]
+                else:
+                    continue
+                if csv_int(rec.get("ts"), "leader_poll_trace.ts") < max(
+                        stop_ms, (min_poll_ms or {}).get(wallet, 0)):
                     continue
                 if (csv_int(rec.get("end_ms"), "leader_poll_trace.end_ms") >= first_cycle_ms
                         and (csv_int(rec.get("start_ms"), "leader_poll_trace.start_ms") <= stop_ms
@@ -793,8 +802,12 @@ def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_m
 
 def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[str, str]],
                  source: Path, stop_ms: int, first_cycle_ms: int, live_wallets: list[str],
-                 source_evidence: dict[str, Any] | None = None) -> dict[str, int]:
-    fills = source_gap_fills(source, stop_ms, first_cycle_ms, live_wallets)
+                 source_evidence: dict[str, Any] | None = None,
+                 followed_wallets: list[str] | None = None,
+                 allowed_ledger_sha: str | None = None,
+                 min_poll_ms: dict[str, int] | None = None) -> dict[str, Any]:
+    all_fills = source_gap_fills(source, stop_ms, first_cycle_ms)
+    fills = source_gap_fills(source, stop_ms, first_cycle_ms, followed_wallets or live_wallets)
     if source_evidence is not None:
         evidence = source_evidence
         if (evidence.get("api_verified") is not True
@@ -803,12 +816,13 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
                 or evidence.get("wallets") != sorted(set(w.lower() for w in live_wallets))
                 or int(evidence.get("start_ms") or -1) != stop_ms
                 or int(evidence.get("end_ms") or -1) != first_cycle_ms
-                or int(evidence.get("total_fills") if evidence.get("total_fills") is not None else -1) != len(fills)):
+                or int(evidence.get("total_fills") if evidence.get("total_fills") is not None else -1) != len(all_fills)):
             raise HotfixError("API source completeness metadata does not match replay window")
     elif not fills:
         # A local empty/header-only CSV is not evidence of a zero-fill gap.
         raise HotfixError("zero-fill gap requires completed leader API proof, not an empty CSV")
-    buckets = bucket_reconciliation(state, source, stop_ms, first_cycle_ms, live_wallets)
+    certified = followed_wallets if followed_wallets is not None else live_wallets
+    buckets = bucket_reconciliation(state, source, stop_ms, first_cycle_ms, certified)
     attempts = csv_rows(state / "append_only" / "send_attempts.csv")
     new_attempts = [r for r in attempts if csv_int(r.get("created_at_ms"), "send_attempts.created_at_ms") >= stop_ms]
     duplicates = [r for r in new_attempts if (str(r.get("wallet") or r.get("leader_wallet") or "").lower(),
@@ -817,24 +831,44 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
         raise HotfixError("a fill already sent before the swap received another send attempt")
     # Poll completion is proven separately from last-fill cursor progression.
     cursors = cursor_map(state)
-    poll_coverage(state, live_wallets, stop_ms, first_cycle_ms,
+    poll_coverage(state, certified, stop_ms, first_cycle_ms,
                   [r for r in csv_rows(source)
-                   if stop_ms <= leader_fill_time(r) <= first_cycle_ms], cursors)
+                   if stop_ms <= leader_fill_time(r) <= first_cycle_ms], cursors,
+                  **({"min_poll_ms": min_poll_ms} if min_poll_ms else {}))
     unresolved = unresolved_count(state)
     if unresolved:
         raise HotfixError("attached watch still reports unresolved rows")
     after = snapshot_state(state)
     for key in ("anchor_sha256", "anchor_t0_ms", "live_config_semantic_sha256",
                 "manual_live_positions_sha256", "xyz_position_state_sha256", "user_owned_sha256"):
-        if after[key] != baseline[key]:
+        expected = allowed_ledger_sha if key == "manual_live_positions_sha256" and allowed_ledger_sha else baseline[key]
+        if after[key] != expected:
             raise HotfixError("same-state invariant changed: " + key)
-    return {"gap_fills": len(fills), "gap_intent_rows": buckets["intent_rows"],
+    result = {"gap_fills": len(fills), "gap_intent_rows": buckets["intent_rows"],
             "duplicate_attempts": 0, "unresolved": unresolved,
             "cursors_caught_up": len(live_wallets),
             "proof_label": buckets["label"], "buckets": buckets["buckets"],
             "bucket_width_ms": buckets["width_ms"], "bucket_provenance": buckets["provenance"],
             "failed_buckets": buckets["failed_buckets"],
             "merged_buckets": buckets["merged_buckets"]}
+    if followed_wallets is not None:
+        excluded = set(w.lower() for w in live_wallets) - set(w.lower() for w in certified)
+        details: dict[str, dict[str, Any]] = {}
+        for row in csv_rows(source):
+            at = leader_fill_time(row)
+            wallet = str(row.get("user") or row.get("wallet") or "").lower()
+            if wallet not in excluded or not stop_ms <= at <= first_cycle_ms:
+                continue
+            record = details.setdefault(wallet, {"count": 0, "fills": [],
+                                                  "reason": "flat CLO; no close owed"})
+            record["count"] += 1
+            record["fills"].append({
+                "id": leader_fill_id(row), "tid": str(row.get("tid") or ""),
+                "coin": row.get("coin"), "side": row.get("side"), "time_ms": at})
+        result["excluded_fills_by_wallet"] = details
+        result["excluded_fill_count"] = sum(x["count"] for x in details.values())
+        result["source_fills_total"] = len(all_fills)
+    return result
 
 
 def live_wallets(config: dict[str, Any]) -> list[str]:
@@ -924,9 +958,13 @@ def poll_wallet_coverage_scope(state: Path, config: dict[str, Any],
     """
     clo = list(ws_scope["clo_poll_only"])
     nonflat: set[str] = set()
+    ledger_sha = None
+    wallet_sha: dict[str, str] = {}
     if clo:
         try:
-            ledger = read_json(state / "manual_live_positions.json")
+            raw_ledger = (state / "manual_live_positions.json").read_bytes()
+            ledger_sha = hashlib.sha256(raw_ledger).hexdigest()
+            ledger = json.loads(raw_ledger.decode("utf-8-sig"))
             if (ledger.get("schema") != "manual_live_positions.v1.wallet_sleeves"
                     or not isinstance(ledger.get("by_wallet"), dict)):
                 raise HotfixError("manual_live_positions ledger has no valid wallet-sleeves schema")
@@ -936,6 +974,8 @@ def poll_wallet_coverage_scope(state: Path, config: dict[str, Any],
                 wallet = addr.lower()
                 if not re.fullmatch(r"0x[0-9a-f]{40}", wallet):
                     raise HotfixError("manual_live_positions has invalid wallet identity")
+                wallet_sha[wallet] = hashlib.sha256(json.dumps(
+                    sleeves, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
                 for coin, sleeve in sleeves.items():
                     if (not isinstance(coin, str) or not coin.strip()
                             or not isinstance(sleeve, dict)
@@ -949,7 +989,9 @@ def poll_wallet_coverage_scope(state: Path, config: dict[str, Any],
                         raise HotfixError("manual_live_positions signed_size unreadable")
                     if abs(float(size)) > 1e-9:
                         nonflat.add(wallet)
-        except (OSError, ValueError, OverflowError, TypeError) as exc:
+            if hashlib.sha256((state / "manual_live_positions.json").read_bytes()).hexdigest() != ledger_sha:
+                raise HotfixError("manual_live_positions changed during scope snapshot")
+        except (OSError, UnicodeError, ValueError, OverflowError, TypeError) as exc:
             raise HotfixError("manual_live_positions unreadable; cannot exclude flat CLO") from exc
 
     followed_clo = [w for w in clo if w in nonflat]
@@ -978,7 +1020,43 @@ def poll_wallet_coverage_scope(state: Path, config: dict[str, Any],
         ],
         "ledger_path": str(state / "manual_live_positions.json") if clo else None,
         "ledger_proven": bool(clo),
+        "ledger_sha256": ledger_sha,
+        "ledger_wallet_sha256": wallet_sha,
+        "captured_at_ms": int(time.time() * 1000),
         "scope_complete": not excluded_live,
+    }
+
+
+def union_poll_scopes(pre: dict[str, Any], post: dict[str, Any],
+                      first_seen: dict[str, int] | None = None) -> dict[str, Any]:
+    """Follow all wallets non-flat at either boundary; re-poll new positions."""
+    if pre["followed_live"] != post["followed_live"] or pre["off"] != post["off"]:
+        raise HotfixError("poll selection changed outside CLO ledger transition")
+    new = sorted(set(post["followed_nonflat_clo"]) - set(pre["followed_nonflat_clo"]))
+    changed = {w for w in set(pre["ledger_wallet_sha256"]) | set(post["ledger_wallet_sha256"])
+               if pre["ledger_wallet_sha256"].get(w) != post["ledger_wallet_sha256"].get(w)}
+    if changed - set(new):
+        raise HotfixError("manual sleeve invariant changed outside newly non-flat CLO: " +
+                          ", ".join(sorted(changed - set(new))))
+    required = dict(first_seen or {})
+    for wallet in new:
+        required.setdefault(wallet, post["captured_at_ms"])
+    followed = list(dict.fromkeys(pre["followed"] + post["followed"]))
+    followed_clo = set(pre["followed_nonflat_clo"]) | set(post["followed_nonflat_clo"])
+    return {
+        "followed": followed,
+        "followed_nonflat_clo": sorted(followed_clo),
+        "excluded_flat_clo_no_close_owed": [
+            w for w in pre["excluded_flat_clo_no_close_owed"] if w not in followed_clo],
+        "off": pre["off"],
+        "newly_nonflat_clo": new,
+        "repoll_after_ms": required,
+        "pre_stop_ledger": {"sha256": pre["ledger_sha256"],
+                            "captured_at_ms": pre["captured_at_ms"],
+                            "nonflat_clo": pre["followed_nonflat_clo"]},
+        "post_gap_ledger": {"sha256": post["ledger_sha256"],
+                            "captured_at_ms": post["captured_at_ms"],
+                            "nonflat_clo": post["followed_nonflat_clo"]},
     }
 
 
