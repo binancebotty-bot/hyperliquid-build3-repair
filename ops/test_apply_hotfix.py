@@ -124,7 +124,7 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
     stack.enter_context(patch.object(module, "atomic_text", side_effect=(
         pointer or (lambda *_a: events.append("pointer")))))
     stack.enter_context(patch.object(module, "start_pair", side_effect=(
-        start or (lambda *_a: (events.append("start"),
+        start or (lambda *_a, **_kwargs: (events.append("start"),
                                {"pair": "STARTED", "engine_pid": 4321})[1]))))
     stack.enter_context(patch.object(module, "tracked_start_ui", side_effect=(
         track or (lambda *_a: events.append("track-ui")))))
@@ -308,6 +308,10 @@ def check_swap_pass_and_boundary(root):
         proof_doc = json.loads(proof_path.read_text(encoding="utf-8"))
         assert "proof" in proof_doc and "saved_at" in proof_doc, proof_doc
         assert "merged_buckets" in proof_doc["proof"], proof_doc["proof"]
+        assert proof_doc["proof"]["wallet_scope"]["scope_complete"] is True
+        assert proof_doc["proof"]["wallet_scope"]["stream_followed"] == ["live"]
+        assert proof_doc["proof"]["wallet_scope"]["stream_excluded_uncovered"] == []
+        assert "EXCLUDED_NOT_COVERED: none" in out["output"], out["output"]
         assert proof_doc["source"]["api_verified"] is True
         assert proof_doc["source"]["source_path"] == str(pair["source"])
 
@@ -579,7 +583,9 @@ def check_both_swap_and_rollback_causes_are_visible(root):
 
     starts = {"count": 0}
 
-    def fails_twice(*_args):
+    launchers = []
+    def fails_twice(*_args, **_kwargs):
+        launchers.append(_kwargs.get("launcher"))
         starts["count"] += 1
         if starts["count"] == 1:
             return original_failure()
@@ -592,6 +598,7 @@ def check_both_swap_and_rollback_causes_are_visible(root):
     assert "ROLLBACK_START_CHILD_FAILED" in message, message
     assert "NOT proven restored" in message, message
     assert starts["count"] == 2, starts
+    assert launchers == [None, HOTFIX.OPS / "start_pair.py"], launchers
 
 
 
@@ -617,6 +624,59 @@ def check_transient_watch_emits_reason_and_wallet(root):
     assert "0xwallet(no completed poll spanning gap)" in out["output"], out["output"]
 
 
+
+
+
+
+def check_wallet_cap_blocks_before_stop_and_names_exclusions(root):
+    """No fake full-coverage proof when the Core can only stream ten of sixteen."""
+    pair = make_pair(root, "wallet_cap_preflight")
+    all_wallets = ["0x" + ("%040x" % i) for i in range(1, 17)]
+    (pair["state"] / "live_config.json").write_text(
+        json.dumps({"wallets": {w: {"mode": "LIVE", "enabled": True} for w in all_wallets}}),
+        encoding="utf-8")
+    checked = HOTFIX.wallet_coverage_scope(
+        json.loads((pair["state"] / "live_config.json").read_text(encoding="utf-8")),
+        {"HL_LIVE_WS_MAX_WALLETS": "10"})
+    assert checked["stream_followed"] == all_wallets[:10], checked
+    assert checked["stream_excluded_uncovered"] == all_wallets[10:], checked
+    assert checked["scope_complete"] is False
+
+    events = []
+    out = run_swap(HOTFIX, pair, 12_345, events=events)
+    assert isinstance(out["raised"], HOTFIX.HotfixError), out
+    assert "excluded wallets NOT COVERED" in str(out["raised"]), out
+    assert "EXCLUDED_NOT_COVERED:" in out["output"]
+    for w in all_wallets[10:]:
+        assert w in out["output"], w
+    assert "stop" not in events and "start" not in events, events
+    assert not pair["last_swap"].exists()
+
+    # A controller-provided cap covering all 16 lets existing unweakened
+    # all-wallet proof run; never change the Core or launcher to raise it here.
+    covered = HOTFIX.wallet_coverage_scope(
+        {"wallets": {w: {"mode": "LIVE", "enabled": True} for w in all_wallets}},
+        {"HL_LIVE_WS_MAX_WALLETS": "16"})
+    assert covered["scope_complete"] is True and len(covered["stream_followed"]) == 16
+
+
+def check_wallet_scope_rank_and_clo_do_not_claim_false_ws_coverage(root):
+    """Mirror ranked LIVE stream slots; CLO belongs to REST not the WS quota."""
+    pair = make_pair(root, "wallet_scope_rank")
+    wallets = ["0x" + ("%040x" % i) for i in range(1, 4)]
+    rank = pair["pair"] / "rank.csv"
+    rank.write_text("wallet,fills_24h\n%s,3\n%s,80\n%s,20\n" %
+                    (wallets[0], wallets[1], wallets[2]), encoding="utf-8")
+    cfg = {"wallets": {wallets[0]: {"mode": "LIVE"},
+                       wallets[1]: {"mode": "LIVE"},
+                       wallets[2]: {"mode": "LIVE"},
+                       "0x" + "f" * 40: {"mode": "CLO"}}}
+    scope = HOTFIX.wallet_coverage_scope(cfg, {
+        "HL_LIVE_WS_MAX_WALLETS": "2", "HL_LIVE_WS_RANK_CSV": str(rank)})
+    assert scope["stream_followed"] == [wallets[1], wallets[2]], scope
+    assert scope["stream_excluded_uncovered"] == [wallets[0]], scope
+    assert scope["clo_poll_only"] == ["0x" + "f" * 40], scope
+    assert scope["rank_applied"] is True, scope
 
 
 def check_rollback_uses_swap_tools_launcher_not_old_checkout(root):
@@ -811,6 +871,10 @@ def main():
              lambda: check_both_swap_and_rollback_causes_are_visible(root)),
             ("APPLY_HOTFIX_TRANSIENT_WATCH_REASON_WALLET",
              lambda: check_transient_watch_emits_reason_and_wallet(root)),
+            ("APPLY_HOTFIX_WALLETCAP_FAILS_PRESTOP",
+             lambda: check_wallet_cap_blocks_before_stop_and_names_exclusions(root)),
+            ("APPLY_HOTFIX_WALLET_RANK_CLO_SCOPE",
+             lambda: check_wallet_scope_rank_and_clo_do_not_claim_false_ws_coverage(root)),
             ("APPLY_HOTFIX_ROLLBACK_OWNS_FIXED_LAUNCHER",
              lambda: check_rollback_uses_swap_tools_launcher_not_old_checkout(root)),
             ("APPLY_HOTFIX_UI_CHILD_FAILURE_OUTPUT",

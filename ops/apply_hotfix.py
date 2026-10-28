@@ -832,6 +832,76 @@ def live_wallets(config: dict[str, Any]) -> list[str]:
             and str(value.get("mode") or "").upper().startswith(("LIVE", "CLO"))]
 
 
+
+def wallet_coverage_scope(config: dict[str, Any], env: dict[str, str]) -> dict[str, Any]:
+    """Mirror Core stream_wallets ordering/cap; never claim unstreamed LIVE wallets covered.
+
+    WS cap and optional fill-rank CSV are launch settings, not live_config
+    fields. CLO wallets are poll-only and do not consume WS slots. This
+    scope does NOT prove any REST poll happened; replay_proof still must do so.
+    """
+    configs = config.get("wallets") if isinstance(config.get("wallets"), dict) else {}
+    live: list[str] = []
+    clo: list[str] = []
+    for address, entry in configs.items():
+        if not isinstance(entry, dict):
+            continue
+        enabled = entry.get("enabled", True)
+        if enabled is False or str(enabled).strip().lower() in ("0", "false", "no", "off"):
+            continue
+        mode = str(entry.get("mode", entry.get("gate", "OFF"))).strip().upper()
+        wallet = str(address).strip().lower()
+        if mode in ("LIVE", "ON"):
+            live.append(wallet)
+        elif mode in ("CLO", "CLOSE_ONLY"):
+            clo.append(wallet)
+
+    launch = child_env(env)
+    raw_cap = str(launch.get("HL_LIVE_WS_MAX_WALLETS", "10")).strip()
+    try:
+        cap = int(raw_cap)
+    except ValueError as exc:
+        raise HotfixError("HL_LIVE_WS_MAX_WALLETS must be an integer") from exc
+    if cap <= 0:
+        raise HotfixError("HL_LIVE_WS_MAX_WALLETS must be positive for coverage proof")
+
+    rank_csv = str(launch.get("HL_LIVE_WS_RANK_CSV", "") or "").strip()
+    ranks: dict[str, float] = {}
+    if rank_csv:
+        try:
+            with open(rank_csv, "r", newline="", encoding="utf-8-sig") as handle:
+                for row in csv.DictReader(handle):
+                    wallet = str(row.get("wallet") or "").strip().lower()
+                    if not wallet or wallet not in live:
+                        continue
+                    try:
+                        count = float(row.get("fills_24h") or 0)
+                    except (ValueError, TypeError):
+                        count = 0.0
+                    if count != count or count in (float("inf"), float("-inf")):
+                        count = 0.0
+                    ranks[wallet] = max(ranks.get(wallet, 0.0), count)
+        except (OSError, ValueError, csv.Error):
+            # Same fallback as Core._by_fill_rank(): preserve config order.
+            ranks = {}
+    if ranks:
+        positions = {w: i for i, w in enumerate(live)}
+        ordered = sorted(live, key=lambda w: (-ranks.get(w, -1.0), positions[w]))
+    else:
+        ordered = live
+
+    return {
+        "ws_max_wallets": cap,
+        "stream_followed": ordered[:cap],
+        "stream_excluded_uncovered": ordered[cap:],
+        "clo_poll_only": clo,
+        "all_live_clo": live + clo,
+        "rank_csv_requested": bool(rank_csv),
+        "rank_applied": bool(ranks),
+        "scope_complete": not bool(ordered[cap:]),
+    }
+
+
 def atomic_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(path.name + ".tmp")
@@ -979,9 +1049,24 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     precompile(new_root)
     baseline = snapshot_state(state)
     config = read_json(state / "live_config.json")
+    scope = wallet_coverage_scope(config, env)
     wallets = live_wallets(config)
     if not wallets:
         raise HotfixError("no LIVE/CLO leader wallets are configured; cannot prove polling catch-up")
+    print("WALLET SCOPE: WS followed %d / LIVE %d; excluded %d; CLO poll-only %d; WS cap %d" %
+          (len(scope["stream_followed"]),
+           len(scope["stream_followed"]) + len(scope["stream_excluded_uncovered"]),
+           len(scope["stream_excluded_uncovered"]), len(scope["clo_poll_only"]),
+           scope["ws_max_wallets"]), flush=True)
+    print("  FOLLOWED_WS: " + ", ".join(scope["stream_followed"]), flush=True)
+    print("  EXCLUDED_NOT_COVERED: " +
+          (", ".join(scope["stream_excluded_uncovered"]) or "none"), flush=True)
+    if scope["stream_excluded_uncovered"]:
+        # Controller has not authorised changing the WS cap or a partial-scope PASS.
+        # A 16-wallet source compared to ten followed wallets is NOT full coverage.
+        raise HotfixError("pre-stop BLOCK: LIVE wallets exceed followed WS slots; "
+                          "excluded wallets NOT COVERED: " +
+                          ", ".join(scope["stream_excluded_uncovered"]))
     api_url = leader_api_url(state, env)
     # A header-only/stale local CSV is never sufficient. Probe external source BEFORE stop.
     api_source_capability(wallets, api_url)
@@ -1060,7 +1145,16 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         if first_cycle is None or proof is None:
             raise HotfixError(_replay_timeout_message(last_bucket_failure))
         gap_ms = first_cycle[0] - old_pair_down_ms
+        # Keep source and replay checks against ALL configured LIVE/CLO wallets.
+        # This is only a truthful coverage declaration, not a filter/bypass.
+        proof["wallet_scope"] = scope
         print("PROOF TABLE")
+        print("  wallet_scope_complete       PASS (WS followed %d, excluded %d, CLO poll-only %d)" %
+              (len(scope["stream_followed"]), len(scope["stream_excluded_uncovered"]),
+               len(scope["clo_poll_only"])))
+        print("  followed_WS                  " + ", ".join(scope["stream_followed"]))
+        print("  excluded_NOT_COVERED        " +
+              (", ".join(scope["stream_excluded_uncovered"]) or "none"))
         print("  same_state_dir              PASS")
         print("  pair_start_anchor_sha/t0    PASS (%s / %d)" % (baseline["anchor_sha256"], baseline["anchor_t0_ms"]))
         print("  live_config_semantic_sha    PASS (%s; ignored timestamp fields: none)" % baseline["live_config_semantic_sha256"])
