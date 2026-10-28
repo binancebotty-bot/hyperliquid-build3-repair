@@ -543,7 +543,9 @@ def poll_coverage(state: Path, wallets: list[str], stop_ms: int, first_cycle_ms:
 
     Core emits a trace record for each userFillsByTime request. POLL_OK means
     a short (possibly empty) last page; new=0 confirms no unhandled fills for
-    a quiet leader. Only truncated wallet prefixes are stored; collisions fail.
+    a quiet leader. A subsequent poll may start after stop_ms when cursor_in
+    already covers it; this is still positive poll coverage. Only truncated
+    wallet prefixes are stored; collisions fail.
     """
     prefixes: dict[str, str] = {}
     for wallet in wallets:
@@ -572,8 +574,9 @@ def poll_coverage(state: Path, wallets: list[str], stop_ms: int, first_cycle_ms:
                 wallet = prefixes.get(str(rec.get("wallet") or "").lower())
                 if not wallet or csv_int(rec.get("ts"), "leader_poll_trace.ts") < stop_ms:
                     continue
-                if (csv_int(rec.get("start_ms"), "leader_poll_trace.start_ms") <= stop_ms
-                        and csv_int(rec.get("end_ms"), "leader_poll_trace.end_ms") >= first_cycle_ms):
+                if (csv_int(rec.get("end_ms"), "leader_poll_trace.end_ms") >= first_cycle_ms
+                        and (csv_int(rec.get("start_ms"), "leader_poll_trace.start_ms") <= stop_ms
+                             or csv_int(rec.get("cursor_in"), "leader_poll_trace.cursor_in") >= stop_ms)):
                     records[wallet] = rec
     newest: dict[str, int] = {}
     for row in source_rows:

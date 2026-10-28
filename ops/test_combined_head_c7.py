@@ -446,3 +446,38 @@ def test_cursor_gate_no_fill_requires_positive_no_new_record(tmp_path):
     with pytest.raises(AH.HotfixError, match="positive empty/new=0"):
         AH.poll_coverage(state, [wallet], T0, T0 + MIN, [], {})
 
+
+
+def test_cursor_gate_completed_poll_with_advanced_cursor_covers_gap(tmp_path):
+    """The first observed post-restart poll can begin AFTER stop: its verified
+    input cursor already covers that earlier interval, despite start_ms > stop_ms.
+    """
+    wallet = "0x" + "a" * 40
+    state, _ = build(tmp_path, [], [])
+    trace = state / "leader_poll_trace.jsonl"
+    record = {"kind": "poll", "wallet": wallet[:10], "ts": T0 + MIN,
+              "start_ms": T0 + 1_000, "end_ms": T0 + MIN,
+              "cursor_in": T0 + 500, "status": "POLL_OK",
+              "fills": 0, "new": 0}
+    trace.write_text(__import__("json").dumps(record) + "\n", encoding="utf-8")
+
+    # The quiet wallet's last-fill cursor can remain stale; the completed poll
+    # with advanced cursor_in is the evidence of coverage.
+    AH.poll_coverage(state, [wallet], T0, T0 + MIN, [],
+                     {wallet: T0 - 19 * 60 * MIN})
+
+    # The OR predicate must not accept a cursor before stop when start is late.
+    record["cursor_in"] = T0 - 1
+    trace.write_text(__import__("json").dumps(record) + "\n", encoding="utf-8")
+    with pytest.raises(AH.HotfixError, match="no completed poll"):
+        AH.poll_coverage(state, [wallet], T0, T0 + MIN, [],
+                         {wallet: T0 - 19 * 60 * MIN})
+
+    # Advanced cursor alone cannot waive the completed-POLL_OK requirement.
+    record["cursor_in"] = T0 + 500
+    record["status"] = "POLL_NETWORK_ERROR"
+    trace.write_text(__import__("json").dumps(record) + "\n", encoding="utf-8")
+    with pytest.raises(AH.HotfixError, match="POLL_NETWORK_ERROR"):
+        AH.poll_coverage(state, [wallet], T0, T0 + MIN, [],
+                         {wallet: T0 - 19 * 60 * MIN})
+
