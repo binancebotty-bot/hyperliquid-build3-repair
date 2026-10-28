@@ -14,6 +14,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from test_offline_send_fixture import arm_offline_send
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -109,9 +110,7 @@ def main() -> None:
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
         return gw
 
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
-                                             "wallets": {LEADER: {"enabled": True, "mode": "ON",
-                                                                  "copy_mode": "fixed", "fixed_notional": 1000}}})
+    arm_offline_send(c, [LEADER], global_controls={"marketable_bps": 20})
     seq = [0]
 
     def fill(side="BUY", price=100.0, size=1.0):
