@@ -780,13 +780,26 @@ def start_pair(build: Path, sha: str, state: Path, port: int, launch_env: dict[s
                "--state", str(state), "--expect-sha", sha, "--ui-port", str(port)]
     result = subprocess.run(command, capture_output=True, text=True, env=launch_env, timeout=120)
     if result.returncode:
-        raise HotfixError("start_pair failed; captured output withheld")
+        try:
+            failure = json.loads(result.stdout)
+        except (ValueError, TypeError):
+            failure = {}
+        if not isinstance(failure, dict):
+            failure = {}
+        reason = str(failure.get("pair") or "no identity report")[:100]
+        ui_exit = failure.get("ui_exit_rc")
+        child_log = str(failure.get("ui_launch_output") or "")[-4096:]
+        detail = child_log or (result.stderr or result.stdout or "no child output")[-4096:]
+        raise HotfixError("start_pair failed (%s; ui_exit_rc=%s): %s" %
+                          (reason, ui_exit, detail))
     try:
         payload = json.loads(result.stdout)
     except Exception as exc:
-        raise HotfixError("start_pair did not return its identity block") from exc
-    if payload.get("pair") != "STARTED" or not payload.get("engine_pid"):
-        raise HotfixError("start_pair did not prove a complete pair")
+        raise HotfixError("start_pair did not return its identity block; output: " +
+                          str(result.stdout or "")[-2000:]) from exc
+    if payload.get("pair") != "STARTED" or not payload.get("engine_pid") or not payload.get("ui_pid"):
+        raise HotfixError("start_pair did not prove a complete pair; report: " +
+                          str(payload)[:2000])
     return payload
 
 
@@ -795,7 +808,8 @@ def stop_pair(state: Path, port: int) -> dict[str, Any]:
     result = subprocess.run([sys.executable, str(OPS / "stop_pair.py"), "--all", "--port", str(port)],
                             capture_output=True, text=True, timeout=120)
     if result.returncode:
-        raise HotfixError("stop_pair did not prove a clean stop; captured output withheld")
+        raise HotfixError("stop_pair did not prove a clean stop: " +
+                          str(result.stderr or result.stdout or "no child output")[-2000:])
     record = read_json(state / "core_shutdown_record.json")
     if (record.get("reason") != "stop_sentinel" or record.get("clean") is not True
             or int(record.get("timestamp_ms") or 0) < request_ms - 500):
@@ -809,7 +823,28 @@ def tracked_start_ui(port: int) -> None:
     result = subprocess.run([sys.executable, str(OPS / "stop_pair.py"), "--track-ui", "--port", str(port)],
                             capture_output=True, text=True, timeout=20)
     if result.returncode:
-        raise HotfixError("could not record the new UI identity; output withheld")
+        raise HotfixError("could not record the new UI identity: " +
+                          str(result.stderr or result.stdout or "no child output")[-2000:])
+
+
+def prove_restored_pair(state: Path, port: int, started: dict[str, Any],
+                        requested_ms: int, expected_root: Path,
+                        expected_sha: str) -> None:
+    """Rollback is proved by the old live pair and fresh Core heartbeat, not a spawn ack."""
+    engine_pid, ui_pid = int(started.get("engine_pid") or 0), int(started.get("ui_pid") or 0)
+    if not engine_pid or not ui_pid:
+        raise HotfixError("rollback proof: missing engine/UI pid")
+    deadline = time.monotonic() + 45.0
+    while time.monotonic() < deadline:
+        identity, root, sha, tracked_ui = validate_pair(state, port)
+        if (int(identity.get("pid") or identity.get("process_id") or 0) != engine_pid
+                or tracked_ui != ui_pid or SP.listener(port) != ui_pid
+                or root != expected_root or sha != expected_sha):
+            raise HotfixError("rollback proof: old engine/UI pid, listener or SHA mismatch")
+        if first_healthy_cycle(state, engine_pid, requested_ms) is not None:
+            return
+        time.sleep(0.5)
+    raise HotfixError("rollback proof: old pair has no fresh healthy Core heartbeat")
 
 
 def rewrite_launch_spec(spec: dict[str, Any], build: Path, sha: str, state: Path) -> None:
@@ -964,10 +999,13 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
                 stop_pair(state, port)
             rewrite_launch_spec(copy.deepcopy(original_spec), old_root, old_sha, state)
             atomic_text(pointer_path(state), str(state))
-            start_pair(old_root, old_sha, state, port, dict(original_spec["env"]))
+            restore_requested_ms = int(time.time() * 1000)
+            restored = start_pair(old_root, old_sha, state, port, dict(original_spec["env"]))
             tracked_start_ui(port)
+            prove_restored_pair(state, port, restored, restore_requested_ms, old_root, old_sha)
         except Exception as rollback_error:
-            raise HotfixError("swap failed and previous pair could not be restored") from rollback_error
+            raise HotfixError("swap failed; previous pair NOT proven restored: " +
+                              str(rollback_error)[-2000:]) from rollback_error
         # Preserve the last named bucket in the operator-visible rollback error.
         # Leave unrelated failure messages generic.
         detail = ("; " + str(swap_error)) if "last failed bucket:" in str(swap_error) else ""

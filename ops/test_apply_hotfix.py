@@ -94,6 +94,8 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
         return real_save(*args, **kwargs)
 
     stack.enter_context(patch.object(module, "save_swap_record", side_effect=save_record))
+    # Existing isolated swap fixtures do not create real processes or heartbeats.
+    stack.enter_context(patch.object(module, "prove_restored_pair", return_value=None))
     stack.enter_context(patch.object(module, "api_source_capability", side_effect=(
         capability or (lambda *_a: None))))
     stack.enter_context(patch.object(module, "export_api_source", side_effect=(
@@ -509,6 +511,68 @@ def check_ambiguous_stop_isolated(root):
     assert pair["launch_env"].read_bytes() == before, "launch spec must survive an ambiguous stop"
 
 
+
+def check_ui_child_failure_output_reaches_swap_caller(root):
+    """Propagate the actual uvicorn log from start_pair; no withheld-output wrapper."""
+    from types import SimpleNamespace
+    failure = {"pair": "UI_NOT_LISTENING", "ui_exit_rc": 17,
+               "ui_launch_output": "uvicorn immediately exited: injected traceback"}
+    with patch.object(HOTFIX.subprocess, "run", return_value=SimpleNamespace(
+            returncode=1, stdout=json.dumps(failure), stderr="")):
+        try:
+            HOTFIX.start_pair(root, NEW_SHA, root, 8031, {})
+        except HOTFIX.HotfixError as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("failed UI launch must refuse")
+    assert "UI_NOT_LISTENING" in message and "ui_exit_rc=17" in message, message
+    assert "uvicorn immediately exited: injected traceback" in message, message
+    assert "output withheld" not in message, message
+
+
+def check_rollback_without_proof_never_claims_restored(root):
+    """Re-running a broken launcher is NOT a successful rollback."""
+    pair = make_pair(root, "unproved_rollback")
+    events = []
+    def fail_replay(*_args):
+        raise HOTFIX.HotfixError("injected proof failure")
+    stack = swap_stack(HOTFIX, pair, 12_345, events, proof=fail_replay)
+    stack.enter_context(patch.object(
+        HOTFIX, "prove_restored_pair",
+        side_effect=HOTFIX.HotfixError("rollback proof: no fresh healthy Core heartbeat")))
+    with stack:
+        try:
+            HOTFIX.perform_swap(pair["new"], NEW_SHA, 8031, False)
+        except HOTFIX.HotfixError as exc:
+            failure = str(exc)
+        else:
+            raise AssertionError("unproven rollback cannot PASS")
+    assert "NOT proven restored" in failure, failure
+    assert "no fresh healthy Core heartbeat" in failure, failure
+    assert "previous pair restored" not in failure, failure
+    assert events.count("start") == 2, events
+
+
+def check_restored_pair_rejects_wrong_listener(root):
+    """Rollback proof verifies real Core and UI identities, not just STARTED."""
+    pair = make_pair(root, "wrong_restored_listener")
+    info = {"engine_pid": 4321, "ui_pid": 5678}
+    with patch.object(HOTFIX, "validate_pair", return_value=(
+             {"pid": 4321}, pair["old"], OLD_SHA, 5678)), \
+         patch.object(HOTFIX.SP, "listener", return_value=5678), \
+         patch.object(HOTFIX, "first_healthy_cycle", return_value=(12346, {})):
+        HOTFIX.prove_restored_pair(pair["state"], 8031, info, 12345, pair["old"], OLD_SHA)
+    with patch.object(HOTFIX, "validate_pair", return_value=(
+             {"pid": 4321}, pair["old"], OLD_SHA, 5678)), \
+         patch.object(HOTFIX.SP, "listener", return_value=9999):
+        try:
+            HOTFIX.prove_restored_pair(pair["state"], 8031, info, 12345, pair["old"], OLD_SHA)
+        except HOTFIX.HotfixError as exc:
+            assert "listener" in str(exc), exc
+        else:
+            raise AssertionError("foreign listener must block rollback proof")
+
+
 def check_single_fault_rollback_restores_state(root):
     """Every post-stop failure must restore the OLD build in the launch spec ON DISK."""
     for failed_at in ("rewrite", "pointer", "start", "track", "proof"):
@@ -588,6 +652,12 @@ def main():
              lambda: check_api_one_shot_after_healthy(root)),
             ("APPLY_HOTFIX_AMBIGUOUS_STOP_ISOLATED", lambda: check_ambiguous_stop_isolated(root)),
             ("APPLY_HOTFIX_SINGLE_FAULT_ROLLBACK", lambda: check_single_fault_rollback_restores_state(root)),
+            ("APPLY_HOTFIX_UI_CHILD_FAILURE_OUTPUT",
+             lambda: check_ui_child_failure_output_reaches_swap_caller(root)),
+            ("APPLY_HOTFIX_UNPROVEN_ROLLBACK_REFUSES",
+             lambda: check_rollback_without_proof_never_claims_restored(root)),
+            ("APPLY_HOTFIX_RESTORED_IDENTITY_LISTENER",
+             lambda: check_restored_pair_rejects_wrong_listener(root)),
             ("APPLY_HOTFIX_MUTATION_SEMANTIC_CONFIG_GUARD",
              lambda: check_mutation_semantic_config_guard(root, raw)),
         ]

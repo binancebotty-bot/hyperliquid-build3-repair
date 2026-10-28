@@ -192,6 +192,7 @@ check('A_FAILED_START_REVERTS_THE_POINTER', 'previous_pointer' in srcp and 'reve
 # These import the tool in-process and stub every process primitive: nothing is spawned, no port is bound.
 sys.path.insert(0, str(HERE))
 import start_pair as M
+REAL_SPAWN_UI = M.spawn_ui
 
 
 class FakeProc(object):
@@ -266,6 +267,57 @@ check('A_FAILING_UI_SPAWN_TERMINATES_THE_ENGINE', eng.terminated >= 1,
       'the engine was left running after the UI spawn failed (terminated=%d)' % eng.terminated)
 check('A_FAILING_UI_SPAWN_LEAVES_NO_POINTER', not (st_tf.parent.parent / 'CURRENT_AUDIT_DIR').exists(),
       'a failed start wrote the pointer')
+M.SP.pids, M.SP.listener = real_pids, real_listener
+
+
+# 1b. An immediately exiting uvicorn must print the captured child log and refuse.
+st_ui_exit = seeded_state('ui_exit', 'stack_ui_exit')
+ui_engine = FakeProc(40101)
+M.spawn_engine = lambda f, e: ui_engine
+M.spawn_ui = REAL_SPAWN_UI
+M.SP.pids = lambda d: []
+M.SP.listener = lambda p: None
+M.SETTLE_S = 0.0
+original_ui_wait = M.UI_WAIT_S
+M.UI_WAIT_S = 0.01
+ui_calls = []
+
+def fake_ui_popen(argv, **kw):
+    assert argv[0] == M.PY_ENGINE, argv
+    assert kw['creationflags'] == M.CREATE_NO_WINDOW, kw
+    assert kw['stdin'] == subprocess.DEVNULL and kw['stderr'] == subprocess.STDOUT, kw
+    assert kw['close_fds'] is True
+    assert kw['stdout'].name == str(st_ui_exit / 'ui_launch.log')
+    kw['stdout'].write(b'uvicorn immediately exited: invalid handles\n')
+    kw['stdout'].flush()
+    ui_calls.append(argv)
+    dead = FakeProc(40102)
+    dead.returncode = 17
+    return dead
+
+def stubbed_spawn_ui(port, engine_file, env):
+    # Do not intercept the earlier subprocess.run(git) in main().
+    with patch.object(M.subprocess, 'Popen', side_effect=fake_ui_popen):
+        return REAL_SPAWN_UI(port, engine_file, env)
+
+M.spawn_ui = stubbed_spawn_ui
+failure_stdout = io.StringIO()
+with contextlib.redirect_stdout(failure_stdout):
+    failure_rc = M.main(['--checkout', str(fake), '--state', str(st_ui_exit),
+                         '--ui-port', str(PORT)])
+failure_report = json.loads(failure_stdout.getvalue())
+check('UI_EARLY_EXIT_SURFACES_CHILD_LOG_AND_REFUSES',
+      failure_rc == 1 and failure_report.get('pair') == 'UI_NOT_LISTENING'
+      and failure_report.get('ui_exit_rc') == 17
+      and 'uvicorn immediately exited' in failure_report.get('ui_launch_output', '')
+      and bool(ui_calls),
+      'rc=%r report=%r' % (failure_rc, failure_report))
+check('UI_EARLY_EXIT_REAPS_ENGINE', ui_engine.terminated >= 1,
+      'failed UI left the engine alive')
+check('UI_EARLY_EXIT_NEVER_MOVES_POINTER',
+      not (st_ui_exit.parent.parent / 'CURRENT_AUDIT_DIR').exists(),
+      'failed UI moved pointer')
+M.UI_WAIT_S = original_ui_wait
 M.SP.pids, M.SP.listener = real_pids, real_listener
 
 # 2. POINTER: absent, unreadable and unreadable-is-never-deleted are three different things

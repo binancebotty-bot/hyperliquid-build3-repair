@@ -32,11 +32,11 @@ sys.path.insert(0, str(OPS))
 import stop_pair as SP  # reuse its pids()/listener() rather than re-deriving "is it running"
 
 PY_ENGINE = os.environ.get("HL_PY_ENGINE") or r"C:/Users/wigmore/AppData/Local/Programs/Python/Python311/pythonw.exe"
-PY_PLAIN = os.environ.get("HL_PY_PLAIN") or r"C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe"
+CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+# pythonw with redirected stdio: CREATE_NO_WINDOW, not DETACHED_PROCESS.
 UI_PORT = 8031
-# pythonw is GUI-subsystem and has no console, so the detached flag alone is both sufficient and correct. Never OR
-# the no-window flag into it: MSDN says that flag is IGNORED when the detached one is set, so the hide bit becomes
-# dead code that reads like protection.
+# The Core's pythonw uses DETACHED_PROCESS. The UI separately uses pythonw,
+# CREATE_NO_WINDOW and redirected stdio; do not combine both creation flags.
 DETACHED_ONLY = 0x00000008
 
 
@@ -191,11 +191,27 @@ def spawn_engine(engine_file, env):
 
 
 def spawn_ui(port, engine_file, env):
-    return subprocess.Popen(
-        [PY_PLAIN, "-m", "uvicorn", "HL_Copy_App_SSOT:app", "--host", "127.0.0.1",
-         "--port", str(port), "--no-access-log"],
-        cwd=str(engine_file.parent), env=env,
-        creationflags=DETACHED_ONLY, close_fds=True)
+    # Windows console python + detached handles crashes before uvicorn binds.
+    # Preserve the 3-argument interface used by the launch runbook/tests.
+    log_path = Path(env["HL_LIVE_AUDIT_DIR"]) / "ui_launch.log"
+    with log_path.open("wb") as log:
+        return subprocess.Popen(
+            [PY_ENGINE, "-m", "uvicorn", "HL_Copy_App_SSOT:app", "--host", "127.0.0.1",
+             "--port", str(port), "--no-access-log"],
+            cwd=str(engine_file.parent), env=env, stdin=subprocess.DEVNULL,
+            stdout=log, stderr=subprocess.STDOUT,
+            creationflags=CREATE_NO_WINDOW, close_fds=True)
+
+
+def ui_launch_failure_output(state):
+    """Only the last 4 KiB of this attempt's UI log, and only on failure."""
+    try:
+        with (state / "ui_launch.log").open("rb") as stream:
+            stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, stream.tell() - 4096))
+            return stream.read().decode("utf-8", errors="replace")
+    except OSError:
+        return ""
 
 
 def main(argv=None):
@@ -336,6 +352,8 @@ def main(argv=None):
             "pair": "STARTED" if up else ("ENGINE_EXITED" if engine_exited is not None else "UI_NOT_LISTENING"),
             "sha": sha, "state": str(state), "engine_pid": engine.pid, "ui_pid": ui.pid if ui else None,
             "engine_exit_rc": engine_exited,
+            "ui_exit_rc": ui.poll() if ui is not None else None,
+            "ui_launch_output": ui_launch_failure_output(state) if ui is not None and not up else "",
             "ui_port": args.ui_port, "listener": bool(SP.listener(args.ui_port)),
             "pointer": str(pointer), "pointer_state": pstate, "started_at": utc(),
             "stopped_on_failure": stopped,
