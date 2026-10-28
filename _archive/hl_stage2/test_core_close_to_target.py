@@ -1,65 +1,69 @@
-"""Closes are sized to the follower's net target and sent without reduce-only (Boss 2026-10-11); CLOSE ONLY, dust and unreadable
-accounts stay reduce-only. Run (from _archive/hl_stage2): HL_LIVE_ENV_FILE=/nonexistent python -u test_core_close_to_target.py"""
-import os, sys, math
+"""Track B close-to-target semantics: exchange RO leg + separately gated entry remainder.
+
+Run offline: python -m pytest _archive/hl_stage2/test_core_close_to_target.py -q
+"""
+import os
+import sys
+from pathlib import Path
 from types import SimpleNamespace
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import HL_Live_Copy_Service_Core as c
+import pytest
 
-R = []
-def check(n, ok, d=""):
-    R.append((n, bool(ok))); print(("PASS" if ok else "FAIL"), n, d); print("RESULT::%s_%s" % (n, "PASS" if ok else "FAIL"))
+os.environ.setdefault("HL_LIVE_ENV_FILE", "/nonexistent")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import HL_Live_Copy_Service_Core as core
 
-class Ledger:
-    def __init__(self, net): self.net = net
-    def coin_net(self, k): return self.net
 
-def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON"):
-    snap = ({"RESOLV": ex}, "") if readable else ({}, "exchange snapshot unavailable")
-    me = SimpleNamespace(ledger=Ledger(led), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
-    me._reduce_only_for_intent = lambda i: lifecycle_exit
-    me._persisted_exchange_positions = lambda: snap
-    me._fresh_exchange_net = lambda coin: (ex if readable else None)
-    me._floor_wire_size = lambda s, d: math.floor(s * 10 ** d + 1e-9) / 10 ** d
-    intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet="0xabc", coin="RESOLV"), copy_side=side, copy_size=size)
-    timing = {"dust_close_below_min_notional": "x"} if dust else {}
-    old = os.environ.get("HL_LIVE_CLOSE_TO_TARGET")
-    if env is not None: os.environ["HL_LIVE_CLOSE_TO_TARGET"] = env
-    try:
-        return c.SenderGateway._close_wire_plan(me, intent, size, sz_dec, min_ok, timing, lag)
-    finally:
-        if env is not None:
-            if old is None: os.environ.pop("HL_LIVE_CLOSE_TO_TARGET")
-            else: os.environ["HL_LIVE_CLOSE_TO_TARGET"] = old
+def make_plan(side, qty, net, sleeve=None, min_ok=lambda size: True):
+    # Ledger coin net can differ from this leader's sleeve when USER/other sleeves coexist.
+    signed = (qty if side == "SELL" else -qty) if sleeve is None else sleeve
+    ledger = SimpleNamespace(sleeve=lambda wallet, coin: {"signed_size": signed},
+                             coin_net=lambda coin: signed)
+    gateway = SimpleNamespace(ledger=ledger, _reduce_only_for_intent=lambda i: True,
+                              _fresh_exchange_net=lambda coin: net,
+                              _floor_wire_size=lambda size, digits: round(size, digits),
+                              _trackb_split_close=core.SenderGateway._trackb_split_close)
+    intent = SimpleNamespace(copy_side=side, copy_size=qty, wallet_position_before=signed,
+                             fill=SimpleNamespace(leader_wallet="0xowner", coin="ETH"))
+    timing = {}
+    result = core.SenderGateway._close_wire_plan(gateway, intent, qty, 3, min_ok, timing)
+    return result, timing
 
-OK = lambda s: True
-check("AGREEING_CLOSE_NOT_REDUCE_ONLY", plan("SELL", 10, 10, 10, min_ok=OK) == (True, 10.0, ""))
-check("CLOSE_MAY_INCREASE_EXPOSURE", plan("SELL", 10, 5, 5, min_ok=OK) == (False, 10.0, ""))  # other sleeves net: goes net short 5
-check("TRIMMED_TO_EXCHANGE_POSITION", plan("SELL", 10, 10, 4, min_ok=OK) == (True, 4.0, ""))
-r = plan("SELL", 10, 10, 0.0, min_ok=OK)
-check("EXCHANGE_FLAT_SENDS_NOTHING", r[1] == 0.0 and r[2])
-r = plan("SELL", 10, 10, -5.0, min_ok=OK)
-check("PAST_TARGET_SENDS_NOTHING", r[1] == 0.0 and r[2])
-r = plan("SELL", 10, 10, 100.0, min_ok=OK)
-check("NEVER_CLOSES_MORE_THAN_THE_LEADER_CLOSE", r == (True, 10.0, ""), str(r))
-check("STALE_RECORDS_HAND_CLOSED_POSITION_SENDS_NOTHING", plan("SELL", 1, 1, 0.0, min_ok=OK)[1] == 0.0)
-check("WALLET_CLOSE_ONLY_CLOSE_IS_SIZED_LIKE_ANY_OTHER", plan("SELL", 10, 10, 10, mode="CLO", min_ok=OK) == (True, 10.0, ""))
-check("WALLET_CLOSE_ONLY_CLOSE_MAY_INCREASE_EXPOSURE", plan("SELL", 10, 5, 5, mode="CLO", min_ok=OK) == (False, 10.0, ""))
-# header CLOSE ONLY control: leader side only (no leader entries); the follower side is sized like any close
-check("HEADER_CLOSE_ONLY_CLOSE_IS_SIZED_LIKE_ANY_OTHER", plan("SELL", 10, 10, 10, gmode="CLOSE", min_ok=OK) == (True, 10.0, ""))
-check("HEADER_CLOSE_ONLY_CLOSE_MAY_INCREASE_FOLLOWER_EXPOSURE", plan("SELL", 10, 5, 5, gmode="CLOSE", min_ok=OK) == (False, 10.0, ""))
-check("HEADER_CLOSE_ONLY_CLOSE_STILL_NEVER_EXCEEDS_THE_LEADER_CLOSE", plan("SELL", 10, 10, 100.0, gmode="CLOSE", min_ok=OK) == (True, 10.0, ""))
-check("HEADER_CLOSE_ONLY_DUST_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True, gmode="CLOSE") == (True, 0.01, ""))
-check("DUST_WHOLE_POSITION_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True) == (True, 0.01, ""))
-check("UNREADABLE_EXCHANGE_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 10, readable=False) == (True, 10, ""))
-check("ENTRY_IS_UNCHANGED", plan("BUY", 10, 0, 0, lifecycle_exit=False) == (False, 10, ""))
-check("SWITCH_OFF_FALLBACK_IS_REDUCE_ONLY", plan("SELL", 10, 10, 10, env="false") == (True, 10, ""))
-check("LEDGER_MAY_LAG_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 4, lag=True) == (True, 10, ""))
-check("TRIM_BELOW_MIN_NOTIONAL_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (True, 10, ""))
-check("TRIM_WITHOUT_MIN_CHECK_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4) == (True, 10, ""))
-check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK) == (True, 10.0, ""))
-check("PURE_REDUCTION_OPPOSING_WITHIN_NET_REDUCE_ONLY", plan("SELL", 5, 20, 20, min_ok=OK) == (True, 5.0, ""))
-check("OVERSIZED_CLOSE_PRESERVES_NETTING_BEHAVIOR", plan("SELL", 12, 0, 8, min_ok=OK) == (False, 12.0, ""))
-check("SAME_SIDE_CLOSE_PRESERVES_EXISTING_BEHAVIOR", plan("BUY", 5, 20, 10, min_ok=OK) == (False, 5.0, ""))
-failed = [n for n, ok in R if not ok]
-print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
-raise SystemExit(1 if failed else 0)
+
+def test_reduce_only_uses_actual_exchange_net():
+    assert make_plan("SELL", 10, 20)[0] == (True, 10, "")
+    assert make_plan("SELL", 10, 10)[0] == (True, 10, "")
+    assert make_plan("BUY", 10, -20)[0] == (True, 10, "")
+
+
+def test_first_leg_reduces_net_and_remainder_is_entry_type():
+    first, timing = make_plan("SELL", 10, 4)
+    assert first == (True, 4, "")
+    assert timing["trackb_close_remainder"] == pytest.approx(6)
+
+
+def test_exchange_flat_still_requires_a_plain_close_under_section_ten():
+    first, timing = make_plan("SELL", 10, 0)
+    assert first == (False, 10, "")
+    assert timing["trackb_close_remainder"] == 0
+
+
+def test_net_opposite_direction_never_uses_reduce_only():
+    assert make_plan("SELL", 10, -4)[0] == (False, 10, "")
+
+
+def test_user_inventory_never_expands_the_engine_sleeve_close():
+    # USER long 100, engine long 3, exchange long 103.
+    assert make_plan("SELL", 15, 103, sleeve=3)[0] == (True, 3, "")
+
+
+def test_trimmed_dust_never_inflated_past_exchange_net():
+    first, timing = make_plan("SELL", 10, 4, min_ok=lambda size: False)
+    assert first[1] == 0 and first[2] == "CLOSE_SPLIT_TRIMMED_DUST_ESCALATION"
+
+
+def test_unreadable_exchange_plain_close_non_ro_not_silent():
+    assert make_plan("SELL", 3, None)[0] == (False, 3, "")
+
+
+def test_missing_ledger_direction_does_not_close_user_inventory():
+    assert make_plan("SELL", 10, 40, sleeve=-10)[0][2] == "ENGINE_SLEEVE_NOT_CLOSABLE"

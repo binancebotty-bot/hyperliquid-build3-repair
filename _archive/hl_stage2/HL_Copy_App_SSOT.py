@@ -1331,6 +1331,12 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     recon_failing = [r for r in (reconciliation_rows or []) if (inum(r.get("created_at_ms")) or _iso_to_ms(r.get("created_at"))) >= active_from and any(m in " ".join(str(r.get(k) or "").upper() for k in ("status", "terminal_state", "action")) for m in _CLOSE_FAILURE_MARKERS)]
     close_failing = (inum(counts.get("close_reject_or_recovery_required")) > 0 or inum(hard_counts.get("MANUAL_EXIT_RECOVERY_REQUIRED")) > 0
                      or bool(recon_failing))
+    open_owed_closes = load_json(LIVE_COPY_AUDIT_DIR / "close_escalations.json", {})
+    if not isinstance(open_owed_closes, dict):
+        open_owed_closes = {}
+    for _owed in list(open_owed_closes.values())[:20]:
+        if isinstance(_owed, dict):
+            technical.append("owed close: " + str(_owed.get("coin") or "") + " " + str(_owed.get("reason") or ""))
     # a position the engine never opened (manual or leftover) is the operator's, not an engine fault: only a coin
     # where the engine's own records hold a size the exchange does not match is a records problem
     pa = integrity_status.get("position_assignment") if isinstance(integrity_status.get("position_assignment"), dict) else {}
@@ -1352,6 +1358,8 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
         level, text = "red", "Action needed: a resting order could not be cancelled — check open orders"
     elif close_failing:
         level, text = "red", "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange"
+    elif open_owed_closes:
+        level, text = "red", f"Action needed: {len(open_owed_closes)} engine-owned close(s) still owed — see CLOSE_ESCALATION"
     elif records_disagree:
         level, text = "red", "Action needed: the engine's records and the exchange disagree — check the Reconciliation tab"
     elif inum(counts.get("audit_proof_missing")) > 0:

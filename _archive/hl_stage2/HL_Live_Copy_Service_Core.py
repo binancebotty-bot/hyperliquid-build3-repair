@@ -44,7 +44,7 @@ import time
 import traceback
 import tempfile
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 import collections
 from datetime import datetime, timezone
@@ -156,6 +156,7 @@ MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
+CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -4225,7 +4226,7 @@ class ConfigManager:
         return max(0.0, min(100.0, fnum(raw, 0.0)))
 
     def max_close_adverse_diff_pct(self) -> float:
-        return max(0.0, fnum(self.global_controls.get("max_close_adverse_diff_pct"), 0.0))  # 0/missing = OFF
+        return max(0.0, fnum(self.global_controls.get("max_close_adverse_diff_pct"), DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT))
 
     def is_symbol_allowed(self, coin: str) -> Tuple[bool, str]:
         coin = str(coin or "").upper()
@@ -5456,6 +5457,7 @@ class SenderGateway:
                 _row.pop("withdrawing", None)  # an in-memory claim; a stop mid-withdrawal must not leave it set
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
         self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
+        self._trackb_escalations: Dict[str, Dict[str, Any]] = load_json(CLOSE_ESCALATIONS_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
@@ -6961,6 +6963,9 @@ class SenderGateway:
         unexplained = (abs(exchange_net) > abs(manual_net) + tol
                        or (abs(exchange_net) > tol and manual_net * exchange_net < 0))
         if lifecycle in {"ENTRY", "ADD"}:
+            if "trackb_close_remainder=true" in str(intent.notes or ""):
+                # Sub-leg of an owned close: USER inventory is explained, not a new-coin ownership refusal.
+                return True, {}
             if unexplained:
                 # the engine could open here but never close (closes into an unexplained position are refused
                 # below), so each round trip would leave another position it can't close: no entries either
@@ -6974,24 +6979,16 @@ class SenderGateway:
                 return False, block
             return True, {}
 
-        if abs(manual_net) > POSITION_EPSILON and abs(exchange_net) > POSITION_EPSILON and manual_net * exchange_net < 0:
+        if (lifecycle in {"ENTRY", "ADD"} and abs(manual_net) > POSITION_EPSILON
+                and abs(exchange_net) > POSITION_EPSILON and manual_net * exchange_net < 0):
             return False, self._ownership_gate_block(
                 intent, "OWNERSHIP_GATE_SIGN_CONFLICT",
                 "manual ledger and exchange account net have opposite signs",
                 manual_net, exchange_net,
             )
-        if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
-            # never close into a position the engine's own sleeves don't explain (another bot's or a person's,
-            # e.g. the mainnet leftovers): the exchange holding MORE than the sleeves' sum, or the other way
-            if unexplained:
-                block = self._ownership_gate_block(
-                    intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
-                    f"exchange holds {exchange_net} but the engine's own sleeves explain {manual_net}; not closing into "
-                    "a position the engine did not open; reconcile on the exchange",
-                    manual_net, exchange_net,
-                )
-                block["operator_action"] = "MANUAL_REVIEW_UNEXPLAINED_EXCHANGE_POSITION"
-                return False, block
+        # USER sleeves may explain the exchange-minus-engine net difference.
+        # A matching ENGINE wallet sleeve is still mandatory (gate below), and
+        # the physical split planner caps its close to that engine sleeve.
         if len(live_sleeves) > 1:
             # For EXIT/REDUCE: ownership is unambiguous — the leader_wallet identifies the
             # sleeve to close. Fall through to the wallet-sleeve existence check below.
@@ -7244,6 +7241,8 @@ class SenderGateway:
             except Exception as exc:
                 log_error("standing_close_min_notional", exc)
             _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, None, ledger_may_lag=remainder is not None)
+            if _skip:
+                self._trackb_escalate(intent, "RECOVERY_CLOSE_REPLAN_WAIT: " + _skip, _sc_t)
             if _skip:  # nothing to leave standing (the target is reached or there is nothing left to close): say so
                 self.audit.append_reconciliation(
                     "EXIT_RECOVERY", "STANDING_CLOSE_NOT_PLACED", leader_wallet=intent.fill.leader_wallet,
@@ -7251,6 +7250,11 @@ class SenderGateway:
                     action="NO_STANDING_CLOSE", terminal_state="STANDING_CLOSE_NOT_PLACED", engine_can_send="False", notes=_skip)
                 return
             close_size = _sz
+            if not _ro and _sc_t.get("trackb_close_split_reason") == "EXCHANGE_NET_CLOSE_SPLIT":
+                block = self._trackb_remainder_entry_block(intent, close_size, limit_px)
+                if block:
+                    self._trackb_escalate(intent, "RECOVERY_ENTRY_REMAINDER_WAIT: " + block, _sc_t)
+                    return
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
             _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC_RECOVERY_CLOSE", limit_px, close_size, _ro,
@@ -7884,6 +7888,78 @@ class SenderGateway:
         """
         return classify_send_lifecycle(intent) in {"REDUCE", "EXIT"} or bool(intent.reduce_only_intended)
 
+    @staticmethod
+    def _trackb_split_close(side: str, requested_size: float, engine_size: Optional[float],
+                            exchange_net: Optional[float]) -> Tuple[List[Tuple[float, bool]], str]:
+        """Only an exchange-net opposing leg may be reduce-only. Remainder is entry-type.
+        Unknown proof falls back to a plain close; it is never silently discarded.
+        """
+        qty = abs(fnum(requested_size, 0.0))
+        delta = 1.0 if side == "BUY" else -1.0
+        if engine_size is not None:
+            engine_size = fnum(engine_size, 0.0)
+            if abs(engine_size) <= POSITION_EPSILON or engine_size * delta >= 0:
+                return [], "ENGINE_SLEEVE_NOT_CLOSABLE"
+            qty = min(qty, abs(engine_size))
+        if qty <= POSITION_EPSILON:
+            return [], "CLOSE_SIZE_DUST_OR_ZERO"
+        if exchange_net is None or engine_size is None:
+            return [(qty, False)], "PLAIN_CLOSE_UNKNOWN_EXCHANGE_OR_SLEEVE"
+        ro_size = min(qty, abs(exchange_net)) if exchange_net * delta < 0 else 0.0
+        entry_size = max(0.0, qty - ro_size)
+        parts = []
+        if ro_size > POSITION_EPSILON:
+            parts.append((ro_size, True))
+        if entry_size > POSITION_EPSILON:
+            parts.append((entry_size, False))
+        return parts, "EXCHANGE_NET_CLOSE_SPLIT"
+
+    @staticmethod
+    def _trackb_price_decision(side: str, leader_px: float, executable_px: float, entry_px: float,
+                               qty: float, max_adverse_pct: float = 0.25, fees_bps: float = 10.0) -> Dict[str, Any]:
+        if leader_px <= 0 or executable_px <= 0:
+            return {"state": "WAIT_VERIFIED_PRICE", "reason": "leader or executable price unavailable"}
+        adverse = (executable_px - leader_px if side == "BUY" else leader_px - executable_px) / leader_px * 100.0
+        pnl = ((entry_px - executable_px) if side == "BUY" else (executable_px - entry_px)) * qty
+        pnl -= abs(executable_px * qty) * max(0.0, fees_bps) / 10000.0
+        loss_pct = max(0.0, -pnl) / max(POSITION_EPSILON, abs(entry_px * qty)) * 100.0
+        if entry_px > 0 and pnl > 0:
+            state = "EXECUTE_PROFIT"
+        elif adverse <= max_adverse_pct + 1e-12:
+            state = "EXECUTE_WITHIN_TOLERANCE"
+        else:
+            state = "REST_AT_LEADER_PRICE"
+        return {"state": state, "adverse_pct": adverse, "pnl_after_fees_usd": pnl,
+                "loss_pct": loss_pct, "leader_px": leader_px, "executable_px": executable_px}
+
+    def _trackb_escalate(self, intent: Intent, reason: str, evidence: Optional[Dict[str, Any]] = None,
+                         order_id: str = "") -> None:
+        t = evidence or {}
+        key = str(intent.sleeve_id)
+        with self._resting_lock:
+            self._trackb_escalations[key] = {
+                "leader_wallet": intent.fill.leader_wallet, "coin": intent.fill.coin,
+                "intent_id": intent.intent_id, "leader_fill_id": intent.fill.leader_fill_id,
+                "leader_close_px": intent.fill.price,
+                "follower_executable_px": t.get("follower_executable_px", ""),
+                "loss_usd": t.get("loss_usd", ""), "loss_pct": t.get("loss_pct", ""),
+                "leader_out_ms": max(0, utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0))),
+                "reason": str(reason), "state": "OPEN", "updated_ms": utc_now_ms(),
+            }
+            atomic_write_json(CLOSE_ESCALATIONS_FILE, dict(self._trackb_escalations))
+        self.audit.append_reconciliation(
+            "CLOSE_ESCALATION", "CLOSE_ESCALATION_OPEN",
+            leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+            intent_id=intent.intent_id, coin=intent.fill.coin, exchange_order_id=order_id,
+            action="OWED_CLOSE_PENDING_FILL_OR_CONTROLLER_DECISION", terminal_state="CLOSE_ESCALATION_OPEN",
+            engine_can_send="False", engine_can_close="False",
+            notes=(f"reason={reason}; leader_close_px={intent.fill.price}; "
+                   f"follower_executable_px={t.get('follower_executable_px', '')}; "
+                   f"would_be_loss_usd={t.get('loss_usd', '')}; "
+                   f"would_be_loss_pct={t.get('loss_pct', '')}; "
+                   f"leader_out_ms={max(0, utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0)))}; "
+                   "owed close not terminal until the engine sleeve is verified flat"))
+
     def _reduce_only_on_wire(self, intent: Intent, size: float) -> bool:
         """Boss (F3, 2026-10-09): leaders net on the one shared account, like the exchange does. A leader's close is
         sent reduce-only when it fits inside the account's net position in the closing direction. When other
@@ -7926,52 +8002,124 @@ class SenderGateway:
             log_error("fresh_exchange_net", exc)
             return None
 
+    def clear_trackb_escalations(self) -> int:
+        """Clear an owed close only when copy-fill-owned ledger proves the engine sleeve flat."""
+        done = []
+        if self.ledger is None:
+            return 0
+        with self._resting_lock:
+            for key, row in list(self._trackb_escalations.items()):
+                try:
+                    sleeve = self.ledger.sleeve(row["leader_wallet"], row["coin"])
+                    if abs(fnum(sleeve.get("signed_size"), 0.0)) <= POSITION_EPSILON:
+                        done.append((key, dict(row)))
+                except Exception as exc:
+                    log_error("trackb_escalation_proof", exc)
+            for key, _row in done:
+                self._trackb_escalations.pop(key, None)
+            if done:
+                atomic_write_json(CLOSE_ESCALATIONS_FILE, dict(self._trackb_escalations))
+        for _key, row in done:
+            self.audit.append_reconciliation(
+                "CLOSE_ESCALATION", "CLOSE_ESCALATION_CLEARED",
+                leader_wallet=row["leader_wallet"], coin=row["coin"], intent_id=row["intent_id"],
+                action="ENGINE_SLEEVE_FLAT_PROVEN", terminal_state="CLOSE_ESCALATION_CLEARED",
+                notes="copy-fill ledger confirms ENGINE sleeve flat; USER sleeve unchanged")
+        return len(done)
+
+    def _trackb_remainder_entry_block(self, intent: Intent, qty: float, px: float) -> str:
+        """A close's exposure-increasing leg is a REAL entry for risk and margin.
+        Rejecting it never suppresses the first reduce-only leg; the remainder stays owed.
+        """
+        if qty <= POSITION_EPSILON:
+            return "INVALID_REMAINDER_SIZE"
+        if not self.cfg.master_switch_now() or self.cfg.send_mode_now() == "CLOSE":
+            return "ENTRY_MODE_DISABLED"
+        if not self.cfg.wallet_enabled(intent.fill.leader_wallet) or self.cfg.wallet_mode(intent.fill.leader_wallet) != "ON":
+            return "ENTRY_WALLET_NOT_ON"
+        notional = abs(qty * px)
+        max_order = self.cfg.max_order_notional()
+        if max_order > 0 and notional > max_order + 1e-9:
+            return "ENTRY_REMAINDER_EXCEEDS_MAX_ORDER"
+        snap = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+        now_ms = utc_now_ms()
+        raw = snap.get("raw") if isinstance(snap, dict) else None
+        stamp = int(fnum(snap.get("created_at_ms"), 0)) if isinstance(snap, dict) else 0
+        if not isinstance(raw, dict) or stamp <= 0 or now_ms - stamp > 30000:
+            return "ENTRY_REMAINDER_MARGIN_PROOF_STALE"
+        available = fnum(raw.get("withdrawable"), -1.0)
+        account_value = _summary_account_value(raw)
+        reserve = max(fnum(os.getenv("HL_LIVE_MARGIN_RESERVE_MIN_USDC"), 20.0),
+                      fnum(os.getenv("HL_LIVE_MARGIN_RESERVE_FRAC"), 0.05) * account_value)
+        if available < 0 or available < reserve:
+            return f"ENTRY_REMAINDER_MARGIN_RESERVE: available={available}; reserve={reserve}"
+        max_wallet = self.cfg.max_wallet_exposure(intent.fill.leader_wallet)
+        if max_wallet > 0 and self.ledger is not None:
+            current = self.ledger.wallet_abs_exposure_usd(intent.fill.leader_wallet, {intent.fill.coin: px})
+            if current + notional > max_wallet + 1e-9:
+                return "ENTRY_REMAINDER_WALLET_EXPOSURE_CAP"
+        return ""
+
+    def _trackb_send_close_remainder(self, intent: Intent, qty: float, px: float) -> None:
+        """Send a separately journalled entry-type leg ONLY after the RO leg is fully confirmed.
+        All entry gates, plus reserve/caps, apply. Any refusal stays a red owed close.
+        """
+        reason = self._trackb_remainder_entry_block(intent, qty, px)
+        if reason:
+            self._trackb_escalate(intent, reason, {"follower_executable_px": px})
+            return
+        follower = replace(intent.fill, source="CLOSE_SPLIT_REMAINDER",
+                           raw=dict(intent.fill.raw or {}, dir="Open Long" if intent.copy_side == "BUY" else "Open Short"))
+        child = replace(intent, intent_id=stable_hash(["trackb_close_remainder", intent.intent_id]),
+                        fill=follower, copy_size=qty, copy_notional=abs(qty * px),
+                        decision="ENTRY_ALLOWED", reason="SPLIT_CLOSE_ENTRY_REMAINDER",
+                        reduce_only_intended=False, reduce_only_sent_planned=False,
+                        created_at_ms=utc_now_ms(), notes="lifecycle=ENTRY;trackb_close_remainder=true")
+        self.audit.append_order_intent(child)
+        try:
+            ok, status = self.send_if_allowed(child)
+            if not ok or status != "ORDER_FILLED":
+                self._trackb_escalate(intent, "ENTRY_REMAINDER_UNFILLED: " + str(status),
+                                      {"follower_executable_px": px})
+        except Exception as exc:
+            self._trackb_escalate(intent, "ENTRY_REMAINDER_SEND_UNKNOWN: " + repr(exc)[:180],
+                                  {"follower_executable_px": px})
+
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
                          timing: Optional[Dict[str, Any]] = None, ledger_may_lag: bool = False) -> Tuple[bool, float, str]:
-        """Boss (2026-10-11): a follower close is not reduce-only by default, because the follower may need to move its
-        exposure the other way to follow the leader. Returns (reduce_only, size, skip_reason).
-        The close is sized from the follower's net target (the ledger's net in the coin after this close) against the
-        exchange's net position, and never exceeds this leader's own close. CLOSE ONLY (a wallet's mode and the header
-        control alike) applies to the LEADER side: only leader closes are followed, never entries or adds. It does not
-        limit the follower account, so every sleeve can close out even when that raises the follower's exposure (Boss,
-        12 Oct). Reduce-only only where the exchange requires it (a dust close of the whole account position, or a trimmed
-        order under the minimum) and where the size cannot be worked out (account unreadable, HL_LIVE_CLOSE_TO_TARGET off).
-        When the exchange is already at or past the target in the closing direction nothing is sent (skip_reason set)."""
+        """One physical close leg at a time. The remainder is *owed* and separately entry-gated.
+        No reduce-only flag is taken from the leader's lifecycle.
+        """
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
-        timing = timing if timing is not None else {}
-        if sz_dec is None:
-            return True, size, ""
-        if timing.get("dust_close_below_min_notional"):  # the exchange only takes a sub-minimum order reduce-only
-            return True, size, ""
-        if not self.ledger or not bval(os.getenv("HL_LIVE_CLOSE_TO_TARGET"), True):
-            return True, size, ""
-        key = canonical_coin_key(intent.fill.coin)
-        delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
-        ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
-        if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
-            return True, size, ""
-        if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
-            if ex_net * delta >= 0 or abs(ex_net) <= POSITION_EPSILON:
-                return False, 0.0, f"exchange net {ex_net} has nothing left to close in the direction of this close ({delta})"
-            lag_size = self._floor_wire_size(round(min(abs(delta), abs(ex_net)), 10), sz_dec)
-            if lag_size <= 0:
-                return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
-            if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
-                return True, size, ""
-            pure_reduce = ex_net * delta < 0 and lag_size <= abs(ex_net)
-            return pure_reduce, lag_size, ""
-        need = led_net + delta - ex_net
-        if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
-            return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
-                                f"(ledger net {led_net}, this close {delta})")
-        new_size = self._floor_wire_size(round(min(abs(delta), abs(need)), 10), sz_dec)
-        if new_size <= 0:
-            return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
-        if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
-            return True, size, ""  # the trimmed order would fall under the minimum: keep the full size, reduce-only
-        pure_reduce = ex_net * delta < 0 and new_size <= abs(ex_net)
-        return pure_reduce, new_size, ""
+        t = timing if timing is not None else {}
+        sleeve = None
+        if self.ledger is not None:
+            try:
+                sleeve = fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"), 0.0)
+            except Exception:
+                sleeve = None
+        if sleeve is None and intent.wallet_position_before is not None:
+            sleeve = fnum(intent.wallet_position_before, 0.0)
+        exchange_net = self._fresh_exchange_net(intent.fill.coin)
+        parts, reason = self._trackb_split_close(intent.copy_side, size, sleeve, exchange_net)
+        if not parts:
+            return False, 0.0, reason
+        first_size, first_ro = parts[0]
+        remainder = sum(q for q, ro in parts[1:] if not ro)
+        if sz_dec is not None:
+            first_size = self._floor_wire_size(first_size, sz_dec)
+        if first_size <= 0:
+            return False, 0.0, "CLOSE_SPLIT_SUB_WIRE_DUST"
+        if (first_ro and callable(min_notional_ok) and not min_notional_ok(first_size)
+                and exchange_net is not None and
+                abs(abs(exchange_net) - first_size) > POSITION_EPSILON):
+            # Never inflate a trimmed reduction beyond the actual exchange net.
+            return False, 0.0, "CLOSE_SPLIT_TRIMMED_DUST_ESCALATION"
+        t["trackb_close_remainder"] = remainder
+        t["trackb_close_net"] = exchange_net
+        t["trackb_close_split_reason"] = reason
+        return first_ro, first_size, ""
 
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
@@ -8175,11 +8323,10 @@ class SenderGateway:
         reserved_exit = False
         if is_exit_like:
             with self._pending_exit_lock:
-                last_exit = self._last_exit_attempt_ms.get(coin_key, 0)
-                if utc_now_ms() - last_exit < 60000:
-                    return False, "EXIT_ATTEMPT_COOLDOWN"
+                # B1: a time-based attempt cooldown must never consume an owed exit.
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
+                    self._trackb_escalate(intent, "IN_FLIGHT_DUPLICATE_WAITING: " + guard_reason, timing)
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
                         "terminal_state": "PENDING_EXIT_GUARD_ACTIVE",
                         "reject_category": "PENDING_EXIT_GUARD",
@@ -8434,30 +8581,55 @@ class SenderGateway:
             else:  # moved too far: no chase, rest a limit at the leader's price
                 base_px, mult = missed["desired_px"], 1.0
         rest_now = missed is not None and not missed["take"]
-        if rest_now:
+        if rest_now and lifecycle in {"ENTRY", "ADD"}:
             already = self._already_resting_block(intent, timing)
             if already is not None:
                 return already
         raw_px = base_px * mult
         limit_px = self._format_limit_px(raw_px, price_max_dec)
-        if rest_now:  # never worse than the leader's price
+        if rest_now and lifecycle in {"ENTRY", "ADD"}:  # never worse than the leader's price
             limit_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
         elif missed is not None:  # never beyond leader price + tolerance (a SELL floor would go one tick past it)
             cap_px = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
             limit_px = min(limit_px, cap_px) if intent.copy_side == "BUY" else max(limit_px, cap_px)
-        if close_adv_limit > 0:
-            # UI "Adverse close diff %": a close limit may not sit further than this through the follower mid
+        if lifecycle in {"EXIT", "REDUCE"}:
+            sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin) if self.ledger else {}
+            avg_entry = fnum(sleeve.get("avg_entry_px"), 0.0)
+            exec_px = follower_px * ((1.0 + bps / 10000.0) if intent.copy_side == "BUY"
+                                     else (1.0 - bps / 10000.0))
+            policy = self._trackb_price_decision(
+                intent.copy_side, fnum(intent.fill.price, 0.0), exec_px,
+                avg_entry, abs(intent.copy_size), close_adv_limit,
+                fnum(os.getenv("HL_LIVE_CLOSE_FEES_BPS"), 10.0))
+            timing["follower_executable_px"] = exec_px
+            timing["loss_usd"] = max(0.0, -fnum(policy.get("pnl_after_fees_usd"), 0.0))
+            timing["loss_pct"] = fnum(policy.get("loss_pct"), 0.0)
+            if policy["state"] in {"REST_AT_LEADER_PRICE", "WAIT_VERIFIED_PRICE"}:
+                if fnum(intent.fill.price, 0.0) <= 0:
+                    self._trackb_escalate(intent, "LEADER_CLOSE_PRICE_UNPROVEN", timing)
+                    return False, "CLOSE_ESCALATION_WAIT_PRICE", {
+                        "exchange_called": False, "write_reconciliation": False,
+                        "terminal_state": "CLOSE_ESCALATION_OPEN", "timing": timing}
+                rest_now = True
+                limit_px = self._px_passive(intent.fill.price, price_max_dec, intent.copy_side == "BUY")
+                self._trackb_escalate(intent, policy["state"], timing)
+            elif policy["state"] != "EXECUTE_PROFIT":
+                # Limit worst IOC execution to the leader's reference + approved adverse band.
+                max_pct = close_adv_limit / 100.0
+                boundary = intent.fill.price * (1.0 + max_pct if intent.copy_side == "BUY"
+                                                 else 1.0 - max_pct)
+                cap = self._px_passive(boundary, price_max_dec, intent.copy_side == "BUY")
+                limit_px = min(limit_px, cap) if intent.copy_side == "BUY" else max(limit_px, cap)
+        elif close_adv_limit > 0:
+            # Entries retain their existing price policy (separate from owed exits).
             adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
                        / follower_px * 100.0) if follower_px > 0 else float("inf")
             if adverse > close_adv_limit + 1e-12:
-                detail = (f"close limit {limit_px} vs follower price {follower_px} is {adverse:.4f}% adverse > "
-                          f"{close_adv_limit}%; intent_id={intent.intent_id}")
                 return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
-                    "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
-                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
-                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
-                    "operator_action": "REVIEW_CLOSE_ADVERSE_DIFF_CONTROL", "timing": timing,
-                }
+                    "exchange_called": False, "write_send_attempt": True, "timing": timing,
+                    "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
+                    "error": f"close price differs from follower by {adverse:.4f}%"}
+
         wire_size = self._floor_wire_size(intent.copy_size, sz_dec)
         wire_notional = abs(wire_size * limit_px)
         cfg_min_for_uplift = DEFAULT_MIN_NOTIONAL
@@ -8615,10 +8787,9 @@ class SenderGateway:
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
                 intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
             if close_skip:
-                note = f"{close_skip}; intent_id={intent.intent_id}; no order sent"
-                repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
-                if repair:
-                    note += "; " + repair
+                self._trackb_escalate(intent, "CLOSE_WIRE_PLAN_WAIT: " + close_skip, timing)
+                note = f"{close_skip}; intent_id={intent.intent_id}; owed close remains open"
+                # Exchange flat could hide a USER-owned opposing sleeve: never repair this ledger from a skip.
                 return False, "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", {
                     "status": "CLOSE_ALREADY_AT_TARGET", "error": "", "exchange_response": {}, "oid": "",
                     "exchange_called": False, "write_send_attempt": True, "notes": note, "reject_category": "",
@@ -8627,6 +8798,14 @@ class SenderGateway:
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
                 wire_size = close_size_planned
+            if not use_reduce_only and timing.get("trackb_close_split_reason") == "EXCHANGE_NET_CLOSE_SPLIT":
+                block = self._trackb_remainder_entry_block(intent, wire_size, limit_px)
+                if block:
+                    self._trackb_escalate(intent, block, timing)
+                    return False, "CLOSE_ESCALATION_WAIT_ENTRY_GATE", {
+                        "exchange_called": False, "write_reconciliation": False,
+                        "terminal_state": "CLOSE_ESCALATION_OPEN", "timing": timing,
+                        "notes": block}
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
         # T1a: the pending_send row (with the cloid) is written by _place_order synchronously, AFTER the slot/cooldown wait
@@ -8644,7 +8823,8 @@ class SenderGateway:
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
-                                         cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"},
+                                         cloid=cloid, bypass_rate_limit_cooldown=(lifecycle in {"REDUCE", "EXIT"} or
+                                                                                "trackb_close_remainder=true" in str(intent.notes or "")),
                                          pre_send=_pending_send, intent=intent, path="send_other")
             if isinstance(response, dict) and response.get("exchange_called") is False:
                 # The gate refused inside _place_order: the exchange was never called. Returning here keeps
@@ -8660,7 +8840,7 @@ class SenderGateway:
                     "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
                 }
             timing["exchange_call_finished_ms"] = utc_now_ms()
-            if rest_now:
+            if rest_now and lifecycle in {"ENTRY", "ADD"}:
                 resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(response)
                 if resting_ok:
                     accepted_result = (resting_ok, resting_status, {
@@ -8685,6 +8865,24 @@ class SenderGateway:
                     "exchange_called": True, "error": parsed_error, "timing": timing,
                     "reject_category": "", "reduce_only_sent": use_reduce_only,
                 })
+            if lifecycle in {"EXIT", "REDUCE"}:
+                if ok and status == "ORDER_RESTING" and oid:
+                    sleeve_signed = fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"), 0.0) if self.ledger else 0.0
+                    with self._resting_lock:
+                        self._standing_closes[intent.sleeve_id] = {
+                            "oid": str(oid), "coin": intent.fill.coin, "sdk_coin": sdk_coin,
+                            "size": wire_size, "side": intent.copy_side, "intent_id": intent.intent_id,
+                            "placed_ms": utc_now_ms(), "reduce_only": bool(use_reduce_only),
+                            "sleeve_signed": sleeve_signed, "wallet": intent.fill.leader_wallet,
+                            "led_net": self.ledger.coin_net(canonical_coin_key(intent.fill.coin)) if self.ledger else 0.0,
+                            "sleeve_tol": 0.0, "escalation": True}
+                        atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+                    self._trackb_escalate(intent, "CLOSE_RESTING_AT_LEADER_PRICE", timing, str(oid))
+                elif not ok:
+                    self._trackb_escalate(intent, "CLOSE_ORDER_REJECTED: " + str(parsed_error)[:180], timing)
+                if fnum(timing.get("trackb_close_remainder"), 0.0) > POSITION_EPSILON:
+                    self._trackb_escalate(intent, "ENTRY_TYPE_REMAINDER_OWED: " +
+                                          str(timing.get("trackb_close_remainder")), timing)
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
             if (
                 not ok
@@ -8760,45 +8958,23 @@ class SenderGateway:
                     and lifecycle in {"ENTRY", "ADD"}
                     and classify_reject_category(parsed_error, response) == "SIZE_OR_NOTIONAL_REJECTED"):
                 self._learn_size_or_notional_reject(intent, resolved, parsed_error, wire_notional)
-            if (not ok and status == "ORDER_REJECTED" and use_reduce_only and lifecycle in {"REDUCE", "EXIT"}
-                    and reject_category == "REDUCE_ONLY_REJECTED"):
-                # netting (F3): another leader's opposite fill moved the account before the records caught up. Wait
-                # for the ledger and exchange views to catch up (same coin = same worker, so nothing else of this
-                # coin is sent meanwhile) and resend once without reduce-only if they now agree.
-                deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_NETTING_RETRY_WAIT_SEC"), 3.0))
-                while True:
-                    if not self._reduce_only_on_wire(intent, wire_size):
-                        first_error = parsed_error
-                        timing["netting_close_retry_started_ms"] = utc_now_ms()
-                        self._supersede_attempt(timing, response, intent)
-                        _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
-                                                              timing, "netting_resend")
-                        response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
-                                                     pre_send=_pre, intent=intent, path="send_after_rest")
-                        ok, status, oid, parsed_error = self._parse_hl_response(response)
-                        if ok:
-                            accepted_result = (ok, status, {
-                                "exchange_response": response, "oid": oid, "limit_px": limit_px,
-                                "wire_size": wire_size, "copy_notional": wire_notional,
-                                "exchange_called": True, "error": parsed_error, "timing": timing,
-                                "reject_category": "", "reduce_only_sent": False,
-                            })
-                        reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
-                        use_reduce_only = False
-                        netting_note = (f"leaders net on one account: close resent without reduce-only once the ledger "
-                                        f"and exchange agreed; first attempt: {first_error}")
-                        break
-                    if time.monotonic() >= deadline:
-                        break
-                    time.sleep(0.5)
-            if (not ok and status == "ORDER_REJECTED" and use_reduce_only and lifecycle in {"REDUCE", "EXIT"}
-                    and reject_category == "REDUCE_ONLY_REJECTED"):
-                repair_note = self._repair_ledger_if_exchange_flat(intent, parsed_error)
-                if repair_note:
-                    netting_note = (netting_note + "; " if netting_note else "") + repair_note
-            if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"} and reject_category == "IOC_NO_IMMEDIATE_MATCH":
-                self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response, parsed_error, sz_dec=sz_dec)
+            if (not ok and status == "ORDER_REJECTED" and use_reduce_only
+                    and lifecycle in {"REDUCE", "EXIT"} and reject_category == "REDUCE_ONLY_REJECTED"):
+                # No blind resend as a larger non-reduce-only order: that could cross USER inventory.
+                self._trackb_escalate(intent, "REDUCE_ONLY_REJECTED_AWAIT_EXCHANGE_NET_REPLAN", timing)
+            # A reduce-only rejection is never proof the ENGINE sleeve is flat:
+            # the USER sleeve can net the whole account to zero. Keep it owed/red.
+            if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"} and not rest_now:
+                self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, intent.fill.price, wire_size, response, parsed_error, sz_dec=sz_dec)
+            if (ok and status == "ORDER_FILLED" and lifecycle in {"REDUCE", "EXIT"} and
+                    use_reduce_only and fnum(timing.get("trackb_close_remainder"), 0.0) > POSITION_EPSILON):
+                # A partial/uncertain first leg MUST NOT authorise an exposure-increasing leg.
+                filled = self._filled_size(response)
+                if filled + POSITION_EPSILON >= wire_size:
+                    self._trackb_send_close_remainder(
+                        intent, fnum(timing["trackb_close_remainder"]), limit_px)
+                else:
+                    self._trackb_escalate(intent, "REDUCE_LEG_NOT_FULLY_PROVEN; ENTRY_REMAINDER_OWED", timing)
             if ok and status == "ORDER_FILLED" and lifecycle in {"REDUCE", "EXIT"}:
                 # a close that only part-filled (thin book) leaves the rest standing as a reduce-only close at the
                 # same price, so the position still goes flat (run 4: leftovers stayed open as dust)
@@ -8835,6 +9011,8 @@ class SenderGateway:
             if isinstance(exc, KeyError):
                 self._learn_sdk_incompatible(intent.fill.coin, resolved, repr(exc))
             error_text = repr(exc)
+            if lifecycle in {"EXIT", "REDUCE"}:
+                self._trackb_escalate(intent, "CLOSE_SEND_EXCEPTION_UNRESOLVED: " + error_text[:170], timing)
             reject_category = classify_reject_category(error_text, {})
             self._note_exchange_rate_limit(error_text)
             if gtc_px > 0:
@@ -13997,6 +14175,23 @@ class LiveCopyCore:
         if os.getenv("HL_LIVE_HTTP_KEEPALIVE", "1") != "0" and not bval(os.getenv("HL_LIVE_DISABLE_NETWORK_REFRESH"), False):
             _XNET.start_keepalive(sorted({HL_INFO_URL, HL_LEADER_INFO_URL}), fnum(os.getenv("HL_LIVE_HTTP_KEEPALIVE_SEC"), 20.0))
 
+    def _last_leader_close_reference(self, wallet: str, coin: str) -> Tuple[float, int]:
+        """A convergence close must not pretend that the FOLLOWER mid was the leader's exit price."""
+        try:
+            for row in reversed(read_csv_tail_rows(self.source_csv, 4 * 1024 * 1024)):
+                if (normalise_wallet(row.get("wallet") or row.get("leader_wallet")) != normalise_wallet(wallet)
+                        or canonical_coin_key(row.get("coin")) != canonical_coin_key(coin)):
+                    continue
+                direction = str(row.get("dir") or row.get("direction") or "").lower()
+                if "close" not in direction and "reduce" not in direction:
+                    continue
+                px = fnum(row.get("price"), 0.0)
+                if px > 0:
+                    return px, int(fnum(row.get("timestamp_ms") or row.get("created_at_ms"), 0.0))
+        except Exception as exc:
+            log_error("converge_leader_close_reference", exc)
+        return 0.0, 0
+
     # ---- convergence: no leader exit is ever lost ------------------------------------------------------------------
     def converge_once(self) -> Dict[str, Any]:
         """Close every engine sleeve whose leader is now flat or on the other side (run 5: 2,523 leader exits were
@@ -14041,9 +14236,19 @@ class LiveCopyCore:
                 seen_now.add(key)
                 out["candidates"] += 1
                 first = self._converge_seen.setdefault(key, now)
-                px = follower_mid(coin)
-                if px <= 0:
+                follower_px = follower_mid(coin)
+                leader_close_px, leader_close_ms = self._last_leader_close_reference(wallet, coin)
+                if follower_px <= 0 or leader_close_px <= 0:
+                    # Missing leader-price proof is an OWED close, not a license to cross at the follower mid.
+                    _missing = LeaderFill(f"converge-price:{wallet}:{coin}:{now}", wallet, coin,
+                                          "SELL" if size > 0 else "BUY", leader_close_px,
+                                          abs(size), now, "CONVERGE", 0, {})
+                    _intent = type("OwedClose", (), {
+                        "fill": _missing, "sleeve_id": f"converge:{wallet}:{coin}",
+                        "intent_id": f"converge:{wallet}:{coin}"})()
+                    self.sender._trackb_escalate(_intent, "ORPHAN_CLOSE_WAIT_LEADER_PRICE_OR_FOLLOWER_QUOTE")
                     continue
+                px = leader_close_px
                 # dust (under the minimum order value) the exchange may refuse even reduce-only: retry it rarely
                 wait_ms = max(retry_ms, 1_800_000) if abs(size) * px < self.cfg.min_notional() else retry_ms
                 tries = self._converge_tries.get(key, 0)
@@ -14058,12 +14263,12 @@ class LiveCopyCore:
                 reason = "LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE"
                 close_side = "SELL" if size > 0 else "BUY"
                 fill = LeaderFill(f"converge:{wallet}:{canonical_coin_key(coin)}:{now}", wallet, coin, close_side, px,
-                                  abs(size), now, "CONVERGE", 0,
+                                  abs(size), leader_close_ms or now, "CONVERGE", 0,
                                   {"dir": "Close Long" if size > 0 else "Close Short", "converge_reason": reason,
                                    "leader_net_now": lead, "position_id": pid, "sleeve_size": size})
                 self.audit.append_reconciliation(
                     "CONVERGE_CLOSE", f"CONVERGE_{reason}", leader_wallet=wallet, coin=coin,
-                    action="CLOSE_ENGINE_SLEEVE_REDUCE_ONLY", leader_fill_id=fill.leader_fill_id,
+                    action="QUEUE_ENGINE_SLEEVE_CLOSE_WITH_EXCHANGE_NET_SPLIT", leader_fill_id=fill.leader_fill_id,
                     notes=(f"leader position now {lead}; engine sleeve {size} (position {pid}); confirmed over "
                            f"{(now - first) / 1000:.0f}s; queued as a leader close (all exit gates apply)"))
                 self._converge_sent[key] = now
@@ -14287,6 +14492,7 @@ class LiveCopyCore:
             # --- end entry safety gates ---
             try:
                 self.sender.prune_standing_closes()
+                self.sender.clear_trackb_escalations()
                 self.sender.guard_standing_closes()
             except Exception as exc:
                 log_error("prune_standing_closes", exc)
