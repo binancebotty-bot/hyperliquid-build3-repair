@@ -861,8 +861,12 @@ def child_env(launch_env: dict[str, str] | None = None) -> dict[str, str]:
     return merged
 
 
-def start_pair(build: Path, sha: str, state: Path, port: int, launch_env: dict[str, str]) -> dict[str, Any]:
-    command = [sys.executable, str(build / "ops" / "start_pair.py"), "--checkout", str(build),
+def start_pair(build: Path, sha: str, state: Path, port: int, launch_env: dict[str, str],
+               launcher: Path | None = None) -> dict[str, Any]:
+    # A rollback targets the old engine checkout but MUST use this swap tool's
+    # fixed launcher: old checkouts can contain the broken detached UI spawn.
+    script = launcher if launcher is not None else build / "ops" / "start_pair.py"
+    command = [sys.executable, str(script), "--checkout", str(build),
                "--state", str(state), "--expect-sha", sha, "--ui-port", str(port)]
     result = subprocess.run(command, capture_output=True, text=True, env=child_env(launch_env), timeout=120)
     if result.returncode:
@@ -1090,7 +1094,8 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
             rewrite_launch_spec(copy.deepcopy(original_spec), old_root, old_sha, state)
             atomic_text(pointer_path(state), str(state))
             restore_requested_ms = int(time.time() * 1000)
-            restored = start_pair(old_root, old_sha, state, port, dict(original_spec["env"]))
+            restored = start_pair(old_root, old_sha, state, port, dict(original_spec["env"]),
+                                  launcher=OPS / "start_pair.py")
             tracked_start_ui(port, dict(original_spec["env"]))
             prove_restored_pair(state, port, restored, restore_requested_ms, old_root, old_sha)
         except Exception as rollback_error:

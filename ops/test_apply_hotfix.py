@@ -617,6 +617,54 @@ def check_transient_watch_emits_reason_and_wallet(root):
     assert "0xwallet(no completed poll spanning gap)" in out["output"], out["output"]
 
 
+
+
+def check_rollback_uses_swap_tools_launcher_not_old_checkout(root):
+    """The OLD checkout may contain the known broken python.exe UI spawner."""
+    from types import SimpleNamespace
+    old_build = root / "legacy_old_checkout"
+    fixed_launcher = HOTFIX.OPS / "start_pair.py"
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        if Path(command[1]) != fixed_launcher:
+            raise AssertionError("rollback invoked the broken legacy launcher")
+        return SimpleNamespace(returncode=0,
+            stdout=json.dumps({"pair": "STARTED", "engine_pid": 49001, "ui_pid": 49002}),
+            stderr="")
+
+    with patch.object(HOTFIX.subprocess, "run", side_effect=fake_run):
+        reply = HOTFIX.start_pair(old_build, OLD_SHA, root, 8031,
+                                 {"HL_LIVE_AUDIT_DIR": str(root)},
+                                 launcher=fixed_launcher)
+    assert reply["pair"] == "STARTED", reply
+    assert len(calls) == 1, calls
+    command, kwargs = calls[0]
+    assert Path(command[1]) == fixed_launcher, command
+    assert command[command.index("--checkout") + 1] == str(old_build), command
+    assert command[command.index("--expect-sha") + 1] == OLD_SHA, command
+    assert kwargs["env"]["HL_LIVE_AUDIT_DIR"] == str(root)
+
+    # The actual rollback handler must pass the override, not just offer an
+    # unused optional argument in start_pair().
+    pair = make_pair(root, "broken_legacy_rollback")
+    starts = []
+
+    def start_action(build, sha, state, port, env, **kwargs):
+        starts.append((Path(build), sha, kwargs.get("launcher")))
+        if len(starts) == 1:
+            raise HOTFIX.HotfixError("injected new-build failure")
+        return {"pair": "STARTED", "engine_pid": 4321, "ui_pid": 5678}
+
+    out = run_swap(HOTFIX, pair, 12_345, start=start_action)
+    assert isinstance(out["raised"], HOTFIX.HotfixError), out
+    assert "previous pair restored" in str(out["raised"]), out
+    assert len(starts) == 2, starts
+    assert starts[0] == (pair["new"], NEW_SHA, None), starts
+    assert starts[1] == (pair["old"], OLD_SHA, fixed_launcher), starts
+
+
 def check_ui_child_failure_output_reaches_swap_caller(root):
     """Propagate the actual uvicorn log from start_pair; no withheld-output wrapper."""
     from types import SimpleNamespace
@@ -763,6 +811,8 @@ def main():
              lambda: check_both_swap_and_rollback_causes_are_visible(root)),
             ("APPLY_HOTFIX_TRANSIENT_WATCH_REASON_WALLET",
              lambda: check_transient_watch_emits_reason_and_wallet(root)),
+            ("APPLY_HOTFIX_ROLLBACK_OWNS_FIXED_LAUNCHER",
+             lambda: check_rollback_uses_swap_tools_launcher_not_old_checkout(root)),
             ("APPLY_HOTFIX_UI_CHILD_FAILURE_OUTPUT",
              lambda: check_ui_child_failure_output_reaches_swap_caller(root)),
             ("APPLY_HOTFIX_UNPROVEN_ROLLBACK_REFUSES",
