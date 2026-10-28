@@ -308,3 +308,83 @@ def test_goa_dedup_uses_wallet_tid_and_conflict_rejected(tmp_path):
     different = [dict(rows[0], px="101"), dict(rows[0])]
     with pytest.raises(AH.HotfixError, match="conflicting contents"):
         AH.api_leader_fills(100, 200, [wallet], fetcher=lambda _q: different)
+
+
+
+def test_capguard_ten_thousand_unique_fills_blocks_nine_thousand_nine_hundred_ninety_nine_pass():
+    """10k is the documented *per-wallet retained-history* ceiling, not a page limit."""
+    wallet = "0x" + "a" * 40
+
+    def run(n):
+        rows = [{"tid": i, "time": 1000 + i, "coin": "BTC", "side": "B",
+                 "px": "100", "sz": "0.01"} for i in range(n)]
+
+        def paged(query):
+            assert query["type"] == "userFillsByTime"
+            assert query["aggregateByTime"] is False
+            return [row for row in rows if query["startTime"] <= row["time"]
+                    <= query["endTime"]][:2000]
+
+        return AH.api_leader_fills(
+            1000, 12000, [wallet], fetcher=paged,
+            require_retention_proof=True)
+
+    with pytest.raises(AH.HotfixError, match="coverage ambiguous: retention ceiling reached"):
+        run(10_000)
+    assert len(run(9_999)) == 9_999
+
+
+def test_capguard_zero_fill_without_positive_evidence_blocks():
+    wallet = "0x" + "a" * 40
+    # Historical byTime responses may be silently truncated, producing an empty result.
+    with pytest.raises(AH.HotfixError, match="zero-fill window lacks positive retention evidence"):
+        AH.api_leader_fills(100, 200, [wallet], fetcher=lambda _q: [],
+                            require_retention_proof=True)
+
+    # A latest-fill witness older than start genuinely proves a quiet period.
+    def provable_quiet(query):
+        if query["type"] == "userFills":
+            return [{"tid": 1, "time": 99}]
+        return []
+    assert AH.api_leader_fills(100, 200, [wallet], fetcher=provable_quiet,
+                               require_retention_proof=True) == {}
+
+    # A latest fill AFTER the requested start contradicts a purported clean zero.
+    def inconsistent(query):
+        if query["type"] == "userFills":
+            return [{"tid": 1, "time": 150}]
+        return []
+    with pytest.raises(AH.HotfixError, match="zero-fill window lacks positive retention evidence"):
+        AH.api_leader_fills(100, 200, [wallet], fetcher=inconsistent,
+                            require_retention_proof=True)
+
+
+def test_capguard_export_checks_tail_through_now_and_filters_gap(tmp_path):
+    wallet = "0x" + "a" * 40
+    stop, first_cycle = 1000, 1100
+    calls = []
+    tail = {
+        (wallet, "1"): {"user": wallet, "tid": 1, "time": 1050,
+                        "coin": "BTC", "side": "B", "px": "100", "sz": "0.01"},
+        (wallet, "2"): {"user": wallet, "tid": 2, "time": 1200,
+                        "coin": "BTC", "side": "B", "px": "100", "sz": "0.01"},
+    }
+
+    def provide(start, end, wallets, **kwargs):
+        calls.append((start, end, wallets, kwargs))
+        return tail
+
+    from unittest.mock import patch
+    with patch.object(AH, "LAST_SWAP", tmp_path / "swap.json"), \
+         patch.object(AH, "api_leader_fills", side_effect=provide), \
+         patch.object(AH.time, "time", return_value=2):
+        source, evidence = AH.export_api_source(
+            [wallet], stop, first_cycle, "f" * 40, "https://api.hyperliquid.xyz/info")
+
+    assert calls[0][0] == stop and calls[0][1] == 2000
+    assert calls[0][3]["require_retention_proof"] is True
+    assert evidence["coverage_end_ms"] == 2000
+    assert evidence["retention_ceiling"] == AH.LEADER_FILL_RETENTION_CEILING == 10_000
+    assert evidence["total_fills"] == 1
+    assert len(AH.csv_rows(source)) == 1
+    assert AH.csv_rows(source)[0]["tid"] == "1"

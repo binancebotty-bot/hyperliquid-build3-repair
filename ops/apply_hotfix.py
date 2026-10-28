@@ -326,13 +326,20 @@ def csv_int(value: str | None, field: str) -> int:
         raise HotfixError("invalid numeric proof field: " + field) from exc
 
 
+LEADER_FILL_RETENTION_CEILING = 10_000  # Hyperliquid userFillsByTime exposes only the latest 10,000 per wallet.
+
+
 def api_leader_fills(start_ms: int, end_ms: int, wallets: list[str],
-                     fetcher=None, endpoint: str = "https://api.hyperliquid.xyz/info") -> dict[tuple[str, str], dict[str, Any]]:
+                     fetcher=None, endpoint: str = "https://api.hyperliquid.xyz/info",
+                     require_retention_proof: bool = False) -> dict[tuple[str, str], dict[str, Any]]:
     """Independent leader-network source, not the follower/Core ledger.
 
     Pages overlap at the last millisecond and dedupe by (wallet, tid), NEVER hash.
     A full page with no timestamp advance or incomplete API reply fails closed;
-    silently skipping fills in one hot millisecond is forbidden.
+    silently skipping fills in one hot millisecond is forbidden. The 10,000-fill
+    retention ceiling is per-wallet, not per-page. For proof queries that have no
+    fills, require independent latest-fill evidence instead of interpreting an
+    old/truncated window's empty page as a confirmed zero.
     """
     if fetcher is None:
         import urllib.request
@@ -349,6 +356,7 @@ def api_leader_fills(start_ms: int, end_ms: int, wallets: list[str],
     for wallet in wallets:
         wallet = str(wallet).lower()
         cursor = max(0, int(start_ms))
+        wallet_unique = 0
         for _page_no in range(300):
             payload = {"type": "userFillsByTime", "user": wallet, "startTime": cursor,
                        "endTime": int(end_ms), "aggregateByTime": False}
@@ -374,6 +382,11 @@ def api_leader_fills(start_ms: int, end_ms: int, wallets: list[str],
                         for k in ("coin", "side", "time", "px", "sz")):
                     raise HotfixError("leader-fill API reused tid with conflicting contents")
                 seen[key] = dict(row, user=wallet)
+                if existing is None:
+                    wallet_unique += 1
+                    if wallet_unique >= LEADER_FILL_RETENTION_CEILING:
+                        raise HotfixError("coverage ambiguous: retention ceiling reached (wallet %s, %d unique fills)"
+                                          % (wallet, LEADER_FILL_RETENTION_CEILING))
             if times != sorted(times):
                 raise HotfixError("leader-fill API pages are not chronological; cannot prove completeness")
             if len(batch) < 2000:
@@ -383,6 +396,18 @@ def api_leader_fills(start_ms: int, end_ms: int, wallets: list[str],
             cursor = max(times)  # inclusive: retain every subfill sharing the last ms
         else:
             raise HotfixError("leader-fill API pagination budget exhausted")
+        if require_retention_proof and wallet_unique == 0:
+            # A short/empty historical time-window page is not an API completeness signal.
+            # The separate recent-fills endpoint supplies a positive witness that this
+            # wallet's *latest* known fill predates the requested lower bound.
+            try:
+                recent = fetcher({"type": "userFills", "user": wallet, "aggregateByTime": False})
+            except Exception as exc:
+                raise HotfixError("zero-fill window lacks positive retention evidence") from exc
+            if (not isinstance(recent, list) or not recent or len(recent) > 2000
+                    or any(not isinstance(row, dict) or leader_fill_time(row) <= 0
+                           or leader_fill_time(row) >= start_ms for row in recent)):
+                raise HotfixError("zero-fill window lacks positive retention evidence")
     return seen
 
 
@@ -418,7 +443,17 @@ def export_api_source(wallets: list[str], stop_ms: int, first_cycle_ms: int,
     """Fetch after first healthy cycle; atomic independent source, outside audited state."""
     if stop_ms <= 0 or first_cycle_ms < stop_ms or not wallets:
         raise HotfixError("invalid API gap export window or leader set")
-    seen = api_leader_fills(stop_ms, first_cycle_ms, wallets, endpoint=endpoint)
+    # Query through the present, not just the earlier first-cycle timestamp. If
+    # more than 10,000 recent fills have displaced the gap, that cap is observable
+    # and blocks. Filter to the actual gap only AFTER proving the full retained tail.
+    coverage_end_ms = int(time.time() * 1000)
+    if coverage_end_ms < first_cycle_ms:
+        raise HotfixError("leader-fill API export clock predates first healthy cycle")
+    retained_tail = api_leader_fills(
+        stop_ms, coverage_end_ms, wallets, endpoint=endpoint,
+        require_retention_proof=True)
+    seen = {key: row for key, row in retained_tail.items()
+            if leader_fill_time(row) <= first_cycle_ms}
     name = "%s_source_%s_%d_%d.csv" % (LAST_SWAP.stem, target_sha[:12], stop_ms, first_cycle_ms)
     path = LAST_SWAP.with_name(name)
     fields = ("leader_fill_id", "user", "coin", "side", "px", "sz", "time", "tid", "hash")
@@ -452,7 +487,10 @@ def export_api_source(wallets: list[str], stop_ms: int, first_cycle_ms: int,
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     return path, {"api_verified": True, "source_path": str(path), "source_sha256": digest,
                   "wallets": sorted(set(str(w).lower() for w in wallets)),
-                  "start_ms": stop_ms, "end_ms": first_cycle_ms, "total_fills": len(seen),
+                  "start_ms": stop_ms, "end_ms": first_cycle_ms,
+                  "coverage_end_ms": coverage_end_ms,
+                  "retention_ceiling": LEADER_FILL_RETENTION_CEILING,
+                  "total_fills": len(seen),
                   "endpoint": endpoint, "fetched_at": datetime.now(timezone.utc).isoformat()}
 
 
