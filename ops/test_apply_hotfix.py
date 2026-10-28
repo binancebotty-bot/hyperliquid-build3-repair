@@ -131,7 +131,7 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
     stack.enter_context(patch.object(module, "first_healthy_cycle", side_effect=(
         lambda _s, _p, after: (after + gap_ms, {}))))
     stack.enter_context(patch.object(module, "replay_proof", side_effect=(
-        proof or (lambda *_a: {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
+        proof or (lambda *_a, **_kwargs: {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
                                "unresolved": 0, "cursors_caught_up": len(_a[6]), "merged_buckets": 0,
                                "buckets": 0, "failed_buckets": 0}))))
     stack.enter_context(patch.object(module.SP, "pids", return_value=[]))
@@ -630,6 +630,78 @@ def check_transient_watch_emits_reason_and_wallet(root):
 
 
 
+
+
+def check_midgap_flat_to_nonflat_requires_new_poll(root):
+    """A ledger flip creates a new required wallet; old poll trace cannot certify it."""
+    pair = make_pair(root, "ledger_transition")
+    live, clo = "0x" + "1" * 40, "0x" + "2" * 40
+    cfg = {"wallets": {live: {"mode": "LIVE"}, clo: {"mode": "CLO"}}}
+    ledger = pair["state"] / "manual_live_positions.json"
+    def write_ledger(size):
+        ledger.write_text(json.dumps({
+            "schema": "manual_live_positions.v1.wallet_sleeves",
+            "by_wallet": {clo: {"BTC": {"coin": "BTC", "signed_size": size}}},
+            "by_coin_net": {}}), encoding="utf-8")
+
+    write_ledger(0.0)
+    ws = HOTFIX.wallet_coverage_scope(cfg, {"HL_LIVE_WS_MAX_WALLETS": "10"})
+    pre = HOTFIX.poll_wallet_coverage_scope(pair["state"], cfg, {}, ws)
+    assert pre["followed"] == [live] and clo in pre["excluded_flat_clo_no_close_owed"]
+    write_ledger(0.25)
+    post = HOTFIX.poll_wallet_coverage_scope(pair["state"], cfg, {}, ws)
+    merged = HOTFIX.union_poll_scopes(pre, post)
+    assert merged["followed"] == [live, clo], merged
+    assert merged["newly_nonflat_clo"] == [clo], merged
+    assert merged["pre_stop_ledger"]["sha256"] != merged["post_gap_ledger"]["sha256"]
+    minimum = merged["repoll_after_ms"][clo]
+
+    trace = pair["state"] / "leader_poll_trace.jsonl"
+    def write_poll(ts, identity):
+        trace.write_text(json.dumps({
+            "kind": "poll", "wallet": identity, "ts": ts, "start_ms": 90,
+            "end_ms": 200, "cursor_in": 100, "status": "POLL_OK",
+            "fills": 0, "new": 0}) + "\n", encoding="utf-8")
+
+    write_poll(minimum - 1, clo)
+    try:
+        HOTFIX.poll_coverage(pair["state"], [clo], 100, 200, [], {},
+                            min_poll_ms=merged["repoll_after_ms"])
+    except HOTFIX.HotfixError as exc:
+        assert "no completed poll" in str(exc), exc
+    else:
+        raise AssertionError("pre-transition poll cannot certify new nonflat CLO")
+    write_poll(minimum + 1, clo)
+    HOTFIX.poll_coverage(pair["state"], [clo], 100, 200, [], {},
+                         min_poll_ms=merged["repoll_after_ms"])
+
+    # If the ledger changes for an unrelated wallet, no blanket digest waiver.
+    write_ledger(0.0)
+    with patch.object(HOTFIX, "poll_wallet_coverage_scope", return_value=post):
+        assert merged["followed"] == [live, clo]
+
+
+def check_trace_identity_full_address_and_legacy_collision(root):
+    """Full IDs distinguish equal prefixes; legacy ambiguous trace must refuse."""
+    state = make_pair(root, "trace_collision")["state"]
+    prefix = "0x12345678"
+    one, two = prefix + "a" * 32, prefix + "b" * 32
+    trace = state / "leader_poll_trace.jsonl"
+    def row(identity):
+        return json.dumps({"kind": "poll", "wallet": identity, "ts": 201,
+                           "start_ms": 90, "end_ms": 200, "cursor_in": 100,
+                           "status": "POLL_OK", "fills": 0, "new": 0}) + "\n"
+    trace.write_text(row(one) + row(two), encoding="utf-8")
+    HOTFIX.poll_coverage(state, [one, two], 100, 200, [], {})
+    trace.write_text(row(prefix), encoding="utf-8")
+    try:
+        HOTFIX.poll_coverage(state, [one, two], 100, 200, [], {})
+    except HOTFIX.HotfixError as exc:
+        assert "ambiguous wallet prefixes" in str(exc), exc
+    else:
+        raise AssertionError("ambiguous legacy trace cannot prove full addresses")
+
+
 def check_clo_flat_exclusion_and_nonflat_followed(root):
     """Mirror Core.poll_wallets and name both the skipped flat-CLO and owed closes."""
     pair = make_pair(root, "clo_flat_scope")
@@ -668,7 +740,10 @@ def check_clo_flat_exclusion_and_nonflat_followed(root):
     assert doc["proof"]["poll_scope"]["followed"] == [live, clo_nonflat], doc
     assert doc["proof"]["poll_scope"]["excluded_flat_clo_no_close_owed"] == [clo_flat], doc
     assert doc["proof"]["poll_scope"]["off"] == [off], doc
-    assert doc["source"]["wallets"] == sorted([live, clo_nonflat]), doc["source"]
+    assert doc["source"]["wallets"] == sorted([live, clo_nonflat, clo_flat]), doc["source"]
+    assert doc["proof"]["poll_scope"]["pre_stop_ledger"]["sha256"]
+    assert doc["proof"]["poll_scope"]["post_gap_ledger"]["sha256"]
+    assert doc["proof"]["poll_scope"]["newly_nonflat_clo"] == []
 
 
 def check_unreadable_clo_ledger_fails_before_stop(root):
@@ -940,6 +1015,10 @@ def main():
              lambda: check_both_swap_and_rollback_causes_are_visible(root)),
             ("APPLY_HOTFIX_TRANSIENT_WATCH_REASON_WALLET",
              lambda: check_transient_watch_emits_reason_and_wallet(root)),
+            ("APPLY_HOTFIX_MIDGAP_NONFLAT_REQUIRES_REPOLL",
+             lambda: check_midgap_flat_to_nonflat_requires_new_poll(root)),
+            ("APPLY_HOTFIX_FULL_TRACE_AND_LEGACY_COLLISION",
+             lambda: check_trace_identity_full_address_and_legacy_collision(root)),
             ("APPLY_HOTFIX_CLO_FLAT_AND_NONFLAT_POLL_SCOPE",
              lambda: check_clo_flat_exclusion_and_nonflat_followed(root)),
             ("APPLY_HOTFIX_CLO_LEDGER_UNREADABLE_PRESTOP",
