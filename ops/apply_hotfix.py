@@ -754,7 +754,10 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
             tracked_start_ui(port)
         except Exception as rollback_error:
             raise HotfixError("swap failed and previous pair could not be restored") from rollback_error
-        raise HotfixError("swap failed; previous pair restored") from swap_error
+        # Preserve the last named bucket in the operator-visible rollback error.
+        # Leave unrelated failure messages generic.
+        detail = ("; " + str(swap_error)) if "last failed bucket:" in str(swap_error) else ""
+        raise HotfixError("swap failed; previous pair restored" + detail) from swap_error
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Same-state Build 3 Core/UI hotfix swap")

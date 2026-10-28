@@ -332,6 +332,9 @@ def check_retry_timeout_path(root):
     out2 = run_swap(HOTFIX, pair2, 12_345, proof=always_fail)
     assert isinstance(out2["raised"], HOTFIX.HotfixError), out2["raised"]
     assert "previous pair restored" in str(out2["raised"]), str(out2["raised"])
+    # main() prints only str(error), not __cause__; the bucket must be visible there.
+    assert "last failed bucket:" in str(out2["raised"]), str(out2["raised"])
+    assert "BTC" in str(out2["raised"]), str(out2["raised"])
     cause = out2["raised"].__cause__
     assert cause is not None, "terminal error must chain the original cause"
     assert "last failed bucket" in str(cause), str(cause)
