@@ -26,6 +26,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from test_offline_send_fixture import arm_offline_send
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -68,7 +69,9 @@ def main() -> None:
         c._LEADER_MIDS.update(px={}, ms=0)
 
     def config(wallets=(A, B), copy_mode="fixed", send=False, **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send, "global_controls": gc, "wallets": {
+        if send:
+            return arm_offline_send(c, wallets, global_controls=gc, copy_mode=copy_mode, fixed_notional=12)
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": copy_mode, "fixed_notional": 12} for w in wallets}})
 
     seq = [0]
@@ -383,10 +386,16 @@ def main() -> None:
     check("P6_FILLED_STANDING_CLOSES_FORGOTTEN_EACH_CYCLE", g.prune_standing_closes() == 0 and not g._standing_closes)
     c.atomic_write_json(c.STANDING_CLOSES_FILE, {})
     led = ledger("p7", a_btc=2.0)
-    fake = FakeExchange([NO_MATCH])
+    # Flip OFF after the FIRST fake IOC; a pre-call OFF cannot exercise the
+    # post-first-attempt recovery refusal, because the physical gate blocks it.
+    class SwitchOffAfterIOC(FakeExchange):
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+            result = super().order(coin, is_buy, size, px, tif, reduce_only)
+            if len(self.calls) == 1:
+                config(send=False, marketable_bps=20)
+            return result
+    fake = SwitchOffAfterIOC([NO_MATCH])
     g = gateway(fake, led)
-    time.sleep(0.02)
-    config(send=False, marketable_bps=20)   # switched off while the close was being sent
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
 
@@ -459,7 +468,7 @@ def main() -> None:
     core.stop()
 
     # ---- O: one resting entry limit per leader, coin and side ---------------------------------------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)
     saved_leader = c.LEADER_NETWORK
     c.LEADER_NETWORK = c.FOLLOWER_NETWORK
     try:
