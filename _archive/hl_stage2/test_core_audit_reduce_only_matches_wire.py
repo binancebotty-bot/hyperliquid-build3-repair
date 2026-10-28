@@ -102,6 +102,10 @@ def run(name, side, size, ledger_net, exchange_net, lifecycle):
     gw._ensure_margin_mode = lambda *a, **k: None
     gw._withdraw_standing_close = lambda exchange, intent, wire_size, sz_dec, timing: (wire_size, None)
     gw._fresh_exchange_net = lambda coin: exchange_net
+    # The trim case is an entry-type close remainder; this test checks the
+    # physical reduce_only flag and its audit, not margin-reserve policy.
+    if lifecycle in ('EXIT', 'REDUCE') and exchange_net is not None and exchange_net > 0:
+        gw._trackb_remainder_entry_block = lambda *_args, **_kwargs: ""
     gw.ledger = SleeveLedgerStub(
         {(LEADER, 'ZRO'): -max(abs(size), abs(ledger_net)) if lifecycle in ('EXIT', 'REDUCE') else 0.0},
         {'ZRO': ledger_net})
