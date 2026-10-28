@@ -522,3 +522,97 @@ def test_clo_flat_source_excluded_but_nonflat_clo_remains_proven(tmp_path):
     AH.poll_coverage(state, [live, owed], T0, T0 + MIN, [], {})
     with pytest.raises(AH.HotfixError, match="no completed poll"):
         AH.poll_coverage(state, [live, owed, flat], T0, T0 + MIN, [], {})
+
+
+
+def test_replay_retains_and_attributes_excluded_source_fills(tmp_path):
+    """Source metadata covers all API wallets, not merely the certified subset."""
+    import hashlib
+    from unittest.mock import patch
+    followed, flat = "0x" + "a" * 40, "0x" + "b" * 40
+    rows = [
+        dict(leader_fill_id="LIVE-1", user=followed, coin="BTC", side="B",
+             px="100", sz="0.1", time=T0 + 1000, tid="1"),
+        dict(leader_fill_id="FLAT-1", user=flat, coin="ANIME", side="B",
+             px="10", sz="1", time=T0 + 2000, tid="2"),
+        dict(leader_fill_id="FLAT-2", user=flat, coin="BANANA", side="A",
+             px="10", sz="2", time=T0 + 3000, tid="3"),
+    ]
+    state, source = build(tmp_path, [], [
+        intent_row(followed, "BTC", "B", 10, T0 + 1000)])
+    write_csv(source, list(rows[0]), rows)
+    baseline = dict(anchor_sha256="anchor", anchor_t0_ms=1,
+                    live_config_semantic_sha256="live",
+                    manual_live_positions_sha256="ledger",
+                    xyz_position_state_sha256="xyz", user_owned_sha256="user")
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    evidence = {"api_verified": True, "source_path": str(source),
+                "source_sha256": digest, "wallets": sorted([followed, flat]),
+                "start_ms": T0, "end_ms": T0 + MIN, "total_fills": 3}
+    with patch.object(AH, "cursor_map", return_value={followed: T0 + 1000}), \
+         patch.object(AH, "poll_coverage", return_value=None), \
+         patch.object(AH, "unresolved_count", return_value=0), \
+         patch.object(AH, "snapshot_state", return_value=baseline):
+        proof = AH.replay_proof(
+            state, baseline, set(), source, T0, T0 + MIN, [followed, flat],
+            evidence, followed_wallets=[followed])
+    assert proof["gap_fills"] == 1 and proof["source_fills_total"] == 3, proof
+    assert proof["excluded_fill_count"] == 2, proof
+    excluded = proof["excluded_fills_by_wallet"][flat]
+    assert excluded["count"] == 2
+    assert {(x["id"], x["tid"], x["coin"], x["side"]) for x in excluded["fills"]} == {
+        ("FLAT-1", "2", "ANIME", "B"), ("FLAT-2", "3", "BANANA", "A")}, proof
+
+
+def test_full_wallet_trace_distinguishes_shared_prefixes(tmp_path):
+    import json
+    prefix = "0x12345678"
+    wallets = [prefix + "a" * 32, prefix + "b" * 32]
+    state, _ = build(tmp_path, [], [])
+    trace = state / "leader_poll_trace.jsonl"
+    def record(wallet):
+        return json.dumps({"kind": "poll", "wallet": wallet,
+                           "ts": T0 + MIN, "start_ms": T0 - 1,
+                           "end_ms": T0 + MIN, "cursor_in": T0,
+                           "status": "POLL_OK", "fills": 0, "new": 0}) + "\n"
+    trace.write_text("".join(record(w) for w in wallets), encoding="utf-8")
+    AH.poll_coverage(state, wallets, T0, T0 + MIN, [], {})
+    trace.write_text(record(prefix), encoding="utf-8")
+    with pytest.raises(AH.HotfixError, match="ambiguous wallet prefixes"):
+        AH.poll_coverage(state, wallets, T0, T0 + MIN, [], {})
+
+
+def test_new_nonflat_clo_transition_requires_later_poll(tmp_path):
+    import json
+    w = "0x" + "c" * 40
+    cfg = {"wallets": {w: {"mode": "CLO"}}}
+    state, _ = build(tmp_path, [], [])
+    ledger = state / "manual_live_positions.json"
+    def save(size):
+        ledger.write_text(json.dumps({
+            "schema": "manual_live_positions.v1.wallet_sleeves",
+            "by_wallet": {w: {"BTC": {"coin": "BTC", "signed_size": size}}},
+            "by_coin_net": {}}), encoding="utf-8")
+    ws = AH.wallet_coverage_scope(cfg, {})
+    save(0.0)
+    before = AH.poll_wallet_coverage_scope(state, cfg, {}, ws)
+    save(0.5)
+    after = AH.poll_wallet_coverage_scope(state, cfg, {}, ws)
+    union = AH.union_poll_scopes(before, after)
+    assert union["newly_nonflat_clo"] == [w] and union["followed"] == [w]
+    assert union["pre_stop_ledger"]["sha256"] != union["post_gap_ledger"]["sha256"]
+    ts = union["repoll_after_ms"][w]
+    trace = state / "leader_poll_trace.jsonl"
+    def write_poll(time):
+        trace.write_text(json.dumps({
+            "kind": "poll", "wallet": w, "ts": time,
+            "start_ms": T0, "end_ms": T0 + MIN,
+            "cursor_in": T0, "status": "POLL_OK", "fills": 0, "new": 0
+        }) + "\n", encoding="utf-8")
+    write_poll(ts - 1)
+    with pytest.raises(AH.HotfixError, match="no completed poll"):
+        AH.poll_coverage(state, [w], T0, T0 + MIN, [], {},
+                         min_poll_ms=union["repoll_after_ms"])
+    write_poll(ts + 1)
+    AH.poll_coverage(state, [w], T0, T0 + MIN, [], {},
+                     min_poll_ms=union["repoll_after_ms"])
