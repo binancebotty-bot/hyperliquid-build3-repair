@@ -29,6 +29,7 @@ tmp = Path(tempfile.mkdtemp(prefix='audit_ro_'))
 os.environ.update({
     'HL_LIVE_AUDIT_DIR': str(tmp), 'HL_LEADER_NETWORK': 'testnet', 'HL_FOLLOWER_NETWORK': 'testnet',
     'HL_LIVE_ENV_FILE': str(tmp / 'none.env'), 'HL_LIVE_HL_PRIVATE_KEY': '0x' + '1' * 64,
+    'HL_LIVE_HL_ACCOUNT_ADDRESS': '0x' + 'c' * 40,
     'HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS': '0', 'HL_LIVE_CLOSE_TO_TARGET': '1',
 })
 import requests  # noqa: E402
@@ -166,6 +167,55 @@ def test_missing_sleeve_returns_red_not_attribute_error():
 
 
 test_missing_sleeve_returns_red_not_attribute_error()
+
+
+# A flat read of follower A must not clear an owed close for SDK account B.
+# Realistic fake-ledger sleeve() prevents a coin-net-only test double hiding this.
+def test_fake_ledger_account_identity_cannot_clear():
+    wallet_a, wallet_b = '0x' + 'a' * 40, '0x' + 'b' * 40
+    saved_user = c.USER_WALLET
+    saved_order = os.environ.get('HL_LIVE_HL_ACCOUNT_ADDRESS')
+    saved_path = c.CLOSE_ESCALATIONS_FILE
+    path = tmp / 'identity_close_escalations.json'
+    row = {'leader_wallet': LEADER, 'coin': 'ZRO', 'intent_id': 'owed-i1',
+           'leader_fill_id': 'owed-f1', 'state': 'OPEN'}
+    calls = []
+    try:
+        c.USER_WALLET = wallet_a
+        c.CLOSE_ESCALATIONS_FILE = path
+        gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        gw.ledger = Led(0.0, 0.0)
+        gw._trackb_escalations = {'s1': row}
+        c.atomic_write_json(path, dict(gw._trackb_escalations))
+        exchange_net_by_account = {wallet_a: 0.0, wallet_b: 3.0}
+        os.environ['HL_LIVE_HL_ACCOUNT_ADDRESS'] = wallet_b
+        gw._fresh_exchange_net = lambda coin: (calls.append(coin) or exchange_net_by_account[wallet_a])
+        cleared = gw.clear_trackb_escalations()
+        check('FAKE_LEDGER_A_FLAT_B_NONFLAT_STAYS_RED',
+              cleared == 0 and not calls and c.load_json(path, {}).get('s1') == row)
+        # Account switched between initial identity check and the terminal write.
+        os.environ['HL_LIVE_HL_ACCOUNT_ADDRESS'] = wallet_a
+        calls.clear()
+        def switch_account_after_read(coin):
+            calls.append(coin)
+            os.environ['HL_LIVE_HL_ACCOUNT_ADDRESS'] = wallet_b
+            return exchange_net_by_account[wallet_a]
+        gw._fresh_exchange_net = switch_account_after_read
+        cleared = gw.clear_trackb_escalations()
+        check('FAKE_LEDGER_ACCOUNT_CHANGED_DURING_READ_STAYS_RED',
+              cleared == 0 and calls == ['ZRO'] and c.load_json(path, {}).get('s1') == row)
+    except Exception as exc:
+        check('FAKE_LEDGER_IDENTITY_REGRESSION', False, repr(exc))
+    finally:
+        c.USER_WALLET = saved_user
+        c.CLOSE_ESCALATIONS_FILE = saved_path
+        if saved_order is None:
+            os.environ.pop('HL_LIVE_HL_ACCOUNT_ADDRESS', None)
+        else:
+            os.environ['HL_LIVE_HL_ACCOUNT_ADDRESS'] = saved_order
+
+
+test_fake_ledger_account_identity_cannot_clear()
 
 failed = [n for n, ok in R if not ok]
 print('TOTAL=%d FAILED=%d' % (len(R), len(failed)))

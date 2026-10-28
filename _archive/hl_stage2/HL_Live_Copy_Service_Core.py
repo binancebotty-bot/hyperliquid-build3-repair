@@ -8098,6 +8098,9 @@ class SenderGateway:
                 if net is None or not math.isfinite(net) or abs(net) > POSITION_EPSILON:
                     continue  # unavailable/USER net is never assumed to be flat
                 with self._resting_lock:
+                    # Revalidate at the durable terminal write: settings may change mid-read.
+                    if self._follower_order_account_for_proof() is None:
+                        continue
                     if self._trackb_escalations.get(key) != row:
                         continue  # a newer escalation superseded this one
                     latest = self.ledger.sleeve(wallet, coin)
@@ -8226,7 +8229,9 @@ class SenderGateway:
         try:
             wallet = normalise_wallet(intent.fill.leader_wallet)
             key = canonical_coin_key(intent.fill.coin)
-            if not self.ledger or not is_valid_wallet(normalise_wallet(USER_WALLET)):
+            # A flat read of HL_USER_WALLET cannot repair a DIFFERENT SDK order account.
+            # Bind identity here too: test seams can stub _fresh_exchange_net.
+            if not self.ledger or self._follower_order_account_for_proof() is None:
                 return ""
             sleeve = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(key) or {}
             owned = fnum(sleeve.get("signed_size"), 0.0)
