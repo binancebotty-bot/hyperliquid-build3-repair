@@ -14512,7 +14512,7 @@ class LiveCopyCore:
                 for w, _start, _lane in _jobs:
                     wallet_fills, status = _results[w]
                     fills.extend(wallet_fills)
-                    self._poll_trace({"kind": "poll", "wallet": str(w)[:10], "start_ms": _start, "end_ms": now,
+                    self._poll_trace({"kind": "poll", "wallet": str(w), "wallet_short": str(w)[:10], "start_ms": _start, "end_ms": now,
                                       "cursor_in": max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0)),
                                       "status": status, "fills": len(wallet_fills),
                                       "first_ms": min((f.timestamp_ms for f in wallet_fills), default=0),
