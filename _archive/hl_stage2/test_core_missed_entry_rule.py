@@ -180,16 +180,28 @@ def main() -> None:
         os.environ.pop("HL_LIVE_MISSED_ENTRY_RULE", None)
 
         # ---- M3: no match while sending ---------------------------------------------------------------
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=99.9, replies=[NO_MATCH, NO_MATCH])
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=99.9, replies=[NO_MATCH])
         pxs = [(x["tif"], x["px"]) for x in fake.calls]
-        check("M3_RETRY_CAPPED_AT_LEADER_PLUS_TOLERANCE_NOT_1PCT",
-              len(fake.calls) == 3 and fake.calls[1]["tif"] == "Ioc" and fake.calls[1]["px"] <= 100.2 + 1e-9
-              and max(x["px"] for x in fake.calls) <= 100.2 + 1e-9, str(pxs))
-        check("M3_THEN_LIMIT_RESTS_AT_LEADER_PRICE_WITH_DIFF",
-              pxs[-1] == ("Gtc", 100.0) and status == "ORDER_RESTING" and res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED",
-              f"{status} {pxs}")
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
-        check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
+        check("M3_FIRST_IOC_STAYS_WITHIN_20_BPS",
+              len(fake.calls) == 2 and pxs[0][0] == "Ioc" and pxs[0][1] <= 100.2 + 1e-9, str(pxs))
+        check("M3_NO_WIDENED_SECOND_IOC_GTC_AT_LEADER",
+              pxs == [pxs[0], ("Gtc", 100.0)] and status == "ORDER_RESTING"
+              and res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED", f"{status} {pxs}")
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH])
+        check("M3_NO_EXTRA_IOC_AT_TOLERANCE_CAP",
+              [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
+        os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
+        try:
+            ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.0,
+                                                 replies=[NO_MATCH])
+        finally:
+            os.environ.pop("HL_LIVE_MISSED_ENTRY_RULE", None)
+        check("M3_NO_MATCH_GTC_EVEN_WITH_OPTIONAL_PRECHECK_OFF",
+              status == "ORDER_RESTING" and [(x["tif"], x["px"]) for x in fake.calls]
+              == [("Ioc", 100.2), ("Gtc", 100.0)], str(fake.calls))
+        check("M3_FOLLOWUP_PRESERVES_IOC_REJECTION_PROOF",
+              res.get("order_type") == "REAL_GTC_MISSED_ENTRY_LIMIT"
+              and res.get("exchange_called") is True, str(res)[:240])
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
         check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
     finally:

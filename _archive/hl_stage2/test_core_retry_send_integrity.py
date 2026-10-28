@@ -105,18 +105,52 @@ def main() -> None:
         return (len(ex.calls) == n and all(cl) and len(set(cl)) == n
                 and all(x["cloid"] in x["pending_at_call"] for x in ex.calls))
 
-    # ---- S1: IOC no-match then the follow-up send (entry IOC retry / missed-entry limit)
+    # ---- S1: a definitive IOC no-match gets exactly one leader-price GTC.
     ex = Ex("s1", [NOMATCH, FILLED(1.0, 100.0)])
     g = gw(ex)
     it = mk_intent("s1")
     g.audit.append_order_intent(it)
     ok, status, res = g._send_real(it)
-    check("S1_IOC_RETRY_ACTUALLY_SENT_TWICE", ok and len(ex.calls) == 2, "calls=%d ok=%s" % (len(ex.calls), ok))
-    check("S1_IOC_RETRY_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s1", 2), str(ex.calls))
+    check("S1_IOC_THEN_GTC_ONLY", ok and [x["tif"] for x in ex.calls] == ["Ioc", "Gtc"],
+          str(ex.calls))
+    check("S1_FOLLOWUP_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s1", 2), str(ex.calls))
     st = [r["status"] for r in latest_by_attempt("s1").values()]
     # _send_real returns the LAST attempt for the caller's final row; the superseded first attempt must already be closed
     check("S1_SUPERSEDED_ATTEMPT_NOT_LEFT_PENDING", len(st) == 2 and st.count("pending_send") == 1, str(st))
-    check("S1_RETRY_NOT_REDUCE_ONLY", all(x["ro"] is False for x in ex.calls))
+    check("S1_FOLLOWUP_NOT_REDUCE_ONLY", all(x["ro"] is False for x in ex.calls))
+
+    # S1b: repricing is a SECOND decision point. If the max order cap
+    # contracts after the IOC, no GTC may violate it.
+    ex = Ex("s1cap", [NOMATCH])
+    g = gw(ex)
+    g.cfg.max_order_notional = lambda: 1000.0
+    original_order = ex.order
+    def cap_after_first_ioc(*args, **kwargs):
+        reply = original_order(*args, **kwargs)
+        g.cfg.max_order_notional = lambda: 5.0
+        return reply
+    ex.order = cap_after_first_ioc
+    it = mk_intent("s1cap")
+    g.audit.append_order_intent(it)
+    ok, status, res = g._send_real(it)
+    check("S1_GTC_RECHECKS_ORDER_CAP_AFTER_IOC",
+          not ok and [x["tif"] for x in ex.calls] == ["Ioc"]
+          and res.get("terminal_state") == "MISSED_ENTRY_GTC_BLOCKED"
+          and "cap exceeded" in res.get("notes", ""), str((ex.calls, res)))
+
+    # S1c: the same intent replayed while its GTC is still on-book must
+    # never submit another IOC or another GTC.
+    ex = Ex("s1rest", [NOMATCH, RESTING])
+    g = gw(ex)
+    it = mk_intent("s1rest")
+    g.audit.append_order_intent(it)
+    first_ok, first_status, _ = g._send_real(it)
+    second_ok, second_status, second_result = g._send_real(it)
+    check("S1_SAME_INTENT_REPLAY_DOES_NOT_SEND_AGAIN",
+          first_ok and first_status == "ORDER_RESTING"
+          and not second_ok and second_status == "SEND_NOT_ATTEMPTED_MISSED_ENTRY_ALREADY_RESTING"
+          and [x["tif"] for x in ex.calls] == ["Ioc", "Gtc"],
+          str((ex.calls, second_status, second_result)))
 
     # ---- S2: 429 recovery
     ex = Ex("s2", [RESTING])
@@ -153,7 +187,8 @@ def main() -> None:
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     sites = re.findall(r"self\._place_order\((.*?)\)\n", src, re.S)
     bad = [s[:70] for s in sites if "pre_send=" not in s or "cloid=" not in s]
-    check("S4_ALL_SIX_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 7 and not bad, "%d %s" % (len(sites), bad))
+    check("S4_ALL_REMAINING_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND",
+          len(sites) == 6 and not bad, "%d %s" % (len(sites), bad))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
