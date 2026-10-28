@@ -264,3 +264,47 @@ def test_replay_timeout_message_names_last_failed_bucket():
     assert "last failed bucket" in named
     assert "BTC" in named
     assert "the pair remains up for operator review" in named
+
+
+
+def test_goa_header_only_source_never_proves_zero_gap(tmp_path):
+    state, source = build(tmp_path, [], [])
+    with pytest.raises(AH.HotfixError, match="zero-fill gap requires completed leader API proof"):
+        AH.replay_proof(state, {}, set(), source, T0, T0 + MIN, ["0x" + "a" * 40])
+    # A genuine all-wallet API response (even an empty one) DOES create authenticated metadata.
+    from unittest.mock import patch
+    with patch.object(AH, "api_leader_fills", return_value={}), \
+         patch.object(AH, "LAST_SWAP", tmp_path / "last.json"):
+        exported, meta = AH.export_api_source(
+            ["0x" + "a" * 40], T0, T0 + MIN, "f" * 40, "https://api.hyperliquid.xyz/info")
+        assert exported.read_text(encoding="utf-8").count("\n") == 1
+        assert meta["api_verified"] is True
+        assert meta["total_fills"] == 0
+
+
+def test_goa_incomplete_api_replies_fail_closed():
+    wallet = "0x" + "a" * 40
+    for invalid in (None, {"error": "rate limited"},
+                    [{"tid": None, "time": 100, "coin": "BTC"}],
+                    [{"tid": i, "time": 100, "coin": "BTC"} for i in range(2001)]):
+        with pytest.raises(AH.HotfixError):
+            AH.api_leader_fills(100, 200, [wallet], fetcher=lambda _q, batch=invalid: batch)
+
+
+def test_goa_full_page_without_timestamp_advance_fails_closed():
+    wallet = "0x" + "a" * 40
+    batch = [{"tid": i, "time": 100, "coin": "BTC",
+              "side": "B", "px": "100", "sz": "0.01"} for i in range(2000)]
+    with pytest.raises(AH.HotfixError, match="millisecond pagination"):
+        AH.api_leader_fills(100, 200, [wallet], fetcher=lambda _q: batch)
+
+
+def test_goa_dedup_uses_wallet_tid_and_conflict_rejected(tmp_path):
+    wallet = "0x" + "a" * 40
+    rows = [{"tid": 17, "time": 150, "coin": "BTC", "side": "B",
+             "px": "100", "sz": "0.01", "hash": "shared"}]
+    seen = AH.api_leader_fills(100, 200, [wallet], fetcher=lambda _q: rows)
+    assert (wallet, "17") in seen and len(seen) == 1
+    different = [dict(rows[0], px="101"), dict(rows[0])]
+    with pytest.raises(AH.HotfixError, match="conflicting contents"):
+        AH.api_leader_fills(100, 200, [wallet], fetcher=lambda _q: different)

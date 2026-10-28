@@ -72,7 +72,8 @@ def make_pair(root, name="pair"):
     new_root.mkdir()
     source = pair / "source.csv"
     source.write_text("leader_fill_id,time\n", encoding="utf-8")
-    env = {"HL_LIVE_AUDIT_DIR": str(state), "HL_LIVE_SOURCE_FILLS": str(source)}
+    (state / "network.json").write_text(json.dumps({"leader": "mainnet", "follower": "testnet"}), encoding="utf-8")
+    env = {"HL_LIVE_AUDIT_DIR": str(state), "HL_LEADER_NETWORK": "mainnet"}
     spec = {"cwd": str(old_root / "_archive" / "hl_stage2"),
             "script": str(old_root / "_archive" / "hl_stage2" / HOTFIX.TARGET),
             "build_sha": OLD_SHA, "env": dict(env)}
@@ -83,7 +84,7 @@ def make_pair(root, name="pair"):
 
 
 def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, pointer=None,
-               start=None, track=None, proof=None):
+               start=None, track=None, proof=None, capability=None, export=None):
     stack = ExitStack()
     real_save = module.save_swap_record
 
@@ -92,6 +93,15 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
         return real_save(*args, **kwargs)
 
     stack.enter_context(patch.object(module, "save_swap_record", side_effect=save_record))
+    stack.enter_context(patch.object(module, "api_source_capability", side_effect=(
+        capability or (lambda *_a: None))))
+    stack.enter_context(patch.object(module, "export_api_source", side_effect=(
+        export or (lambda wallets, stop, first, sha, url: (
+            pair["source"],
+            {"api_verified": True, "source_path": str(pair["source"]),
+             "source_sha256": __import__("hashlib").sha256(pair["source"].read_bytes()).hexdigest(),
+             "wallets": sorted(w.lower() for w in wallets), "start_ms": stop,
+             "end_ms": first, "total_fills": 0, "endpoint": url})))))
     stack.enter_context(patch.object(module, "LAUNCH_ENV", pair["launch_env"]))
     stack.enter_context(patch.object(module, "LAST_SWAP", pair["last_swap"]))
     stack.enter_context(patch.object(module, "launch_spec", return_value=(
@@ -291,6 +301,8 @@ def check_swap_pass_and_boundary(root):
         proof_doc = json.loads(proof_path.read_text(encoding="utf-8"))
         assert "proof" in proof_doc and "saved_at" in proof_doc, proof_doc
         assert "merged_buckets" in proof_doc["proof"], proof_doc["proof"]
+        assert proof_doc["source"]["api_verified"] is True
+        assert proof_doc["source"]["source_path"] == str(pair["source"])
 
 
 def check_retry_timeout_path(root):
@@ -371,6 +383,49 @@ def check_precompile_failure_never_stops_the_pair(root):
     assert pair["launch_env"].read_bytes() == before, "launch spec must be byte-identical"
     assert (pair["pair"] / "CURRENT_AUDIT_DIR").read_bytes() == pointer_before, "pointer must be untouched"
     assert not pair["last_swap"].exists(), "no swap record may be written by a preflight failure"
+
+
+
+def check_api_unreachable_never_stops_the_pair(root):
+    """GO-A adverse test: unreachable leader info must fail BEFORE STOP_REQUESTED."""
+    pair = make_pair(root, "api_unreachable")
+    before = pair["launch_env"].read_bytes()
+
+    def no_api(*_args):
+        raise HOTFIX.HotfixError("independent leader-fill API unavailable")
+
+    out = run_swap(HOTFIX, pair, 12_345, capability=no_api)
+    assert isinstance(out["raised"], HOTFIX.HotfixError), out["raised"]
+    assert "API unavailable" in str(out["raised"]), out["raised"]
+    assert "stop" not in out["events"], out["events"]
+    assert pair["launch_env"].read_bytes() == before
+    assert not pair["last_swap"].exists()
+
+
+def check_api_one_shot_after_healthy(root):
+    """GO-A: source export must occur after start, once across delayed-intent retries."""
+    pair = make_pair(root, "api_once")
+    calls = []
+    events = []
+    attempts = {"n": 0}
+
+    def export(wallets, stop, first, sha, url):
+        assert "start" in events, "export must run after the restarted engine"
+        calls.append((stop, first))
+        return pair["source"], {"api_verified": True, "source_path": str(pair["source"]),
+            "source_sha256": "", "wallets": list(wallets),
+            "start_ms": stop, "end_ms": first, "total_fills": 0}
+
+    def proof(*_args):
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise HOTFIX.HotfixError('bucket coverage FAIL: {"bucket":["BTC","BUY"]}')
+        return {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
+                "unresolved": 0, "cursors_caught_up": 1, "merged_buckets": 0,
+                "buckets": 0, "failed_buckets": 0}
+    out = run_swap(HOTFIX, pair, 12_345, events=events, export=export, proof=proof)
+    assert out["raised"] is None and out["result"] == 0, out
+    assert len(calls) == 1 and attempts["n"] == 3, (calls, attempts)
 
 
 def check_ambiguous_stop_isolated(root):
@@ -469,6 +524,10 @@ def main():
             ("APPLY_HOTFIX_MUTATION_GAP_THRESHOLD", lambda: check_mutation_gap_threshold(root)),
             ("APPLY_HOTFIX_PRECOMPILE_FAILURE_NEVER_STOPS",
              lambda: check_precompile_failure_never_stops_the_pair(root)),
+            ("APPLY_HOTFIX_API_UNREACHABLE_PRESTOP",
+             lambda: check_api_unreachable_never_stops_the_pair(root)),
+            ("APPLY_HOTFIX_API_ONE_SHOT_POST_HEALTHY",
+             lambda: check_api_one_shot_after_healthy(root)),
             ("APPLY_HOTFIX_AMBIGUOUS_STOP_ISOLATED", lambda: check_ambiguous_stop_isolated(root)),
             ("APPLY_HOTFIX_SINGLE_FAULT_ROLLBACK", lambda: check_single_fault_rollback_restores_state(root)),
             ("APPLY_HOTFIX_MUTATION_SEMANTIC_CONFIG_GUARD",

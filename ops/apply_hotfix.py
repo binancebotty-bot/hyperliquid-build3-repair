@@ -12,6 +12,7 @@ import csv
 import copy
 import hashlib
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -325,6 +326,136 @@ def csv_int(value: str | None, field: str) -> int:
         raise HotfixError("invalid numeric proof field: " + field) from exc
 
 
+def api_leader_fills(start_ms: int, end_ms: int, wallets: list[str],
+                     fetcher=None, endpoint: str = "https://api.hyperliquid.xyz/info") -> dict[tuple[str, str], dict[str, Any]]:
+    """Independent leader-network source, not the follower/Core ledger.
+
+    Pages overlap at the last millisecond and dedupe by (wallet, tid), NEVER hash.
+    A full page with no timestamp advance or incomplete API reply fails closed;
+    silently skipping fills in one hot millisecond is forbidden.
+    """
+    if fetcher is None:
+        import urllib.request
+        def fetcher(payload):
+            request = urllib.request.Request(
+                endpoint,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return json.loads(response.read())
+    if end_ms < start_ms:
+        raise HotfixError("invalid leader replay window")
+    seen: dict[tuple[str, str], dict[str, Any]] = {}
+    for wallet in wallets:
+        wallet = str(wallet).lower()
+        cursor = max(0, int(start_ms))
+        for _page_no in range(300):
+            payload = {"type": "userFillsByTime", "user": wallet, "startTime": cursor,
+                       "endTime": int(end_ms), "aggregateByTime": False}
+            try:
+                batch = fetcher(payload)
+            except Exception as exc:
+                raise HotfixError("independent leader-fill API unavailable") from exc
+            if not isinstance(batch, list) or len(batch) > 2000:
+                raise HotfixError("leader-fill API returned an invalid/capped reply")
+            times = []
+            for row in batch:
+                if not isinstance(row, dict) or row.get("tid") is None:
+                    raise HotfixError("leader-fill API row missing unique tid")
+                t = leader_fill_time(row)
+                if t <= 0 or t < cursor or t > end_ms:
+                    raise HotfixError("leader-fill API returned a timestamp outside the requested page")
+                times.append(t)
+                tid = str(row["tid"])
+                key = (wallet, tid)
+                existing = seen.get(key)
+                if existing is not None and any(
+                        str(existing.get(k)) != str(row.get(k))
+                        for k in ("coin", "side", "time", "px", "sz")):
+                    raise HotfixError("leader-fill API reused tid with conflicting contents")
+                seen[key] = dict(row, user=wallet)
+            if times != sorted(times):
+                raise HotfixError("leader-fill API pages are not chronological; cannot prove completeness")
+            if len(batch) < 2000:
+                break
+            if not times or max(times) <= cursor:
+                raise HotfixError("leader-fill API 2000-row cap prevents complete millisecond pagination")
+            cursor = max(times)  # inclusive: retain every subfill sharing the last ms
+        else:
+            raise HotfixError("leader-fill API pagination budget exhausted")
+    return seen
+
+
+
+_LEADER_INFO_ENDPOINTS = {
+    "mainnet": "https://api.hyperliquid.xyz/info",
+    "testnet": "https://api.hyperliquid-testnet.xyz/info",
+}
+
+
+def leader_api_url(state: Path, env: dict[str, str]) -> str:
+    """Bind the export to the independently stamped leader network for this state."""
+    stamp = read_json(state / "network.json")
+    leader = str(stamp.get("leader") or "").strip().lower()
+    if leader not in _LEADER_INFO_ENDPOINTS:
+        raise HotfixError("state leader network is missing or unsupported")
+    requested = str(env.get("HL_LEADER_NETWORK") or leader).strip().lower()
+    if requested != leader:
+        raise HotfixError("launch leader network disagrees with state network stamp")
+    return _LEADER_INFO_ENDPOINTS[leader]
+
+
+def api_source_capability(wallets: list[str], endpoint: str) -> None:
+    """BEFORE STOP: read-only API health check, not gap coverage proof."""
+    if not wallets or any(not re.fullmatch(r"0x[0-9a-f]{40}", str(w).lower()) for w in wallets):
+        raise HotfixError("leader API capability requires exact valid LIVE/CLO wallet addresses")
+    now = int(time.time() * 1000)
+    api_leader_fills(now, now, wallets, endpoint=endpoint)
+
+
+def export_api_source(wallets: list[str], stop_ms: int, first_cycle_ms: int,
+                      target_sha: str, endpoint: str) -> tuple[Path, dict[str, Any]]:
+    """Fetch after first healthy cycle; atomic independent source, outside audited state."""
+    if stop_ms <= 0 or first_cycle_ms < stop_ms or not wallets:
+        raise HotfixError("invalid API gap export window or leader set")
+    seen = api_leader_fills(stop_ms, first_cycle_ms, wallets, endpoint=endpoint)
+    name = "%s_source_%s_%d_%d.csv" % (LAST_SWAP.stem, target_sha[:12], stop_ms, first_cycle_ms)
+    path = LAST_SWAP.with_name(name)
+    fields = ("leader_fill_id", "user", "coin", "side", "px", "sz", "time", "tid", "hash")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=name + ".", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", newline="", encoding="utf-8") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fields)
+            writer.writeheader()
+            for (wallet, tid), raw in sorted(seen.items(), key=lambda item: (
+                    leader_fill_time(item[1]), item[0][0], item[0][1])):
+                at = leader_fill_time(raw)
+                coin = str(raw.get("coin") or "").strip()
+                side = str(raw.get("side") or raw.get("dir") or "").strip()
+                px = _num(raw.get("px"), "api.px")
+                sz = _num(raw.get("sz"), "api.sz")
+                if not coin or not side or px <= 0 or sz <= 0:
+                    raise HotfixError("leader-fill API row lacks usable coin/side/size/price")
+                _canonical_side(side)
+                writer.writerow({"leader_fill_id": wallet + ":" + tid, "user": wallet,
+                                 "coin": coin, "side": side, "px": raw["px"], "sz": raw["sz"],
+                                 "time": at, "tid": tid, "hash": str(raw.get("hash") or "")})
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, path)
+    finally:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    return path, {"api_verified": True, "source_path": str(path), "source_sha256": digest,
+                  "wallets": sorted(set(str(w).lower() for w in wallets)),
+                  "start_ms": stop_ms, "end_ms": first_cycle_ms, "total_fills": len(seen),
+                  "endpoint": endpoint, "fetched_at": datetime.now(timezone.utc).isoformat()}
+
+
 def source_gap_fills(source: Path, stop_ms: int, first_cycle_ms: int) -> dict[str, int]:
     if not source.is_file():
         raise HotfixError("local raw leader-fill source is unavailable; cannot prove replay coverage")
@@ -527,8 +658,22 @@ def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_m
 
 
 def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[str, str]],
-                 source: Path, stop_ms: int, first_cycle_ms: int, live_wallets: list[str]) -> dict[str, int]:
+                 source: Path, stop_ms: int, first_cycle_ms: int, live_wallets: list[str],
+                 source_evidence: dict[str, Any] | None = None) -> dict[str, int]:
     fills = source_gap_fills(source, stop_ms, first_cycle_ms)
+    if source_evidence is not None:
+        evidence = source_evidence
+        if (evidence.get("api_verified") is not True
+                or evidence.get("source_path") != str(source)
+                or evidence.get("source_sha256") != hashlib.sha256(source.read_bytes()).hexdigest()
+                or evidence.get("wallets") != sorted(set(w.lower() for w in live_wallets))
+                or int(evidence.get("start_ms") or -1) != stop_ms
+                or int(evidence.get("end_ms") or -1) != first_cycle_ms
+                or int(evidence.get("total_fills") if evidence.get("total_fills") is not None else -1) != len(fills)):
+            raise HotfixError("API source completeness metadata does not match replay window")
+    elif not fills:
+        # A local empty/header-only CSV is not evidence of a zero-fill gap.
+        raise HotfixError("zero-fill gap requires completed leader API proof, not an empty CSV")
     buckets = bucket_reconciliation(state, source, stop_ms, first_cycle_ms)
     attempts = csv_rows(state / "append_only" / "send_attempts.csv")
     new_attempts = [r for r in attempts if csv_int(r.get("created_at_ms"), "send_attempts.created_at_ms") >= stop_ms]
@@ -626,14 +771,15 @@ def save_swap_record(old_root: Path, old_sha: str, new_root: Path, new_sha: str,
                             "saved_at": datetime.now(timezone.utc).isoformat()})
 
 
-def save_swap_proof(proof: dict[str, Any]) -> Path:
+def save_swap_proof(proof: dict[str, Any], source_metadata: dict[str, Any] | None = None) -> Path:
     """Persist the coverage proof beside the swap record.
 
     The proof is written to its own file next to LAST_SWAP, so the accepted merge count and
     bucket metadata survive the run. It never touches audited state or any ledger.
     """
     target = LAST_SWAP.with_name(LAST_SWAP.stem + "_proof.json")
-    atomic_json(target, {"proof": proof, "saved_at": datetime.now(timezone.utc).isoformat()})
+    atomic_json(target, {"proof": proof, "source": source_metadata or {},
+                         "saved_at": datetime.now(timezone.utc).isoformat()})
     return target
 
 
@@ -651,10 +797,9 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     wallets = live_wallets(config)
     if not wallets:
         raise HotfixError("no LIVE/CLO leader wallets are configured; cannot prove polling catch-up")
-    source_spec = env.get("HL_LIVE_SOURCE_FILLS")
-    source = Path(source_spec).expanduser() if source_spec else old_root / "_archive" / "hl_stage2" / "raw_live_fills.csv"
-    if not source.is_file():
-        raise HotfixError("local raw leader-fill source is unavailable; cannot prove replay coverage")
+    api_url = leader_api_url(state, env)
+    # A header-only/stale local CSV is never sufficient. Probe external source BEFORE stop.
+    api_source_capability(wallets, api_url)
     keys = ",".join(sorted(env))
     print("PREFLIGHT: one Core + tracked UI; identity, SHA, state, anchor, config, ledger and env-key checks passed")
     print("ENV KEYS (values withheld): " + keys)
@@ -691,13 +836,21 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         deadline = time.monotonic() + REPLAY_TIMEOUT_S
         first_cycle: tuple[int, dict[str, Any]] | None = None
         proof: dict[str, int] | None = None
+        source: Path | None = None
+        source_meta: dict[str, Any] | None = None
         last_bucket_failure: str | None = None
         while time.monotonic() < deadline:
-            first_cycle = first_healthy_cycle(state, engine_pid, old_pair_down_ms)
+            if first_cycle is None:
+                first_cycle = first_healthy_cycle(state, engine_pid, old_pair_down_ms)
             if first_cycle is not None:
+                # Pin the first healthy timestamp and fetch exactly ONCE after that cycle.
+                # Repeated retries only re-read the same proven source; no stale pre-stop CSV.
+                if source is None:
+                    source, source_meta = export_api_source(
+                        wallets, old_pair_down_ms, first_cycle[0], target_sha, api_url)
                 try:
                     proof = replay_proof(state, baseline, sent_before, source, old_pair_down_ms,
-                                         first_cycle[0], wallets)
+                                         first_cycle[0], wallets, source_meta)
                     break
                 except HotfixError as exc:
                     # A lagging poll/copy cycle is expected during the attached watch; invariant drift is not.
@@ -736,8 +889,9 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         # Preserve explicit rollback target when the new build stays running (including gap failure).
         save_swap_record(old_root, old_sha, new_root, target_sha, state, port, backup)
         # C7-DIR-43(4): persist the coverage proof beside the swap record, untouched by state/ledgers.
-        proof_path = save_swap_proof(proof)
+        proof_path = save_swap_proof(proof, source_meta)
         print("  proof_file                   %s" % proof_path)
+        print("  source_fills / wallets      %d / %d" % (source_meta["total_fills"], len(source_meta["wallets"])))
         if gap_ms >= MAX_GAP_MS:
             print("FAIL: pair downtime must be under 20 seconds")
             return 1
