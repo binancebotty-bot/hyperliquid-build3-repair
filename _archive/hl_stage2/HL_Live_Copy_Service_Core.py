@@ -797,6 +797,9 @@ ORDER_INTENT_FIELDS = [
     "sleeve_id", "position_id", "position_direction_before", "wallet_position_before",
     "coin_net_before", "reduce_only_intended", "reduce_only_sent_planned",
     "marketable_bps", "max_close_adverse_diff_pct", "min_notional", "notes",
+    # ADDITIVE ONLY (C7-DIR-22/30): written for audit provenance, never read by the
+    # decision path. Existing column order above is untouched so old rows stay valid.
+    "leader_tid", "leader_fill_timestamp_ms",
 ]
 
 SEND_ATTEMPT_FIELDS = [
@@ -4831,6 +4834,13 @@ class AuditLogWriter:
             "max_close_adverse_diff_pct": "",
             "min_notional": "",
             "notes": notes,
+            # ADDITIVE provenance (audit row only, never a decision input): the leader's own
+            # trade id and original fill time, so historical replay can key (wallet,tid) and
+            # buckets can use real fill time instead of ingest time. One row per source fill,
+            # merged siblings included - each sibling keeps its own tid because leader_fill_id
+            # is the representative fill of the merge.
+            "leader_tid": str((intent.fill.raw or {}).get("tid") or "") if isinstance(intent.fill.raw, dict) else "",
+            "leader_fill_timestamp_ms": int(fnum(intent.fill.timestamp_ms, 0)),
         }
         if "merged_leader_fills=" in str(notes):  # read back at restart for idempotency: written before this returns
             append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
