@@ -333,7 +333,7 @@ def check_retry_timeout_path(root):
     pair = make_pair(root, "retry_delayed")
     calls = {"n": 0}
 
-    def flaky(*_a):
+    def flaky(*_a, **_kwargs):
         calls["n"] += 1
         if calls["n"] < 3:
             raise HOTFIX.HotfixError(named)
@@ -349,7 +349,7 @@ def check_retry_timeout_path(root):
     # and the terminal error must carry the named bucket through the rollback.
     pair2 = make_pair(root, "retry_permanent")
 
-    def always_fail(*_a):
+    def always_fail(*_a, **_kwargs):
         raise HOTFIX.HotfixError(named)
 
     out2 = run_swap(HOTFIX, pair2, 12_345, proof=always_fail)
@@ -482,7 +482,7 @@ def check_api_one_shot_after_healthy(root):
             "source_sha256": "", "wallets": list(wallets),
             "start_ms": stop, "end_ms": first, "total_fills": 0}
 
-    def proof(*_args):
+    def proof(*_args, **_kwargs):
         attempts["n"] += 1
         if attempts["n"] < 3:
             raise HOTFIX.HotfixError('bucket coverage FAIL: {"bucket":["BTC","BUY"]}')
@@ -608,7 +608,7 @@ def check_transient_watch_emits_reason_and_wallet(root):
     pair = make_pair(root, "transient_reason")
     attempts = {"n": 0}
 
-    def delayed(*_args):
+    def delayed(*_args, **_kwargs):
         attempts["n"] += 1
         if attempts["n"] == 1:
             raise HOTFIX.HotfixError(
