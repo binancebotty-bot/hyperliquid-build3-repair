@@ -481,3 +481,44 @@ def test_cursor_gate_completed_poll_with_advanced_cursor_covers_gap(tmp_path):
         AH.poll_coverage(state, [wallet], T0, T0 + MIN, [],
                          {wallet: T0 - 19 * 60 * MIN})
 
+
+
+
+def test_clo_flat_source_excluded_but_nonflat_clo_remains_proven(tmp_path):
+    live, owed, flat = ("0x" + a * 40 for a in ("1", "2", "3"))
+    rows = [source_row(live, "BTC", "BUY", "100", "0.1", T0 + 1000),
+            source_row(owed, "ETH", "SELL", "100", "0.1", T0 + 2000),
+            source_row(flat, "ANIME", "BUY", "100", "0.1", T0 + 3000)]
+    intents = [intent_row(live, "BTC", "BUY", 10, T0 + 1000),
+               intent_row(owed, "ETH", "SELL", 10, T0 + 2000)]
+    state, src = build(tmp_path, rows, intents)
+
+    # A full 3-wallet proof fails, since the flat CLO leader was not followed.
+    with pytest.raises(AH.HotfixError, match="bucket coverage FAIL"):
+        AH.bucket_reconciliation(state, src, T0, T0 + MIN)
+
+    # Ledger-proven flat CLO is omitted, never counted as covered. LIVE and
+    # non-flat CLO retain exact counts and notional checks.
+    proof = AH.bucket_reconciliation(state, src, T0, T0 + MIN, [live, owed])
+    assert proof["failed_buckets"] == 0 and proof["source_fills"] == 2
+    assert proof["intent_rows"] == 2
+
+    # Removing the non-flat CLO intent remains an actual coverage defect.
+    write_csv(state / "append_only" / "order_intents.csv",
+              ["created_at_ms", "leader_wallet", "coin", "leader_side",
+               "leader_notional", "leader_fill_timestamp_ms"], intents[:1])
+    with pytest.raises(AH.HotfixError, match="bucket coverage FAIL") as exc:
+        AH.bucket_reconciliation(state, src, T0, T0 + MIN, [live, owed])
+    assert owed in str(exc.value) and "ETH" in str(exc.value)
+
+    # Poll evidence is required for both followed wallets, never flat CLO.
+    trace = state / "leader_poll_trace.jsonl"
+    import json
+    trace.write_text("".join(json.dumps({
+        "kind": "poll", "wallet": w[:10], "ts": T0 + MIN,
+        "start_ms": T0 - 1000, "end_ms": T0 + MIN,
+        "cursor_in": T0, "status": "POLL_OK", "fills": 0, "new": 0
+    }) + "\n" for w in (live, owed)), encoding="utf-8")
+    AH.poll_coverage(state, [live, owed], T0, T0 + MIN, [], {})
+    with pytest.raises(AH.HotfixError, match="no completed poll"):
+        AH.poll_coverage(state, [live, owed, flat], T0, T0 + MIN, [], {})

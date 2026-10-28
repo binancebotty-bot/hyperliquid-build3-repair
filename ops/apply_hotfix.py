@@ -516,13 +516,16 @@ def export_api_source(wallets: list[str], stop_ms: int, first_cycle_ms: int,
                   "endpoint": endpoint, "fetched_at": datetime.now(timezone.utc).isoformat()}
 
 
-def source_gap_fills(source: Path, stop_ms: int, first_cycle_ms: int) -> dict[str, int]:
+def source_gap_fills(source: Path, stop_ms: int, first_cycle_ms: int,
+                     followed_wallets: list[str] | None = None) -> dict[str, int]:
     if not source.is_file():
         raise HotfixError("local raw leader-fill source is unavailable; cannot prove replay coverage")
+    selected = set(w.lower() for w in followed_wallets) if followed_wallets is not None else None
     fills: dict[str, int] = {}
     for row in csv_rows(source):
         at = leader_fill_time(row)
-        if stop_ms <= at <= first_cycle_ms:
+        wallet = str(row.get("user") or row.get("wallet") or "").lower()
+        if stop_ms <= at <= first_cycle_ms and (selected is None or wallet in selected):
             fills[leader_fill_id(row)] = at
     return fills
 
@@ -698,7 +701,8 @@ def _bucket(wallet: str, coin: str, side: str, at_ms: int, width_ms: int) -> tup
             _canonical_side(side), int(at_ms) // width_ms)
 
 
-def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_ms: int) -> dict[str, Any]:
+def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_ms: int,
+                          followed_wallets: list[str] | None = None) -> dict[str, Any]:
     """C7-DIR-22 ruling C: bucket-level coverage, the approved weaker proof.
 
     Exact fill-id equality cannot hold once historical ledger rows carry only a hash, so
@@ -709,7 +713,13 @@ def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_m
     """
     if not source.is_file():
         raise HotfixError("local raw leader-fill source is unavailable; cannot prove replay coverage")
-    source_rows = [r for r in csv_rows(source) if stop_ms <= leader_fill_time(r) <= first_cycle_ms]
+    selected = set(w.lower() for w in followed_wallets) if followed_wallets is not None else None
+    if selected is not None and not selected:
+        raise HotfixError("bucket proof cannot have an empty followed-wallet set")
+    source_rows = [r for r in csv_rows(source)
+                   if stop_ms <= leader_fill_time(r) <= first_cycle_ms
+                   and (selected is None
+                        or str(r.get("user") or r.get("wallet") or "").lower() in selected)]
     intents = csv_rows(state / "append_only" / "order_intents.csv")
     # P1-c / C7-DIR-43(3): judge intents on the SAME event-time window as source_rows, not
     # ingestion time. Both bounds are enforced for stamped rows: event_ms >= stop_ms excludes
@@ -722,7 +732,8 @@ def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_m
         stamp = str(r.get("leader_fill_timestamp_ms") or "").strip()
         event_ms = (csv_int(stamp, "order_intents.leader_fill_timestamp_ms") if stamp
                     else csv_int(r.get("created_at_ms"), "order_intents.created_at_ms"))
-        if stop_ms <= event_ms <= first_cycle_ms:
+        if (stop_ms <= event_ms <= first_cycle_ms
+                and (selected is None or str(r.get("leader_wallet") or "").lower() in selected)):
             new_intents.append(r)
     ingest_only = any(not str(r.get("leader_fill_timestamp_ms") or "").strip() for r in new_intents)
     width = BUCKET_WIDTH_WIDE_MS if ingest_only else BUCKET_WIDTH_MS
@@ -783,7 +794,7 @@ def bucket_reconciliation(state: Path, source: Path, stop_ms: int, first_cycle_m
 def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[str, str]],
                  source: Path, stop_ms: int, first_cycle_ms: int, live_wallets: list[str],
                  source_evidence: dict[str, Any] | None = None) -> dict[str, int]:
-    fills = source_gap_fills(source, stop_ms, first_cycle_ms)
+    fills = source_gap_fills(source, stop_ms, first_cycle_ms, live_wallets)
     if source_evidence is not None:
         evidence = source_evidence
         if (evidence.get("api_verified") is not True
@@ -797,7 +808,7 @@ def replay_proof(state: Path, baseline: dict[str, Any], sent_before: set[tuple[s
     elif not fills:
         # A local empty/header-only CSV is not evidence of a zero-fill gap.
         raise HotfixError("zero-fill gap requires completed leader API proof, not an empty CSV")
-    buckets = bucket_reconciliation(state, source, stop_ms, first_cycle_ms)
+    buckets = bucket_reconciliation(state, source, stop_ms, first_cycle_ms, live_wallets)
     attempts = csv_rows(state / "append_only" / "send_attempts.csv")
     new_attempts = [r for r in attempts if csv_int(r.get("created_at_ms"), "send_attempts.created_at_ms") >= stop_ms]
     duplicates = [r for r in new_attempts if (str(r.get("wallet") or r.get("leader_wallet") or "").lower(),
@@ -899,6 +910,75 @@ def wallet_coverage_scope(config: dict[str, Any], env: dict[str, str]) -> dict[s
         "rank_csv_requested": bool(rank_csv),
         "rank_applied": bool(ranks),
         "scope_complete": not bool(ordered[cap:]),
+    }
+
+
+
+def poll_wallet_coverage_scope(state: Path, config: dict[str, Any],
+                               env: dict[str, str], ws_scope: dict[str, Any]) -> dict[str, Any]:
+    """Mirror Core.poll_wallets: LIVE + non-flat CLO, never pretend flat CLO was polled.
+
+    Strict same-ledger evidence: malformed or unreadable manual sleeves must
+    fail closed before the first stop. A missing wallet entry in a *valid*
+    ledger is flat. Core's POSITION_EPSILON is 1e-9.
+    """
+    clo = list(ws_scope["clo_poll_only"])
+    nonflat: set[str] = set()
+    if clo:
+        try:
+            ledger = read_json(state / "manual_live_positions.json")
+            if (ledger.get("schema") != "manual_live_positions.v1.wallet_sleeves"
+                    or not isinstance(ledger.get("by_wallet"), dict)):
+                raise HotfixError("manual_live_positions ledger has no valid wallet-sleeves schema")
+            for addr, sleeves in ledger["by_wallet"].items():
+                if not isinstance(addr, str) or not isinstance(sleeves, dict):
+                    raise HotfixError("manual_live_positions wallet sleeves are unreadable")
+                wallet = addr.lower()
+                if not re.fullmatch(r"0x[0-9a-f]{40}", wallet):
+                    raise HotfixError("manual_live_positions has invalid wallet identity")
+                for coin, sleeve in sleeves.items():
+                    if (not isinstance(coin, str) or not coin.strip()
+                            or not isinstance(sleeve, dict)
+                            or not isinstance(sleeve.get("coin"), str)
+                            or sleeve["coin"].strip().upper() != coin.strip().upper()
+                            or "signed_size" not in sleeve):
+                        raise HotfixError("manual_live_positions sleeve is malformed")
+                    size = sleeve["signed_size"]
+                    if (isinstance(size, bool) or not isinstance(size, (int, float))
+                            or not (-float("inf") < float(size) < float("inf"))):
+                        raise HotfixError("manual_live_positions signed_size unreadable")
+                    if abs(float(size)) > 1e-9:
+                        nonflat.add(wallet)
+        except (OSError, ValueError, OverflowError, TypeError) as exc:
+            raise HotfixError("manual_live_positions unreadable; cannot exclude flat CLO") from exc
+
+    followed_clo = [w for w in clo if w in nonflat]
+    excluded_clo = [w for w in clo if w not in nonflat]
+    enabled_live = (list(ws_scope["stream_followed"])
+                    + list(ws_scope["stream_excluded_uncovered"]))
+    # In normal operation all enabled LIVE leaders are REST-polled; only when
+    # HL_LIVE_POLL_ALL_ACTIVE=false does Core restrict the candidate set to
+    # selected WS wallets + CLO.
+    poll_all = str(child_env(env).get("HL_LIVE_POLL_ALL_ACTIVE", "true")).strip().lower()
+    if poll_all in ("0", "false", "no", "off"):
+        followed_live = list(ws_scope["stream_followed"])
+    else:
+        followed_live = enabled_live
+    excluded_live = [w for w in enabled_live if w not in followed_live]
+    return {
+        "followed": followed_live + followed_clo,
+        "followed_live": followed_live,
+        "followed_nonflat_clo": followed_clo,
+        "excluded_flat_clo_no_close_owed": excluded_clo,
+        "excluded_live_not_followed": excluded_live,
+        "off": [
+            str(w).lower() for w, item in (config.get("wallets") or {}).items()
+            if isinstance(item, dict)
+            and str(item.get("mode", item.get("gate", "OFF"))).strip().upper() == "OFF"
+        ],
+        "ledger_path": str(state / "manual_live_positions.json") if clo else None,
+        "ledger_proven": bool(clo),
+        "scope_complete": not excluded_live,
     }
 
 
@@ -1050,7 +1130,8 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     baseline = snapshot_state(state)
     config = read_json(state / "live_config.json")
     scope = wallet_coverage_scope(config, env)
-    wallets = live_wallets(config)
+    poll_scope = poll_wallet_coverage_scope(state, config, env, scope)
+    wallets = poll_scope["followed"]
     if not wallets:
         raise HotfixError("no LIVE/CLO leader wallets are configured; cannot prove polling catch-up")
     print("WALLET SCOPE: WS followed %d / LIVE %d; excluded %d; CLO poll-only %d; WS cap %d" %
@@ -1061,12 +1142,23 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
     print("  FOLLOWED_WS: " + ", ".join(scope["stream_followed"]), flush=True)
     print("  EXCLUDED_NOT_COVERED: " +
           (", ".join(scope["stream_excluded_uncovered"]) or "none"), flush=True)
+    print("POLL SCOPE: followed %d; excluded flat-CLO %d (no close owed); OFF %d" %
+          (len(wallets), len(poll_scope["excluded_flat_clo_no_close_owed"]),
+           len(poll_scope["off"])), flush=True)
+    print("  POLL_FOLLOWED: " + ", ".join(wallets), flush=True)
+    print("  EXCLUDED_FLAT_CLO_NO_CLOSE_OWED: " +
+          (", ".join(poll_scope["excluded_flat_clo_no_close_owed"]) or "none"), flush=True)
+    print("  OFF_NOT_FOLLOWED: " +
+          (", ".join(poll_scope["off"]) or "none"), flush=True)
     if scope["stream_excluded_uncovered"]:
-        # Controller has not authorised changing the WS cap or a partial-scope PASS.
-        # A 16-wallet source compared to ten followed wallets is NOT full coverage.
+        # Preserve the existing WS cap safety rule: controller must authorise
+        # a different cap before this can PASS.
         raise HotfixError("pre-stop BLOCK: LIVE wallets exceed followed WS slots; "
                           "excluded wallets NOT COVERED: " +
                           ", ".join(scope["stream_excluded_uncovered"]))
+    if poll_scope["excluded_live_not_followed"]:
+        raise HotfixError("pre-stop BLOCK: active LIVE wallets excluded by REST poll config: " +
+                          ", ".join(poll_scope["excluded_live_not_followed"]))
     api_url = leader_api_url(state, env)
     # A header-only/stale local CSV is never sufficient. Probe external source BEFORE stop.
     api_source_capability(wallets, api_url)
@@ -1148,7 +1240,14 @@ def perform_swap(target: Path, target_sha: str, port: int, dry_run: bool) -> int
         # Keep source and replay checks against ALL configured LIVE/CLO wallets.
         # This is only a truthful coverage declaration, not a filter/bypass.
         proof["wallet_scope"] = scope
+        proof["poll_scope"] = poll_scope
         print("PROOF TABLE")
+        print("  poll_wallets_followed        %d" % len(poll_scope["followed"]))
+        print("  excluded_flat_CLO_no_close  %d: %s" %
+              (len(poll_scope["excluded_flat_clo_no_close_owed"]),
+               ", ".join(poll_scope["excluded_flat_clo_no_close_owed"]) or "none"))
+        print("  OFF_not_followed             %d: %s" %
+              (len(poll_scope["off"]), ", ".join(poll_scope["off"]) or "none"))
         print("  wallet_scope_complete       PASS (WS followed %d, excluded %d, CLO poll-only %d)" %
               (len(scope["stream_followed"]), len(scope["stream_excluded_uncovered"]),
                len(scope["clo_poll_only"])))

@@ -132,7 +132,7 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
         lambda _s, _p, after: (after + gap_ms, {}))))
     stack.enter_context(patch.object(module, "replay_proof", side_effect=(
         proof or (lambda *_a: {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
-                               "unresolved": 0, "cursors_caught_up": 1, "merged_buckets": 0,
+                               "unresolved": 0, "cursors_caught_up": len(_a[6]), "merged_buckets": 0,
                                "buckets": 0, "failed_buckets": 0}))))
     stack.enter_context(patch.object(module.SP, "pids", return_value=[]))
     stack.enter_context(patch.object(module.SP, "listener", return_value=None))
@@ -628,6 +628,75 @@ def check_transient_watch_emits_reason_and_wallet(root):
 
 
 
+
+
+def check_clo_flat_exclusion_and_nonflat_followed(root):
+    """Mirror Core.poll_wallets and name both the skipped flat-CLO and owed closes."""
+    pair = make_pair(root, "clo_flat_scope")
+    live = "0x" + "1" * 40
+    clo_nonflat = "0x" + "2" * 40
+    clo_flat = "0x" + "3" * 40
+    off = "0x" + "4" * 40
+    cfg = {"wallets": {
+        live: {"mode": "LIVE", "enabled": True},
+        clo_nonflat: {"mode": "CLO", "enabled": True},
+        clo_flat: {"mode": "CLO", "enabled": True},
+        off: {"mode": "OFF", "enabled": True},
+    }}
+    (pair["state"] / "live_config.json").write_text(json.dumps(cfg), encoding="utf-8")
+    ledger = {"schema": "manual_live_positions.v1.wallet_sleeves",
+              "by_wallet": {
+                  clo_nonflat: {"BTC": {"coin": "BTC", "signed_size": -0.25}},
+                  clo_flat: {"ETH": {"coin": "ETH", "signed_size": 0.0}},
+              },
+              "by_coin_net": {}}
+    (pair["state"] / "manual_live_positions.json").write_text(json.dumps(ledger), encoding="utf-8")
+    ws = HOTFIX.wallet_coverage_scope(cfg, {"HL_LIVE_WS_MAX_WALLETS": "10"})
+    scope = HOTFIX.poll_wallet_coverage_scope(pair["state"], cfg, {}, ws)
+    assert scope["followed"] == [live, clo_nonflat], scope
+    assert scope["followed_nonflat_clo"] == [clo_nonflat], scope
+    assert scope["excluded_flat_clo_no_close_owed"] == [clo_flat], scope
+    assert scope["off"] == [off], scope
+
+    out = run_swap(HOTFIX, pair, 12_345)
+    assert out["raised"] is None and out["result"] == 0, out
+    assert "POLL SCOPE: followed 2; excluded flat-CLO 1 (no close owed); OFF 1" in out["output"], out
+    assert "EXCLUDED_FLAT_CLO_NO_CLOSE_OWED: " + clo_flat in out["output"], out
+    assert "POLL_FOLLOWED: " + live + ", " + clo_nonflat in out["output"], out
+    proof_path = pair["last_swap"].with_name(pair["last_swap"].stem + "_proof.json")
+    doc = json.loads(proof_path.read_text(encoding="utf-8"))
+    assert doc["proof"]["poll_scope"]["followed"] == [live, clo_nonflat], doc
+    assert doc["proof"]["poll_scope"]["excluded_flat_clo_no_close_owed"] == [clo_flat], doc
+    assert doc["proof"]["poll_scope"]["off"] == [off], doc
+    assert doc["source"]["wallets"] == sorted([live, clo_nonflat]), doc["source"]
+
+
+def check_unreadable_clo_ledger_fails_before_stop(root):
+    """Missing, corrupt and unverified sleeve sizes must never infer flatness."""
+    live = "0x" + "1" * 40
+    clo = "0x" + "2" * 40
+    cfg = {"wallets": {live: {"mode": "LIVE"}, clo: {"mode": "CLO"}}}
+    cases = [
+        None,
+        '{"schema":"not_verified","by_wallet":{}}',
+        '{"schema":"manual_live_positions.v1.wallet_sleeves","by_wallet":{"' +
+        clo + '":{"BTC":{"coin":"BTC","signed_size":"0.0"}}}}',
+        '{"schema":"manual_live_positions.v1.wallet_sleeves","by_wallet":{"' +
+        clo + '":{"BTC":{"coin":"BTC","signed_size":true}}}}',
+    ]
+    for idx, raw in enumerate(cases):
+        pair = make_pair(root, "bad_clo_ledger_%d" % idx)
+        (pair["state"] / "live_config.json").write_text(json.dumps(cfg), encoding="utf-8")
+        ledger_file = pair["state"] / "manual_live_positions.json"
+        if raw is not None:
+            ledger_file.write_text(raw, encoding="utf-8")
+        out = run_swap(HOTFIX, pair, 12_345)
+        assert isinstance(out["raised"], HOTFIX.HotfixError), (idx, out)
+        assert ("manual_live_positions" in str(out["raised"])), (idx, out["raised"])
+        assert "stop" not in out["events"] and "start" not in out["events"], (idx, out)
+        assert not pair["last_swap"].exists()
+
+
 def check_wallet_cap_blocks_before_stop_and_names_exclusions(root):
     """No fake full-coverage proof when the Core can only stream ten of sixteen."""
     pair = make_pair(root, "wallet_cap_preflight")
@@ -871,6 +940,10 @@ def main():
              lambda: check_both_swap_and_rollback_causes_are_visible(root)),
             ("APPLY_HOTFIX_TRANSIENT_WATCH_REASON_WALLET",
              lambda: check_transient_watch_emits_reason_and_wallet(root)),
+            ("APPLY_HOTFIX_CLO_FLAT_AND_NONFLAT_POLL_SCOPE",
+             lambda: check_clo_flat_exclusion_and_nonflat_followed(root)),
+            ("APPLY_HOTFIX_CLO_LEDGER_UNREADABLE_PRESTOP",
+             lambda: check_unreadable_clo_ledger_fails_before_stop(root)),
             ("APPLY_HOTFIX_WALLETCAP_FAILS_PRESTOP",
              lambda: check_wallet_cap_blocks_before_stop_and_names_exclusions(root)),
             ("APPLY_HOTFIX_WALLET_RANK_CLO_SCOPE",
