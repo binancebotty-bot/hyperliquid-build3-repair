@@ -1,0 +1,49 @@
+{
+  "schema": "b3_gpt_lane_bindings_v1",
+  "recorded_by": "hermes:engineering-controller",
+  "recorded_at_utc": "2026-10-28T15:12:00Z",
+  "cdp_port": 9225,
+  "send_tool": "C:/Users/wigmore/.hermes/scripts/control_loop/b4_chan_send2.py (env B4_PORT, B4_CONV)",
+  "lanes": [
+    {
+      "role": "gpt6:primary-coder",
+      "conversation": "6ae1cdcb-3dec-83ed-89c6-31d8feb678b9",
+      "pane_title": "GPT Coder 2",
+      "branch": "gpt/c7-track-b-close-first-20261028",
+      "owns": "Track B items 1-4 (closes first)",
+      "last_readback": "b4ch35a70918063dbfde",
+      "status": "blocked on branch, branch now exists; no commit pushed yet"
+    },
+    {
+      "role": "gpt:reviewer-G3",
+      "conversation": "6ae20a24-0334-83ed-b32a-4d1e26037959",
+      "pane_title": "GPT Reviewer Setup",
+      "branch": "reviews gpt/c7-track-b-close-first-20261028",
+      "owns": "independent review of Track B commits, never the author",
+      "ack_nonce": "b4ch0c776b5587e2b188",
+      "status": "ACKed, awaiting first commit sha"
+    },
+    {
+      "role": "gpt:matrix-runner-L4",
+      "conversation": "6ae20a33-56a0-83ed-9b94-b4c4a14715ef",
+      "pane_title": "GPT Matrix Reference",
+      "owns": "static and documentation matrix records",
+      "ack_nonce": "b4ch83bd9c934a02be91",
+      "batch_in_flight": {"batch": "A-static", "rows": 40, "nonce": "b3A2f19c4d7e05ab3", "sent_at_utc": "2026-10-28T15:13:00Z"},
+      "status": "ACKed, batch A dispatched"
+    },
+    {
+      "role": "gpt:second-coder-B (expected, NOT FOUND)",
+      "conversation": null,
+      "owns": "Track B items 5+ on its own branch off a1acc28",
+      "status": "no such conversation exists on port 9225 as of 15:12Z - only two new threads were opened"
+    }
+  ],
+  "rules": [
+    "one recipient per message",
+    "nonce in the first line of every reply",
+    "no mainnet, no keys, no runtime or order actions",
+    "closes first; USER sleeves labelled and never closed",
+    "no lane certifies its own work"
+  ]
+}
