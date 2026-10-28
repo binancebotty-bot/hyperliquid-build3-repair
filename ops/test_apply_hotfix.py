@@ -119,9 +119,13 @@ def swap_stack(module, pair, gap_ms, events, precompile=None, rewrite=None, poin
         lambda _s, _p, after: (after + gap_ms, {}))))
     stack.enter_context(patch.object(module, "replay_proof", side_effect=(
         proof or (lambda *_a: {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
-                               "unresolved": 0, "cursors_caught_up": 1}))))
+                               "unresolved": 0, "cursors_caught_up": 1, "merged_buckets": 0,
+                               "buckets": 0, "failed_buckets": 0}))))
     stack.enter_context(patch.object(module.SP, "pids", return_value=[]))
     stack.enter_context(patch.object(module.SP, "listener", return_value=None))
+    # Keep the real retry loop bounded: with sleep stubbed the loop spins hot, so the replay
+    # deadline must be short or a permanent failure test would never terminate.
+    stack.enter_context(patch.object(module, "REPLAY_TIMEOUT_S", 0.05))
     stack.enter_context(patch.object(module.time, "sleep"))
     return stack
 
@@ -181,8 +185,12 @@ def _replay_fixture(root, source):
     (state / "live_integrity_status.json").write_text(json.dumps({
         "hard_copy_invariant": {"historical_unresolved_active_red_count": 0},
         "counts": {"open_late_fill_incidents": 0}}), encoding="utf-8")
-    (append_only / "order_intents.csv").write_text("created_at_ms,leader_fill_id\n121,fill-1\n",
-                                                    encoding="utf-8")
+    # Bucket coverage keys intents by (wallet, coin, side, interval), so the fixture must
+    # carry the same provenance columns production writes - a two-column stub cannot prove
+    # coverage and would fail for the wrong reason.
+    (append_only / "order_intents.csv").write_text(
+        "created_at_ms,leader_fill_id,leader_wallet,coin,leader_side,leader_notional,"
+        "leader_fill_timestamp_ms\n121,fill-1,leader,BTC,B,1,120\n", encoding="utf-8")
     (append_only / "send_attempts.csv").write_text("created_at_ms,wallet,leader_fill_id\n",
                                                     encoding="utf-8")
     with source.open("w", newline="", encoding="utf-8") as stream:
@@ -218,7 +226,11 @@ def check_replay_proof(root, source):
         (state / "clean_core_runtime_state.json").write_text(json.dumps(runtime), encoding="utf-8")
         proof = HOTFIX.replay_proof(state, BASELINE, set(), source, 100, 150, ["0xwallet"])
         assert proof == {"gap_fills": 1, "gap_intent_rows": 1, "duplicate_attempts": 0,
-                         "unresolved": 0, "cursors_caught_up": 1}, proof
+                         "unresolved": 0, "cursors_caught_up": 1,
+                         "proof_label": "bucket-level coverage", "buckets": 1,
+                         "bucket_width_ms": HOTFIX.BUCKET_WIDTH_MS,
+                         "bucket_provenance": "leader_fill_time",
+                         "failed_buckets": 0, "merged_buckets": 0}, proof
         expect_error("live_config_semantic_sha256", live_config_semantic_sha256="semantic_changed")
         expect_error("same-state invariant changed: user_owned_sha256", user_owned_sha256="user_changed")
     with (state / "append_only" / "send_attempts.csv").open("a", newline="", encoding="utf-8") as stream:
@@ -272,6 +284,63 @@ def check_swap_pass_and_boundary(root):
         assert record["previous_sha"] == OLD_SHA and record["current_sha"] == NEW_SHA, record
         assert record["current_checkout"] == str(pair["new"]), record
         assert Path(record["state_dir"]) == pair["state"], record
+        # C7-DIR-43(4): the coverage proof must be persisted to its own file beside the swap
+        # record, carrying merged_buckets, without touching audited state or ledgers.
+        proof_path = pair["last_swap"].with_name(pair["last_swap"].stem + "_proof.json")
+        assert proof_path.is_file(), "coverage proof must be persisted beside the swap record"
+        proof_doc = json.loads(proof_path.read_text(encoding="utf-8"))
+        assert "proof" in proof_doc and "saved_at" in proof_doc, proof_doc
+        assert "merged_buckets" in proof_doc["proof"], proof_doc["proof"]
+
+
+def check_retry_timeout_path(root):
+    """C7-DIR-43(2)/C7-DIR-45: exercise the REAL retry/timeout path inside perform_swap.
+
+    (a) A transient bucket mismatch that resolves before the replay deadline must succeed -
+        the attached watch waits out catch-up instead of aborting.
+    (b) A permanent mismatch must end in a terminal error that names the failed bucket, and
+        that name must survive the rollback message (as the chained cause).
+    """
+    good_proof = {"gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
+                  "unresolved": 0, "cursors_caught_up": 1, "merged_buckets": 0,
+                  "buckets": 0, "failed_buckets": 0}
+    named = 'bucket coverage FAIL: [{"bucket": ["0xabc", "BTC", "BUY", 1], "cause": "count"}]'
+
+    # (a) delayed intent: the first two attempts see a not-yet-flushed row, the third succeeds.
+    pair = make_pair(root, "retry_delayed")
+    calls = {"n": 0}
+
+    def flaky(*_a):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise HOTFIX.HotfixError(named)
+        return dict(good_proof)
+
+    out = run_swap(HOTFIX, pair, 12_345, proof=flaky)
+    assert out["raised"] is None, out["raised"]
+    assert out["result"] == 0, out["result"]
+    assert "HOTFIX SWAP PASS" in out["output"], out["output"][-300:]
+    assert calls["n"] == 3, calls
+
+    # (b) permanent mismatch: every attempt fails within the bucket, so the deadline expires
+    # and the terminal error must carry the named bucket through the rollback.
+    pair2 = make_pair(root, "retry_permanent")
+
+    def always_fail(*_a):
+        raise HOTFIX.HotfixError(named)
+
+    out2 = run_swap(HOTFIX, pair2, 12_345, proof=always_fail)
+    assert isinstance(out2["raised"], HOTFIX.HotfixError), out2["raised"]
+    assert "previous pair restored" in str(out2["raised"]), str(out2["raised"])
+    cause = out2["raised"].__cause__
+    assert cause is not None, "terminal error must chain the original cause"
+    assert "last failed bucket" in str(cause), str(cause)
+    assert "BTC" in str(cause), str(cause)
+    # the rollback must actually have run and restored the OLD launch spec on disk
+    restored = json.loads(pair2["launch_env"].read_text(encoding="utf-8"))
+    assert restored["build_sha"] == OLD_SHA, restored
+    # a failed replay must not leave a proof file claiming coverage
+    assert not pair2["last_swap"].with_name(pair2["last_swap"].stem + "_proof.json").exists()
 
 
 def check_mutation_gap_threshold(root):
@@ -374,7 +443,8 @@ def check_single_fault_rollback_restores_state(root):
                        track=track_action,
                        proof=inject("proof", lambda *_a: {
                            "gap_fills": 0, "gap_intent_rows": 0, "duplicate_attempts": 0,
-                           "unresolved": 0, "cursors_caught_up": 1}))
+                           "unresolved": 0, "cursors_caught_up": 1, "merged_buckets": 0,
+                           "buckets": 0, "failed_buckets": 0}))
         assert isinstance(out["raised"], HOTFIX.HotfixError), (failed_at, out["raised"])
         assert "previous pair restored" in str(out["raised"]), (failed_at, str(out["raised"]))
         restored = json.loads(pair["launch_env"].read_text(encoding="utf-8"))
@@ -392,6 +462,7 @@ def main():
             ("APPLY_HOTFIX_TIMESTAMP_RULES", lambda: check_timestamp_and_digest_rules(root)),
             ("APPLY_HOTFIX_REPLAY_PROOF", lambda: check_replay_proof(root / "replay", raw)),
             ("APPLY_HOTFIX_SWAP_PASS_AND_GAP_BOUNDARY", lambda: check_swap_pass_and_boundary(root)),
+            ("APPLY_HOTFIX_RETRY_TIMEOUT_PATH", lambda: check_retry_timeout_path(root)),
             ("APPLY_HOTFIX_MUTATION_GAP_THRESHOLD", lambda: check_mutation_gap_threshold(root)),
             ("APPLY_HOTFIX_PRECOMPILE_FAILURE_NEVER_STOPS",
              lambda: check_precompile_failure_never_stops_the_pair(root)),
