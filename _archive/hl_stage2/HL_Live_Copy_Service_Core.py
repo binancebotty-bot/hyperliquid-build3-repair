@@ -156,6 +156,8 @@ MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
+CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
+_CLOSE_ESCALATIONS_LOCK = threading.RLock()
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -5456,6 +5458,7 @@ class SenderGateway:
                 _row.pop("withdrawing", None)  # an in-memory claim; a stop mid-withdrawal must not leave it set
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
         self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
+        self._close_escalations: Dict[str, Dict[str, Any]] = load_json(CLOSE_ESCALATIONS_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
@@ -8092,8 +8095,110 @@ class SenderGateway:
             return "BLOCKED_CLO_ENTRY", f"CLO blocks entries/adds at send time (intent created in mode {intent.wallet_mode})"
         return None
 
+
+    def _open_close_escalation(self, intent: Intent, reason: str) -> None:
+        """Persist red, independently of the reconciliation CSV and any send attempt."""
+        wallet = normalise_wallet(intent.fill.leader_wallet)
+        coin = canonical_coin_key(intent.fill.coin)
+        key = wallet + "::" + coin
+        now = utc_now_ms()
+        with _CLOSE_ESCALATIONS_LOCK:
+            # Read under the cross-gateway lock: one wallet/coin update cannot erase another.
+            rows = (json.loads(CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig"))
+                    if CLOSE_ESCALATIONS_FILE.exists() else {})
+            if not isinstance(rows, dict):
+                raise ValueError("CLOSE_ESCALATIONS_CORRUPT")
+            earlier = rows.get(key) if isinstance(rows.get(key), dict) else {}
+            rows[key] = {
+                "state": "OPEN", "wallet": wallet, "coin": coin,
+                "intent_id": intent.intent_id, "leader_fill_id": intent.fill.leader_fill_id,
+                "reason": str(reason or "UNSPECIFIED_CLOSE_FAILURE"),
+                "first_seen_ms": int(fnum(earlier.get("first_seen_ms"), now)),
+                "last_seen_ms": now,
+                "terminal_rule": "ENGINE_SLEEVE_AND_FRESH_EXCHANGE_NET_BOTH_FLAT",
+            }
+            atomic_write_json(CLOSE_ESCALATIONS_FILE, rows)
+            self._close_escalations = rows
+
+    @staticmethod
+    def _close_proof_account_ok() -> bool:
+        """A fresh read of the WRONG trading account never clears a close."""
+        reader = normalise_wallet(USER_WALLET)
+        account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+        if not is_valid_wallet(account):
+            key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+            if key and HLAccount is not None:
+                try:
+                    account = normalise_wallet(HLAccount.from_key(key).address)
+                except Exception:
+                    return False
+        return is_valid_wallet(reader) and is_valid_wallet(account) and reader == account
+
+    def clear_close_escalations(self) -> int:
+        """Clear only on a CURRENT flat engine sleeve AND a fresh same-account flat exchange read.
+
+        A send success, a cooldown, a different coin, stale snapshots and an
+        unreadable account are NOT evidence. No missing ledger sleeve is created.
+        """
+        if self.ledger is None or not self._close_proof_account_ok():
+            return 0
+        with _CLOSE_ESCALATIONS_LOCK:
+            rows = (json.loads(CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig"))
+                    if CLOSE_ESCALATIONS_FILE.exists() else {})
+            if not isinstance(rows, dict):
+                raise ValueError("CLOSE_ESCALATIONS_CORRUPT")
+            snapshot = dict(rows)
+        cleared = 0
+        fresh_nets: Dict[str, Optional[float]] = {}
+        for key, row in snapshot.items():
+            if not isinstance(row, dict) or row.get("state") != "OPEN":
+                continue
+            wallet, coin = str(row.get("wallet") or ""), str(row.get("coin") or "")
+            if key != wallet + "::" + coin or not wallet or not coin:
+                continue
+            # ManualLedger.sleeve() creates a missing FLAT row, so read exact
+            # existing owned data instead: absent is UNKNOWN, not proof of flat.
+            try:
+                owned_row = (((self.ledger.data or {}).get("by_wallet") or {})
+                             .get(wallet, {}).get(coin))
+                owned = float(owned_row["signed_size"]) if isinstance(owned_row, dict) else float("nan")
+            except (TypeError, ValueError, KeyError, AttributeError):
+                continue
+            if not math.isfinite(owned) or abs(owned) > POSITION_EPSILON:
+                continue
+            if coin not in fresh_nets:
+                fresh_nets[coin] = self._fresh_exchange_net(coin)
+            try:
+                exchange = float(fresh_nets[coin])
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(exchange) or abs(exchange) > POSITION_EPSILON:
+                continue
+            with _CLOSE_ESCALATIONS_LOCK:
+                latest = (json.loads(CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig"))
+                          if CLOSE_ESCALATIONS_FILE.exists() else {})
+                if not isinstance(latest, dict):
+                    raise ValueError("CLOSE_ESCALATIONS_CORRUPT")
+                if latest.get(key) != row or not self._close_proof_account_ok():
+                    continue  # newer refusal or account switch supersedes this proof
+                current = (((self.ledger.data or {}).get("by_wallet") or {})
+                           .get(wallet, {}).get(coin))
+                try:
+                    current_size = float(current["signed_size"]) if isinstance(current, dict) else float("nan")
+                except (TypeError, ValueError, KeyError):
+                    continue
+                if not math.isfinite(current_size) or abs(current_size) > POSITION_EPSILON:
+                    continue
+                latest.pop(key)
+                atomic_write_json(CLOSE_ESCALATIONS_FILE, latest)
+                self._close_escalations = latest
+                cleared += 1
+        return cleared
+
     def _journal_authorised_close_refusal(self, intent: Intent, reason: str) -> None:
         """An authorised close without confirmed success must have a named durable row."""
+        # Install durable RED first: a failed CSV append must not lose the owed close.
+        self._open_close_escalation(intent, reason)
         self.audit.append_reconciliation(
             "SEND_TERMINAL", "AUTHORISED_CLOSE_REFUSAL",
             leader_wallet=intent.fill.leader_wallet,
@@ -13865,7 +13970,14 @@ class LiveCopyCore:
         interleave instead of one waiting for the other's whole batch. Returns timings for the run's lag record."""
         summary = summary if summary is not None else CycleSummary()
         with self._copy_poll_lock:
-            return self._copy_poll_once(summary, hot)
+            result = self._copy_poll_once(summary, hot)
+            # Copy-fill application may have made an owed engine sleeve flat;
+            # only a fresh same-coin exchange read may retire its RED row.
+            try:
+                self.sender.clear_close_escalations()
+            except Exception as exc:
+                log_error("close_escalation_flat_proof", exc)
+            return result
 
     def _copy_poll_once(self, summary: CycleSummary, hot: bool) -> Dict[str, Any]:
         t0 = time.monotonic()
