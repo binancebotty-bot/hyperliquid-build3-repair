@@ -7533,6 +7533,7 @@ def render_live_copy_control_panel() -> str:
       <span class="lc-pill lc-grey" id="lcAsOf" hidden></span>
       <span class="lc-pill lc-amber" id="lcStaleNote" hidden>figures could not be rebuilt</span>
       <span class="lc-pill lc-grey" id="lcExchangeAge" hidden></span>
+      <span class="lc-pill lc-grey" id="lcGlobalCap" title="Global Controls: maximum total live exposure across every wallet. 0 = disabled.">Max total live exposure: —</span>
     </div>
     <div class="lc-header-actions">
       <button type="button" id="lcRefresh">Refresh</button>
@@ -8279,7 +8280,7 @@ function render(){
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderFreshness(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');const gcc=root.querySelector('#lcGlobalCap');if(gcc){const _gc=gcr.global_controls||{},_cap=Number(_gc.max_total_live_exposure_usd);if(Number.isFinite(_cap)&&_cap>0){gcc.textContent='Max total live exposure: $'+_cap.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});gcc.className='lc-pill lc-amber';gcc.title='Global Controls: entries are blocked once total live exposure would exceed this cap';}else{gcc.textContent='Max total live exposure: OFF';gcc.className='lc-pill lc-grey';gcc.title='Global Controls: no total live exposure cap is set (0 = disabled)';}}if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
