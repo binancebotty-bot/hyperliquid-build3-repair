@@ -1,0 +1,27 @@
+[
+ {
+  "name": "A1_H1_GATE_LETS_THE_ENGINE_CLOSE_ITS_OWN_SLEEVE_BESIDE_A_SAME_SIDE_FOREIGN_RESIDUAL",
+  "old": "            if unexplained:\n",
+  "new": "            if unexplained and not (abs(exchange_net) > abs(manual_net) + tol and manual_net * exchange_net >= 0\n                                    and self._close_notional_clears_minimum(intent)):\n",
+  "expect_fail": [
+   "W3B_USER_RESIDUAL_ON_THE_COIN_ENGINE_CLOSE_OF_ITS_OWN_SLEEVE_STILL_SENDS",
+   "W3D_USER_RESIDUAL_IS_UNTOUCHED_AFTER_THE_ENGINE_CLOSE"
+  ]
+ },
+ {
+  "name": "A1_H2_RELAXATION_DOES_NOT_APPLY_TO_A_SUB_MINIMUM_CLOSE (dust stays held by the existing refusal)",
+  "old": "            if unexplained and not (abs(exchange_net) > abs(manual_net) + tol and manual_net * exchange_net >= 0):\n",
+  "new": "            if unexplained and not (abs(exchange_net) > abs(manual_net) + tol and manual_net * exchange_net >= 0\n                                    and self._close_notional_clears_minimum(intent)):\n",
+  "expect_fail": [
+   "W4B_SUBMIN_REMAINDER_WITH_RESIDUAL_IS_HELD_NOT_SENT_AS_A_PARTIAL"
+  ]
+ },
+ {
+  "name": "A1_H3_SIZE_CAPPED_TO_THE_ENGINES_OWN_SLEEVE_WITH_A_FOREIGN_RESIDUAL",
+  "old": "        new_size = self._floor_wire_size(round(min(abs(delta), abs(need)), 10), sz_dec)\n",
+  "new": "        new_size = self._floor_wire_size(round(min(abs(delta), abs(need), *([sleeve_cap] if sleeve_cap else [])), 10), sz_dec)\n",
+  "expect_fail": [
+   "W3C_OVERSIZE_CLOSE_IS_CUT_TO_THE_ENGINE_SLEEVE_OR_REFUSED_NEVER_SENT_AT_THE_USERS_SIZE"
+  ]
+ }
+]
