@@ -18,10 +18,12 @@ sys.modules['hl_core_fmid'] = C
 spec.loader.exec_module(C)
 
 FAIL = []
+CASES = []
 
 
 def check(n, c, d=''):
     print(('PASS ' if c else 'FAIL ') + n + ((' :: ' + d) if d and not c else ''))
+    CASES.append(n)
     if not c:
         FAIL.append(n)
 
@@ -65,5 +67,5 @@ check('leader_mid resolves a namespaced xyz coin', C.leader_mid('xyz:AMD') == 58
 C._LEADER_MIDS.update(px={}, ms=0, dexes=[])
 check('leader_mid keeps the default DEX price bare', C.leader_mid('AMD') == 100.0, str(C.leader_mid('AMD')))
 
-print('FAILED: %d' % len(FAIL))
+print('TOTAL=%d FAILED=%d' % (len(CASES), len(FAIL)))
 sys.exit(1 if FAIL else 0)

@@ -10,8 +10,10 @@ sys.modules['hl_core_midsdex'] = C
 spec.loader.exec_module(C)
 
 FAIL = []
+CASES = []
 def check(n, c, d=''):
     print(('PASS ' if c else 'FAIL ') + n + ((' :: ' + d) if d and not c else ''))
+    CASES.append(n)
     if not c: FAIL.append(n)
 
 CALLS, LOGGED = [], []
@@ -51,5 +53,5 @@ if LOGGED:
     check('log names the failing dex', 'd2' in str(ctx), repr(ctx))
     check('log carries the exception', isinstance(exc, BaseException) and 'boom' in str(exc), repr(exc))
 
-print('\nFAILED: %d' % len(FAIL))
+print('TOTAL=%d FAILED=%d' % (len(CASES), len(FAIL)))
 sys.exit(1 if FAIL else 0)
