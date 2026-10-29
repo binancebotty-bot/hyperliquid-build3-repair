@@ -5431,6 +5431,22 @@ class _MarginSymbolUnresolved(Exception):
     """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
 
 
+def foreign_residual_sleeve_cap(ledger: Any, intent: Any, ex_net: float, led_net: float) -> float:
+    """When the exchange holds MORE than the engine's sleeves on the same side (a foreign residual), the most a close may
+    ever size to is the wallet's OWN sleeve; 0.0 means no cap applies. A plain function so the close plan never needs
+    another method on ``self``."""
+    try:
+        tol = max(POSITION_EPSILON, 1e-9 * max(abs(led_net), abs(ex_net)))
+        if not (abs(ex_net) > abs(led_net) + tol and led_net * ex_net >= 0):
+            return 0.0
+        row = (((ledger.data.get("by_wallet") or {}).get(normalise_wallet(intent.fill.leader_wallet)) or {})
+               .get(canonical_coin_key(intent.fill.coin)))
+        return abs(fnum((row or {}).get("signed_size"), 0.0)) if row else 0.0
+    except Exception as exc:
+        log_error("foreign_residual_sleeve_cap", exc)
+        return 0.0
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -6990,8 +7006,13 @@ class SenderGateway:
             )
         if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
             # never close into a position the engine's own sleeves don't explain (another bot's or a person's,
-            # e.g. the mainnet leftovers): the exchange holding MORE than the sleeves' sum, or the other way
-            if unexplained:
+            # e.g. the mainnet leftovers): the exchange holding MORE than the sleeves' sum, or the other way.
+            # Slice A: MORE on the SAME side is a foreign residual sitting beside the engine's own sleeve; the engine may
+            # still close its OWN sleeve (matched to the wallet sleeve below, sized to it by _close_wire_plan) and never
+            # touches the residual. The opposite side stays refused, and so does a close below the venue minimum
+            # (dust beside a foreign residual stays held by the existing refusal and red).
+            if unexplained and not (abs(exchange_net) > abs(manual_net) + tol and manual_net * exchange_net >= 0
+                                    and self._close_notional_clears_minimum(intent)):
                 block = self._ownership_gate_block(
                     intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
                     f"exchange holds {exchange_net} but the engine's own sleeves explain {manual_net}; not closing into "
@@ -7959,6 +7980,7 @@ class SenderGateway:
         ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
         if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
             return True, size, ""
+        sleeve_cap = foreign_residual_sleeve_cap(self.ledger, intent, ex_net, led_net)
         if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
             if ex_net * delta >= 0 or abs(ex_net) <= POSITION_EPSILON:
                 return False, 0.0, f"exchange net {ex_net} has nothing left to close in the direction of this close ({delta})"
@@ -7973,7 +7995,7 @@ class SenderGateway:
         if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
             return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
                                 f"(ledger net {led_net}, this close {delta})")
-        new_size = self._floor_wire_size(round(min(abs(delta), abs(need)), 10), sz_dec)
+        new_size = self._floor_wire_size(round(min(abs(delta), abs(need), *([sleeve_cap] if sleeve_cap else [])), 10), sz_dec)
         if new_size <= 0:
             return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
         if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
@@ -8124,6 +8146,16 @@ class SenderGateway:
             }
             atomic_write_json(CLOSE_ESCALATIONS_FILE, rows)
             self._close_escalations = rows
+
+    def _close_notional_clears_minimum(self, intent: Intent) -> bool:
+        """True when the close's own notional reaches the venue minimum for the coin; unknown is False (keep the refusal)."""
+        try:
+            res = self._resolve_coin(intent.fill.coin)
+            minimum = self._effective_symbol_min_notional(res) if res.get("ok") else 0.0
+            return abs(fnum(intent.copy_size, 0.0)) * fnum(intent.fill.price, 0.0) >= minimum
+        except Exception as exc:
+            log_error("close_notional_clears_minimum", exc)
+            return False
 
     @staticmethod
     def _close_proof_account_ok() -> bool:
