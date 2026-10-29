@@ -5431,6 +5431,23 @@ class _MarginSymbolUnresolved(Exception):
     """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
 
 
+def close_read_account_mismatch() -> bool:
+    """True only when the account the exchange reads come from (USER_WALLET) and the trading account the orders go to
+    (HL_LIVE_HL_ACCOUNT_ADDRESS, else the SDK signer's address) are BOTH known and differ. Unknown on either side is not a
+    mismatch, so existing behaviour is unchanged. A read of the wrong account is UNKNOWN for the engine's account: it
+    must never zero a sleeve or drop a close. A plain function so the close plan never needs another method on ``self``."""
+    reader = normalise_wallet(USER_WALLET)
+    account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+    if not is_valid_wallet(account):
+        key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+        if key and HLAccount is not None:
+            try:
+                account = normalise_wallet(HLAccount.from_key(key).address)
+            except Exception:
+                return False
+    return is_valid_wallet(reader) and is_valid_wallet(account) and reader != account
+
+
 def foreign_residual_sleeve_cap(ledger: Any, intent: Any, ex_net: float, led_net: float) -> float:
     """When the exchange holds MORE than the engine's sleeves on the same side (a foreign residual), the most a close may
     ever size to is the wallet's OWN sleeve; 0.0 means no cap applies. A plain function so the close plan never needs
@@ -7978,7 +7995,7 @@ class SenderGateway:
         key = canonical_coin_key(intent.fill.coin)
         delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
         ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
-        if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
+        if ex_net is None or close_read_account_mismatch():  # a read of ANOTHER account is unknown: send from the sleeve
             return True, size, ""
         sleeve_cap = foreign_residual_sleeve_cap(self.ledger, intent, ex_net, led_net)
         if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
@@ -8013,6 +8030,8 @@ class SenderGateway:
             wallet = normalise_wallet(intent.fill.leader_wallet)
             key = canonical_coin_key(intent.fill.coin)
             if not self.ledger or not is_valid_wallet(normalise_wallet(USER_WALLET)):
+                return ""
+            if close_read_account_mismatch():  # a flat read of ANOTHER account never zeroes this account's sleeve
                 return ""
             sleeve = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(key) or {}
             owned = fnum(sleeve.get("signed_size"), 0.0)
