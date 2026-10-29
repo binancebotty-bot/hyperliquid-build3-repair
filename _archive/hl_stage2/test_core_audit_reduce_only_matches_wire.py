@@ -31,6 +31,7 @@ os.environ.update({
     'HL_LIVE_ENV_FILE': str(tmp / 'none.env'), 'HL_LIVE_HL_PRIVATE_KEY': '0x' + '1' * 64,
     'HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS': '0', 'HL_LIVE_CLOSE_TO_TARGET': '1',
 })
+from test_send_mode_fixture import arm_offline_send, SleeveLedgerStub
 import requests  # noqa: E402
 
 
@@ -44,6 +45,7 @@ import HL_Live_Copy_Service_Core as c  # noqa: E402
 c.requests.post = offline
 c.USER_WALLET = '0x' + 'c' * 40
 LEADER = '0x' + 'd' * 40
+c.HLAccount, c.HLExchange = object, object  # offline fake client, no SDK signing
 
 
 # module-level price helpers hit the network; pin both networks to the leader price
@@ -99,7 +101,9 @@ def make_intent(side, size, lifecycle, tag):
 
 def run(name, side, size, ledger_net, exchange_net, lifecycle):
     fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw = c.SenderGateway(arm_offline_send(c, [LEADER],
+                           exchange_positions={'ZRO': {'signed_size': exchange_net}}),
+                         c.AuditLogWriter())
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -108,7 +112,9 @@ def run(name, side, size, ledger_net, exchange_net, lifecycle):
     gw._ensure_margin_mode = lambda *a, **k: None
     gw._withdraw_standing_close = lambda exchange, intent, wire_size, sz_dec, timing: (wire_size, None)
     gw._fresh_exchange_net = lambda coin: exchange_net
-    gw.ledger = Led(ledger_net)
+    gw.ledger = SleeveLedgerStub(
+        {(LEADER, 'ZRO'): -max(size, abs(ledger_net)) if lifecycle in ('EXIT', 'REDUCE') else 0.0},
+        {'ZRO': ledger_net})
     intent = make_intent(side, size, lifecycle, name)
     ok, status, result = gw._send_real(intent)
     gw._append_real_attempt(intent, status, result)
