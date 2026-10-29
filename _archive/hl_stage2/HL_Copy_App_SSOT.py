@@ -7755,7 +7755,7 @@ def render_live_copy_control_panel() -> str:
 (function(){
 const root=document.getElementById('liveCopyPanel'); if(!root) return;
 const status=root.querySelector('#lcStatus');
-let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
+let lcConfig={wallets:{},archived_wallets:{}}, lcCoreControl={}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
 let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStartMs=0, lcGraphEndMs=0;
 let lcNotListed=null, lcNotListedAt=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -8040,12 +8040,14 @@ function renderTally(){
 function signCls(v){return v!=null?(v>0?'lc-pos':v<0?'lc-neg':''):''}
 function pnlLabel(st,label){const m={'LEDGER':'lc-grey','EXACT':'lc-grey','ESTIMATED_FROM_REAL_ORDER_FILLS':'lc-grey','OPEN_ONLY':'lc-grey','ACCOUNT_LEVEL_ONLY':'lc-grey','AMBIGUOUS_COIN_SHARED':'lc-grey','N/A':'lc-grey'}; const text=label||({'OPEN_ONLY':'Open PnL','ESTIMATED_FROM_REAL_ORDER_FILLS':'Real fills','ACCOUNT_LEVEL_ONLY':'Account-level only','AMBIGUOUS_COIN_SHARED':'Shared coin','N/A':'No PnL yet','EXACT':'Exact closed PnL'}[st]||st||'No PnL yet'); return `<span class="lc-pill ${m[st]||''}">${h(text)}</span>`;}
 function renderWallets(){
- const wrows=lcAudit.live_wallet_rows||[];
+ const visible=new Set(Object.keys(lcConfig.wallets||{}).map(w=>w.toLowerCase()));
+ const wrows=(lcAudit.live_wallet_rows||[]).filter(d=>visible.has(String(d.wallet||'').toLowerCase()));
  const rows=wrows.slice().sort((a,b)=>{const r=x=>(x.mode_label==='Live'?0:x.mode_label==='Close-only'?1:2);return r(a)-r(b)||String(a.wallet).localeCompare(String(b.wallet));}).map(d=>{
   const mode=String(d.mode||'OFF').toUpperCase();
   const hasHistory=(d.filled_count>0||d.exchange_rejected_count>0||d.local_blocked_count>0);
-  const ml=d.mode_label||(mode==='LIVE'?'Live':mode==='CLO'?'Close-only':'Off');
-  const typeLabel=`<span class="lc-pill ${ml==='Live'?'lc-green':'lc-grey'}">${h(ml)}</span>`;
+  const walletCfg=Object.entries(lcConfig.wallets||{}).find(([w])=>w.toLowerCase()===String(d.wallet||'').toLowerCase());
+  const ml=(walletCfg&&walletCfg[1]&&walletCfg[1].exit_requested===true)?'EXITING':(d.mode_label||(mode==='LIVE'?'Live':mode==='CLO'?'Close-only':'Off'));
+  const typeLabel=`<span class="lc-pill ${ml==='Live'?'lc-green':ml==='EXITING'?'lc-amber':'lc-grey'}">${h(ml)}</span>`;
   const histLabel=(hasHistory&&ml==='Off')?'<span class="lc-tag">has history</span>':'';
   const conflict=String(d.eligibility||'')==='CONFIG CONFLICT'?'<span class="lc-pill lc-amber">settings conflict</span>':'';
   const model=String(d.copy_mode||'')==='fixed'?'fixed':'prop';
@@ -8292,18 +8294,17 @@ function renderHealth(){
  root.querySelector('#lcHealthRows').innerHTML=rows||'<tr><td colspan="16">WS service not running or no wallet health file found.</td></tr>';
 }
 function render(){
- const wallets=lcConfig.wallets||{}, walletEntries=Object.values(wallets);
- const liveCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='LIVE').length;
- const cloCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='CLO').length;
- const offCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='OFF').length;
- const mc=root.querySelector('#lcModeCounts');
- // wallet counts by mode; whether orders are SENT is the master switch, shown once in the banner
- if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">${liveCount} live</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">${cloCount} close-only</span> <span class="lc-pill lc-grey">${offCount} off</span>`;
+ const mc=root.querySelector('#lcModeCounts'), ctl=lcCoreControl||{};
+ const n=v=>Number.isInteger(v)&&v>=0?v:'—';
+ const cap=ctl.global_exposure_cap_usd;
+ const capText=cap==null?'unavailable':Number(cap)===0?'OFF':'$'+Number(cap).toLocaleString();
+ // Counts and global exposure cap come from Core's ONE published service state. CLO polling has no WS slot.
+ if(mc) mc.innerHTML=`<span class="lc-pill">configured LIVE: <b>${h(n(ctl.configured_live))}</b></span> <span class="lc-pill">applied LIVE: <b>${h(n(ctl.applied_live))} / ${h(ctl.ws_cap||10)}</b></span> <span class="lc-pill">Global cap: <b>${h(capText)}</b></span>`;
  const feed=feedLabel(lcAudit.live_top_status||{});
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderFreshness(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcCoreControl=cfg.core_control_state||{};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
