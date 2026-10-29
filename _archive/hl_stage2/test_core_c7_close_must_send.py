@@ -188,6 +188,12 @@ def named_btw(it):
     return named_rows(it.fill.leader_fill_id)
 
 
+def open_red_for(fid):
+    """OPEN red close obligations for this fill id, read from the durable escalation store on disk."""
+    esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) or {}
+    return [k for k, v in esc.items() if v.get("state") == "OPEN" and fid in (v.get("leader_fill_id"), v.get("intent_id"))]
+
+
 def sleeve_of(ledger, wallet):
     row = ((ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(COIN)
     return None if row is None else float(row.get("signed_size"))
@@ -557,6 +563,90 @@ def w_b_foreign():
         "ok=%r status=%r calls=%r exchange_net=%r sleeve=%r" % (ok, status, ex.calls, net[0], sl)
 
 
+# ======================================================================================= W3E..W3H (Reviewer's A1 blocker)
+def w3e_sub_minimum_capped_close_is_held_not_sent_at_the_original_size():
+    """Engine A +0.05 ($5), user +5, exchange +5.05; an authorised SELL of 1.0 at $100 (min $10). The gate admits it (same-side
+    surplus, matching sleeve); the cap to the sleeve (0.05) is below the venue minimum. Required: NEVER an SDK call larger than
+    the engine sleeve, the user residual still 5.0 afterwards, and the capped close is HELD (no send, OPEN red kept)."""
+    led, net = new_ledger(), [5.05]
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 1.0, "w3e-f", 0.05)
+    it.copy_size = 1.0
+    ok, status = gw.send_if_allowed(it)
+    biggest = max([x["size"] for x in ex.calls] or [0.0])
+    return biggest <= 0.05 + 1e-9 and net[0] >= 5.0 - 1e-9 and (not ok) and not ex.calls and bool(open_red_for("w3e-f")), \
+        "ok=%r status=%r calls=%r exchange_net_after=%r (user residual must stay 5.0) open_red=%r" % (
+            ok, status, ex.calls, net[0], open_red_for("w3e-f"))
+
+
+def w3f_opposite_engine_leaders_with_an_opposite_side_surplus_are_not_admitted():
+    """A +10 (the target sleeve) and B -10: manual_net 0. The exchange surplus is -5 (OPPOSITE to A's sleeve): the gate's
+    exception must NOT admit A's SELL on the strength of manual_net*exchange_net >= 0 alone."""
+    led, net = new_ledger(), [-5.0]
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
+    gw = make_gateway(ex, led, net)
+    set_sleeve(led, B, -10.0)
+    it = exit_intent(led, A, "SELL", 10.0, "w3f-f", 10.0)
+    ok, status = gw.send_if_allowed(it)
+    return (not ok) and not ex.calls and abs(net[0] - (-5.0)) < 1e-9, \
+        "ok=%r status=%r calls=%r exchange_net_after=%r" % (ok, status, ex.calls, net[0])
+
+
+def _plan_args(it):
+    return dict(intent=it, size=1.0, sz_dec=3, min_notional_ok=lambda sz: abs(sz * PX) >= MIN_USD, timing={})
+
+
+def w3g_lag_branch_and_absent_row_never_size_above_the_sleeve():
+    """Direct plan calls with a foreign same-side surplus (engine +0.05, exchange +5.05, close 1.0): the lag branch and an
+    absent wallet row must never return a size above the sleeve (a hold / skip, or a size <= 0.05, are acceptable)."""
+    out = []
+    led, ex, net = new_ledger(), FakeExchange(), [5.05]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 1.0, "w3g-f", 0.05)
+    it.copy_size = 1.0
+    ro, sz, skip = gw._close_wire_plan(it, 1.0, 3, lambda s_: abs(s_ * PX) >= MIN_USD, {}, ledger_may_lag=True)
+    lag_ok = bool(skip) or sz <= 0.05 + 1e-9
+    out.append("lag=(%r,%r,%r)" % (ro, sz, skip))
+    led2 = new_ledger()
+    gw2 = make_gateway(ex, led2, net)
+    it2 = exit_intent(led2, A, "SELL", 1.0, "w3g2-f", 0.05)
+    it2.copy_size = 1.0
+    data = {k: v for k, v in led2.data.items()}
+    data["by_wallet"] = {}                                              # the wallet row is absent
+    led2.data = data
+    ro2, sz2, skip2 = gw2._close_wire_plan(it2, 1.0, 3, lambda s_: abs(s_ * PX) >= MIN_USD, {})
+    absent_ok = bool(skip2) or sz2 <= 1e-9
+    out.append("absent=(%r,%r,%r)" % (ro2, sz2, skip2))
+    return lag_ok and absent_ok, " ".join(out)
+
+
+def w3h_unknown_notional_or_price_is_capped_and_sent_or_held_red_never_uncapped():
+    """The venue-minimum check is unavailable (min_notional_ok None) and, separately, the fill price is unknown (0): with a
+    foreign same-side surplus the engine close is capped to the sleeve and sent, or held with an OPEN red; never sent above the
+    sleeve, never silently refused."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.05]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 1.0, "w3h-f", 0.05)
+    it.copy_size = 1.0
+    ro, sz, skip = gw._close_wire_plan(it, 1.0, 3, None, {})
+    plan_ok = bool(skip) or sz <= 0.05 + 1e-9
+    led2, net2 = new_ledger(), [5.05]
+    on_order, sold = _fills_hook(net2, led2)
+    ex2 = FakeExchange(on_order=on_order)
+    gw2 = make_gateway(ex2, led2, net2)
+    it2 = exit_intent(led2, A, "SELL", 1.0, "w3h2-f", 0.05)
+    it2.copy_size = 1.0
+    object.__setattr__(it2.fill, "price", 0.0)                     # a frozen fill: the price is unknown (0)
+    ok2, status2 = gw2.send_if_allowed(it2)
+    biggest = max([x["size"] for x in ex2.calls] or [0.0])
+    send_ok = biggest <= 0.05 + 1e-9 and net2[0] >= 5.0 - 1e-9 and (bool(ex2.calls) or bool(open_red_for("w3h2-f")))
+    return plan_ok and send_ok, "plan=(%r,%r,%r) send: ok=%r status=%r calls=%r net_after=%r open_red=%r" % (
+        ro, sz, skip, ok2, status2, ex2.calls, net2[0], open_red_for("w3h2-f"))
+
+
 # ======================================================================================= restart: consumed exit vs flat everything
 def restart_consumed_exit_never_opens_a_position():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
@@ -585,6 +675,10 @@ def main():
         ("WA_STOP_RACE_UNREADABLE_MODE_AFTER_OFF_SENDS_NOTHING_AND_LEAVES_A_DURABLE_RED", w_a_stop_race),
         ("WB_OWNED_SAME_NET_CLO_REDUCE_ONLY_SELL_3_SENDS", w_b_owned),
         ("WB_FOREIGN_SAME_NET_CLO_SENDS_NOTHING_NAMED_HOLD_NOTHING_FLATTENED", w_b_foreign),
+        ("W3E_SUBMIN_CAPPED_CLOSE_IS_HELD_NOT_SENT_AT_THE_ORIGINAL_SIZE", w3e_sub_minimum_capped_close_is_held_not_sent_at_the_original_size),
+        ("W3F_OPPOSITE_ENGINE_LEADERS_WITH_AN_OPPOSITE_SIDE_SURPLUS_ARE_NOT_ADMITTED", w3f_opposite_engine_leaders_with_an_opposite_side_surplus_are_not_admitted),
+        ("W3G_LAG_BRANCH_AND_ABSENT_ROW_NEVER_SIZE_ABOVE_THE_SLEEVE", w3g_lag_branch_and_absent_row_never_size_above_the_sleeve),
+        ("W3H_UNKNOWN_NOTIONAL_OR_PRICE_IS_CAPPED_AND_SENT_OR_HELD_RED_NEVER_UNCAPPED", w3h_unknown_notional_or_price_is_capped_and_sent_or_held_red_never_uncapped),
         ("W4A_DUST_WHOLE_POSITION_CLOSE_SENDS_EXACT_FULL_CLOSE", w4a_whole_position),
         ("W4B_SUBMIN_REMAINDER_WITH_RESIDUAL_IS_HELD_NOT_SENT_AS_A_PARTIAL", w4b_submin_remainder_is_held_not_sent),
         ("W4C_HELD_REMAINDER_RESOLVED_BY_WHOLE_POSITION_CLOSE_WHEN_ACCOUNT_WOULD_GO_FLAT",
