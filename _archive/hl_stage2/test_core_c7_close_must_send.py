@@ -659,6 +659,115 @@ def w3i_place_order_rechecks_the_sleeve_cap_before_the_wire():
     return not ex.calls and (resp or {}).get("exchange_called") is False, "sdk_calls=%r response=%r" % (ex.calls, resp)
 
 
+# ======================================================================================= the seven doors of _close_wire_plan (C7-DIR-300)
+def _door_setup(net=7.0):
+    """Engine A +2 (sleeve), a user-managed +5 on the same coin (exchange +7), an OVERSIZE authorised SELL of 3 at $100."""
+    led, ex, nt = new_ledger(), FakeExchange(), [net]
+    gw = make_gateway(ex, led, nt)
+    it = exit_intent(led, A, "SELL", 3.0, "door-f", 2.0)
+    it.copy_size = 3.0
+    return gw, it
+
+
+def _door_ok(res, cap=2.0):
+    ro, sz, skip = res
+    return bool(skip) or sz <= cap + 1e-9, "plan=(%r,%r,%r)" % (ro, sz, skip)
+
+
+MIN_OK = lambda sz: abs(sz * PX) >= MIN_USD     # noqa: E731
+
+
+def door1_intent_not_reduce_only():
+    gw, it = _door_setup()
+    gw._reduce_only_for_intent = lambda i: False
+    return _door_ok(gw._close_wire_plan(it, 3.0, 3, MIN_OK, {}))
+
+
+def door2_size_decimals_unknown():
+    gw, it = _door_setup()
+    return _door_ok(gw._close_wire_plan(it, 3.0, None, MIN_OK, {}))
+
+
+def door3_dust_flag():
+    gw, it = _door_setup()
+    return _door_ok(gw._close_wire_plan(it, 3.0, 3, MIN_OK, {"dust_close_below_min_notional": "x"}))
+
+
+def door4_close_to_target_off():
+    gw, it = _door_setup()
+    old = os.environ.get("HL_LIVE_CLOSE_TO_TARGET")
+    os.environ["HL_LIVE_CLOSE_TO_TARGET"] = "0"
+    try:
+        return _door_ok(gw._close_wire_plan(it, 3.0, 3, MIN_OK, {}))
+    finally:
+        if old is None:
+            os.environ.pop("HL_LIVE_CLOSE_TO_TARGET", None)
+        else:
+            os.environ["HL_LIVE_CLOSE_TO_TARGET"] = old
+
+
+def door5_exchange_unreadable_or_other_account():
+    gw, it = _door_setup(net=None)                                           # unreadable exchange net
+    ok_a, d_a = _door_ok(gw._close_wire_plan(it, 3.0, 3, MIN_OK, {}))
+    gw2, it2 = _door_setup()
+    saved = c.USER_WALLET
+    c.USER_WALLET = OTHER_ACCOUNT                                             # the read comes from another account
+    try:
+        ok_b, d_b = _door_ok(gw2._close_wire_plan(it2, 3.0, 3, MIN_OK, {}))
+    finally:
+        c.USER_WALLET = saved
+    return ok_a and ok_b, "unreadable: " + d_a + " other-account: " + d_b
+
+
+def door6_lag_branch_min_notional_fall_through():
+    gw, it = _door_setup()
+    it.copy_size = 10.0                                                       # the lag size (min(10, 7)=7) is below the request
+    return _door_ok(gw._close_wire_plan(it, 10.0, 3, lambda sz: False, {}, ledger_may_lag=True))
+
+
+def door7_trimmed_under_minimum_fall_through():
+    """With a same-side foreign surplus this door cannot be reached by sizing (|need| >= |delta|), so force it: the unclamped
+    plan returns the full original size and the central clamp must still bound it."""
+    gw, it = _door_setup()
+    gw._close_wire_plan_unclamped = lambda *a, **k: (True, 3.0, "")
+    return _door_ok(gw._close_wire_plan(it, 3.0, 3, MIN_OK, {}))
+
+
+# ======================================================================================= S2: other-account flat read, oversize close
+def _s2(replies=None):
+    led, ex = new_ledger(), FakeExchange(replies)
+    gw = make_gateway(ex, led, [None], real_fresh=True)
+    gw._persisted_exchange_positions = lambda: ({"BTC": 7.0}, "")            # the engine's account: engine +2 and user +5 = +7
+    saved_w, saved_f = c.USER_WALLET, c.EXPOSURE_FETCHER
+    c.USER_WALLET = OTHER_ACCOUNT                                             # USER_WALLET reads ANOTHER account, which is flat
+    c.EXPOSURE_FETCHER = account_fetcher({ACCOUNT.lower(): 7.0, OTHER_ACCOUNT.lower(): 0.0})
+    try:
+        it = exit_intent(led, A, "SELL", 3.0, "s2-f", 2.0)
+        it.copy_size = 3.0
+        res = gw.send_if_allowed(it)
+    finally:
+        c.USER_WALLET, c.EXPOSURE_FETCHER = saved_w, saved_f
+    return ex, led, res
+
+
+def w6d_other_account_flat_oversize_close_never_eats_the_user_residual():
+    ex, led, res = _s2()
+    sold = sum(x["size"] for x in ex.calls)
+    user_after = 7.0 - sold - (2.0 - 2.0)                                     # the account started at +7: engine 2 + user 5
+    return sold <= 2.0 + 1e-9 and user_after >= 5.0 - 1e-9, \
+        "res=%r calls=%r total_sold=%r user_residual_after=%r (must stay 5.0)" % (res, ex.calls, sold, 5.0 - max(0.0, sold - 2.0))
+
+
+def w6e_reduce_only_reject_on_the_unknown_path_never_resends_above_the_sleeve():
+    reject = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+        {"error": "Reduce only order would increase position."}]}}}
+    ex, led, res = _s2([reject])
+    biggest = max([x["size"] for x in ex.calls] or [0.0])
+    non_ro_big = [x for x in ex.calls if not x["reduce_only"] and x["size"] > 2.0 + 1e-9]
+    return biggest <= 2.0 + 1e-9 and not non_ro_big and ex.calls[:1] and ex.calls[0]["reduce_only"] is True, \
+        "res=%r calls=%r" % (res, ex.calls)
+
+
 # ======================================================================================= restart: consumed exit vs flat everything
 def restart_consumed_exit_never_opens_a_position():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
@@ -692,6 +801,15 @@ def main():
         ("W3G_LAG_BRANCH_AND_ABSENT_ROW_NEVER_SIZE_ABOVE_THE_SLEEVE", w3g_lag_branch_and_absent_row_never_size_above_the_sleeve),
         ("W3H_UNKNOWN_NOTIONAL_OR_PRICE_IS_CAPPED_AND_SENT_OR_HELD_RED_NEVER_UNCAPPED", w3h_unknown_notional_or_price_is_capped_and_sent_or_held_red_never_uncapped),
         ("W3I_PLACE_ORDER_RECHECKS_THE_SLEEVE_CAP_BEFORE_THE_WIRE", w3i_place_order_rechecks_the_sleeve_cap_before_the_wire),
+        ("DOOR1_INTENT_NOT_REDUCE_ONLY_STAYS_WITHIN_THE_SLEEVE", door1_intent_not_reduce_only),
+        ("DOOR2_UNKNOWN_SIZE_DECIMALS_STAYS_WITHIN_THE_SLEEVE", door2_size_decimals_unknown),
+        ("DOOR3_DUST_FLAG_STAYS_WITHIN_THE_SLEEVE", door3_dust_flag),
+        ("DOOR4_CLOSE_TO_TARGET_OFF_STAYS_WITHIN_THE_SLEEVE", door4_close_to_target_off),
+        ("DOOR5_UNREADABLE_OR_OTHER_ACCOUNT_EXCHANGE_READ_STAYS_WITHIN_THE_SLEEVE", door5_exchange_unreadable_or_other_account),
+        ("DOOR6_LAG_BRANCH_MIN_NOTIONAL_FALL_THROUGH_STAYS_WITHIN_THE_SLEEVE", door6_lag_branch_min_notional_fall_through),
+        ("DOOR7_TRIMMED_UNDER_MINIMUM_FALL_THROUGH_STAYS_WITHIN_THE_SLEEVE_FORCED", door7_trimmed_under_minimum_fall_through),
+        ("W6D_OTHER_ACCOUNT_FLAT_OVERSIZE_CLOSE_NEVER_EATS_THE_USER_RESIDUAL", w6d_other_account_flat_oversize_close_never_eats_the_user_residual),
+        ("W6E_REDUCE_ONLY_REJECT_ON_THE_UNKNOWN_PATH_NEVER_RESENDS_ABOVE_THE_SLEEVE", w6e_reduce_only_reject_on_the_unknown_path_never_resends_above_the_sleeve),
         ("W4A_DUST_WHOLE_POSITION_CLOSE_SENDS_EXACT_FULL_CLOSE", w4a_whole_position),
         ("W4B_SUBMIN_REMAINDER_WITH_RESIDUAL_IS_HELD_NOT_SENT_AS_A_PARTIAL", w4b_submin_remainder_is_held_not_sent),
         ("W4C_HELD_REMAINDER_RESOLVED_BY_WHOLE_POSITION_CLOSE_WHEN_ACCOUNT_WOULD_GO_FLAT",
