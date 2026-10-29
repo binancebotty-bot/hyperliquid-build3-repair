@@ -1,0 +1,25 @@
+name: C7 whole-position dust regression test
+on:
+  push:
+    branches:
+      - gpt/c7-whole-position-dust-test-20261029i2
+permissions:
+  contents: read
+jobs:
+  whole-position-dust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify pristine a1acc28 Core and run offline test in own process
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+        run: |
+          git merge-base --is-ancestor a1acc28c0cd9d3a6710783ed08a7b9401475c644 HEAD
+          git diff --exit-code a1acc28c0cd9d3a6710783ed08a7b9401475c644 HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          cd _archive/hl_stage2
+          python3 test_core_dust_whole_account_close_regression.py
