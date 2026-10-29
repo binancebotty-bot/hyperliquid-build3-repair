@@ -726,11 +726,64 @@ def door6_lag_branch_min_notional_fall_through():
 
 
 def door7_trimmed_under_minimum_fall_through():
-    """With a same-side foreign surplus this door cannot be reached by sizing (|need| >= |delta|), so force it: the unclamped
-    plan returns the full original size and the central clamp must still bound it."""
+    """With a same-side foreign surplus this door cannot be reached by sizing (|need| >= |delta|), so force it: make the
+    sizing rules return the FULL original size unconditionally (the shape every one of the seven doors has) and check that
+    the single central clamp still bounds it. Patching the public entry, not a helper, so the clamp itself stays under test."""
     gw, it = _door_setup()
-    gw._close_wire_plan_unclamped = lambda *a, **k: (True, 3.0, "")
-    return _door_ok(gw._close_wire_plan(it, 3.0, 3, MIN_OK, {}))
+    gw._reduce_only_for_intent = lambda i: True
+    it.copy_size = 3.0
+    gw._fresh_exchange_net = lambda coin: 7.0
+    gw._floor_wire_size = lambda s, d: s
+    res = gw._close_wire_plan(it, 3.0, 3, MIN_OK, {})
+    return _door_ok(res)
+
+
+# ======================================================================================= CE1/CE2: ownership OVERSTATED by a stale sleeve
+#
+# The ruling: a ledger sleeve that is STALE can OVERSTATE ownership, so clamping to it is not a fix. In CE1 the engine truly
+# holds +0.5, the ledger sleeve says +2.0, the user holds +4.5 (venue +5.0) and a SELL of 2.0 is authorised. A clamp that
+# trusts the ledger's 2.0 sends 2.0 and eats 1.5 of the user's position (venue ends at +3.0). The ONLY correct outcome is a
+# HOLD: nothing sent, venue still +5.0, the obligation left owed and red. reduce_only does not help: 2.0 is a genuine
+# reduction of the ACCOUNT, just not of the engine's own slice of it.
+#
+# The stale witness stamps the sleeve's own last_updated_ms a full day back and buys nothing else: the ledger row, the venue
+# net and the authorised size are exactly the CE1 numbers. The claim is that the ENGINE, not the test, refuses.
+STALE_MS = 24 * 60 * 60 * 1000
+
+
+def _ce1_ce2(engine, sleeve, venue, request, sleeve_age_ms):
+    """engine = what the engine really holds; sleeve = what the ledger claims; venue = the account net (engine + user);
+    request = the authorised SELL size. Returns (sdk_calls, venue_after, open_red)."""
+    led, net = new_ledger(), [venue]
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", request, "ce-f", sleeve)
+    it.copy_size = request
+    row = led.data["by_wallet"][A][COIN]
+    row["last_updated_ms"] = c.utc_now_ms() - sleeve_age_ms           # the only lie: the sleeve has not been refreshed
+    led._recompute_net(led.data)
+    gw.send_if_allowed(it)
+    return ex.calls, net[0], open_red_for("ce-f")
+
+
+def ce1_stale_sleeve_overstating_ownership_is_held_never_sent_at_the_stale_size():
+    """CE1, exactly as documented: engine +0.5, ledger +2.0 (STALE), user +4.5, venue +5.0, authorised SELL 2.0. A clamp to
+    the ledger's 2.0 still eats 1.5 of the user's position, so the required outcome is a HOLD: zero SDK calls, the venue
+    still +5.0, and a durable OPEN red for the fill. PROVES: an overstated sleeve can never size a venue write."""
+    calls, venue_after, red = _ce1_ce2(0.5, 2.0, 5.0, 2.0, STALE_MS)
+    return (not calls) and abs(venue_after - 5.0) < 1e-9 and bool(red), \
+        "sdk_calls=%r venue_after=%.4f (must stay 5.0000, user residual 4.5 untouched) open_red=%r" % (calls, venue_after, red)
+
+
+def ce2_stale_sleeve_below_the_request_still_holds_instead_of_trimming_to_the_lie():
+    """CE2 (self-derived from the same family): the OVERSTATEMENT need not exceed the request. Engine +0.5, ledger +1.5
+    (STALE), user +3.5, venue +4.0, authorised SELL 1.0. Here 1.0 <= the ledger's 1.5, so a size-based clamp sees nothing
+    wrong and sends all 1.0 -- which is 0.5 of the engine's real position plus 0.5 of the user's. The venue must end at +3.5.
+    PROVES: staleness, not size, is the defect; a clamp that only fires when size > cap cannot cure this case."""
+    calls, venue_after, red = _ce1_ce2(0.5, 1.5, 4.0, 1.0, STALE_MS)
+    return (not calls) and abs(venue_after - 4.0) < 1e-9 and bool(red), \
+        "sdk_calls=%r venue_after=%.4f (must stay 4.0000, user residual 3.5 untouched) open_red=%r" % (calls, venue_after, red)
 
 
 # ======================================================================================= S2: other-account flat read, oversize close
@@ -808,6 +861,8 @@ def main():
         ("DOOR5_UNREADABLE_OR_OTHER_ACCOUNT_EXCHANGE_READ_STAYS_WITHIN_THE_SLEEVE", door5_exchange_unreadable_or_other_account),
         ("DOOR6_LAG_BRANCH_MIN_NOTIONAL_FALL_THROUGH_STAYS_WITHIN_THE_SLEEVE", door6_lag_branch_min_notional_fall_through),
         ("DOOR7_TRIMMED_UNDER_MINIMUM_FALL_THROUGH_STAYS_WITHIN_THE_SLEEVE_FORCED", door7_trimmed_under_minimum_fall_through),
+        ("CE1_STALE_SLEEVE_OVERSTATING_OWNERSHIP_IS_HELD_NEVER_SENT_AT_THE_STALE_SIZE", ce1_stale_sleeve_overstating_ownership_is_held_never_sent_at_the_stale_size),
+        ("CE2_STALE_SLEEVE_BELOW_THE_REQUEST_STILL_HOLDS_INSTEAD_OF_TRIMMING_TO_THE_LIE", ce2_stale_sleeve_below_the_request_still_holds_instead_of_trimming_to_the_lie),
         ("W6D_OTHER_ACCOUNT_FLAT_OVERSIZE_CLOSE_NEVER_EATS_THE_USER_RESIDUAL", w6d_other_account_flat_oversize_close_never_eats_the_user_residual),
         ("W6E_REDUCE_ONLY_REJECT_ON_THE_UNKNOWN_PATH_NEVER_RESENDS_ABOVE_THE_SLEEVE", w6e_reduce_only_reject_on_the_unknown_path_never_resends_above_the_sleeve),
         ("W4A_DUST_WHOLE_POSITION_CLOSE_SENDS_EXACT_FULL_CLOSE", w4a_whole_position),
