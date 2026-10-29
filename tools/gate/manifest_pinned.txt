@@ -1,0 +1,32 @@
+# CC-1 R33 (c): PINNED GATE MEMBERS.
+# These files are named explicitly so they cannot silently shrink out of the gate.
+# The runner reports MISSING (a gate failure) for any pinned name that is not present,
+# rather than quietly running a smaller set.
+#
+# NOTE, measured at a1acc28: two of these exist only on LATER commits, not at the base.
+#   test_core_c7c_fixup_standalone.py        - present at 2c7b891 / 26dcf04 / 3de9e30, absent at a1acc28
+#   test_core_c7c4_held_close_remainders.py  - present at 724e3b5, absent at a1acc28
+# They are pinned anyway: the runner will report them MISSING at the base, which is the honest
+# result and is itself the evidence that the "7-file gate" quoted during A1b work was defined
+# at a candidate commit, not at the base.
+
+# --- the 7-file gate ---
+test_core_master_gate.py
+test_core_rw12_eol_consistency.py
+test_core_margin_gate_and_single_terminal.py
+test_core_observability_part1.py
+test_core_outage_replay.py
+test_core_refusal_remedy_ownership.py
+test_core_c7c_fixup_standalone.py
+
+# --- the 10 tripwire files ---
+test_core_close_to_target.py
+test_core_rw12_mode_at_send.py
+test_core_liq_parity.py
+test_core_retry_send_integrity.py
+test_core_dust_rules.py
+test_core_run5_converge.py
+test_core_reduce_only_repair.py
+test_core_c7c4_held_close_remainders.py
+test_core_rw12_retry_cloid.py
+test_core_rw9_timeout_vs_429.py
