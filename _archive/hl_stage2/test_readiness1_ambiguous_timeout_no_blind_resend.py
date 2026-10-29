@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from test_send_mode_fixture import arm_offline_send, fresh_offline_snapshot
 from types import SimpleNamespace
 
 HERE = Path(__file__).resolve().parent
@@ -84,9 +85,7 @@ def main() -> None:
             on_gateway(gw, intent)
         return gw
 
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
-                                             "wallets": {LEADER: {"enabled": True, "mode": "ON",
-                                                                  "copy_mode": "fixed", "fixed_notional": 1000}}})
+    arm_offline_send(c, [LEADER], global_controls={"marketable_bps": 20}, exchange_positions={"BTC": {"signed_size": 0.0}})
     seq = [0]
 
     def fill(side="BUY", price=100.0, size=1.0):
@@ -100,6 +99,7 @@ def main() -> None:
         mid["f"] = follower
         c._FOLLOWER_MIDS.update(px={}, ms=0)
         c._LEADER_MIDS.update(px={}, ms=0)
+        fresh_offline_snapshot(c, positions={"BTC": {"signed_size": seeded_position}})
         led = c.ManualLedger(path=tmp / f"l{seq[0]}.json")
         if seeded_position:
             sleeve = led.sleeve(LEADER, "BTC")
