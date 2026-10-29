@@ -5332,16 +5332,16 @@ class IntentBuilder:
         mode = self.cfg.wallet_mode(wallet)
         if mode == "OFF":
             return "BLOCKED_OFF", "wallet mode OFF"
+        # Guard: flat wallet receiving a leader close/reduce fill must not open a reverse position.
+        # Only fires when raw fill data positively identifies a close-side event.
+        if lifecycle == "ENTRY" and abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill):
+            return "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION", "no owned sleeve; leader close fill cannot open reverse position"
         if mode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
             return "BLOCKED_CLO_ENTRY", "CLO blocks entries/adds"
         # allow/block lists gate NEW exposure only: blocking a symbol must never trap an open sleeve
         allowed_symbol, reason = self.cfg.is_symbol_allowed(fill.coin)
         if not allowed_symbol and lifecycle in {"ENTRY", "ADD"}:
             return "SYMBOL_UNAVAILABLE", reason
-        # Guard: flat wallet receiving a leader close/reduce fill must not open a reverse position.
-        # Only fires when raw fill data positively identifies a close-side event.
-        if lifecycle == "ENTRY" and abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill):
-            return "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION", "no owned sleeve; leader close fill cannot open reverse position"
         if copy_notional <= 0:
             return "MANUAL_REVIEW", self._sizing_block.get(wallet) or "copy notional is zero"
         if copy_notional < self.cfg.min_notional() and lifecycle in {"ENTRY", "ADD"}:
