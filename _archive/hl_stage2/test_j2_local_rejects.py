@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -95,6 +96,8 @@ class FakeExchange:
         self.cancels = []
         self.replies = list(replies or [])
 
+    def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+        return {"status": "ok"}
     def order(self, coin, is_buy, size, px, tif, reduce_only=False):
         EXCHANGE_CALLS.append({
             "coin": coin, "is_buy": is_buy, "size": size, "px": px,
@@ -358,6 +361,97 @@ check("J2_4E_WITHIN_TOLERANCE_SENDS_IOC", ok4b or (not ok4b and len(calls4b) > 0
       f"ok={ok4b}, status={status4b}, calls={calls4b} (exchange call expected)")
 check("J2_4F_IOC_NOT_GTC", len(calls4b) > 0 and calls4b[0].get("tif") == "Ioc",
       f"tif={calls4b[0].get('tif') if calls4b else 'none'}")
+
+
+# ============================================================================
+# TEST 5: halt and no-match cooldowns are per coin; reductions stay available
+# ============================================================================
+print("\n=== TEST 5: market halt, IOC no-match, and exit pacing ===")
+
+def stub_send(gw, reply):
+    gw._pre_send_ownership_gate = lambda intent: (True, {})
+    gw.liq_parity_block = lambda intent: None
+    gw._send_real = lambda intent, timing=None: (False, "ORDER_REJECTED", {
+        "exchange_called": True, "reject_category": reply, "error": reply,
+        "reduce_only_sent": intent.reduce_only_intended,
+    })
+    gw._append_real_attempt = lambda *args: None
+    rows = []
+    gw.audit.append_reconciliation = lambda event, status, **kw: rows.append((event, status, kw))
+    return rows
+
+halt_gw = make_gateway(FakeExchange())
+halt_rows = stub_send(halt_gw, "MARKET_HALTED")
+halt_intent = make_intent("ENTRY", "BUY", 1.0)
+first_halt = halt_gw.send_if_allowed(halt_intent)
+second_halt = halt_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0))
+other_coin = make_intent("ENTRY", "BUY", 1.0)
+other_coin = replace(other_coin, fill=replace(other_coin.fill, coin="ETH"))
+other_coin_result = halt_gw.send_if_allowed(other_coin)
+check("J2_5A_HALT_COOLDOWN_PER_COIN", first_halt[1] == "ORDER_REJECTED" and second_halt[1] == "SKIPPED_MARKET_HALTED", f"{first_halt}, {second_halt}")
+check("J2_5B_ONE_HALT_AUDIT_OUTCOME", sum(r[1] == "SKIPPED_MARKET_HALTED" and r[2].get("coin") == "btc" for r in halt_rows) == 1, str(halt_rows))
+check("J2_5C_HALT_COOLDOWN_IS_PER_COIN", other_coin_result[1] == "ORDER_REJECTED")
+check("J2_5D_EXACT_HALT_RECOGNIZED", c.classify_reject_category("Trading is halted.") == "MARKET_HALTED")
+
+ioc_gw = make_gateway(FakeExchange())
+ioc_rows = stub_send(ioc_gw, "IOC_NO_IMMEDIATE_MATCH")
+first_ioc = ioc_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0))
+second_ioc = ioc_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0))
+check("J2_5E_IOC_RETRY_WINDOW", first_ioc[1] == "ORDER_REJECTED" and second_ioc[1] == "SKIPPED_IOC_NO_IMMEDIATE_MATCH", f"{first_ioc}, {second_ioc}")
+check("J2_5F_ONE_IOC_AUDIT_OUTCOME", [r[1] for r in ioc_rows].count("IOC_NO_IMMEDIATE_MATCH") == 1, str(ioc_rows))
+
+exit_gw = make_gateway(FakeExchange())
+exit_rows = stub_send(exit_gw, "MARKET_HALTED")
+exit_gw._send_real = lambda intent, timing=None: (True, "ORDER_FILLED", {"exchange_called": True, "reject_category": "", "reduce_only_sent": True})
+exit_intent = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True)
+exit_first = exit_gw.send_if_allowed(exit_intent)
+exit_second = exit_gw.send_if_allowed(make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True))
+check("J2_5G_REDUCTIONS_NOT_HALTED", exit_first == (True, "ORDER_FILLED"))
+check("J2_5H_EXIT_ATTEMPT_MAX_ONCE_PER_MINUTE", exit_second[1] == "EXIT_ATTEMPT_COOLDOWN")
+
+failed_exit_gw = make_gateway(FakeExchange())
+stub_send(failed_exit_gw, "")
+failed_exit_calls = []
+failed_exit_gw._send_real = lambda intent, timing=None: failed_exit_calls.append(intent) or (
+    False, "SEND_NOT_ATTEMPTED_TEST", {"exchange_called": False})
+saved_now = c.utc_now_ms
+fake_now = [1_800_000_000_000]
+c.utc_now_ms = lambda: fake_now[0]
+try:
+    failed_exit = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0,
+                              coin_net_before=1.0, reduce_only_intended=True)
+    first_failed_exit = failed_exit_gw.send_if_allowed(failed_exit)
+    blocked_failed_exit = failed_exit_gw.send_if_allowed(replace(failed_exit, intent_id="i2"))
+    fake_now[0] += 60001
+    retry_failed_exit = failed_exit_gw.send_if_allowed(replace(failed_exit, intent_id="i3"))
+finally:
+    c.utc_now_ms = saved_now
+check("J2_5I_FAILED_EXIT_COUNTS_FOR_COOLDOWN", first_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST"
+      and blocked_failed_exit[1] == "EXIT_ATTEMPT_COOLDOWN" and len(failed_exit_calls) == 2)
+check("J2_5J_EXIT_ALLOWED_AFTER_60_SECONDS", retry_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST"
+      and len(failed_exit_calls) == 2)
+
+mock_exit_gw = make_gateway(FakeExchange())
+mock_exit_gw._pre_send_ownership_gate = lambda intent: (True, {})
+mock_exit_gw.liq_parity_block = lambda intent: None
+saved_mock = os.environ.get("HL_LIVE_MOCK_SEND")
+os.environ["HL_LIVE_MOCK_SEND"] = "1"
+mock_now = [1_800_000_000_000]
+saved_now = c.utc_now_ms
+c.utc_now_ms = lambda: mock_now[0]
+try:
+    mock_exit = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0,
+                            coin_net_before=1.0, reduce_only_intended=True)
+    first_mock_exit = mock_exit_gw.send_if_allowed(mock_exit)
+    second_mock_exit = mock_exit_gw.send_if_allowed(replace(mock_exit, intent_id="i4"))
+finally:
+    c.utc_now_ms = saved_now
+    if saved_mock is None:
+        os.environ.pop("HL_LIVE_MOCK_SEND", None)
+    else:
+        os.environ["HL_LIVE_MOCK_SEND"] = saved_mock
+check("J2_5K_MOCK_EXIT_COUNTS_FOR_COOLDOWN", first_mock_exit[1] == "MOCK_ORDER_SENT"
+      and second_mock_exit[1] == "EXIT_ATTEMPT_COOLDOWN")
 
 
 # ============================================================================

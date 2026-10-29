@@ -32,6 +32,14 @@ def check(name, cond, detail=""):
 p = tmp / "x.csv"
 real_reader = c.csv.DictReader
 opens = {"n": 0}
+real_path_open = Path.open
+append_opens = {"n": 0}
+
+
+def counting_path_open(path, *args, **kwargs):
+    if path == p and args and args[0] == "a":
+        append_opens["n"] += 1
+    return real_path_open(path, *args, **kwargs)
 
 
 class CountingReader(real_reader):
@@ -41,11 +49,14 @@ class CountingReader(real_reader):
 
 
 c.csv.DictReader = CountingReader
+Path.open = counting_path_open
 c.append_csv(p, F, {"a": 1, "b": 2, "c": 3})
 first = opens["n"]
 for i in range(50):
     c.append_csv(p, F, {"a": i, "b": 2, "c": 3})
 check("H1_NO_HEADER_READ_AFTER_FIRST_APPEND", opens["n"] == first, "reads %d -> %d" % (first, opens["n"]))
+check("H1B_ONE_APPEND_HANDLE_PER_CSV", append_opens["n"] == 1, "opens=%d" % append_opens["n"])
+Path.open = real_path_open
 rows = list(real_reader(p.open(encoding="utf-8")))
 check("H2_ALL_ROWS_WRITTEN", len(rows) == 51 and rows[-1]["a"] == "49", str(len(rows)))
 
@@ -69,6 +80,7 @@ check("H5_ROTATED_FILE_NEW_ROWS_OK", [r["intent_id"] for r in rows] == ["i2"], s
 # replaced file (deleted and recreated with an OLD header): the cache must not trust it
 r = tmp / "y.csv"
 c.append_csv(r, F2, {"a": 1})
+c._close_audit_handle(r)
 r.unlink()
 with r.open("w", newline="", encoding="utf-8") as fh:
     w = csv.DictWriter(fh, fieldnames=F)
@@ -117,6 +129,7 @@ check("H9_IN_PLACE_REWRITE_REVERIFIED", rows and "d" in rows[0] and rows[-1]["d"
 # the stale entry must not vouch for the new file, and the next append must verify again
 w = tmp / "w.csv"
 c.append_csv(w, F2, {"a": 1})
+c._close_audit_handle(w)
 w.unlink()
 with w.open("w", newline="", encoding="utf-8") as fh:
     cw = csv.DictWriter(fh, fieldnames=F)

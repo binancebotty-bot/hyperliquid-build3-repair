@@ -1,0 +1,11 @@
+{
+  "_source": "run19/state_20261027/manual_live_positions.json, wallet 0x0000...0001, opened_by_intent_id seed_user_owned (READ-ONLY copy; the fixture for --sleeves)",
+  "_note": "coin is BARE here; fresh_pair writes XYZ:<COIN> and position_id <wallet>::xyz:<COIN>::<DIR>::seed_user_owned",
+  "sleeves": [
+    {"coin": "ORCL", "direction": "LONG", "signed_size": 0.058, "avg_entry_px": 128.23},
+    {"coin": "AMD", "direction": "SHORT", "signed_size": -0.046, "avg_entry_px": 650.41},
+    {"coin": "NFLX", "direction": "SHORT", "signed_size": -0.363, "avg_entry_px": 72.75},
+    {"coin": "LLY", "direction": "SHORT", "signed_size": -0.024, "avg_entry_px": 1327.9},
+    {"coin": "PLATINUM", "direction": "LONG", "signed_size": 0.0077, "avg_entry_px": 1554.4}
+  ]
+}

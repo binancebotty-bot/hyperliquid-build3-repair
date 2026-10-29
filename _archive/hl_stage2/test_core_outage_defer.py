@@ -155,6 +155,8 @@ def main() -> None:
             self._lock = threading.Lock()
             self._n = 0
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             sent_ms = c.utc_now_ms()
             ctx = getattr(cur, "ctx", None)
