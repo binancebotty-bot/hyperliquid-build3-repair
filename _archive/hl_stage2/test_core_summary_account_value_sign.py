@@ -10,8 +10,10 @@ sys.modules['hl_core_avsign'] = C
 spec.loader.exec_module(C)
 
 FAIL = []
+CASES = []
 def check(n, c, d=''):
     print(('PASS ' if c else 'FAIL ') + n + ((' :: ' + d) if d and not c else ''))
+    CASES.append(n)
     if not c: FAIL.append(n)
 
 # opposite signs: crossMarginSummary negative (the losing side), marginSummary positive
@@ -42,5 +44,5 @@ check('same sign -> larger value kept', abs(C._summary_account_value(same) - 12.
 check('non-dict -> 0.0', C._summary_account_value(None) == 0.0, repr(C._summary_account_value(None)))
 check('no summaries -> 0.0', C._summary_account_value({}) == 0.0, repr(C._summary_account_value({})))
 
-print('\nFAILED: %d' % len(FAIL))
+print('TOTAL=%d FAILED=%d' % (len(CASES), len(FAIL)))
 sys.exit(1 if FAIL else 0)
