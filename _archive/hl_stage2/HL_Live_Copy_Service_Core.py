@@ -157,6 +157,7 @@ EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
+CLOSE_RESERVATIONS_FILE = AUDIT_DIR / "close_inflight_reservations.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -5458,6 +5459,7 @@ class SenderGateway:
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
         self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
         self._trackb_escalations: Dict[str, Dict[str, Any]] = load_json(CLOSE_ESCALATIONS_FILE, {}) or {}
+        self._close_reservations: Dict[str, Dict[str, Any]] = load_json(CLOSE_RESERVATIONS_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
@@ -5703,6 +5705,125 @@ class SenderGateway:
             print("ALERT: the gate refused an order (%s) but could not journal it: %r"
                   % (reason, exc), file=sys.stderr)
 
+    def _reserve_close_wire(self, intent: Intent, sdk_coin: str, is_buy: bool, size: float,
+                            price: float, reduce_only: bool, cloid: str,
+                            min_notional: float) -> Tuple[bool, str]:
+        """Atomically reserve physical close quantity against the copy-fill-owned sleeve.
+
+        Unreconciled claims remain on disk through restarts/timeouts. Protecting an
+        account net is NOT proof of ownership of a particular leader's sleeve.
+        """
+        wallet = normalise_wallet(intent.fill.leader_wallet)
+        coin = canonical_coin_key(intent.fill.coin)
+        delta = size if is_buy else -size
+        if not (math.isfinite(size) and size > 0 and math.isfinite(price) and price > 0):
+            return False, "INVALID_CLOSE_WIRE"
+        if size * price < min_notional and not reduce_only:
+            return False, "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
+        account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+        if not is_valid_wallet(account) and HLAccount is not None:
+            try:
+                account = normalise_wallet(HLAccount.from_key(
+                    os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()).address)
+            except Exception:
+                pass
+        if not is_valid_wallet(account):
+            return False, "SDK_TRADING_ACCOUNT_UNVERIFIABLE"
+        if normalise_wallet(USER_WALLET) != account:
+            log_error("close_wire_read_account_rebind", RuntimeError(
+                "HL_USER_WALLET differs from SDK trading account; read proof must use SDK account; "
+                "close remains owed until same-account terminal proof"))
+        with self._resting_lock:
+            claims = self.__dict__.setdefault("_close_reservations", {})
+            if cloid in claims:
+                return False, "CLOSE_CLOID_ALREADY_RESERVED"
+            try:
+                signed = float(self.ledger.sleeve(wallet, coin).get("signed_size", float("nan")))
+            except Exception:
+                signed = float("nan")
+            if not math.isfinite(signed) or abs(signed) <= POSITION_EPSILON or signed * delta >= 0:
+                return False, "NO_PROVEN_OPPOSING_ENGINE_SLEEVE"
+            reserved = 0.0
+            for key, row in list(claims.items()):
+                if row.get("account") != account or row.get("coin") != coin or row.get("wallet") != wallet:
+                    continue
+                previous = fnum(row.get("sleeve_abs_at_reserve"), float("nan"))
+                quantity = fnum(row.get("size"), float("nan"))
+                if not math.isfinite(previous) or not math.isfinite(quantity):
+                    return False, "CLOSE_RESERVATION_CORRUPT"
+                ledger_applied = max(0.0, previous - abs(signed))
+                still_claimed = max(0.0, quantity - ledger_applied)
+                if still_claimed <= POSITION_EPSILON:
+                    del claims[key]
+                else:
+                    reserved += still_claimed
+            if size > max(0.0, abs(signed) - reserved) + POSITION_EPSILON:
+                return False, "CLOSE_SLEEVE_QUANTITY_ALREADY_IN_FLIGHT"
+            claims[cloid] = {
+                "account": account, "coin": coin, "wallet": wallet,
+                "sleeve_id": intent.sleeve_id, "intent_id": intent.intent_id,
+                "side": "BUY" if is_buy else "SELL", "size": size,
+                "sleeve_abs_at_reserve": abs(signed), "state": "PENDING",
+                "created_ms": utc_now_ms(),
+            }
+            try:
+                atomic_write_json(CLOSE_RESERVATIONS_FILE, claims)
+            except Exception:
+                claims.pop(cloid, None)
+                raise
+        return True, ""
+
+    def _finish_close_wire(self, cloid: str, response: Any, cancelled: bool = False,
+                           confirmed_filled: Optional[float] = None) -> None:
+        """Only definitive no-order or confirmed unfilled quantities can be released."""
+        with self._resting_lock:
+            claims = self.__dict__.setdefault("_close_reservations", {})
+            row = claims.get(cloid)
+            if row is None:
+                return
+            if cancelled:
+                filled = max(0.0, fnum(confirmed_filled, 0.0))
+                if filled <= POSITION_EPSILON:
+                    claims.pop(cloid, None)
+                else:
+                    row["size"] = min(fnum(row["size"]), filled)
+                    row["state"] = "FILL_AWAIT_LEDGER"
+            else:
+                ok, status, oid, _err = self._parse_hl_response(response)
+                if not ok and status == "ORDER_REJECTED":
+                    claims.pop(cloid, None)
+                elif ok and status == "ORDER_FILLED":
+                    filled = self._filled_size(response)
+                    if filled > 0:
+                        row["size"] = min(fnum(row["size"]), filled)
+                    row["state"] = "FILL_AWAIT_LEDGER"
+                else:
+                    row["state"] = "OUTCOME_UNRESOLVED" if not ok else "RESTING_AWAIT_TERMINAL"
+                    if oid:
+                        row["oid"] = str(oid)
+            atomic_write_json(CLOSE_RESERVATIONS_FILE, claims)
+
+    def _verify_close_reserved_wire(self, intent: Intent, cloid: str, is_buy: bool,
+                                    size: float, reduce_only: bool, limit_px: float,
+                                    min_notional: float) -> bool:
+        """Final physical order boundary: validate actual side, size and transmitted RO."""
+        with self._resting_lock:
+            row = self.__dict__.setdefault("_close_reservations", {}).get(cloid)
+            if not row or row.get("side") != ("BUY" if is_buy else "SELL"):
+                return False
+            if abs(fnum(row.get("size"), 0.0) - size) > POSITION_EPSILON:
+                return False
+            if size * limit_px < min_notional and reduce_only is not True:
+                return False
+            try:
+                signed = float(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
+                               .get("signed_size", float("nan")))
+            except Exception:
+                return False
+            delta = size if is_buy else -size
+            return (math.isfinite(signed) and signed * delta < 0
+                    and 0 < size <= abs(signed) + POSITION_EPSILON)
+
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
@@ -5728,10 +5849,27 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
+        _close_cloid = str(cloid or "")
+        _reserved_close = False
+        _close_min = max(DEFAULT_MIN_NOTIONAL,
+                         fnum((timing or {}).get("final_wire_min_notional"), DEFAULT_MIN_NOTIONAL))
+        if intent is not None and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+            if not _close_cloid:
+                return {"status": "err", "response": "CLOSE_CLOID_REQUIRED", "exchange_called": False}
+            _allowed, _reason = self._reserve_close_wire(
+                intent, sdk_coin, is_buy, size, limit_px, reduce_only, _close_cloid, _close_min)
+            if not _allowed:
+                self._trackb_escalate(intent, "CLOSE_WIRE_RESERVED_WAIT: " + _reason, timing)
+                return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _reason,
+                        "exchange_called": False, "reject_category": "CLOSE_RESERVATION",
+                        "terminal_state": "CLOSE_ESCALATION_OPEN", "operator_action": "WAIT_FOR_CLOSE_RECONCILIATION"}
+            _reserved_close = True
         if pre_send is not None:  # the pending_send write-ahead row: after the slot/cooldown wait, synchronously, right before the call
             try:
                 pre_send()
             except Exception as exc:  # fail closed: no crash record means no order
+                if _reserved_close:
+                    self._finish_close_wire(_close_cloid, None, cancelled=True)
                 raise PendingSendWriteFailed(repr(exc)) from exc
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
@@ -5742,11 +5880,20 @@ class SenderGateway:
         # order (Codex 6406031822: the early gate alone leaves that race open).
         _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
         if _late_block:
+            if _reserved_close:
+                self._finish_close_wire(_close_cloid, None, cancelled=True)
             self._gate_refusal_row(intent, path, _late_block)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
                     "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
                     "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
+        if _reserved_close and not self._verify_close_reserved_wire(
+                intent, _close_cloid, is_buy, size, reduce_only, limit_px, _close_min):
+            self._finish_close_wire(_close_cloid, None, cancelled=True)
+            self._trackb_escalate(intent, "FINAL_PHYSICAL_CLOSE_WIRE_MISMATCH", timing)
+            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:FINAL_PHYSICAL_CLOSE_WIRE_MISMATCH",
+                    "exchange_called": False, "reject_category": "CLOSE_RESERVATION",
+                    "terminal_state": "CLOSE_ESCALATION_OPEN"}
         # Stamp the call time HERE, after the final recheck: the pacing slot wait and the write-ahead row
         # can take seconds, and a refusal at the late gate must not leave a start stamp on the timing
         # map the caller builds its row from (Codex 6406836199).
@@ -5757,6 +5904,10 @@ class SenderGateway:
             response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         finally:
             _open_orders_send_end()
+        # An exception can be a filled exchange order. Keep its reservation until
+        # cloid reconciliation; definitive rejection releases immediately.
+        if _reserved_close:
+            self._finish_close_wire(_close_cloid, response)
         self._note_sender_key_rejection(response)
         return response
 
@@ -7166,6 +7317,12 @@ class SenderGateway:
             intent_id=str(row.get("intent_id") or ""), coin=intent.fill.coin, exchange_order_id=oid,
             action="NO_ACTION_STANDING_CLOSE_REPLACED", terminal_state=outcome, notes=note)
         filled = self._standing_filled_size(oid, fnum(row.get("size")))
+        if outcome == "STANDING_CLOSE_WITHDRAWN":
+            with self._resting_lock:
+                _owned_cloids = [k for k, v in self.__dict__.setdefault("_close_reservations", {}).items()
+                                 if str(v.get("oid") or "") == oid]
+            for _cl in _owned_cloids:
+                self._finish_close_wire(_cl, None, cancelled=True, confirmed_filled=filled)
         if filled > 0 and self.ledger is not None:
             # it (part-)filled: never close more than the sleeve holds once that fill is counted, whether or not the
             # ledger has seen it yet (a surplus would close another leader's position on the shared account)
@@ -7264,7 +7421,7 @@ class SenderGateway:
                 _min_n = (lambda sz: abs(sz * limit_px) >= _mn)
             except Exception as exc:
                 log_error("standing_close_min_notional", exc)
-            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, None, ledger_may_lag=remainder is not None)
+            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, _sc_t, ledger_may_lag=remainder is not None)
             if _skip:
                 self._trackb_escalate(intent, "RECOVERY_CLOSE_REPLAN_WAIT: " + _skip, _sc_t)
             if _skip:  # nothing to leave standing (the target is reached or there is nothing left to close): say so
@@ -7274,6 +7431,14 @@ class SenderGateway:
                     action="NO_STANDING_CLOSE", terminal_state="STANDING_CLOSE_NOT_PLACED", engine_can_send="False", notes=_skip)
                 return
             close_size = _sz
+            if _res.get("ok"):
+                _sc_t["final_wire_min_notional"] = self._effective_symbol_min_notional(_res)
+                _ok, _bad = self._validate_final_wire_order(
+                    intent, _res, sdk_coin, close_size, limit_px, _sc_t, wire_reduce_only=_ro)
+                if not _ok:
+                    self._trackb_escalate(intent, "RECOVERY_FINAL_WIRE_WAIT: " +
+                                          str(_bad.get("status")), _sc_t)
+                    return
             if not _ro and _sc_t.get("trackb_close_split_reason") == "EXCHANGE_NET_CLOSE_SPLIT":
                 block = self._trackb_remainder_entry_block(intent, close_size, limit_px)
                 if block:
@@ -8210,11 +8375,12 @@ class SenderGateway:
             first_size = self._floor_wire_size(first_size, sz_dec)
         if first_size <= 0:
             return False, 0.0, "CLOSE_SPLIT_SUB_WIRE_DUST"
-        if (first_ro and callable(min_notional_ok) and not min_notional_ok(first_size)
-                and exchange_net is not None and
-                abs(abs(exchange_net) - first_size) > POSITION_EPSILON):
-            # Never inflate a trimmed reduction beyond the actual exchange net.
-            return False, 0.0, "CLOSE_SPLIT_TRIMMED_DUST_ESCALATION"
+        # A partial reduce-only close has the same proposed sub-$10 exemption as
+        # a full close. Unknown-net dust may be attempted only with physical RO.
+        if (not first_ro and exchange_net is None and callable(min_notional_ok)
+                and not min_notional_ok(first_size)):
+            first_ro = True
+            reason = "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE_RO_DUST_ATTEMPT"
         t["trackb_close_remainder"] = remainder
         t["trackb_close_net"] = exchange_net
         t["trackb_close_split_reason"] = reason
@@ -8871,7 +9037,8 @@ class SenderGateway:
                 "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
             }
         _gate_ok, _gate_block = self._validate_final_wire_order(
-            intent, resolved, sdk_coin, wire_size, limit_px, timing
+            intent, resolved, sdk_coin, wire_size, limit_px, timing,
+            defer_close_notional=(lifecycle in {"EXIT", "REDUCE"})
         )
         timing["wire_validated_ms"] = utc_now_ms()
         if not _gate_ok:
@@ -8906,7 +9073,7 @@ class SenderGateway:
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
                 wire_size = close_size_planned
-            if timing.get("trackb_close_split_reason") == "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE":
+            if str(timing.get("trackb_close_split_reason", "")).startswith("UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE"):
                 # This is the ENGINE-owned close itself, NOT an entry remainder.
                 # Do not apply margin reserve/caps to it; journal owed-close RED
                 # until a later fresh exchange/open-order/terminal proof clears it.
@@ -8919,6 +9086,15 @@ class SenderGateway:
                         "exchange_called": False, "write_reconciliation": False,
                         "terminal_state": "CLOSE_ESCALATION_OPEN", "timing": timing,
                         "notes": block}
+        if lifecycle in {"EXIT", "REDUCE"}:
+            timing["final_wire_min_notional"] = self._effective_symbol_min_notional(resolved)
+            final_ok, final_block = self._validate_final_wire_order(
+                intent, resolved, sdk_coin, wire_size, limit_px, timing,
+                wire_reduce_only=use_reduce_only)
+            if not final_ok:
+                self._trackb_escalate(intent, "FINAL_CLOSE_WIRE_WAIT: " +
+                                      str(final_block.get("status")), timing)
+                return False, str(final_block.get("status")), final_block
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
         # T1a: the pending_send row (with the cloid) is written by _place_order synchronously, AFTER the slot/cooldown wait
@@ -9872,8 +10048,10 @@ class SenderGateway:
         wire_size: float,
         limit_px: float,
         timing: Dict[str, Any],
+        wire_reduce_only: Optional[bool] = None,
+        defer_close_notional: bool = False,
     ) -> Tuple[bool, Dict[str, Any]]:
-        """Single authoritative gate immediately before exchange.order().
+        """Asset/size/price checks, deferring minimum only until physical close plan exists.
 
         exchange.order() MUST NOT be called unless all gates pass.
         Each gate is independently sufficient to block the send.
@@ -9959,13 +10137,23 @@ class SenderGateway:
         # Gate B: min notional â€" applies to ENTRY, ADD, and EXIT
         wire_notional = abs(wire_size * limit_px)
         cfg_min = self._effective_symbol_min_notional(resolved)
-        dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
-                      and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
-                      and self._reduce_only_for_intent(intent)  # sent reduce-only (see _close_wire_plan): never a sub-minimum order that could open
-                      and self._closes_whole_account_position(intent, wire_size))
+        sleeve = float("nan")
+        if self.ledger is not None:
+            try:
+                sleeve = float(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
+                               .get("signed_size", float("nan")))
+            except Exception:
+                pass
+        delta = ManualLedger.signed_delta(intent.copy_side, wire_size)
+        dust_close = (
+            wire_reduce_only is True and self._reduce_only_for_intent(intent)
+            and math.isfinite(sleeve) and sleeve * delta < 0
+            and wire_size <= abs(sleeve) + POSITION_EPSILON
+        )
         if wire_notional < cfg_min and dust_close:
             timing["dust_close_below_min_notional"] = f"{wire_notional:.4f}<{cfg_min:.2f}"
-        if wire_notional < cfg_min and not dust_close:
+        if wire_notional < cfg_min and not dust_close and not (
+                defer_close_notional and self._reduce_only_for_intent(intent)):
             error = (
                 f"blocked before exchange: notional < min_notional; "
                 f"coin={sdk_coin}; raw_coin={raw_coin}; "
