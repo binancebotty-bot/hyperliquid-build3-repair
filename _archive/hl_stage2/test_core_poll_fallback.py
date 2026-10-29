@@ -42,7 +42,7 @@ def main():
     ws.enabled = True
 
     ws._socket_open, ws._subscribed = True, set(W[:3])
-    check("feed_ok_30s", core.leader_poll_interval_sec() == 30.0, str(core.leader_poll_interval_sec()))
+    check("feed_ok_120s", core.leader_poll_interval_sec() == 120.0, str(core.leader_poll_interval_sec()))
     ws._socket_open, ws._subscribed = True, set(W[:2])
     check("partial_feed_still_fast_poll", core.leader_poll_interval_sec() < 30.0, str(core.leader_poll_interval_sec()))
     ws._socket_open, ws._subscribed = True, set()
@@ -53,6 +53,12 @@ def main():
     cfg(10)
     core.cfg = c.ConfigManager()
     check("ten_leaders_scales_to_rate_limit", abs(core.leader_poll_interval_sec() - 22.0) < 1e-9, str(core.leader_poll_interval_sec()))
+    cfg(12)
+    core.cfg = c.ConfigManager()
+    os.environ["HL_LIVE_LEADER_POLL_NOFEED_SEC"] = "45"
+    ws._socket_open, ws._subscribed = False, set()
+    check("outage_fast_path_capped_at_30s", core.leader_poll_interval_sec() == 30.0, str(core.leader_poll_interval_sec()))
+    os.environ.pop("HL_LIVE_LEADER_POLL_NOFEED_SEC")
     cfg(1)
     core.cfg = c.ConfigManager()
     check("never_under_2s", core.leader_poll_interval_sec() == 2.2 or core.leader_poll_interval_sec() == 2.0, str(core.leader_poll_interval_sec()))

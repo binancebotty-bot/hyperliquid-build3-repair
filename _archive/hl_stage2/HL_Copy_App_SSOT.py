@@ -29,6 +29,7 @@ import os
 import html
 import io
 import shutil
+import subprocess
 import time
 import threading
 import traceback
@@ -87,6 +88,9 @@ PNL_RUN_START_FILE = LIVE_COPY_AUDIT_DIR / "pnl_run_start.json"  # the screen's 
 PNL_FILLS_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_fills_cache.json"
 PNL_FUNDING_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_funding_cache.json"
 LIVE_COPY_RECONCILIATION_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"
+APPEND_ONLY_DIR = LIVE_COPY_AUDIT_DIR / "append_only"
+ERRORS_CSV = APPEND_ONLY_DIR / "errors.csv"  # where the engine writes its SYMBOL_NOT_LISTED refusals
+ASSET_UNIVERSE_FILE = LIVE_COPY_AUDIT_DIR / "asset_universe_snapshot.json"  # what this network lists
 LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_intents.csv"
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
 SEND_ATTEMPTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "send_attempts.csv"
@@ -199,6 +203,10 @@ _MODEL_DASHBOARD_HTML_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_CACHE: Dict[str, Any] = {"data": None, "built_at": 0.0}
 _AUDIT_SUMMARY_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_TTL = 2.0  # seconds
+# The exchange is read on a slow off-thread cache only: the 8 s UI tick must never reach the network.
+_SLOW_EXCHANGE_TTL = 60.0
+_SLOW_EXCHANGE: Dict[str, Any] = {"snapshot": {}, "follower": {}, "built_at": 0.0, "refreshing": False}
+_SLOW_EXCHANGE_LOCK = threading.Lock()
 
 # Incremental CSV reader cache: keyed by (path, inode, size) holding parsed rows read so far and byte offset.
 # Modelled on HL_Live_Copy_Service_Core.send_attempt_rows() but independent (no engine import).
@@ -705,6 +713,101 @@ def load_json(path: Path, default: Any) -> Any:
     return default
 
 
+# --- Build identity strip: files only, plus git at import (never per request) ---
+_UI_DIR = Path(__file__).resolve().parent
+_UI_STARTED_AT = datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def _git_short_sha(folder: Path) -> str:
+    try:
+        r = subprocess.run(["git", "-C", str(folder), "rev-parse", "--short=7", "HEAD"], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "unknown"
+    except Exception:
+        return "unknown"
+
+
+_UI_SHA7 = _git_short_sha(_UI_DIR)
+
+
+def _engine_identity() -> Dict[str, Any]:
+    """Engine pid/build/start from the state files. The state carries no SHA, so sha7 comes from the
+    build folder the engine was started from (e.g. v33_6c69310) - inferred, not authoritative."""
+    rec = load_json(LIVE_COPY_AUDIT_DIR / "core_start_record.json", {})
+    st = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    rec = rec if isinstance(rec, dict) else {}
+    st = st if isinstance(st, dict) else {}
+    sha7, sha_src = "unknown", "the state files carry no SHA"
+    for key in ("script", "cwd"):
+        for part in str(rec.get(key) or "").replace(chr(92), "/").split("/"):
+            tail = part.split("_")[-1].lower()
+            if "_" in part and len(tail) == 7 and all(c in "0123456789abcdef" for c in tail):
+                sha7, sha_src = tail, "core_start_record.json " + key + " folder '" + part + "'"
+                break
+        if sha7 != "unknown":
+            break
+    return {"pid": rec.get("pid") or st.get("process_id"), "started_at": rec.get("started_at") or st.get("started_at"), "sha7": sha7, "sha_source": sha_src}
+
+
+def _pid_running(pid: Any) -> bool:
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if os.name == "nt":
+        import ctypes
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)  # QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        ctypes.windll.kernel32.CloseHandle(h)
+        return True
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def _engine_same_family(sha7: str) -> bool:
+    """Family rule: the engine sha7 is in the UI's own history (ancestor of, or equal to, the UI commit).
+    Strict equality would be permanently amber because the UI branch is based on 8ce6763."""
+    if sha7 == "unknown" or _UI_SHA7 == "unknown":
+        return False
+    try:
+        r = subprocess.run(["git", "-C", str(_UI_DIR), "merge-base", "--is-ancestor", sha7, "HEAD"], capture_output=True, timeout=5)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def render_build_identity() -> str:
+    """Grey when the engine is running and its build is in the UI's history; amber otherwise. Never claims an unverified match."""
+    e = _engine_identity()
+    pid_ok = _pid_running(e["pid"])
+    same = _engine_same_family(e["sha7"])
+    problems = []
+    if not pid_ok:
+        problems.append("the engine pid in the state file (" + str(e["pid"] or "unknown") + ") is not a running process")
+    if e["sha7"] == "unknown":
+        problems.append("the engine build SHA is unknown, so a match cannot be checked")
+    elif _UI_SHA7 == "unknown":
+        problems.append("the UI build SHA is unknown, so a match cannot be checked")
+    elif not same:
+        problems.append("the UI build " + _UI_SHA7 + " does not contain the engine build " + e["sha7"])
+    if problems:
+        verdict = "build identity MISMATCH: " + "; ".join(problems)
+    else:
+        verdict = "build identity consistent: engine build " + e["sha7"] + " is in the UI's own history"
+    esc = lambda v: html.escape(str(v))
+    bits = ["Engine pid " + esc(e["pid"] or "unknown") + (" (running)" if pid_ok else " (NOT running)"),
+            "engine build " + esc(e["sha7"]) + ("" if e["sha7"] == "unknown" else " (inferred from " + esc(e["sha_source"]) + ")"),
+            "UI build " + esc(_UI_SHA7),
+            "audit dir " + esc(LIVE_COPY_AUDIT_DIR.name),
+            "engine started " + esc(e["started_at"] or "unknown"),
+            "UI started " + esc(_UI_STARTED_AT.isoformat()) + " (module import)"]
+    return ('<div class="lc-source-strip" id="buildIdentity"><span class="lc-pill ' + ("lc-amber" if problems else "lc-grey")
+            + '" style="white-space:normal">' + " &middot; ".join(bits) + " &mdash; " + esc(verdict) + "</span></div>")
+
+
 def load_engine_truth() -> Dict[str, Any]:
     truth = load_json(ENGINE_TRUTH_JSON, None)
     if not isinstance(truth, dict):
@@ -892,6 +995,19 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
                 out[k] = max(0.0, fnum(raw[k]))
     if "marketable_slippage_pct" in raw:
         out["marketable_bps"] = max(0.0, fnum(raw.get("marketable_slippage_pct")) * 100.0)
+    # A control the numeric defaults do not model must survive VERBATIM. Rebuilding the dict from those defaults used
+    # to drop send_mode, so the UI reported SENDING OFF on a pair that was placing orders - the worst thing this page
+    # can say. Anything not in the defaults is passed through untouched (no fnum, no coercion).
+    for key, value in raw.items():
+        if key not in out:
+            # A control the defaults do not model is passed through, but only as a JSON-safe scalar or list: a dict,
+            # bytes or an object from a hand-edited file must not 500 the whole /api/global-controls response.
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                out[key] = value
+            elif isinstance(value, list):
+                out[key] = [v for v in value if isinstance(v, (str, int, float, bool))]
+            else:
+                out[key] = str(value)[:120]
     return out
 
 
@@ -1148,7 +1264,37 @@ def _plain_block_reason(code: str) -> str:
     return c.replace("_", " ").lower()
 
 
+# the biggest positive integrity count, said in plain words: an amber banner names the worst thing, never a tab
+_INTEGRITY_REASON_WORDS = {
+    "missed_entry": "the engine missed leader entries",
+    "missed_add": "the engine missed leader adds",
+    "hard_copy_active_red": "copy rows are still active red",
+    "blocked_fills_window": "fills were blocked in the last hour",
+    "exchange_manual_mismatch": "the engine records and the exchange disagree on a position",
+    "unclassified_row_names": "a reconciliation row has no recognised name",
+    "generic_terminal_state": "a send ended in a generic terminal state",
+    "latency_warnings": "sends are slower than the warning threshold",
+    "close_reject_or_recovery_required": "a close is failing",
+}
+
+
+def _plain_integrity_reason(counts: Dict[str, Any]) -> str:
+    best = max(((v, k) for k, v in (counts or {}).items()
+                if isinstance(v, (int, float)) and v > 0 and k in _INTEGRITY_REASON_WORDS), default=None)
+    return _INTEGRITY_REASON_WORDS[best[1]] if best else ""
+
+
 _CLOSE_FAILURE_MARKERS = ("MANUAL_EXIT_RECOVERY_REQUIRED", "EXIT_RECOVERY_QUEUE_FAILED")
+
+# Rejections the engine EXPECTS and handles: a halted market, an IOC that could not match, a short margin. They are
+# recorded per order and the engine moves on, so counting them as RED showed an operator "copy rows are still active
+# red" for 14 rows that were all halted-or-no-match - a banner that names nothing and implies a fault. They stay
+# visible as AMBER under their own state; anything outside this set keeps RED.
+# Margin is deliberately NOT here. A halted book or an IOC that could not match is a market outcome the engine
+# handles; INSUFFICIENT_MARGIN means the account cannot fund the copies it is being asked to make, and downgrading
+# that to amber hides an account draining toward zero. It stays RED.
+_EXPECTED_REJECT_CATEGORIES = {"MARKET_HALTED", "IOC_NO_IMMEDIATE_MATCH", "SKIPPED_IOC_NO_IMMEDIATE_MATCH"}
+_EXPECTED_REJECT_ERRORS = ("trading is halted", "could not immediately match")
 
 
 def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
@@ -1213,7 +1359,8 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     elif st.get("entry_sends_blocked_reason"):
         level, text = "red", "Stopped: new entries paused because " + _plain_block_reason(str(st.get("entry_sends_blocked_reason"))) + " (exits still run)"
     elif integ in {"RED", "AMBER"}:
-        level, text = "amber", "Needs a look: see the Reconciliation tab"
+        # amber names the largest reason in words; red stays reserved for "the engine cannot send"
+        level, text = "amber", "Needs a look: " + (_plain_integrity_reason(counts) or "see the Reconciliation tab")
     return {"level": level, "text": text, "technical": technical, "integrity_status": integ,
             "engine_heartbeat_ms": beat}
 
@@ -1323,6 +1470,48 @@ def _slim_ui_payload(obj: Any, depth: int = 0) -> Any:
     return obj
 
 
+def _exchange_slow_refresh() -> None:
+    """The only place the request path's exchange figures come from: one read, off the request thread."""
+    try:
+        snapshot = _fetch_exchange_account_snapshot()
+        follower = _follower_account_value_safe()
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE.update({"snapshot": snapshot, "follower": follower, "built_at": time.time()})
+    except Exception as exc:  # a failed refresh keeps the last good value
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE["last_error"] = "%s: %s" % (type(exc).__name__, exc)
+    finally:
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE["refreshing"] = False
+
+
+def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
+    """Last-good exchange figures plus their age. Reads files and memory only; never the network."""
+    now = time.time()
+    kick = False
+    with _SLOW_EXCHANGE_LOCK:
+        if not _SLOW_EXCHANGE["snapshot"]:
+            seeded = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+            if isinstance(seeded, dict) and seeded:
+                _SLOW_EXCHANGE["snapshot"] = seeded
+                try:  # the seeded figures are as old as the file, not as old as the epoch
+                    _SLOW_EXCHANGE["built_at"] = EXCHANGE_ACCOUNT_SNAPSHOT_FILE.stat().st_mtime
+                except OSError:
+                    pass
+        _have_snapshot = bool(_SLOW_EXCHANGE["built_at"])
+        # no usable snapshot yet is UNKNOWN, not a huge age: built_at of 0 must never
+        # render as seconds-since-the-epoch
+        age = (now - float(_SLOW_EXCHANGE["built_at"])) if _have_snapshot else None
+        if (age is None or age > _SLOW_EXCHANGE_TTL) and not _SLOW_EXCHANGE["refreshing"]:
+            _SLOW_EXCHANGE["refreshing"] = True
+            kick = True
+        snapshot = dict(_SLOW_EXCHANGE["snapshot"] or {})
+        follower = dict(_SLOW_EXCHANGE["follower"] or {})
+    if kick:
+        threading.Thread(target=_exchange_slow_refresh, name="hl-exchange-slow", daemon=True).start()
+    return snapshot, follower, (round(max(0.0, age), 1) if age is not None else None)
+
+
 def _live_audit_summary() -> Dict[str, Any]:
     result = _live_audit_summary_full()
     rows = result.get("execution_quality_rows")
@@ -1351,13 +1540,16 @@ def _live_audit_summary_full() -> Dict[str, Any]:
             rows = total_rows
             for row in intent_rows:
                 reason = str(row.get("reason", "") or "UNKNOWN")
-                status = str(row.get("status", "") or "UNKNOWN")
+                # order_intents.csv carries `decision`, not `status`/`execution_decision`: reading the absent names
+                # counted all 13,383 rows as UNKNOWN and made every figure look unbuildable. Fall back to what the
+                # file actually writes; a row with neither is still counted as UNKNOWN, honestly.
+                status = str(row.get("status") or row.get("decision") or "UNKNOWN")
                 notes = str(row.get("notes", "") or "")
                 source = str(row.get("source", "") or "")
                 if not source and "source=" in notes:
                     source = notes.split("source=", 1)[1].split(";", 1)[0].split()[0]
-                execution_decision = str(row.get("execution_decision", "") or "UNKNOWN")
-                decision_reason = str(row.get("decision_reason", "") or "UNKNOWN")
+                execution_decision = str(row.get("execution_decision") or row.get("decision") or "UNKNOWN")
+                decision_reason = str(row.get("decision_reason") or row.get("reason") or "UNKNOWN")
                 manual_required = str(row.get("manual_reconcile_required", "") or "UNKNOWN")
                 market_data_error = str(row.get("market_data_error", "") or "")
                 reason_counts[reason] = reason_counts.get(reason, 0) + 1
@@ -1381,9 +1573,8 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     recent_send_attempts = _load_recent_send_attempts(100)
     metric_send_attempts = _load_recent_send_attempts(5000)
     send_attempt_counts = _load_send_attempt_counts()
-    exchange_snapshot = _fetch_exchange_account_snapshot()
+    exchange_snapshot, follower_account, exchange_cache_age = _exchange_slow_cached()
     manual_live_summary = _manual_live_summary(manual_positions, recent_send_attempts, exchange_snapshot)
-    follower_account = _follower_account_value_safe()
     _append_exchange_history(exchange_snapshot, manual_live_summary,
                              follower_account.get("value") if follower_account.get("ok") else None)
     ws_health = _load_live_ws_health()
@@ -1448,6 +1639,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "net_pnl_start_time": pnl_tally.get("start_time", ""),
         "net_pnl_reason": pnl_tally.get("reason", ""),
         "net_pnl_partial": bool(pnl_tally.get("partial")),
+        "exchange_age_seconds": exchange_cache_age,  # how old the exchange figures are; the tick shows it
         "open_positions": len(open_positions_now) if isinstance(open_positions_now, list) else None,
         "resting_orders": live_top_status.get("resting_entry_limits"),
     }
@@ -1533,6 +1725,80 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "send_block_reason": live_top_status.get("send_block_reason"),
         "live_integrity_status": integrity_status,
         "live_top_status": live_top_status,
+    }
+
+
+
+def _symbol_not_listed_summary() -> Dict[str, Any]:
+    """Leader trades in coins this network does not list, counted per coin and per leader wallet.
+
+    Keyed strictly on the SYMBOL_NOT_LISTED status the engine writes - never on a reject category - and a coin
+    the asset universe does list (XYZ:CRCL, XYZ:IBM) is excluded however it was labelled on the way.
+    shortcut: reads only the newest journal files and a bounded tail of errors.csv, so an older refusal is not counted.
+    """
+    uni = load_json(ASSET_UNIVERSE_FILE, {})
+    syms = uni.get("symbols") if isinstance(uni, dict) else None
+    listed = {str(k).upper() for k in (syms.keys() if isinstance(syms, dict) else (syms if isinstance(syms, list) else []))}
+    found: Dict[str, Dict[str, Any]] = {}
+
+    def add(coin: str, wallet: str, key: str) -> None:
+        c = str(coin or "").strip().upper()
+        if not c or c in listed or key in found:
+            return
+        found[key] = {"coin": c, "wallet": str(wallet or "").strip()}
+
+    partial_reads: List[str] = []  # every bounded tail and every skipped read error is named here, never silent
+    try:
+        journals = sorted(APPEND_ONLY_DIR.glob("reconciliation*.csv"), key=lambda f: f.name)
+    except OSError as exc:
+        journals = []
+        partial_reads.append("reconciliation journals: listing failed (%s)" % type(exc).__name__)
+    if not journals:
+        # no journal at all is not nothing-to-report: the counts cannot be known
+        partial_reads.append("reconciliation journals: none found (%s)" % APPEND_ONLY_DIR.name)
+    if len(journals) > 2:
+        partial_reads.append("reconciliation journals: newest 2 of %d read" % len(journals))
+    journals = journals[-2:]
+    for jf in journals:
+        try:
+            rows, _ = _read_csv_incremental(jf, limit=None, tail_bytes=8 * 1024 * 1024)
+            partial_reads.append("%s: last %d bytes only" % (jf.name, 8 * 1024 * 1024))
+        except Exception as exc:
+            partial_reads.append("%s: read failed (%s)" % (jf.name, type(exc).__name__))
+            continue
+        for r in rows:
+            if "SYMBOL_NOT_LISTED" not in " ".join(str(r.get(k) or "") for k in ("status", "terminal_state")).upper():
+                continue
+            add(r.get("coin"), r.get("leader_wallet"), "r|%s|%s" % (r.get("intent_id") or r.get("leader_fill_id") or "", r.get("coin")))
+    if ERRORS_CSV.exists():
+        try:
+            erows, _ = _read_csv_incremental(ERRORS_CSV, limit=None, tail_bytes=16 * 1024 * 1024)
+            partial_reads.append("%s: last %d bytes only" % (ERRORS_CSV.name, 16 * 1024 * 1024))
+        except Exception as exc:
+            erows = []
+            partial_reads.append("%s: read failed (%s)" % (ERRORS_CSV.name, type(exc).__name__))
+        for r in erows:
+            msg = str(r.get("message") or "")
+            if "SYMBOL_NOT_LISTED" not in msg.upper():
+                continue
+            rest = msg.split("symbol unresolved:", 1)[-1].strip()
+            add(rest.split()[0] if rest else "", "", "e|%s|%s" % (r.get("created_at_ms"), rest[:24]))
+    coins: Dict[str, int] = {}
+    wallets: Dict[str, int] = {}
+    for f in found.values():
+        coins[f["coin"]] = coins.get(f["coin"], 0) + 1
+        if f["wallet"]:
+            wallets[f["wallet"]] = wallets.get(f["wallet"], 0) + 1
+    return {
+        # ok:true means the endpoint answered; partial says the counts do not cover everything on disk
+        "ok": True,
+        "partial": bool(partial_reads),
+        "partial_reads": partial_reads,
+        "total": len(found),
+        "coins": [{"coin": k, "count": v} for k, v in sorted(coins.items(), key=lambda kv: (-kv[1], kv[0]))],
+        "wallets": [{"wallet": k, "count": v} for k, v in sorted(wallets.items(), key=lambda kv: (-kv[1], kv[0]))],
+        "listed_symbols": len(listed),
+        "source": "append_only/reconciliation*.csv + append_only/errors.csv",
     }
 
 
@@ -2085,7 +2351,17 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
         saved = load_json(PNL_RUN_START_FILE, {})
         if (isinstance(saved, dict) and inum(saved.get("run_key")) == int(run_key) and saved.get("available")
                 and inum(saved.get("ms")) > 0 and isinstance(saved.get("entry"), dict)):
-            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": str(saved.get("how") or ""),
+            _how = str(saved.get("how") or "")
+            # A saved run-start record can have been written from the SEED point. Say so on the page: "at run start"
+            # would claim a start value the run never actually had.
+            try:
+                _hist = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
+                if (isinstance(_hist, list) and _hist and isinstance(_hist[0], dict) and _hist[0].get("seeded")
+                        and _how.strip().lower().startswith("at run start")):
+                    _how = "seeded at %s, not run start" % str(_hist[0].get("timestamp") or "")[:19].replace("T", " ")
+            except Exception:
+                pass
+            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": _how,
                     "run_start_ms": inum(saved.get("run_start_ms")), "timestamp": str(saved.get("timestamp") or ""),
                     "saved": True, "run_key": int(run_key)}
     if run_start_ms is None:
@@ -2109,6 +2385,10 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
             chosen, how = before[-1], "at run start"
     if chosen is None:
         chosen, how = entries[0], ("earliest record (after run start)" if run_start_ms else "earliest record")
+    if isinstance(chosen, tuple):
+        _ms0, _e0 = chosen
+        if isinstance(_e0, dict) and _e0.get("seeded"):
+            how = "seeded at %s, not run start" % str(_e0.get("timestamp") or "")[:19].replace("T", " ") + "Z"
     ms, entry = chosen
     out = {"available": True, "ms": ms, "entry": entry, "how": how, "run_start_ms": run_start_ms,
            "timestamp": datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat(), "saved": False}
@@ -2319,6 +2599,10 @@ def _fetch_user_realized_pnl_snapshot(account: Optional[str] = None, baseline_ti
 
 
 def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str, Any], portfolio_value: Optional[float] = None) -> None:
+    # The ENGINE owns this file now (append_account_history_point in the cycle). Two processes doing read/modify/write
+    # on the same JSON lose each other's points - atomic replace prevents corruption, not a lost update - so the UI
+    # stopped writing and reads what the daemon records.
+    return
     if not snapshot.get("ok") or not snapshot.get("available"):
         return
     history = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
@@ -2326,6 +2610,9 @@ def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str,
         history = []
     entry = {
         "timestamp": snapshot.get("updated_at"),
+        # A point written when the run had no earlier record is a SEED, not a run-start reading: say so, so nobody later
+        # reads the first point as the value the run began with.
+        "seeded": bool(not history),
         "account_value": fnum(snapshot.get("account_value")),
         "unified_portfolio_value": fnum(snapshot.get("unified_portfolio_value")) if is_present_num(snapshot.get("unified_portfolio_value")) else None,
         "realized_pnl_since_baseline": fnum(snapshot.get("realized_pnl_since_baseline")) if is_present_num(snapshot.get("realized_pnl_since_baseline")) else None,
@@ -3561,8 +3848,14 @@ def _build_execution_quality_rows(
             truth_state = "ACTIVE_AWAITING_COPY_POLL" if is_fresh else "HISTORICAL_UNADOPTED_REVIEW"
             truth_severity = "AMBER" if is_fresh else "RED"
         elif status == "ORDER_REJECTED":
-            truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
-            truth_severity = "RED" if is_fresh else "HISTORICAL"
+            _expected = (reject_category.strip().upper() in _EXPECTED_REJECT_CATEGORIES
+                         or any(m in str(attempt.get("error") or "").lower() for m in _EXPECTED_REJECT_ERRORS))
+            if _expected:
+                truth_state = "ACTIVE_EXPECTED_REJECT" if is_fresh else "HISTORICAL_EXPECTED_REJECT"
+                truth_severity = "AMBER" if is_fresh else "HISTORICAL"
+            else:
+                truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
+                truth_severity = "RED" if is_fresh else "HISTORICAL"
         elif status == "CONFIRM_REQUIRED":
             truth_state = "QUEUED_PREVIEW"
             truth_severity = "INFO"
@@ -6368,6 +6661,169 @@ _ACCOUNT_VALUE_CACHE: Dict[str, Any] = {}
 ACCOUNT_VALUE_FETCHER = None  # test seam; production reads the follower /info
 
 
+# ---------------------------------------------------------------- account tile (HOT FIX 6428792047 item 3)
+# The tile used to read the portfolio "day" accountValueHistory, which is the DEFAULT dex only. On this
+# testnet account xyz held 39.81 of a 972.46 total, so the tile understated the account by that much while
+# the label claimed "Account value (spot + perp)". The tile now sums clearinghouseState.marginSummary
+# .accountValue over the dex scope the engine actually reads (default + HL_FOLLOWER_DEXES + any dex the
+# account or the manual ledger shows a position on) and adds spot USDC on top, naming the parts.
+ACCOUNT_TILE_FETCHER = None  # test seam; production posts to the follower /info
+_ACCOUNT_TILE_CACHE: Dict[str, Any] = {}
+ACCOUNT_TILE_CACHE_SEC = 15.0
+
+
+def _account_tile_post(payload: Dict[str, Any], timeout: float = 5.0) -> Any:
+    if ACCOUNT_TILE_FETCHER is not None:
+        return ACCOUNT_TILE_FETCHER(payload)
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(FOLLOWER_INFO_URL, data=body,
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _dex_of_coin(coin: Any) -> str:
+    """'xyz:EWZ' -> 'xyz'; a plain coin lives on the default dex ('')."""
+    text = str(coin or "").strip().lower()
+    return text.split(":", 1)[0] if ":" in text else ""
+
+
+def _follower_account_dexes() -> List[str]:
+    """The dex scope the account tile must read: the default dex, anything named in HL_FOLLOWER_DEXES,
+    and any dex a coin on this account (or in the manual ledger) belongs to. No extra API call: the
+    names come from state the app already holds, so the tile stays one small read per dex."""
+    names = {""}
+    for raw in str(_NET_ENV.get("HL_FOLLOWER_DEXES") or os.getenv("HL_FOLLOWER_DEXES") or "").split(","):
+        if str(raw).strip():
+            names.add(str(raw).strip().lower())
+    for path, key in ((EXCHANGE_ACCOUNT_SNAPSHOT_FILE, "positions_by_coin"),
+                      (MANUAL_POSITIONS_FILE, "by_coin_net"),
+                      (LIVE_COPY_AUDIT_DIR / "xyz_position_state.json", "positions_by_coin")):
+        try:
+            data = load_json(path, {})
+        except Exception:
+            data = {}
+        rows = data.get(key) if isinstance(data, dict) else None
+        if isinstance(rows, dict):
+            names.update(_dex_of_coin(c) for c in rows.keys())
+    return sorted(names)
+
+
+def _follower_account_tile(force: bool = False) -> Dict[str, Any]:
+    """Whole account as spot USDC + the sum of perp equity over the dex scope. ok=False if ANY scope in
+    the scope could not be read: an unreadable dex is not a zero, and a tile that quietly drops it
+    understates the account exactly the way the single-dex read did."""
+    addr = _public_account_address()
+    if not addr:
+        return {"ok": False, "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"}
+    if ACCOUNT_TILE_FETCHER is None and ACCOUNT_VALUE_FETCHER is not None:
+        # The older screen tests inject ONE whole-account read (portfolio day accountValueHistory) and pin the
+        # card's wording. That seam still answers, in the tile's shape, so those tests keep testing the card
+        # rather than the exchange. Production never sets it, so production always sums the real dex scope.
+        legacy = _follower_account_value()
+        if not legacy.get("ok"):
+            return {"ok": False, "reason": str(legacy.get("reason") or "PORTFOLIO_UNAVAILABLE"), "address": addr}
+        value = fnum(legacy.get("value"), 0.0)
+        return {"ok": True, "address": addr, "dexes_read": ["default"],
+                "unreadable_dexes": [], "errors": [],
+                "perp_account_value": value, "spot_usdc": 0.0, "spot_status": "SEAM",
+                "total_account_value": value,
+                "account_value_source": "portfolio.day.accountValueHistory (whole account, single read)"}
+    hit = _ACCOUNT_TILE_CACHE.get(addr)
+    if not force and hit and time.time() - hit[1] <= ACCOUNT_TILE_CACHE_SEC:
+        return hit[0]
+    dexes = _follower_account_dexes()
+    perp_total = 0.0
+    read, unreadable, tile_errors = [], [], []
+    for dex in dexes:
+        label = dex or "default"
+        payload: Dict[str, Any] = {"type": "clearinghouseState", "user": addr}
+        if dex:
+            payload["dex"] = dex
+        try:
+            state = _account_tile_post(payload)
+            summary = (state or {}).get("marginSummary") if isinstance(state, dict) else None
+            value = fnum((summary or {}).get("accountValue"), None) if isinstance(summary, dict) else None
+            if value is None:
+                raise ValueError("no marginSummary.accountValue")
+            perp_total += float(value)
+            read.append(label)
+        except Exception as exc:  # an unreadable scope is named in the result, never silently zeroed
+            unreadable.append(label)
+            tile_errors.append(f"{label}: {type(exc).__name__}: {exc}")
+    spot_usdc: Optional[float] = None
+    spot_hold: Optional[float] = None
+    spot_status = "NOT_FETCHED"
+    try:
+        spot = _account_tile_post({"type": "spotClearinghouseState", "user": addr})
+        balances = spot.get("balances") if isinstance(spot, dict) else None
+        usdc = next((b for b in (balances if isinstance(balances, list) else [])
+                     if isinstance(b, dict) and str(b.get("coin", "")).upper() == "USDC"), None)
+        if isinstance(usdc, dict) and is_present_num(usdc.get("total")):
+            spot_usdc = fnum(usdc.get("total"))
+            spot_hold = fnum(usdc.get("hold")) if is_present_num(usdc.get("hold")) else 0.0
+            spot_status = "OK"
+        else:
+            spot_status = "NO_USDC_BALANCE"
+    except Exception as exc:
+        spot_status = f"UNAVAILABLE: {type(exc).__name__}"
+        tile_errors.append(f"spot: {type(exc).__name__}: {exc}")
+    # NO DOUBLE COUNT. Measured on this account 2026-10-26 23:39Z: spot USDC total 972.432572 with hold
+    # 39.792482, and the xyz dex's accountValue 39.792482 - identical. The perp margin is HELD OUT OF spot
+    # USDC, it is not extra money. So spot_total + perp_sum = 1012.20, overstating the account by exactly the
+    # margin in use. The whole account is spot_total; the correct decomposition is (spot_total - hold) +
+    # sum(perp accountValue) = 932.64 + 39.79 = 972.43, which matches portfolio day accountValue 972.419611.
+    free_spot = (float(spot_usdc) - float(spot_hold or 0.0)) if spot_usdc is not None else None
+    parts = ["spotClearinghouseState.balances[coin=USDC].total (whole account, perp margin is held inside it)"]
+    parts.append("clearinghouseState.marginSummary.accountValue x %d dex (%s) = perp equity, shown beside it"
+                 % (len(read), ", ".join(read) or "none"))
+    if free_spot is not None:
+        parts.append("free spot = total - hold")
+    out: Dict[str, Any] = {
+        "ok": not unreadable and spot_usdc is not None,
+        "address": addr,
+        "dexes_read": read,
+        "unreadable_dexes": unreadable,
+        "perp_account_value": round(perp_total, 8) if read else None,
+        "spot_usdc": spot_usdc,
+        "spot_hold": spot_hold,
+        "free_spot_usdc": round(free_spot, 8) if free_spot is not None else None,
+        "spot_status": spot_status,
+        "total_account_value": (round(float(spot_usdc), 8)
+                                if (read and spot_usdc is not None) else None),
+        "decomposition_usd": (round(float(free_spot) + float(perp_total), 8)
+                              if (read and free_spot is not None) else None),
+        "account_value_source": " + ".join(parts),
+        "errors": tile_errors,
+    }
+    # SCOPE COMPLETENESS (measured, not assumed). The dex scope is learned from state, so a fresh state dir
+    # can under-read it. portfolio day accountValueHistory is the exchange's OWN whole-account figure: if the
+    # tile's total disagrees with it beyond a cent, a dex outside the scope is holding money and the tile says
+    # so instead of quietly showing a smaller number (the exact failure this hot fix exists to end).
+    try:
+        whole = _XNET.rolling_day_pnl(addr, fetcher=ACCOUNT_VALUE_FETCHER, info_url=FOLLOWER_INFO_URL, timeout=5)
+        if whole.get("ok") and whole.get("account_value_usd") is not None and out["total_account_value"] is not None:
+            whole_v = float(whole["account_value_usd"])
+            out["exchange_whole_account_usd"] = round(whole_v, 8)
+            gap = round(whole_v - float(out["total_account_value"]), 8)
+            out["unexplained_gap_usd"] = gap
+            if abs(gap) > 0.01:
+                out["ok"] = False
+                out.setdefault("reason", "DEX_SCOPE_INCOMPLETE")
+                out["scope_incomplete"] = True
+                out.setdefault("errors", []).append(
+                    "dex scope incomplete: exchange whole account %.2f vs tile %.2f (gap %.2f)"
+                    % (whole_v, float(out["total_account_value"]), gap))
+    except Exception as exc:
+        out.setdefault("errors", []).append(f"whole-account cross-check unavailable: {type(exc).__name__}")
+    if unreadable:
+        out["reason"] = "DEX_UNREADABLE: " + ", ".join(unreadable)
+    elif spot_usdc is None:
+        out["reason"] = "SPOT_UNAVAILABLE: " + spot_status
+    _ACCOUNT_TILE_CACHE[addr] = (out, time.time())
+    return out
+
+
 def _follower_account_value() -> Dict[str, Any]:
     """Whole-account value of the follower (portfolio, spot + perps, so a unified account is not shown
     as its perp margin only): the same figure the engine uses for equity. Cached 15 s."""
@@ -6393,17 +6849,26 @@ def _follower_account_value_safe() -> Dict[str, Any]:
 
 
 def _account_card_lines() -> List[str]:
-    """Real follower account value from the follower exchange, never the model's normalised base."""
+    """Real follower account value from the follower exchange, never the model's normalised base.
+
+    Reads EVERY dex in scope (HOT FIX 6428792047 item 3): the old single portfolio read silently omitted
+    xyz, so the tile showed 932.65 for an account that held 972.46.
+    """
     try:
-        acct = _follower_account_value()
+        acct = _follower_account_tile()
     except Exception as exc:  # the page must still render
         acct = {"ok": False, "reason": type(exc).__name__}
     net = html.escape(FOLLOWER_NETWORK.upper())
     if not acct.get("ok"):
         return [f'<div class="metric-line"><span>{net}</span><b class="neg">UNAVAILABLE</b></div>',
                 f'<div class="metric-line"><span>WHY</span><b>{html.escape(str(acct.get("reason") or "?"))}</b></div>']
-    value, addr = acct["value"], str(acct.get("address") or "")
-    return [f'<div class="metric-line"><span>EQUITY</span><b>{money(value)}</b></div>',
+    value, addr = acct["total_account_value"], str(acct.get("address") or "")
+    dexes = acct.get("dexes_read") or []
+    return [f'<div class="metric-line"><span>Account value (spot + perp)</span><b>{money(value)}</b></div>',
+            f'<div class="metric-line"><span>Perp equity</span><b>{money(acct.get("perp_account_value"))}</b></div>',
+            f'<div class="metric-line"><span>Spot USDC</span><b>{money(acct.get("spot_usdc"))}</b></div>',
+            f'<div class="metric-line"><span>Free spot</span><b>{money(acct.get("free_spot_usdc"))}</b></div>',
+            f'<div class="metric-line"><span>DEX scope</span><b title="{html.escape(str(acct.get("account_value_source") or ""))}">{html.escape(", ".join(str(d) for d in dexes))}</b></div>',
             f'<div class="metric-line"><span>{net}</span><b title="{html.escape(addr)}">{html.escape(addr[:6] + "…" + addr[-4:])}</b></div>']
 
 
@@ -6998,12 +7463,15 @@ async def admin_purge_wallet(request: Request):
 def render_live_copy_control_panel() -> str:
     return """
 <div class="section live-copy-centre" id="liveCopyPanel">
+  """ + render_build_identity() + """
   <header class="lc-header">
     <div class="lc-title">Live Copy Command Centre</div>
     <div class="lc-header-pills">
-      <span class="lc-pill">Wallets: <b id="lcWalletCount">0 / 10</b></span>
       <span id="lcModeCounts" style="display:contents"></span>
       <span class="lc-pill" id="lcFeedPill">Leader feed: <b id="lcWsOverall">—</b></span>
+      <span class="lc-pill lc-grey" id="lcAsOf" hidden></span>
+      <span class="lc-pill lc-amber" id="lcStaleNote" hidden>figures could not be rebuilt</span>
+      <span class="lc-pill lc-grey" id="lcExchangeAge" hidden></span>
     </div>
     <div class="lc-header-actions">
       <button type="button" id="lcRefresh">Refresh</button>
@@ -7054,6 +7522,12 @@ def render_live_copy_control_panel() -> str:
     <div id="lcTally" class="lc-tally"><span class="lc-muted">Loading…</span></div>
   </section>
 
+  <section class="lc-panel" id="lcNotListedPanel">
+    <h3>Leader trades in markets not listed on testnet</h3>
+    <p class="lc-muted">Counted from rows whose engine status is SYMBOL_NOT_LISTED. A coin this network does list is never counted.</p>
+    <div id="lcNotListed" class="lc-muted">Loading...</div>
+  </section>
+
   <section class="lc-panel lc-top-status">
     <h3>Live Copy Status</h3>
     <div class="lc-stat-strip" id="lcTruthStatus" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
@@ -7093,6 +7567,7 @@ def render_live_copy_control_panel() -> str:
         <line id="lcZeroLine" x1="58" y1="280" x2="976" y2="280" stroke="rgba(148,163,184,.6)" stroke-width="1.2" stroke-dasharray="4 4"/>
         <path id="lcExchangeFill" fill="rgba(33,193,107,.08)" d=""/>
         <polyline id="lcExchangePath" points="" fill="none" stroke="#3fb950" stroke-width="1.5"/>
+        <circle id="lcExchangeDot" r="4" fill="#3fb950" style="display:none"/>
         <polyline id="lcRealizedPath" points="" fill="none" stroke="#58a6ff" stroke-width="1.4"/>
         <polyline id="lcDrawdownPath" points="" fill="none" stroke="#ff5263" stroke-width="1.4"/>
         <text x="8" y="28" class="lc-axis" id="lcYMax"></text><text x="8" y="155" class="lc-axis" id="lcYMid"></text><text x="8" y="282" class="lc-axis" id="lcYMin"></text>
@@ -7197,6 +7672,7 @@ const root=document.getElementById('liveCopyPanel'); if(!root) return;
 const status=root.querySelector('#lcStatus');
 let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
 let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStartMs=0, lcGraphEndMs=0;
+let lcNotListed=null, lcNotListedAt=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function msg(t,bad){if(status){status.textContent=t||'';status.className='lc-status '+(bad?'lc-bad':'lc-ok');}}
 async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});return await r.json();}
@@ -7213,6 +7689,10 @@ function pill(text,kind){const t=String(text||'n/a');const token=String(kind||t)
  return `<span class="lc-pill ${cls}">${h(t)}</span>`;}
 const ROUTINE_REJECTS=['UNSUPPORTED_SYMBOL_OR_METADATA','SPOT_MARKET_SKIPPED','SYMBOL_UNAVAILABLE','META_UNAVAILABLE','SDK_SYMBOL_MAP_UNAVAILABLE','SYMBOL_NOT_TRADABLE_BY_SENDER','IOC_NO_IMMEDIATE_MATCH'];
 function isRoutineReject(r){r=r||{};return ROUTINE_REJECTS.some(k=>[r.reject_category,r.status,r.terminal_state].map(x=>String(x||'').toUpperCase()).some(x=>x.indexOf(k)>=0));}
+const REJECT_WORDS={'SYMBOL_CACHE_MISS':'missing from the local symbol list, cache needs refreshing','SYMBOL_UNRESOLVED':'not listed on this network','SPOT_MARKET_SKIPPED':'spot markets are not copied','SYMBOL_NOT_TRADABLE_BY_SENDER':'the follower account cannot trade this market','IOC_NO_IMMEDIATE_MATCH':'no fill at the limit price'};
+// the named code for a send/reject row, or '' — an unknown code is shown raw, never swallowed
+function rejectCode(r){r=r||{};const codes=[r.reject_category,r.terminal_state,r.status].map(x=>String(x||'').toUpperCase());for(const k of Object.keys(REJECT_WORDS)){if(codes.some(x=>x.indexOf(k)>=0))return k;}return '';}
+function rejectText(r){const k=rejectCode(r);return k?REJECT_WORDS[k]:String(first(r,['reject_category','terminal_state','status'])||'');}
 // stop-level: a close that is failing or a resting order that could not be cancelled
 const STOP_LEVEL=['MANUAL_EXIT_RECOVERY_REQUIRED','EXIT_RECOVERY_QUEUE_FAILED','RESTING_ENTRY_CANCEL_FAILED','MANUAL_REVIEW_CANCEL_RESTING_ENTRY'];
 function isStopLevel(v){const s=String(v||'').toUpperCase();return (s.startsWith('CLOSE_')&&s!=='CLOSE_ONLY')||STOP_LEVEL.some(k=>s.indexOf(k)>=0);}
@@ -7292,9 +7772,28 @@ function renderGraph(){
  }
  if(lcGraphMode!=='account') points=filterScale(points).filter(p=>isNum(p.value)).sort((a,b)=>a.timestamp_ms-b.timestamp_ms);
  if(points.length<2){
+  // ONE reading is a real reading. Plot it and say so, instead of clearing the chart into an empty box that reads as
+  // "this product has no data" - which is exactly how the dashboard was being read when it had a seeded start value.
+  const dot=root.querySelector('#lcExchangeDot');
+  if(points.length===1&&dot){
+   const only=points[0], v=num(only.value,0), plot1={left:58,right:976,top:24,bottom:280};
+   const pad=Math.max(Math.abs(v)*0.02,1), y=v>=0?plot1.bottom-((v)/(Math.abs(v)+pad))*(plot1.bottom-plot1.top)/2:plot1.bottom-(v/(Math.abs(v)+pad))*(plot1.bottom-plot1.top)/2;
+   dot.setAttribute('cx', (plot1.left+plot1.right)/2);
+   dot.setAttribute('cy', Math.max(plot1.top,Math.min(plot1.bottom,y)));
+   dot.style.display='';
+   root.querySelector('#lcExchangePath').setAttribute('points','');
+   const sub=root.querySelector('#lcGraphSubtitle');
+   if(sub) sub.textContent='One reading so far: '+fmtAxisMoney(v)+' at '+new Date(only.timestamp_ms||Date.now()).toLocaleString()+'. The line starts once a second point lands.';
+   if(legend) legend.textContent=label;
+   ['#lcYMax','#lcYMid','#lcYMin'].forEach((id,i)=>{const el=root.querySelector(id);if(el)el.textContent=fmtAxisMoney(i===0?v+pad:(i===1?v:v-pad));});
+   const ticks=root.querySelector('#lcXAxisTicks'); if(ticks) ticks.innerHTML='';
+   return;
+  }
   clearGraphText(`Not enough points in selected range (${graphRangeLabel()}).`,label);
   return;
  }
+ // more than one point: the dot is not used
+ { const dot=root.querySelector('#lcExchangeDot'); if(dot) dot.style.display='none'; }
  const allSeries=points.concat(realizedPoints).concat(drawdownPoints);
  const allVals=allSeries.map(p=>num(p.value,0)).concat([0]);
  const mn=Math.min(...allVals), mx=Math.max(...allVals), pad=Math.max(Math.abs(mx-mn)*0.12, 1);
@@ -7353,9 +7852,9 @@ function renderTopStatus(){
   statusCard('Leader feed',feed.text,feed.cls,st.ws_enabled?'websocket':'the engine polls each leader'),
   statusCard('Follower account read',pollTxt,pollOk?'lc-green':'lc-grey',''),
   statusCard('Wallets',`${st.live_wallets||0} live / ${st.active_wallets||0} followed`,'','live + close-only are followed'),
-  statusCard('Last send',lastSend.created_at?`${lastSend.coin||''} ${isRoutineReject(lastSend)?'market not available':(lastSend.status||'')}`:'—',isRoutineReject(lastSend)?'lc-grey':terminalCls(lastSend.terminal_state||lastSend.status),lastSend.terminal_state||''),
+  statusCard('Last send',lastSend.created_at?`${lastSend.coin||''} ${rejectText(lastSend)}`:'—',(isRoutineReject(lastSend)||rejectCode(lastSend))?'lc-grey':terminalCls(lastSend.terminal_state||lastSend.status),lastSend.terminal_state||''),
   statusCard('Last fill',lastFill.created_at?`${lastFill.coin||''} ${lastFill.side||''} ${lastFill.fill_size||''}`:'—','',lastFill.created_at||''),
-  statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${isRoutineReject(lastReject)?'market not available':(lastReject.reject_category||lastReject.status||'')}`:'—',isRoutineReject(lastReject)?'lc-grey':terminalCls(lastReject.terminal_state||lastReject.status),lastReject.reject_category||lastReject.terminal_state||''),
+  statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${rejectText(lastReject)}`:'—',(isRoutineReject(lastReject)||rejectCode(lastReject))?'lc-grey':terminalCls(lastReject.terminal_state||lastReject.status),lastReject.reject_category||lastReject.terminal_state||''),
   statusCard('Last latency warning',lastLat.created_at?String(lastLat.notes||lastLat.status||'SEND_LATENCY_WARN'):'—',lastLat.created_at?'lc-amber':'',lastLat.created_at||''),
  ];
  const box=root.querySelector('#lcTruthStatus'); if(box) box.innerHTML=cards.join('');
@@ -7371,8 +7870,30 @@ function renderBanner(){
  const b=lcAudit.status_banner||{}, st=lcAudit.live_top_status||{}, hl=b.health||st.health||{};
  const net=String(lcAudit.follower_network||b.follower_network||'').toUpperCase();
  const set=(id,html,cls,title)=>{const el=root.querySelector('#'+id);if(!el)return;el.innerHTML=html;el.className='value '+(cls||'');if(title!=null)el.title=title;};
- const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
- set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
+ const al=root.querySelector('#lcBannerAcctLabel');
+ // Say the BASIS out loud: this number is spot + perps. Reading it as trading room overstates the perp equity by
+ // roughly four times, which is how a dashboard talks an operator into more risk than the account can carry.
+ if(al)al.textContent='Account value (spot + perp)'+(net?' · '+net:'');
+ // `snap` is not in scope in this function (it is built further down): read the audit object defensively so a
+ // missing field can never throw and blank the whole banner.
+ let _basis='';
+ try{
+   const _s=(lcAudit&&lcAudit.exchange_account_snapshot)||{};
+   // a malformed or half-written snapshot must read as a dash, not as '$NaN' in the most-read strip
+   const _f=(v)=>{const n=Number(v);return (v==null||!Number.isFinite(n))?'—':'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});};
+   if(_s&&_s.available){_basis='<span class="lc-muted" style="font-size:11px;display:block;font-weight:400">perp equity '+_f(_s.account_value)+' · margin available '+_f(_s.withdrawable)+'</span>';}
+ }catch(e){_basis='';}
+ // The banner's own account_value can be absent while the follower_account total (spot + perps) is known: the
+ // tile must show the number the label claims, or a dash with the reason - never a dash beside a big figure below it.
+ let _acctTxt='';
+ try{
+   const _fa=(lcAudit&&lcAudit.follower_account)||{};
+   const _money=(v)=>{const n=Number(v);return Number.isFinite(n)?'$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):null;};
+   if(_money(b.account_value)){_acctTxt=_money(b.account_value);}
+   else if(_fa&&_fa.ok&&_fa.value!=null){_acctTxt='$'+Number(_fa.value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+   else {_acctTxt=dash(b.account_value_reason||(_fa&&_fa.reason));}
+ }catch(e){_acctTxt=dash(b.account_value_reason);}
+ set('lcBannerAcct',_acctTxt+_basis,'');
  const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
@@ -7382,6 +7903,30 @@ function renderBanner(){
  const rc=root.querySelector('#lcBannerRestingCell');if(rc){rc.hidden=(b.resting_orders==null);if(b.resting_orders!=null)set('lcBannerResting',String(b.resting_orders),'');}
  const tech=root.querySelector('#lcHealthTechBody');if(tech)tech.innerHTML=(hl.technical||[]).map(t=>`<li>${h(t)}</li>`).join('')||'<li>nothing to report</li>';
  const rn=root.querySelector('#lcRestartNote');if(rn)rn.hidden=!st.ws_restart_needed;
+}
+// how old the figures are: the integrity file's own created_at_ms, amber-grey past a minute
+function renderFreshness(){
+ const el=root.querySelector('#lcAsOf');
+ const ms=Number((lcAudit.live_integrity_status||{}).created_at_ms||0);
+ const stale=!!lcAudit.stale;
+ const old=ms>0&&(Date.now()-ms)>60000;
+ if(el){el.hidden=!ms;el.className='lc-pill '+(old||stale?'lc-amber':'lc-grey');el.textContent=ms?((old||stale?'numbers as of ':'as of ')+new Date(ms).toLocaleTimeString()):'';}
+ const sn=root.querySelector('#lcStaleNote');if(sn){sn.hidden=!stale;sn.title=String(lcAudit.error||'');}
+ // the exchange is read on a slow cache, so say how old its figures are
+ const ex=root.querySelector('#lcExchangeAge');const b=lcAudit.status_banner||{};const secs=b.exchange_age_seconds;
+ if(ex){const known=secs!=null&&secs!=='';ex.hidden=false;if(known){const n=Number(secs);ex.className='lc-pill '+(n>=60?'lc-amber':'lc-grey');ex.textContent='exchange figures: '+(n<60?n+'s old':Math.round(n/60)+' min old');ex.title='the exchange is polled on a 60 s cache, never by this refresh';}else{ex.className='lc-pill lc-amber';ex.textContent='exchange figures: not loaded yet';ex.title='no snapshot from the slow cache yet; the figures are unknown, not zero';}}
+ renderNotListed();
+}
+function renderNotListed(){
+ const box=root.querySelector('#lcNotListed'); if(!box) return;
+ if(!lcNotListedAt||Date.now()-lcNotListedAt>60000){lcNotListedAt=Date.now();jget('/api/symbol-not-listed').then(d=>{lcNotListed=d;renderNotListed();}).catch(e=>{lcNotListed={ok:false,error:e.message||String(e)};renderNotListed();});}
+ const d=lcNotListed; if(!d){return;}
+ if(!d.ok){box.textContent='could not read: '+String(d.error||'unknown');return;}
+ const pills=a=>(a||[]).map(c=>`<span class="lc-pill lc-grey" title="${h(c.coin||c.wallet)}">${h(c.coin||shortWallet(c.wallet))}: <b>${h(c.count)}</b></span>`).join(' ');
+ // a bounded read is disclosed, never left looking complete
+ const partial=d.partial?'<div style="margin-top:6px"><span class="lc-pill lc-amber" title="'+h((d.partial_reads||[]).join(' | '))+'" data-lc-partial="1">partial: older rows not counted</span></div>':'';
+ box.innerHTML='<div>by coin: '+(pills(d.coins)||'<span class="lc-muted">none recorded</span>')+'</div>'
+  +'<div style="margin-top:6px">by leader wallet: '+(pills(d.wallets)||'<span class="lc-muted">none recorded</span>')+'</div>'+partial;
 }
 function renderTally(){
  const t=lcAudit.pnl_tally||{}, box=root.querySelector('#lcTally'); if(!box)return;
@@ -7401,7 +7946,7 @@ function renderTally(){
  if(t.available){
   const u=t.unexplained, big=u!=null&&Math.abs(u)>Math.max(1,Math.abs(t.start_value||0)*0.005);
   out+=row('Unexplained difference',u!=null?m(u):dash('a part above is unknown'),big?'lc-amber':'lc-grey','t-sum');
-  out+=`<div class="t-note">Counted ${h(t.fill_count)} exchange fills${t.fill_pages>1?' ('+h(t.fill_pages)+' pages)':''} and ${h(t.funding_count)} funding payments since the start.${t.partial?' <span class="lc-tag lc-amber">partial</span> <span class="lc-amber">'+(t.history_limited?'The exchange keeps only the latest ~10,000 fills, so early history may be missing':'Some history could not be fetched')+(t.notes?': '+h(t.notes):'')+'.</span>':''}${big?' Deposits, withdrawals or transfers also show here.':''}</div>`;
+  out+=`<div class="t-note">Counted ${h(t.fill_count)} exchange fills${t.fill_pages>1?' ('+h(t.fill_pages)+' pages)':''} and ${h(t.funding_count)} funding payments since the start.${t.partial?' <span class="lc-tag lc-amber">partial</span> <span class="lc-amber">'+(t.history_limited?'The exchange keeps only the latest ~10,000 fills, so early history may be missing':'Some history could not be fetched')+(t.notes?': '+h(t.notes):'')+'.</span>':''}${u!=null?' The unexplained part is account value the fills and funding above do not explain: a deposit, withdrawal or transfer, or exchange history older than the ~10,000 fills the exchange keeps ('+(t.history_limited?'history_limited is true, so early fills are missing':'history_limited is false')+').':''}</div>`;
  } else {
   out+=`<div class="t-note">${h(t.reason||'')}</div>`;
  }
@@ -7663,17 +8208,15 @@ function renderHealth(){
 }
 function render(){
  const wallets=lcConfig.wallets||{}, walletEntries=Object.values(wallets);
- const tracked=walletEntries.length;
  const liveCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='LIVE').length;
  const cloCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='CLO').length;
  const offCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='OFF').length;
- root.querySelector('#lcWalletCount').textContent=`${tracked} / 10`;
  const mc=root.querySelector('#lcModeCounts');
  // wallet counts by mode; whether orders are SENT is the master switch, shown once in the banner
- if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">Live wallets: ${liveCount}</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">Close-only wallets: ${cloCount}</span> <span class="lc-pill lc-grey">Off: ${offCount}</span>`;
+ if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">${liveCount} live</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">${cloCount} close-only</span> <span class="lc-pill lc-grey">${offCount} off</span>`;
  const feed=feedLabel(lcAudit.live_top_status||{});
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
- renderBanner(); renderTally(); renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
+ renderBanner(); renderTally(); renderTopStatus(); renderFreshness(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
 async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
@@ -7729,6 +8272,7 @@ root.querySelector('#lcWalletRows').addEventListener('click',async e=>{
  tr.insertAdjacentElement('afterend',detRow);
 });
 refresh();
+setInterval(()=>{if(!document.hidden)refresh(true);},8000);  // the DOM used to freeze at the last manual click
 })();
 </script>
 """
@@ -8017,6 +8561,15 @@ def get_live_audit_summary():
             stale = _AUDIT_SUMMARY_CACHE.get("data")
         if stale is not None:
             return JSONResponse({**stale, "cache_hit": True, "stale": True, "error": str(exc)})
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+@app.get("/api/symbol-not-listed")
+def get_symbol_not_listed():
+    """Leader trades in coins this network does not list: per coin and per leader wallet, grey information."""
+    try:
+        return JSONResponse(_symbol_not_listed_summary())
+    except Exception as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
 
