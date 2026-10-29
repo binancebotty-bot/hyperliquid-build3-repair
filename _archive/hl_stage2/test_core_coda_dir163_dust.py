@@ -135,6 +135,7 @@ def test_certain_filled_claim_reconciles_before_second_wire(monkeypatch, tmp_pat
     # Other slice of ENGINE sleeve exists, but wait until first fill reaches ledger.
     assert not g._reserve_close_wire(i, "NEAR", True, 0.05, 2.5, True, "0x"+"b"*32, 10)[0]
     g.ledger.signed = -0.05
+    g._owned_fill_size = lambda oid: 0.05 if str(oid) == "88" else 0.0
     assert g._reserve_close_wire(i, "NEAR", True, 0.05, 2.5, True, "0x"+"b"*32, 10)[0]
     assert g.ledger.user == -10.4
 
@@ -174,3 +175,28 @@ def test_final_boundary_rejects_unrounded_close_size(monkeypatch, tmp_path):
     key = "0x"+"f"*32
     assert g._reserve_close_wire(i, "NEAR", True, 0.005, 2.5, True, key, 10)[0]
     assert not g._verify_close_reserved_wire(i, key, True, .005, True, 2.5, 10, size_decimals=2)
+
+def test_two_gateway_instances_cannot_close_same_coin_twice(monkeypatch, tmp_path):
+    first = setup(monkeypatch, tmp_path)
+    second = setup(monkeypatch, tmp_path)
+    primary = intent()
+    other = intent()
+    other.fill = SimpleNamespace(leader_wallet="0x"+"b"*40, coin="NEAR")
+    other.sleeve_id = "independent-engine-sleeve"
+    second.ledger.sleeve = lambda wallet, coin: {"signed_size": -0.1}
+    assert first._reserve_close_wire(primary, "NEAR", True, .1, 2.5, True, "0x"+"1"*32, 10)[0]
+    accepted, why = second._reserve_close_wire(other, "NEAR", True, .1, 2.5, True, "0x"+"2"*32, 10)
+    assert not accepted and why == "CLOSE_COIN_ALREADY_HAS_UNRECONCILED_WIRE"
+    assert first.ledger.user == -10.4  # USER ledger untouched
+    first._finish_close_wire("0x"+"1"*32, {"status":"ok","response":{"data":{"statuses":[{"error":"MinTradeNtl"}]}}})
+    assert second._reserve_close_wire(other, "NEAR", True, .1, 2.5, True, "0x"+"2"*32, 10)[0]
+
+
+def test_ro_flag_is_actual_wire_not_intent(monkeypatch, tmp_path):
+    g = setup(monkeypatch, tmp_path)
+    i = intent()
+    cl = "0x"+"a"*32
+    assert g._reserve_close_wire(i, "NEAR", True, .1, 2.5, True, cl, 10)[0]
+    assert not g._verify_close_reserved_wire(i, cl, True, .1, False, 2.5, 10, 2)
+    assert g._verify_close_reserved_wire(i, cl, True, .1, True, 2.5, 10, 2)
+    assert not g._verify_close_reserved_wire(i, cl, False, .1, True, 2.5, 10, 2)

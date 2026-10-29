@@ -158,6 +158,8 @@ RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-en
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
 CLOSE_RESERVATIONS_FILE = AUDIT_DIR / "close_inflight_reservations.json"
+# Serialise coin-claim read/modify/write across gateway instances in one engine process.
+_CLOSE_RESERVATIONS_LOCK = threading.RLock()
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -5734,8 +5736,12 @@ class SenderGateway:
             log_error("close_wire_read_account_rebind", RuntimeError(
                 "HL_USER_WALLET differs from SDK trading account; read proof must use SDK account; "
                 "close remains owed until same-account terminal proof"))
-        with self._resting_lock:
-            claims = self.__dict__.setdefault("_close_reservations", {})
+        with _CLOSE_RESERVATIONS_LOCK, self._resting_lock:
+            claims = (json.loads(CLOSE_RESERVATIONS_FILE.read_text(encoding="utf-8"))
+                      if CLOSE_RESERVATIONS_FILE.exists() else {})
+            if not isinstance(claims, dict):
+                return False, "CLOSE_RESERVATIONS_NOT_A_MAPPING"
+            self._close_reservations = claims
             if cloid in claims:
                 return False, "CLOSE_CLOID_ALREADY_RESERVED"
             try:
@@ -5746,7 +5752,9 @@ class SenderGateway:
                 return False, "NO_PROVEN_OPPOSING_ENGINE_SLEEVE"
             reserved = 0.0
             for key, row in list(claims.items()):
-                if row.get("account") != account or row.get("coin") != coin or row.get("wallet") != wallet:
+                if not isinstance(row, dict):
+                    return False, "CLOSE_RESERVATION_CORRUPT"
+                if row.get("account") != account or row.get("coin") != coin:
                     continue
                 previous = fnum(row.get("sleeve_abs_at_reserve"), float("nan"))
                 quantity = fnum(row.get("size"), float("nan"))
@@ -5754,17 +5762,25 @@ class SenderGateway:
                     return False, "CLOSE_RESERVATION_CORRUPT"
                 # Only an exchange-proven terminal FILL can reconcile against ledger.
                 # Never apply a different cloid's ledger delta to an open GTC/IOC.
-                ledger_applied = (max(0.0, previous - abs(signed))
-                                  if row.get("state") == "FILL_AWAIT_LEDGER" else 0.0)
-                still_claimed = max(0.0, quantity - ledger_applied)
-                if still_claimed <= POSITION_EPSILON and row.get("state") == "FILL_AWAIT_LEDGER":
+                # An unrelated ledger movement cannot release this reservation.
+                # Require an identified order fill AND that sleeve's ledger update.
+                matched = 0.0
+                if row.get("state") == "FILL_AWAIT_LEDGER" and row.get("oid"):
+                    matched = self._owned_fill_size(str(row["oid"]))
+                try:
+                    own_now = float(self.ledger.sleeve(str(row.get("wallet") or ""), coin)
+                                    .get("signed_size", float("nan")))
+                except Exception:
+                    own_now = float("nan")
+                if (math.isfinite(own_now) and matched + POSITION_EPSILON >= quantity
+                        and abs(own_now) <= previous - quantity + POSITION_EPSILON):
                     del claims[key]
                 else:
-                    reserved += still_claimed
-            # Conservative single outstanding claim per sleeve prevents one fill's
-            # ledger change being used to free *another* unresolved cloid.
+                    reserved += quantity
+            # Serialise all closes for a shared account+coin, not just same sleeve.
+            # Another leader's order could consume the same fungible exchange net.
             if reserved > POSITION_EPSILON:
-                return False, "CLOSE_SLEEVE_ALREADY_HAS_UNRECONCILED_WIRE"
+                return False, "CLOSE_COIN_ALREADY_HAS_UNRECONCILED_WIRE"
             if size > max(0.0, abs(signed) - reserved) + POSITION_EPSILON:
                 return False, "CLOSE_SLEEVE_QUANTITY_ALREADY_IN_FLIGHT"
             claims[cloid] = {
@@ -5784,8 +5800,12 @@ class SenderGateway:
     def _finish_close_wire(self, cloid: str, response: Any, cancelled: bool = False,
                            confirmed_filled: Optional[float] = None) -> None:
         """Only definitive no-order or confirmed unfilled quantities can be released."""
-        with self._resting_lock:
-            claims = self.__dict__.setdefault("_close_reservations", {})
+        with _CLOSE_RESERVATIONS_LOCK, self._resting_lock:
+            claims = (json.loads(CLOSE_RESERVATIONS_FILE.read_text(encoding="utf-8"))
+                      if CLOSE_RESERVATIONS_FILE.exists() else {})
+            if not isinstance(claims, dict):
+                raise ValueError("CLOSE_RESERVATIONS_NOT_A_MAPPING")
+            self._close_reservations = claims
             row = claims.get(cloid)
             if row is None:
                 return
@@ -5807,6 +5827,8 @@ class SenderGateway:
                     if filled > 0:
                         row["size"] = min(fnum(row["size"]), filled)
                     row["state"] = "FILL_AWAIT_LEDGER"
+                    if oid:
+                        row["oid"] = str(oid)
                 else:
                     row["state"] = "OUTCOME_UNRESOLVED" if not ok else "RESTING_AWAIT_TERMINAL"
                     if oid:
@@ -5817,11 +5839,20 @@ class SenderGateway:
                                     size: float, reduce_only: bool, limit_px: float,
                                     min_notional: float, size_decimals: Optional[int] = None) -> bool:
         """Final physical order boundary: validate actual side, size and transmitted RO."""
-        with self._resting_lock:
-            row = self.__dict__.setdefault("_close_reservations", {}).get(cloid)
-            if not row or row.get("side") != ("BUY" if is_buy else "SELL"):
+        with _CLOSE_RESERVATIONS_LOCK, self._resting_lock:
+            claims = (json.loads(CLOSE_RESERVATIONS_FILE.read_text(encoding="utf-8"))
+                      if CLOSE_RESERVATIONS_FILE.exists() else {})
+            if not isinstance(claims, dict):
+                return False
+            self._close_reservations = claims
+            row = claims.get(cloid)
+            if not isinstance(row, dict) or row.get("side") != ("BUY" if is_buy else "SELL"):
                 return False
             if abs(fnum(row.get("size"), 0.0) - size) > POSITION_EPSILON:
+                return False
+            if (row.get("coin") != canonical_coin_key(intent.fill.coin)
+                    or not math.isfinite(size) or not math.isfinite(limit_px)
+                    or size <= 0 or limit_px <= 0):
                 return False
             if size * limit_px < min_notional and reduce_only is not True:
                 return False
@@ -5904,7 +5935,7 @@ class SenderGateway:
                     "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
         if _reserved_close and not self._verify_close_reserved_wire(
-                intent, _close_cloid, is_buy, size, reduce_only, limit_px, _close_min,
+                intent, _close_cloid, is_buy, size, order_kwargs["reduce_only"], limit_px, _close_min,
                 (timing or {}).get("final_wire_sz_decimals")):
             self._finish_close_wire(_close_cloid, None, cancelled=True)
             self._trackb_escalate(intent, "FINAL_PHYSICAL_CLOSE_WIRE_MISMATCH", timing)
