@@ -8323,8 +8323,16 @@ class SenderGateway:
                 for r in claims.values():
                     if not isinstance(r, dict):
                         return False
-                    if (r.get("account") == account and r.get("coin") == key
-                            and r.get("state") != "FILL_AWAIT_LEDGER"):
+                    if r.get("account") != account or r.get("coin") != key:
+                        continue
+                    if r.get("state") != "FILL_AWAIT_LEDGER":
+                        return False
+                    # A nominal FILLED state is insufficient: require the
+                    # specific OID's size to be booked into the copy-owned ledger.
+                    oid = str(r.get("oid") or "")
+                    qty = fnum(r.get("size"), float("nan"))
+                    if (not oid or not math.isfinite(qty) or qty <= 0
+                            or self._owned_fill_size(oid) + POSITION_EPSILON < qty):
                         return False
             return True
         except Exception as exc:
