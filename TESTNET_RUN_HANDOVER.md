@@ -38,6 +38,6 @@ Build 4 is being stopped and preserved (not deleted). Per Boss, the open trades 
 ## 5. What's left next
 
 1. Finish the first testnet run (section 2) and record results against the certification matrix. Watch specifically: whether a partial IOC fill wrongly blocks further entries in that coin (ENG-016 tolerance), whether the testnet portfolio endpoint gives daily PnL and covers HIP-3, and the per-DEX `allMids` key format (both unverified offline).
-2. Known engine follow-ups: blocking on foreign open orders (needs order-id tracking); automatic exit retry after `MANUAL_EXIT_RECOVERY_REQUIRED`; units-vs-USD sizing across networks (product decision).
+2. Known engine follow-ups: blocking on foreign open orders (needs order-id tracking); automatic exit retry after `MANUAL_EXIT_RECOVERY_REQUIRED`; units-vs-USD sizing across networks (product decision). If an order remains `ORDER_UNKNOWN` after bounded CLOID rechecks, raise a manual-review alert and do not resend or cancel without a definitive exchange result.
 3. ~38 smaller open decisions in `certification/open_decisions.json`, including the rest of OD-10 (entry price bound, close adverse diff).
 4. Human decision on the mainnet leftovers (section 3) before any mainnet launch. Mainnet should then need only a credential and network change.
