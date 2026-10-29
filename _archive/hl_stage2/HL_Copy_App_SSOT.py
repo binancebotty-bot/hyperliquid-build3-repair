@@ -8304,7 +8304,7 @@ function render(){
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderFreshness(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcCoreControl=cfg.core_control_state||{};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');let [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);if(Object.values(cfg.config?.wallets||{}).some(w=>w?.exit_requested===true)){const completed=await jpost('/api/live-config/finalise-exiting',{});if(completed.changed)cfg=await jget('/api/live-config');}lcConfig=cfg.config||{wallets:{}};lcCoreControl=cfg.core_control_state||{};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -8559,11 +8559,17 @@ def sort_column(column: str, request: Request, direction: str = ""):
 
 @app.get("/api/live-config")
 def get_live_config():
+    return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
+
+
+@app.post("/api/live-config/finalise-exiting")
+def finalise_exiting_wallets():
+    # Complete only the removal requested earlier by an operator; never a GET side effect.
     config = _load_live_copy_config()
-    # Finish only a previously validated operator remove, once Core's owned sleeves are flat.
-    if _finalise_exiting_wallets(config, _load_manual_live_positions()):
+    changed = _finalise_exiting_wallets(config, _load_manual_live_positions())
+    if changed:
         _save_live_copy_config(config)
-    return JSONResponse(_live_copy_config_response(config))
+    return JSONResponse({"ok": True, "changed": changed})
 
 
 @app.get("/live-copy", response_class=HTMLResponse)
