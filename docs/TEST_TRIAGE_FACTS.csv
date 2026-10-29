@@ -1,0 +1,16 @@
+file,class,dialect,lines,check_helper,prints_bare_PASS,has_invariant_marker,crash_cause,exit_rc
+test_core_all_mids_dex_isolation.py,NOT_RUN,silent,55,yes,no,no,,0
+test_core_all_mids_dex_keys.py,NOT_RUN,silent,68,yes,no,no,,0
+test_core_follower_mid_dex_keys.py,NOT_RUN,silent,69,yes,no,no,,0
+test_core_latency_trace_details.py,NOT_RUN,silent,161,no,yes,no,,0
+test_core_open_orders_cache.py,CRASH,RESULT::+die,188,yes,no,no,AttributeError: 'types.SimpleNamespace' object has no attribute '_master_gate_reason',1
+test_core_outage_paging.py,NOT_RUN,silent,58,no,no,no,,0
+test_core_queue_timing_stamps.py,CRASH,exitcode,215,no,yes,no,PermissionError: [WinError 32] The process cannot access the file because it is being used by anothe,1
+test_core_release_send_guards.py,CRASH,exitcode,96,yes,no,no,AttributeError: 'types.SimpleNamespace' object has no attribute '_master_gate_reason',1
+test_core_rw12_retry_cloid.py,CRASH,exitcode,208,yes,no,no,RecursionError: maximum recursion depth exceeded while calling a Python object,1
+test_core_rw9_timeout_vs_429.py,CRASH,exitcode,219,yes,no,no,RecursionError: maximum recursion depth exceeded while calling a Python object,1
+test_core_sender_key.py,CRASH,RESULT::+die,362,yes,no,no,AttributeError: 'StartupConfig' object has no attribute 'live_over_stream_cap',1
+test_core_snapshot_reads_every_dex.py,NOT_RUN,silent,68,yes,no,no,,0
+test_core_summary_account_value_sign.py,NOT_RUN,silent,46,yes,no,no,,0
+test_core_xyz_equity_not_double_source.py,NOT_RUN,silent,44,yes,no,no,,0
+test_outage_classify_deferred.py,NOT_RUN,silent,21,no,yes,no,,0
