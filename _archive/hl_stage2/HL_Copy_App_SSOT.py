@@ -3513,6 +3513,56 @@ def _build_live_wallet_rows(
             "max_drawdown": None if _account_only else perf.get("max_drawdown"),
             "last_fill": _w_last_fill if _w_last_fill else last_fill_d,
         })
+    # EXITING: a wallet REMOVED from the followed set (archived_wallets) that still holds a
+    # NON-FLAT position. It is no longer followed, but it must stay on the screen until flat,
+    # otherwise a position still open on the account has no row at all. A FLAT archived wallet
+    # has genuinely left the followed set and gets no row.
+    archived = live_config.get("archived_wallets")
+    if isinstance(archived, dict):
+        for wallet, _acfg in sorted(archived.items()):
+            w = str(wallet).lower()
+            _w_sleeves = _by_wallet_pos.get(wallet) or _by_wallet_pos.get(w) or {}
+            _w_open_coins: List[str] = []
+            _w_exposure = 0.0
+            for _coin_k, _pos_v in (_w_sleeves.items() if isinstance(_w_sleeves, dict) else []):
+                _sz_v = float((_pos_v or {}).get("signed_size", 0) or 0)
+                if abs(_sz_v) <= 1e-12:
+                    continue
+                _w_open_coins.append(str(_coin_k).upper())
+                _w_exposure += abs(_sz_v) * float((_pos_v or {}).get("avg_entry_px", 0) or 0)
+            if not _w_open_coins:
+                continue  # flat: left the followed set, nothing to show
+            _ac = _acfg if isinstance(_acfg, dict) else {}
+            rows.append({
+                "wallet": wallet,
+                "mode": "EXITING",
+                "mode_label": "EXITING",
+                "eligibility": "EXITING (removed from the followed set; leaves once flat)",
+                "effective_wallet_action": "EXITING",
+                "enabled": False,
+                "service_eligible": False,
+                "service_eligibility_reason": "ARCHIVED_WITH_OPEN_POSITION",
+                "copy_mode": str(_ac.get("copy_mode", "fixed")),
+                "fixed_notional": _ac.get("fixed_notional"),
+                "norm_base": _ac.get("norm_base"),
+                "conn_status": "EXITING",
+                "conn_detail": "archived; no new entries, leaves when flat",
+                "ws_state": "EXITING",
+                "ws_reason": "archived; no new entries, leaves when flat",
+                "ws_subscription": "NOT_SUBSCRIBED",
+                "filled_count": _filled_cnt_by_wallet.get(w, 0),
+                "exits_count": 0,
+                "exchange_rejected_count": 0,
+                "local_blocked_count": 0,
+                "recent_reject_count": 0,
+                "recent_block_count": 0,
+                "open_position_count": len(_w_open_coins),
+                "open_positions": _w_open_coins,
+                "open_coins": _w_open_coins,
+                "open_exposure": _w_exposure,
+                "current_exposure": _w_exposure,
+                "last_fill": _last_lf_by_wallet.get(w, {}),
+            })
     return rows
 
 

@@ -1,0 +1,83 @@
+{
+  "card_id": "C7-UI-ISO-1",
+  "serving_commit": "f572684461e6574e4af219f04b4baf2e6544c778",
+  "serving_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+  "how_serving_build_was_established": "live :8031 process PID 28328 (started 2026-10-29T00:40:43Z) cmdline 'python -m uvicorn HL_Copy_App_SSOT:app --port 8031 --no-access-log' with cwd C:/tmp/v33_a1acc28/_archive/hl_stage2; git -C C:/tmp/v33_a1acc28 rev-parse HEAD = f572684; sha256sum of that checkout's HL_Copy_App_SSOT.py = f4dd55ca..., which equals the blob in my isolated worktree. ARITHMETIC CHECK: f572684 is committed 2026-10-29T05:08:52Z, LATER than the process start, which would normally invalidate a commit binding. Resolved, not waved away: git diff f572684^ f572684 touches ONLY ops/BOOT_AUTOSTART_GAP.md (+68), and the SSOT blob is byte-identical between f572684 and its parent (git rev-parse both = 39358193fbe9aaeca021459b27f9fc070d22c31e). So the SSOT CONTENT predates the process even though the commit does not; the binding is therefore made to the SSOT sha256, which is the anchor the schema prefers.",
+  "oracle": "the FastAPI JSON endpoints of the isolated instance (/live-copy.json, /api/state, /api/live-config) read directly, plus the Playwright-rendered DOM text; no engine import, and the instance reads only a COPY of the audit dir",
+  "isolation": {
+    "port": 8032,
+    "live_port_never_used": 8031,
+    "worktree": "C:/Users/wigmore/tmp/ui_iso_f572684 (fresh git worktree, detach f572684)",
+    "audit_dir": "C:/Users/wigmore/tmp/ui_iso_audit (176M read-only copy of run19/state_20261027)",
+    "own_state_files": "worktree-local wallet_gate.json, ui_state.json, hl_copy_output",
+    "launch": "pythonw.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8032 --no-access-log, CREATE_NO_WINDOW, stdout/stderr redirected to files",
+    "stopped_after": "PID 51064 terminated by explicit PID after identity check; :8031 PID 28328 untouched and still LISTENING"
+  },
+  "files": [
+    "EVIDENCE/ui_iso_probe_f572684.py",
+    "EVIDENCE/ui_iso_probe_cd_f572684.py",
+    "EVIDENCE/ui_iso_f572684_evidence/iso_probe_result.json",
+    "EVIDENCE/ui_iso_f572684_evidence/iso_probe_cd_result.json",
+    "EVIDENCE/ui_iso_f572684_evidence/iso_state.json",
+    "EVIDENCE/ui_iso_f572684_evidence/iso_live_copy.json",
+    "EVIDENCE/ui_iso_f572684_evidence/iso_8032.stderr.log",
+    "EVIDENCE/ui_iso_f572684_evidence/b_live_copy_first_load.png",
+    "EVIDENCE/ui_iso_f572684_evidence/b_live_copy_after_reload.png",
+    "EVIDENCE/ui_iso_f572684_evidence/d_stale_engine.png",
+    "EVIDENCE/ui_iso_f572684_evidence/d_mode_flip_after.png",
+    "EVIDENCE/ui_iso_f572684_evidence/d_dom_stale.txt",
+    "EVIDENCE/ui_iso_f572684_evidence/d_dom_mode_flip_after.txt"
+  ],
+  "rows": [
+    {
+      "row_id": "UI-ISO-01",
+      "verdict": "PASS",
+      "serving_commit": "f572684461e6574e4af219f04b4baf2e6544c778",
+      "serving_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+      "executed_probe": "EVIDENCE/ui_iso_probe_f572684.py check (a)",
+      "independent_oracle": "routes GET directly; stderr log file",
+      "observed": "exe pythonw.exe, cwd C:/Users/wigmore/tmp/ui_iso_f572684/_archive/hl_stage2, 5/5 routes 200 (/, /live-copy, /api/state, /live-copy.json, /api/ui-state), stderr Traceback count 0, import-error count 0",
+      "reproduces": "PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_iso_probe_f572684.py"
+    },
+    {
+      "row_id": "UI-ISO-02",
+      "verdict": "PASS",
+      "serving_commit": "f572684461e6574e4af219f04b4baf2e6544c778",
+      "serving_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+      "executed_probe": "EVIDENCE/ui_iso_probe_f572684.py check (b)",
+      "independent_oracle": "Playwright-rendered DOM text of /live-copy, before and after reload",
+      "observed": "first load 103 dollar amounts, 55 nonzero, max abs 1063.92; after reload identical 103/55/1063.92; /live-copy.json row count 192268. Nonzero exposure renders, not zeros",
+      "reproduces": "same probe; DOM dumps EVIDENCE/ui_iso_f572684_evidence/b_dom_first_load.txt and b_dom_after_reload.txt"
+    },
+    {
+      "row_id": "UI-ISO-03",
+      "verdict": "NOT_TESTED",
+      "serving_commit": "f572684461e6574e4af219f04b4baf2e6544c778",
+      "serving_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+      "executed_probe": "EVIDENCE/ui_iso_probe_cd_f572684.py check (c1)",
+      "independent_oracle": "wallet_gate.json read directly from the isolated worktree + /api/live-config",
+      "observed": "11 wallets set ON, all 11 POSTs 200, gate holds 11 ON, but /api/live-config reported 0 wallets in mode LIVE. The cap could not be observed keeping 10 and demoting the 11th, because the gate->config projection did not render any LIVE wallet on the isolated instance. INCONCLUSIVE, not a pass: my own probe's cap_enforced predicate (live_count <= 10) was VACUOUSLY true at 0, which is the exact failure mode I have been calling out in the witness suite - flagged against my own probe",
+      "reproduces": "same probe"
+    },
+    {
+      "row_id": "UI-ISO-04",
+      "verdict": "FAIL",
+      "serving_commit": "f572684461e6574e4af219f04b4baf2e6544c778",
+      "serving_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+      "executed_probe": "grep -i EXITING over the serving SSOT bytes, plus archived_wallets read",
+      "independent_oracle": "the SSOT file itself at f4dd55ca",
+      "observed": "the string EXITING appears NOWHERE in HL_Copy_App_SSOT.py at f4dd55ca (case-insensitive). archived_wallets exists as a config key but the live config COPY has 0 archived entries, so the removed-wallet state could not be constructed either. The 'removed non-flat wallet shows EXITING' behaviour does not exist in this build",
+      "reproduces": "grep -niE 'exiting' C:/Users/wigmore/tmp/ui_iso_f572684/_archive/hl_stage2/HL_Copy_App_SSOT.py"
+    },
+    {
+      "row_id": "UI-ISO-05",
+      "verdict": "PASS",
+      "serving_commit": "f572684461e6574e4af219f04b4baf2e6544c778",
+      "serving_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+      "executed_probe": "EVIDENCE/ui_iso_probe_cd_f572684.py checks (d1) and (d2), plus one extra config-flip causality test",
+      "independent_oracle": "the config COPY on disk vs the rendered DOM",
+      "observed": "(d1 causal) flipping one wallet LIVE->OFF in the config COPY changed that wallet's rendered state to 'Off has history' and restored on revert, so modes are driven by applied config. (d1 marker) a distinctive global_controls value 4242.42 written to the copy appears in /api/state but is NOT rendered on /live-copy - the global-exposure cap is simply not displayed on that screen, so the screen cannot be used to verify it. (d2) ageing the engine truth copy by 3h produced a DOM reading 'engine build unknown · engine started unknown · (NOT running)' with 5 RED/UNKNOWN markers",
+      "reproduces": "same probe; DOM dumps d_dom_mode_flip_after.txt and d_dom_stale.txt"
+    }
+  ]
+}

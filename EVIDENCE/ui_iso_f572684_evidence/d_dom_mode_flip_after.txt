@@ -1,0 +1,878 @@
+Engine pid unknown (NOT running) · engine build unknown · UI build f572684 · audit dir ui_iso_audit · engine started unknown · UI started 2026-10-29T20:35:11+00:00 (module import) — build identity MISMATCH: the engine pid in the state file (unknown) is not a running process; the engine build SHA is unknown, so a match cannot be checked
+Live Copy Command Centre
+7 live
+8 close-only
+4 off
+Leader feed:
+Polling (normal)
+figures could not be rebuilt
+exchange figures: 21.3s old
+Refresh
+Global Controls
+Add wallet
+ACCOUNT VALUE (SPOT + PERP) · TESTNET
+$1,063.24
+perp equity $280.61 · margin available $0.46
+SENDING
+ON
+HEALTH
+Stopped: the engine is not running (no engine status found)
+ACCOUNT CHANGE SINCE RUN START
+—
+OPEN POSITIONS
+13
+Technical detail
+Loaded
+Does the P&L add up?
+
+Start value to now, from the exchange: every fill and funding payment in the window is counted.
+
+Start value
+—
+no account history recorded yet
+Leader trades in markets not listed on testnet
+
+Counted from rows whose engine status is SYMBOL_NOT_LISTED. A coin this network does list is never counted.
+
+by coin: ENA:
+30
+ LINK:
+28
+ CRV:
+26
+ XRP:
+23
+ DOT:
+22
+ STRK:
+19
+ UNI:
+18
+ ETHFI:
+17
+ TRX:
+17
+ SEI:
+16
+ CFX:
+14
+ GMX:
+13
+ KFLOKI:
+13
+ BCH:
+10
+ BOME:
+2
+ LTC:
+2
+ YGG:
+1
+by leader wallet: none recorded
+partial: older rows not counted
+Live Copy Status
+HEALTH
+Stopped: the engine is not running (no engine status found)
+details under Technical detail
+LEADER FEED
+Polling (normal)
+the engine polls each leader
+FOLLOWER ACCOUNT READ
+—
+WALLETS
+7 live / 15 followed
+live + close-only are followed
+LAST SEND
+APT ENTRY_LIMIT_RESTING_PRICE_MOVED
+ENTRY_LIMIT_RESTING_PRICE_MOVED
+LAST FILL
+ETH SELL 0.0051
+2026-10-29T20:08:16.831749+00:00
+LAST REJECT
+—
+SUPERSEDED_BY_RETRY
+LAST LATENCY WARNING
+severity=CRITICAL; classification=SLOW_EXCHANGE_CALL; wallet=0xbee0000c04ee2efe66234bec57f7eaf38818fbca coin=APT intent_id=5eea9de015587978fe8f76c6515c73ca delay_ms=5602 largest_component=leader_to_intent_ms:2234
+2026-10-29T20:34:09.476474+00:00
+Real Account
+PORTFOLIO VALUE (TESTNET)
+$1,063.24
+OPEN POSITIONS P&L (UNREALISED)
+$21.99
+CLOSED P&L (REALISED)
+$77.26 since first live order
+OPEN POSITIONS
+13
+LIVE EXPOSURE
+$0
+Live Account / Wallet PnL
+
+Not enough points in selected range (ALL).
+
+Account
+Selected Wallet PnL
+Exposure
+1D
+7D
+ALL
+Apply
+Reset
+Total PnL
+Realized PnL
+Drawdown
+Live Copy Wallets
+
+Configured wallets from live_config.json. Click a row for real copy details for that leader.
+
+WALLET	NET P&L	FEED	CLOSED / OPEN / FEES	LEAD↔COPY DIFF	EXECUTION	RISK / EXPOSURE	LAST FILL	CONTROLS
+
+0x21ca9810...be811d
+Live
+	+$49.08	
+Polling (normal)
+	
+Closed: $50.03
+Open: $0
+Fees: $0.95
+From engine ledger
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+44 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $-0
+MaxDD: $-1.87
+	TAO BUY @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x46926d8f...7fef87
+Live
+	−$0.01	
+Polling (normal)
+	
+Closed: $0
+Open: $0
+Fees: $0.01
+From engine ledger
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $0
+MaxDD: $0
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x77eeda19...972902
+Live
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x8455193b...ac974b
+Live
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x92bbd811...1a9b6f
+Live
+	+$13.18	
+Polling (normal)
+	
+Closed: $14.23
+Open: $0
+Fees: $1.04
+From engine ledger
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+62 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $0
+MaxDD: $-5.93
+	LIT BUY @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0xbee0000c...18fbca
+Live
+	−$0.23	
+Polling (normal)
+	
+Closed: $-0
+Open: $0
+Fees: $0.22
+From engine ledger
+	
+Total: $0.01
+Avg: $0
+Avg bps: 1
+Worst bps: 15.2
+	
+41 filled / 0 exits
+0 recent rejects
+1 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $-0.22
+MaxDD: $-0.22
+	JUP SELL @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0xfe7ce058...6ab7ae
+Live
+	+$45.22	
+Polling (normal)
+	
+Closed: $46.17
+Open: $0
+Fees: $0.95
+From engine ledger
+	
+Total: $-0.17
+Avg: $-0.08
+Avg bps: -14
+Worst bps: -13.9
+	
+82 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $-2.74
+MaxDD: $-2.74
+	XPL SELL @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x010461c1...1c703a
+Close-only
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x31ca8395...fb974b
+Close-only
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x6ba889db...0c1817
+Close-only
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x7019197d...4abd36
+Close-only
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x7717a7a2...d7bd7e
+Close-only
+	−$29.49	
+Polling (normal)
+	
+Closed: $-23.16
+Open: $0
+Fees: $6.33
+From engine ledger
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+702 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $-29.49
+MaxDD: $-29.49
+	SKR BUY @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x936cf4fb...81bb0f
+Close-only
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0xd4c1f7e8...583d1d
+Close-only
+	−$11.87	
+Polling (normal)
+	
+Closed: $-7.2
+Open: $0
+Fees: $4.67
+From engine ledger
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+312 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $-12.94
+MaxDD: $-14.36
+	DOGE BUY @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0xf5d81a13...c3ad53
+Close-only
+	—	
+Polling (normal)
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x1b232b41...2fbe21
+Off
+	—	
+not followed
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0x20ad9884...fd8183
+Off has history
+	−$0.05	
+not followed
+	
+Closed: $-0.02
+Open: $0
+Fees: $0.03
+From engine ledger
+	
+Total: $0.01
+Avg: $0
+Avg bps: 6
+Worst bps: 16.9
+	
+4 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: $-0.04
+MaxDD: $-0.04
+	ETH SELL @
+	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0xaaaaaaaa...aaaaaa
+Off
+	—	
+not followed
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+
+
+0xc179e039...7ce0c8
+Off
+	—	
+not followed
+	
+Closed: —
+Open: $0
+Fees: —
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: —
+MaxDD: —
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+Save
+CLO
+OFF
+Archive
+Real Copy Positions
+Execution Quality
+Order Intents / Audit
+Reconciliation
+WS Health
+Real User Copy Positions
+
+Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.
+
+NET BY COIN — ONE SHARED ACCOUNT (leaders net like the exchange)
+COIN	LEDGER NET (SUM OF LEADERS)	EXCHANGE NET	LEDGER/EXCHANGE	WHICH LEADER HOLDS WHAT
+APT	0	-91.13	MISMATCH	no leader
+BTC	0	-0.00028	MISMATCH	no leader
+CASHCAT	0	-113	MISMATCH	no leader
+ETH	0	-0.0051	MISMATCH	no leader
+JUP	0	-133	MISMATCH	no leader
+KPEPE	0	-17191	MISMATCH	no leader
+LIT	0	-16	MISMATCH	no leader
+MON	0	-662	MISMATCH	no leader
+NEAR	0	-8	MISMATCH	no leader
+PUMP	0	-79041	MISMATCH	no leader
+SOL	0	-0.12	MISMATCH	no leader
+TAO	0	0.047	MISMATCH	no leader
+XPL	0	-1735	MISMATCH	no leader
+OWNED COPY POSITIONS
+WALLET	COIN	SIDE	SIGNED SIZE	AVG ENTRY	LEDGER/EXCHANGE	EXCHANGE SIZE	LAST COPY FILL	LAST UPDATED
+No owned copy sleeves in manual_live_positions.json.
+POSITIONS NOT OPENED BY THE ENGINE
+COIN	UNEXPLAINED SIZE	ENTRY PX	MARK PX	UNREALIZED PNL	STATUS	WHO MANAGES IT	ENGINE CLOSES IT?	ENGINE USES IT?	CONTEXT
+APT	-91.13	0.6579	0.6536000000000001	$0.39	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+BTC	-0.00028	80358	79655	$0.2	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+CASHCAT	-113	0.10514	0.097307	$0.89	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+ETH	-0.0051	2308	2297.1	$0.06	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+JUP	-133	0.269703	0.26637	$0.44	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+KPEPE	-17191	0.004887	0.00496	$-1.25	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+LIT	-16	3.229167	2.998957	$3.68	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+MON	-662	0.021111	0.020125	$0.65	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+NEAR	-8	4.75174	4.3399	$3.29	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+PUMP	-79041	0.004461	0.004305	$12.4	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+SOL	-0.12	106.78	106.78	—	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+TAO	0.047	256.48	248.29999999999998	$-0.38	Not opened by the engine — managed by you	You	No	No	no engine order behind it
+XPL	-1735	0.076147	0.075215	$1.62	Not opened by the engine — managed by you	You	No	No	no engine order behind it

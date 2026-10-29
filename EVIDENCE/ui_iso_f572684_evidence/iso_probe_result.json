@@ -1,0 +1,387 @@
+{
+  "port": 8032,
+  "base": "http://127.0.0.1:8032",
+  "captured_at": "2026-10-29T20:36:03Z",
+  "a_process": {
+    "pid": 51064,
+    "exe": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\pythonw.exe",
+    "cwd": "C:\\Users\\wigmore\\tmp\\ui_iso_f572684\\_archive\\hl_stage2",
+    "cmdline": [
+      "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/pythonw.exe",
+      "-m",
+      "uvicorn",
+      "HL_Copy_App_SSOT:app",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8032",
+      "--no-access-log"
+    ],
+    "create_time_utc": "2026-10-29T20:35:10Z"
+  },
+  "a_routes": {
+    "/": {
+      "status": 200,
+      "bytes": 94904
+    },
+    "/live-copy": {
+      "status": 200,
+      "bytes": 94904
+    },
+    "/api/state": {
+      "status": 200,
+      "bytes": 1358
+    },
+    "/live-copy.json": {
+      "status": 200,
+      "bytes": 2293741
+    },
+    "/api/ui-state": {
+      "status": 200,
+      "bytes": 290
+    }
+  },
+  "a_stderr_tracebacks": 0,
+  "a_stderr_import_errors": 0,
+  "a_ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf",
+  "a_ssot_path": "C:\\Users\\wigmore\\tmp\\ui_iso_f572684\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+  "api": {
+    "live_copy_bytes": 2293741,
+    "live_copy_sha256": "a079dd5ea2bd8e2c62f2063de0f535da1ca19185d00d032899a5d8950f49a6eb",
+    "row_count": 192268,
+    "status_counts": {
+      "BLOCKED_CLO_ENTRY": 138967,
+      "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION": 21634,
+      "SEND_BLOCKED_RISK": 12546,
+      "ENTRY_ALLOWED": 15116,
+      "BLOCKED_OFF": 602,
+      "EXIT_ALLOWED": 793,
+      "BLOCKED_SPOT_NOT_SUPPORTED": 2610
+    },
+    "reason_counts": {
+      "CLO blocks entries/adds": 138967,
+      "no owned sleeve; leader close fill cannot open reverse position": 21634,
+      "no fresh follower-network (testnet) price to value the order": 4916,
+      "ENTRY": 11737,
+      "UNOWNED_INVENTORY: XYZ:NFLX exchange net -0.363 != engine-owned net 0.0; entries blocked": 1,
+      "wallet mode OFF": 602,
+      "EXIT": 793,
+      "ADD": 3211,
+      "max wallet exposure exceeded": 5506,
+      "ADD; CAP_SIZED_DOWN to 0.9515 of the copy (remaining exposure allowance)": 1,
+      "max total exposure exceeded (positions + resting limits)": 1607,
+      "ADD; CAP_SIZED_DOWN to 0.9840 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9899 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9841 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9758 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9894 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9994 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.2402 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.5094 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8588 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.4628 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.1159 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8388 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9426 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9187 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9146 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8934 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9406 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8345 of the copy (remaining exposure allowance)": 1,
+      "max order notional exceeded": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8885 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9375 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9817 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9052 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8406 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.2337 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8972 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8599 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.2091 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8784 of the copy (remaining exposure allowance)": 2,
+      "ADD; CAP_SIZED_DOWN to 0.9421 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9878 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.7210 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9815 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9698 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9504 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9558 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9774 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9208 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9819 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9321 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9237 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9902 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.6027 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 1.0000 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.7160 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9945 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8911 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9601 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8916 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.4499 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9299 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9337 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9990 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9846 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5651 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5065 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9972 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9835 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8883 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9122 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8689 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9034 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8519 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8565 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8448 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9589 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5680 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9882 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5934 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9989 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.6017 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9668 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9728 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9347 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9142 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9873 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8988 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8398 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8571 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9861 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9694 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9706 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9142 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9818 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9757 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9000 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9470 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9097 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8928 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.7043 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9915 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8724 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9682 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9795 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9995 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9960 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8294 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8896 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8419 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.4509 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9832 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9965 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8867 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9993 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9998 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9235 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9992 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8874 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9564 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9898 of the copy (remaining exposure allowance)": 2,
+      "ADD; CAP_SIZED_DOWN to 0.4114 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8538 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8371 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.4441 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9413 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9396 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9181 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9705 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9762 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9616 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9963 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8490 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8878 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8929 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9172 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5015 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9535 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.1456 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9560 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9897 of the copy (remaining exposure allowance)": 2,
+      "max total exposure exceeded": 68,
+      "ENTRY; CAP_SIZED_DOWN to 0.9789 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9903 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9950 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8927 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8626 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9737 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8361 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8196 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.5717 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9952 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9801 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9911 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.2531 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.6181 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9857 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.8763 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9331 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9684 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9717 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9929 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9777 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.4926 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9994 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9065 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8835 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.9479 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.8725 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.9692 of the copy (remaining exposure allowance)": 1,
+      "spot pair; only perp markets are copyable": 2610,
+      "max asset directional exposure exceeded": 428,
+      "UNOWNED_INVENTORY: CHIP exchange net -17958.0 != engine-owned net -17736.0; entries blocked": 1,
+      "UNOWNED_INVENTORY: MON exchange net -2928.0 != engine-owned net -1796.0; entries blocked": 2,
+      "UNOWNED_INVENTORY: NEAR exchange net -8.0 != engine-owned net -10.5; entries blocked": 16,
+      "ENTRY; CAP_SIZED_DOWN to 0.6702 of the copy (remaining exposure allowance)": 1,
+      "ADD; CAP_SIZED_DOWN to 0.4339 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5879 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.4981 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.6810 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.5681 of the copy (remaining exposure allowance)": 1,
+      "ENTRY; CAP_SIZED_DOWN to 0.7881 of the copy (remaining exposure allowance)": 1
+    },
+    "send_mode": "ON",
+    "auto_send_enabled": true,
+    "global_controls": {
+      "max_total_live_exposure_usd": 3000.0,
+      "max_asset_directional_exposure_usd": 900.0,
+      "max_daily_loss_usd": 100.0,
+      "max_wallet_exposure_usd": 1200.0,
+      "max_order_notional_usd": 250.0,
+      "marketable_bps": 20.0,
+      "max_close_adverse_diff_pct": 0.0,
+      "symbol_allowlist": [],
+      "symbol_blocklist": [],
+      "min_24h_notional_usd": 3000,
+      "orphan_sweep": false,
+      "send_mode": "ON",
+      "liq_parity": false,
+      "marketable_slippage_pct": 0.2,
+      "marketable_slippage_off": false,
+      "close_adverse_diff_off": true
+    }
+  },
+  "b_exposure_first": {
+    "dollar_amounts_found": 103,
+    "nonzero_count": 55,
+    "max_abs": 1063.92
+  },
+  "b_exposure_reload": {
+    "dollar_amounts_found": 103,
+    "nonzero_count": 55,
+    "max_abs": 1063.92
+  },
+  "b_status_counts": {
+    "BLOCKED_CLO_ENTRY": 138967,
+    "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION": 21634,
+    "SEND_BLOCKED_RISK": 12546,
+    "ENTRY_ALLOWED": 15116,
+    "BLOCKED_OFF": 602,
+    "EXIT_ALLOWED": 793,
+    "BLOCKED_SPOT_NOT_SUPPORTED": 2610
+  },
+  "b_red_named": {},
+  "d_mode_label_counts": {
+    "OFF": 38,
+    "CLO": 41,
+    "LIVE": 21
+  },
+  "d_red_engine_markers": {
+    "UNKNOWN": 0,
+    "STALE": 0,
+    "RED": 1
+  },
+  "rows": [
+    {
+      "check": "a",
+      "verdict": "PASS",
+      "observed": {
+        "pid": 51064,
+        "exe": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\pythonw.exe",
+        "cwd": "C:\\Users\\wigmore\\tmp\\ui_iso_f572684\\_archive\\hl_stage2",
+        "routes": {
+          "/": {
+            "status": 200,
+            "bytes": 94904
+          },
+          "/live-copy": {
+            "status": 200,
+            "bytes": 94904
+          },
+          "/api/state": {
+            "status": 200,
+            "bytes": 1358
+          },
+          "/live-copy.json": {
+            "status": 200,
+            "bytes": 2293741
+          },
+          "/api/ui-state": {
+            "status": 200,
+            "bytes": 290
+          }
+        },
+        "stderr_tracebacks": 0,
+        "stderr_import_errors": 0,
+        "ssot_sha256": "f4dd55cab179ea263f0aeb7d01d542cdd67b15fa61b3f54645048642013e9adf"
+      }
+    },
+    {
+      "check": "b",
+      "verdict": "PASS",
+      "observed": {
+        "first_load": {
+          "dollar_amounts_found": 103,
+          "nonzero_count": 55,
+          "max_abs": 1063.92
+        },
+        "after_reload": {
+          "dollar_amounts_found": 103,
+          "nonzero_count": 55,
+          "max_abs": 1063.92
+        },
+        "dom_files": [
+          "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\b_dom_first_load.txt",
+          "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\b_dom_after_reload.txt"
+        ],
+        "screenshots": [
+          "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\b_live_copy_first_load.png",
+          "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\b_live_copy_after_reload.png"
+        ],
+        "note": "nonzero $ amounts rendered both before and after reload; zero-render would be a FAIL"
+      }
+    },
+    {
+      "check": "d",
+      "verdict": "FAIL",
+      "observed": {
+        "send_mode_from_api": "ON",
+        "auto_send_enabled": true,
+        "mode_label_counts_in_dom": {
+          "OFF": 38,
+          "CLO": 41,
+          "LIVE": 21
+        },
+        "red_stale_unknown_counts_in_dom": {
+          "UNKNOWN": 0,
+          "STALE": 0,
+          "RED": 1
+        },
+        "note": "mode shown must come from the applied config; verified separately by flipping the config COPY"
+      }
+    }
+  ],
+  "row_status_counts": {
+    "BLOCKED_CLO_ENTRY": 138967,
+    "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION": 21634,
+    "SEND_BLOCKED_RISK": 12546,
+    "ENTRY_ALLOWED": 15116,
+    "BLOCKED_OFF": 602,
+    "EXIT_ALLOWED": 793,
+    "BLOCKED_SPOT_NOT_SUPPORTED": 2610
+  },
+  "red_resolved": {},
+  "payload_row_count": 0
+}

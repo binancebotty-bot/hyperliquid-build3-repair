@@ -1,0 +1,62 @@
+{
+  "captured_at": "2026-10-29T20:37:00Z",
+  "c1": {
+    "wallets_in_config": 19,
+    "attempted_on": 11,
+    "all_requests_ok": true,
+    "gate_ON_after": 11,
+    "live_config_LIVE_after": 0,
+    "cap_enforced": true,
+    "responses": [
+      {
+        "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+        "status": 200,
+        "body": {
+          "ok": true,
+          "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+          "mode": "ON"
+        }
+      },
+      {
+        "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+        "status": 200,
+        "body": {
+          "ok": true,
+          "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+          "mode": "ON"
+        }
+      },
+      {
+        "wallet": "0x20ad988487d6a53fea7918657f45fe0bb8fd8183",
+        "status": 200,
+        "body": {
+          "ok": true,
+          "wallet": "0x20ad988487d6a53fea7918657f45fe0bb8fd8183",
+          "mode": "ON"
+        }
+      }
+    ]
+  },
+  "c2": {
+    "exiting_in_ssot": false,
+    "archived_wallets_key_present": true,
+    "archived_wallet_count": 0,
+    "note": "label existence checked in the serving SSOT bytes, not from memory"
+  },
+  "d1": {
+    "marker_written": 4242.42,
+    "api_global_controls_value": 4242.42,
+    "dom_shows_marker": false,
+    "cfg_path": "C:\\Users\\wigmore\\tmp\\ui_iso_audit\\live_config.json",
+    "screenshot": "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\d_config_marker.png",
+    "dom_dump": "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\d_dom_config_marker.txt"
+  },
+  "d2": {
+    "mtime_forced_hours_old": 3,
+    "api_send_mode": "ON",
+    "dom_has_UNKNOWN": true,
+    "dom_has_STALE": false,
+    "dom_red_markers": 5,
+    "screenshot": "C:\\Users\\wigmore\\tmp\\ui_iso_evidence\\d_stale_engine.png"
+  }
+}
