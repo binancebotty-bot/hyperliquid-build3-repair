@@ -5756,7 +5756,6 @@ class SenderGateway:
             timing[started_key] = utc_now_ms()
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
         try:
-            physical_order = exchange.order
             # Set only at the real SDK invocation boundary, after slot, write-ahead,
             # and final mode checks; stays true across retries.
             if timing is not None:
