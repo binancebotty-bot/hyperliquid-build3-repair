@@ -9262,6 +9262,33 @@ class SenderGateway:
                         "terminal_state": "CLOSE_ESCALATION_OPEN", "timing": timing,
                         "notes": block}
         if lifecycle in {"EXIT", "REDUCE"}:
+            _dust_min = self._effective_symbol_min_notional(resolved)
+            if (wire_size > POSITION_EPSILON and wire_size * limit_px < _dust_min
+                    and not self._is_whole_exchange_close(intent, wire_size, use_reduce_only)):
+                # One real leader close contributes once; repeated retries cannot
+                # multiply the claim. Group only within the copy-fill-owned sleeve.
+                aggregate = self._record_close_dust_hold(
+                    intent, wire_size, limit_px, "SUBMINIMUM_HELD_FOR_COMBINATION")
+                if aggregate > wire_size + POSITION_EPSILON and aggregate * limit_px >= _dust_min:
+                    # Recompute physical RO/entry legs against fresh exchange truth;
+                    # never blindly enlarge the caller's initial 0.1 wire.
+                    combo_ro, combo_size, combo_skip = self._close_wire_plan(
+                        intent, aggregate, sz_dec, lambda q: q * limit_px >= _dust_min, timing)
+                    if not combo_skip and combo_size * limit_px >= _dust_min:
+                        use_reduce_only, wire_size = combo_ro, combo_size
+                        wire_notional = abs(wire_size * limit_px)
+                        timing["dust_combined_same_sleeve_size"] = wire_size
+                if wire_size * limit_px < _dust_min and not self._is_whole_exchange_close(
+                        intent, wire_size, use_reduce_only):
+                    self._trackb_escalate(intent, "DUST_CLOSE_HELD_BELOW_VENUE_MINIMUM", timing)
+                    return False, "DUST_CLOSE_HELD_BELOW_VENUE_MINIMUM", {
+                        "exchange_called": False, "write_reconciliation": True,
+                        "reject_category": "DUST_BELOW_MIN_NOTIONAL",
+                        "terminal_state": "DUST_CLOSE_HELD_BELOW_VENUE_MINIMUM",
+                        "operator_action": "HOLD_DUST_AND_COMBINE",
+                        "timing": timing, "wire_size": wire_size,
+                        "notes": (f"held={wire_size}; same_sleeve_combined={aggregate}; "
+                                  f"min={_dust_min}; no USER inventory used")}
             timing["final_wire_min_notional"] = self._effective_symbol_min_notional(resolved)
             timing["final_wire_sz_decimals"] = sz_dec
             final_ok, final_block = self._validate_final_wire_order(
