@@ -209,6 +209,9 @@ def main() -> None:
     # ---- S1: exchange calls overlap, the pacing slot does not ---------------------------------------------
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "50"
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.cfg.send_mode_now = lambda: "ON"  # fixture: master real orders ON for the place-order gate
+    gw.cfg.wallet_enabled = lambda w: True  # fixture: wallet ON for the send-time and place-order gates
+    gw.cfg.wallet_mode = lambda w: "ON"
     began = []
 
     class SlowExchange:
@@ -251,6 +254,9 @@ def main() -> None:
 
     def gateway(fake, ledger=None):
         g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
+        g.cfg.send_mode_now = lambda: "ON"  # fixture: master real orders ON for the place-order gate
+        g.cfg.wallet_enabled = lambda w: True  # fixture: wallet ON for the send-time and place-order gates
+        g.cfg.wallet_mode = lambda w: "ON"
         g._resolve_coin = lambda coin: dict(resolved)
         g._get_exchange_client = lambda *a, **k: fake
         g._exchange_client_has_symbol = lambda *a, **k: True
@@ -415,7 +421,8 @@ def main() -> None:
     c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = "mainnet", False
     fake = FakeExchange()
     try:
-        gateway(fake)._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False)
+        gateway(fake)._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+                                   intent=__import__("types").SimpleNamespace(fill=__import__("types").SimpleNamespace(leader_wallet=A), intent_id="g1", notes="lifecycle=ENTRY", decision="ENTRY_ALLOWED", reason="ENTRY"))  # fixture: the place-order gate fails closed without an intent, so give it a valid ENTRY one
         refused = False
     except RuntimeError as exc:
         refused = "MAINNET_FOLLOWER_NOT_CONFIRMED" in str(exc)

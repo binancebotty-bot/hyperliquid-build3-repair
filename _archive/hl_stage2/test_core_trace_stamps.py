@@ -104,6 +104,9 @@ class Led:
 def send(tag, block):
     fake = FakeExchange()
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.cfg.send_mode_now = lambda: "ON"  # fixture: master real orders ON for the place-order gate
+    gw.cfg.wallet_enabled = lambda w: True  # fixture: wallet ON for the place-order gate
+    gw.cfg.wallet_mode = lambda w: "ON"
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True

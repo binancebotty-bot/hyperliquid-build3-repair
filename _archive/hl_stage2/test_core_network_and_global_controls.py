@@ -318,6 +318,7 @@ def global_controls_tests() -> None:
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side))
         fake = FakeExchange()
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        gw.cfg.send_mode_now = lambda: "ON"  # fixture: master real orders ON for the place-order gate
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -416,6 +417,7 @@ def global_controls_tests() -> None:
           len(calls) == 1 and calls[0]["reduce_only"] is True and abs(calls[0]["px"] - 98.9) < 0.01, f"{status} {calls}")
     book["positions"] = []
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.cfg.send_mode_now = lambda: "ON"  # fixture: master real orders ON for the place-order gate
     status, calls, _ = send({}, side="SELL", mid=0.0, sleeve=10.0)
     check("R3_EXIT_WITH_NO_PRICE_AT_ALL_GOES_RED", status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls
           and c.classify_integrity_severity("MANUAL_EXIT_RECOVERY_REQUIRED") == "RED", status)

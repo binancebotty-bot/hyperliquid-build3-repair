@@ -42,6 +42,9 @@ def check(name: str, cond: bool, detail: str = "") -> None:
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
 
 
+FX_SWITCH_OFF = [False]  # fixture flag: master real orders switch seen by the gateways built in this file
+
+
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="run4fix_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
@@ -99,6 +102,7 @@ def main() -> None:
     def gateway(fake, ledger=None):
         c.atomic_write_json(c.STANDING_CLOSES_FILE, {})   # sleeve ids repeat across scenarios: start each one clean
         g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
+        g.cfg.send_mode_now = lambda: "OFF" if FX_SWITCH_OFF[0] else "ON"  # fixture: master real orders ON for the place-order gate; a test that switches sending off sets FX_SWITCH_OFF
         g._resolve_coin = lambda coin: dict(resolved)
         g._get_exchange_client = lambda *a, **k: fake
         g._exchange_client_has_symbol = lambda *a, **k: True
@@ -387,8 +391,10 @@ def main() -> None:
     g = gateway(fake, led)
     time.sleep(0.02)
     config(send=False, marketable_bps=20)   # switched off while the close was being sent
+    FX_SWITCH_OFF[0] = True   # fixture: the gateway above now sees the switch OFF, as the config line says
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
+    FX_SWITCH_OFF[0] = False   # fixture: back to master real orders ON for the tests below
 
     # ---- U: pending-exit guard is not "unclassified" ------------------------------------------------------------
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")

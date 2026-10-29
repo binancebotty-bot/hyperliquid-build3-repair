@@ -69,6 +69,7 @@ RESOLVED = {'ok': True, 'sdk_coin': 'ZRO', 'sz_decimals': 2, 'price_max_decimals
 class Led:
     def __init__(self, net):
         self.net = net
+        self.data = {}  # fixture: later Core send-path code reads ledger.data
 
     def coin_net(self, key):
         return self.net
@@ -100,6 +101,9 @@ def make_intent(side, size, lifecycle, tag):
 def run(name, side, size, ledger_net, exchange_net, lifecycle):
     fake = FakeExchange()
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.cfg.send_mode_now = lambda: "ON"  # fixture: master real orders ON for the place-order gate
+    gw.cfg.wallet_enabled = lambda w: True  # fixture: wallet ON for the place-order gate
+    gw.cfg.wallet_mode = lambda w: "ON"
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True
