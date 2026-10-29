@@ -68,6 +68,23 @@ def classify(rc, txt):
         verdict = "ASSERTION_FAIL" if (int(failed) > 0 or rc != 0) else "PASS"
         return verdict, total, failed, cases, "TOTAL="
 
+    # dialect 1b: RESULT::<name>_PASS|_FAIL with no TOTAL= summary.
+    # Found the hard way: test_core_trace_rotation.py prints
+    #   RESULT::trace_rotation_PASS | [...]   and sys.exit(0 if ok else 1)
+    # which is a complete verdict in a dialect this adapter originally ignored, so those files
+    # were being scored NOT_RUN ("ran, said nothing") when they had said everything.
+    res_lines = re.findall(r"RESULT::\S+?_(PASS|FAIL)\b", txt)
+    if res_lines:
+        n_fail = sum(1 for r in res_lines if r == "FAIL")
+        # A non-zero exit can never be a PASS, even when PASS lines were printed first.
+        # test_core_sender_key.py prints 32 RESULT::_PASS lines and THEN raises; scoring it by
+        # the printed lines would recreate exactly the false green this runner exists to remove.
+        if rc != 0 and n_fail == 0:
+            has_tb = bool(re.search(r"Traceback \(most recent call last\)", txt))
+            return ("CRASH" if has_tb else "ASSERTION_FAIL"), str(len(res_lines)), "0", cases, "RESULT::+die"
+        verdict = "ASSERTION_FAIL" if n_fail > 0 else "PASS"
+        return verdict, str(len(res_lines)), str(n_fail), cases, "RESULT::"
+
     # dialect 2: unittest / pytest summaries
     u = re.search(r"^Ran (\d+) tests?", txt, re.M)
     f2 = re.search(r"^FAILED \(([^)]*)\)", txt, re.M)
