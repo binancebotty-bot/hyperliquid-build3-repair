@@ -26,6 +26,16 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import HL_Live_Copy_Service_Core as c  # noqa: E402
 
+FAIL = []
+CASES = []
+
+
+def check(name, cond, detail=''):
+    print(('PASS ' if cond else 'FAIL ') + name + ((' :: ' + detail) if detail and not cond else ''))
+    CASES.append(name)
+    if not cond:
+        FAIL.append(name)
+
 
 class CaptureAudit:
     def __init__(self):
@@ -111,14 +121,14 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
         "send_real_started_ms": None,
         "reply_ms": 1_400,
     }
-    if end.get("stage_stamps") != expected:
-        raise AssertionError(f"stage stamps mismatch: {end.get('stage_stamps')}")
-    if end.get("status") != "ORDER_REJECTED":
-        raise AssertionError(f"terminal status missing: {end}")
-    if end.get("reject_category") != "INSUFFICIENT_MARGIN":
-        raise AssertionError(f"reject category missing: {end}")
-    if end.get("reject_reason") != "Insufficient margin":
-        raise AssertionError(f"reject reason missing or unsanitized: {end}")
+    check('proc_end records the per-fill stage stamps', end.get("stage_stamps") == expected,
+          f"stage stamps mismatch: {end.get('stage_stamps')}")
+    check('proc_end records the terminal status', end.get("status") == "ORDER_REJECTED",
+          f"terminal status missing: {end}")
+    check('proc_end records the reject category', end.get("reject_category") == "INSUFFICIENT_MARGIN",
+          f"reject category missing: {end}")
+    check('proc_end records the sanitized reject reason', end.get("reject_reason") == "Insufficient margin",
+          f"reject reason missing or unsanitized: {end}")
 
     blocked = c.LeaderFill(
         "fill-blocked", "wallet-a", "ETH", "BUY", 2_000.0, 1.0, 1_500,
@@ -133,10 +143,12 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
     c.LiveCopyCore._process_leader_fill(core, blocked)
     rows = wait_for_trace_rows(4)
     blocked_end = next(row for row in rows if row.get("id") == "fill-blocked" and row.get("k") == "proc_end")
-    if blocked_end.get("stage_stamps", {}).get("reply_ms") is not None:
-        raise AssertionError(f"non-send was given a fabricated reply timestamp: {blocked_end}")
-    if "reject_reason" in blocked_end:
-        raise AssertionError(f"non-reject inherited a rejection reason: {blocked_end}")
+    check('a blocked send gets no fabricated reply timestamp',
+          blocked_end.get("stage_stamps", {}).get("reply_ms") is None,
+          f"non-send was given a fabricated reply timestamp: {blocked_end}")
+    check('a blocked send inherits no rejection reason',
+          "reject_reason" not in blocked_end,
+          f"non-reject inherited a rejection reason: {blocked_end}")
 
     failed = c.LeaderFill(
         "fill-exception", "wallet-a", "SOL", "SELL", 150.0, 1.0, 1_900,
@@ -147,15 +159,18 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
     core._terminal_after_exception = lambda *_args: None
     with patch.object(c, "log_error", lambda *_args: None):
         result = c.LiveCopyCore._process_leader_fill(core, failed)
-    if result[1] != "PROCESS_EXCEPTION":
-        raise AssertionError(f"processing exception status missing: {result}")
+    check('a processing exception returns PROCESS_EXCEPTION', result[1] == "PROCESS_EXCEPTION",
+          f"processing exception status missing: {result}")
     rows = wait_for_trace_rows(6)
     failed_end = next(row for row in rows if row.get("id") == "fill-exception" and row.get("k") == "proc_end")
-    if failed_end.get("status") != "PROCESS_EXCEPTION" or failed_end.get("stage_stamps", {}).get("reply_ms") is not None:
-        raise AssertionError(f"exception end row missing or has a fabricated reply timestamp: {failed_end}")
+    check('the exception end row says PROCESS_EXCEPTION with no reply timestamp',
+          failed_end.get("status") == "PROCESS_EXCEPTION"
+          and failed_end.get("stage_stamps", {}).get("reply_ms") is None,
+          f"exception end row missing or has a fabricated reply timestamp: {failed_end}")
     with core._fill_trace_condition:
         core._fill_trace_writer_done = True
         core._fill_trace_condition.notify_all()
     trace_writer.join(timeout=2)
 
-print("PASS: proc_end records rejection details, real replies, stage stamps, and blocked/exception outcomes")
+print(f"TOTAL={len(CASES)} FAILED={len(FAIL)}")
+sys.exit(0 if not FAIL else 1)
