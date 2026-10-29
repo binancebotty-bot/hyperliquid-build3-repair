@@ -4490,16 +4490,27 @@ def save_live_config(cfg: Dict[str, Any]) -> None:
 
 
 def enforce_live_wallet_limit(cfg: Dict[str, Any], max_live: int = 10) -> Dict[str, Any]:
-    wallets = cfg.get("wallets", {})
-    live = [w for w, v in wallets.items() if v.get("mode") == "LIVE"]
+    """Keep at most max_live wallets in mode LIVE.
 
+    The surplus is DEMOTED to OFF in the returned config and named in
+    cfg["wallet_cap_demoted"] so the caller can show that the cap fired instead of
+    silently swallowing the change.
+    """
+    wallets = cfg.get("wallets", {}) if isinstance(cfg.get("wallets"), dict) else {}
+    live = [w for w, v in wallets.items() if isinstance(v, dict) and v.get("mode") == "LIVE"]
+    cfg["wallet_cap_demoted"] = []
     if len(live) <= max_live:
+        cfg["wallets"] = wallets
         return cfg
 
+    demoted: List[str] = []
     for w in live[max_live:]:
         wallets[w]["mode"] = "OFF"
+        wallets[w]["enabled"] = False
+        demoted.append(w)
 
     cfg["wallets"] = wallets
+    cfg["wallet_cap_demoted"] = demoted
     return cfg
 
 
@@ -8404,7 +8415,32 @@ async def set_wallet_mode(request: Request) -> JSONResponse:
     gate = load_wallet_gate()
     gate[wallet] = {"mode": mode, "off_mode": None}
     save_wallet_gate(gate)
-    return JSONResponse({"ok": True, "wallet": wallet, "mode": mode})
+    # PROJECT THE GATE ONTO THE FOLLOWED CONFIG, or the cap is unobservable: the gate alone is
+    # never read by /api/live-config, so 11 ON wallets reported 0 LIVE. ON maps to LIVE here.
+    projected = {"ON": "LIVE", "CLOSE_ONLY": "CLO", "OFF": "OFF"}[mode]
+    cap_demoted: List[str] = []
+    live_count = 0
+    try:
+        config = _load_live_copy_config()
+        wallets = config["wallets"]
+        if wallet in wallets:
+            wallets[wallet] = _normalise_live_wallet_payload({"mode": projected}, wallets[wallet])
+            repair_live_config_consistency(config)
+            enforce_live_wallet_limit(config, max_live=10)
+            cap_demoted = list(config.pop("wallet_cap_demoted", []) or [])
+            _save_live_copy_config(config)
+        live_count = sum(1 for v in wallets.values() if isinstance(v, dict) and v.get("mode") == "LIVE")
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": type(exc).__name__}, status_code=500)
+    if wallet in cap_demoted:
+        return JSONResponse({
+            "ok": True, "wallet": wallet, "mode": "OFF", "requested_mode": mode,
+            "demoted": True, "reason": "MAX_LIVE_WALLETS_10", "live_count": live_count,
+        })
+    return JSONResponse({
+        "ok": True, "wallet": wallet, "mode": mode, "demoted": False,
+        "live_count": live_count,
+    })
 
 
 @app.post("/api/set-all-modes")
