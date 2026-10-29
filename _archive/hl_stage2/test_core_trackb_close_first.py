@@ -309,7 +309,13 @@ def test_dir131_fresh_exchange_net_uses_sdk_account_and_rejects_mismatch(monkeyp
     monkeypatch.setattr(core, "log_error", lambda where, exc: logs.append((where, str(exc))))
     sender = SimpleNamespace()
     sender._follower_order_account_for_proof = (
-        lambda: core.SenderGateway._follower_order_account_for_proof(sender))
-    assert core.SenderGateway._fresh_exchange_net(sender, "ETH") is None
+        lambda **kw: core.SenderGateway._follower_order_account_for_proof(sender, **kw))
+    monkeypatch.setattr(core, "follower_dex_scope", lambda: [""])
+    monkeypatch.setattr(core, "_XNET", SimpleNamespace(master_exposure=lambda account, *args, **kw:
+        (reads.append(account) or {"ok": True, "by_coin": {"ETH": {"net": 3.0}}})))
+    # C7-DIR-162: closure read is rebound to the SDK order account B,
+    # whereas the stricter terminal-clear proof still refuses stale wallet A.
+    assert core.SenderGateway._fresh_exchange_net(sender, "ETH") == 3.0
+    assert reads == [account_b]
+    assert sender._follower_order_account_for_proof() is None
     assert any(account_a in msg and account_b in msg for _, msg in logs)
-    # No network read can be performed on the mismatching account.

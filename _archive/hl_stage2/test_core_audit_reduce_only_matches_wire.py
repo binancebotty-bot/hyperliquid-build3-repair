@@ -103,6 +103,8 @@ def make_intent(side, size, lifecycle, tag):
 
 def run(name, side, size, ledger_net, exchange_net, lifecycle):
     fake = FakeExchange()
+    # Each independent audit parity control has its own proven-fill history.
+    c.CLOSE_RESERVATIONS_FILE = tmp / ('close_reservations_' + name + '.json')
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: fake
