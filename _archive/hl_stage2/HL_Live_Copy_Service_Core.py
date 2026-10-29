@@ -7432,6 +7432,7 @@ class SenderGateway:
             # the order is cancelled when its target, the leader's sleeve or the follower's position changes, when the target
             # is reached, or when it gets old, so it can never fill into a position nobody wants.
             _min_n = None
+            _res: Dict[str, Any] = {}
             try:
                 _res = self._resolve_coin(intent.fill.coin)
                 _mn = self._effective_symbol_min_notional(_res) if _res.get("ok") else 0.0
