@@ -1,0 +1,23 @@
+name: Coder2 M4 UI regression
+on:
+  push:
+    branches: [gpt/coder2-ui-exiting-cap]
+permissions:
+  contents: read
+jobs:
+  m4-ui-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install UI test dependency
+        run: python3 -m pip install --disable-pip-version-check fastapi
+      - name: Verify no Core edits and execute M4 tests
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+        run: |
+          git diff --exit-code f572684461e6574e4af219f04b4baf2e6544c778 HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          cd _archive/hl_stage2
+          python3 test_ui_exiting_cap.py
