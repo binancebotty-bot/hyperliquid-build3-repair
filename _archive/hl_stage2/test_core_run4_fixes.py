@@ -392,6 +392,7 @@ def main() -> None:
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             result = super().order(coin, is_buy, size, px, tif, reduce_only)
             if len(self.calls) == 1:
+                time.sleep(0.02)  # force a distinct config mtime before the late gate
                 config(send=False, marketable_bps=20)
             return result
     fake = SwitchOffAfterIOC([NO_MATCH])
