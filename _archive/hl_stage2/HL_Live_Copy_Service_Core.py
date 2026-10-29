@@ -158,6 +158,8 @@ RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-en
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
 _CLOSE_ESCALATIONS_LOCK = threading.RLock()
+HELD_CLOSE_REMAINDERS_FILE = AUDIT_DIR / "held_close_remainders.json"
+_HELD_CLOSE_REMAINDERS_LOCK = threading.RLock()
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -7225,7 +7227,10 @@ class SenderGateway:
             return
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
         wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
-        close_size = min(abs(wallet_pos), abs(wire_size), abs(intent.copy_size))
+        # A batch of same-sleeve held closes may exceed this *one* leader fill.
+        # The actual exchange wire_size is the cap for its recovery, not the
+        # final fill's original small size.
+        close_size = min(abs(wallet_pos), abs(wire_size))
         if remainder is not None:  # the close part-filled: only what is left (the ledger has not seen the fill yet)
             close_size = min(close_size, abs(remainder))
         if close_size <= POSITION_EPSILON or wallet_pos * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
@@ -8139,6 +8144,180 @@ class SenderGateway:
                     return False
         return is_valid_wallet(reader) and is_valid_wallet(account) and reader == account
 
+
+    def _hold_exit_during_pending_wire(self, intent: Intent) -> None:
+        """Retain a distinct owed close even while a prior close is pending."""
+        if not self.ledger:
+            return
+        key, now = str(intent.intent_id), utc_now_ms()
+        with _HELD_CLOSE_REMAINDERS_LOCK:
+            rows = load_json(HELD_CLOSE_REMAINDERS_FILE, {})
+            if not isinstance(rows, dict):
+                raise ValueError("HELD_CLOSE_REMAINDERS_CORRUPT")
+            if key not in rows:
+                size = abs(fnum(intent.copy_size))
+                rows[key] = {
+                    "wallet": normalise_wallet(intent.fill.leader_wallet),
+                    "coin": canonical_coin_key(intent.fill.coin),
+                    "side": str(intent.copy_side).upper(), "intent_id": key,
+                    "leader_fill_id": str(intent.fill.leader_fill_id),
+                    "size": size,
+                    "notional": abs(size * fnum(intent.fill.price)),
+                    "first_seen_ms": now, "age_ms": 0, "state": "HELD",
+                }
+                atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
+
+    def _prepare_held_close(self, intent: Intent, resolved: Dict[str, Any], price: float,
+                            size: float, timing: Dict[str, Any]) -> Tuple[float, Optional[Dict[str, Any]]]:
+        """Hold sub-minimum engine-owned closes; batch only one wallet/coin sleeve.
+
+        Each leader remainder retains its own durable ledger row. Never pool different
+        wallets: a single exchange fill is attributed to one intent and one sleeve.
+        A discrepant exchange net (including user-managed exposure) is never adopted.
+        """
+        if classify_send_lifecycle(intent) not in {"EXIT", "REDUCE"} or not self.ledger:
+            return size, None
+        minimum = self._effective_symbol_min_notional(resolved)
+        wallet, coin = normalise_wallet(intent.fill.leader_wallet), canonical_coin_key(intent.fill.coin)
+        side = str(intent.copy_side).upper()
+        key = str(intent.intent_id)
+        now = utc_now_ms()
+        with _HELD_CLOSE_REMAINDERS_LOCK:
+            rows = load_json(HELD_CLOSE_REMAINDERS_FILE, {})
+            if not isinstance(rows, dict):
+                raise ValueError("HELD_CLOSE_REMAINDERS_CORRUPT")
+            owned = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
+            sleeve_size = fnum(owned.get("signed_size")) if isinstance(owned, dict) else 0.0
+            led_net = self.ledger.coin_net(coin)
+            exchange, reason = self._persisted_exchange_positions()
+            ex_net = None if reason else fnum(exchange.get(coin))
+            delta = ManualLedger.signed_delta(side, 1.0)
+            tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(led_net)))
+            safe = (ex_net is not None and abs(ex_net - led_net) <= tol
+                    and sleeve_size * delta < 0
+                    and led_net * delta < 0)
+            pending = [(rid, row) for rid, row in rows.items()
+                       if isinstance(row, dict) and row.get("wallet") == wallet and row.get("coin") == coin
+                       and row.get("side") == side and row.get("state") == "HELD"]
+            inflight = any(isinstance(row, dict) and row.get("wallet") == wallet
+                           and row.get("coin") == coin and row.get("side") == side
+                           and row.get("state") in {"RESERVED", "IN_FLIGHT"} for row in rows.values())
+            is_new = key not in rows
+            total = sum(fnum(row.get("size")) for _, row in pending)
+            if is_new:
+                total += size
+            # Leave an existing full-position dust close on its original, tested
+            # reduce-only venue exemption. No pooling and no extra persistence.
+            if not pending and not inflight and is_new and size * price < minimum and safe:
+                if self._closes_whole_account_position(intent, size):
+                    return size, None
+            if not pending and not inflight and is_new and size * price >= minimum:
+                return size, None
+            if is_new:
+                rows[key] = {
+                    "wallet": wallet, "coin": coin, "side": side, "intent_id": key,
+                    "leader_fill_id": str(intent.fill.leader_fill_id),
+                    "size": size, "notional": abs(size * price), "first_seen_ms": now,
+                    "age_ms": 0, "state": "HELD",
+                }
+            for row in rows.values():
+                if isinstance(row, dict) and row.get("state") == "HELD":
+                    row["age_ms"] = max(0, now - int(fnum(row.get("first_seen_ms"), now)))
+            whole_pool = (safe and abs(abs(ex_net) - total) <= tol)
+            ready = (safe and not inflight
+                     and (total * price + 1e-9 >= minimum or whole_pool)
+                     and total <= abs(sleeve_size) + tol
+                     and total <= abs(ex_net) + tol
+                     and all(row.get("state") == "HELD" for rid, row in pending))
+            if ready:
+                selected = [rid for rid, row in rows.items()
+                            if isinstance(row, dict) and row.get("wallet") == wallet
+                            and row.get("coin") == coin and row.get("side") == side
+                            and row.get("state") == "HELD"]
+                timing["held_close_remainder_ids"] = selected
+                timing["held_close_total"] = total
+                atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
+                return round(total, 10), None
+            atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
+            reason_text = ("exchange ownership differs from engine sleeves; user residual untouched"
+                           if not safe else "awaiting enough same-sleeve close size or prior send reconciliation")
+            info = (f"held engine close remainder; coin={coin}; size={size}; "
+                    f"notional={abs(size * price):.6f}; age_ms={rows[key]['age_ms']}; "
+                    f"pending_same_sleeve={total}; {reason_text}")
+            return size, {
+                "status": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+                "exchange_called": False, "write_reconciliation": True,
+                "terminal_state": "DUST_BELOW_MIN_NOTIONAL", "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                "operator_action": "HOLD_DUST_OR_AGGREGATE", "notes": info, "timing": timing,
+                "wire_size": size, "copy_notional": abs(size * price),
+            }
+
+    def _mark_held_close_sent(self, timing: Dict[str, Any], intent: Intent) -> None:
+        """Physical exchange invocation means no held item may be blindly reoffered."""
+        ids = timing.get("held_close_remainder_ids") or []
+        if not ids:
+            return
+        with _HELD_CLOSE_REMAINDERS_LOCK:
+            rows = load_json(HELD_CLOSE_REMAINDERS_FILE, {})
+            if not isinstance(rows, dict):
+                raise ValueError("HELD_CLOSE_REMAINDERS_CORRUPT")
+            if timing.get("exchange_order_invoked"):
+                wallet, coin = normalise_wallet(intent.fill.leader_wallet), canonical_coin_key(intent.fill.coin)
+                sleeve = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
+                before = abs(fnum(sleeve.get("signed_size"))) if isinstance(sleeve, dict) else 0.0
+                for rid in ids:
+                    if rid in rows:
+                        rows[rid]["state"] = "IN_FLIGHT"
+                        rows[rid]["sleeve_abs_at_send"] = before
+                        rows[rid]["batch_total"] = fnum(timing.get("held_close_total"))
+                        rows[rid]["sent_by_intent_id"] = intent.intent_id
+                        rows[rid]["cloid"] = str(timing.get("send_cloid") or "")
+                atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
+
+    def _clear_flat_held_closes(self) -> None:
+        """Retire a held ledger entry only on exact, same-account double-flat proof."""
+        if not self.ledger or not self._close_proof_account_ok():
+            return
+        with _HELD_CLOSE_REMAINDERS_LOCK:
+            rows = load_json(HELD_CLOSE_REMAINDERS_FILE, {})
+            if not isinstance(rows, dict) or not rows:
+                return
+            fresh: Dict[str, Optional[float]] = {}
+            changed = False
+            for rid, row in list(rows.items()):
+                if not isinstance(row, dict):
+                    continue
+                age = max(0, utc_now_ms() - int(fnum(row.get("first_seen_ms"), 0)))
+                if row.get("age_ms") != age:
+                    row["age_ms"] = age
+                    changed = True
+                wallet, coin = row.get("wallet"), row.get("coin")
+                sleeve = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
+                if not isinstance(sleeve, dict):
+                    continue
+                current = abs(fnum(sleeve.get("signed_size")))
+                if coin not in fresh:
+                    fresh[coin] = self._fresh_exchange_net(coin)
+                ex_net = fresh[coin]
+                if ex_net is None or abs(ex_net - self.ledger.coin_net(coin)) > POSITION_EPSILON:
+                    continue
+                flat = (current <= POSITION_EPSILON
+                        and abs(self.ledger.coin_net(coin)) <= POSITION_EPSILON
+                        and abs(ex_net) <= POSITION_EPSILON)
+                # An in-flight batch can retire once the engine's own sleeve has
+                # actually shrunk by that batch and the exchange agrees with the
+                # resulting account net. Other HELD rows survive until double-flat.
+                settled = (row.get("state") == "IN_FLIGHT"
+                           and fnum(row.get("batch_total")) > 0
+                           and fnum(row.get("sleeve_abs_at_send")) - current
+                               + POSITION_EPSILON >= fnum(row.get("batch_total")))
+                if not (flat or settled):
+                    continue
+                del rows[rid]
+                changed = True
+            if changed:
+                atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
+
     def clear_close_escalations(self) -> int:
         """Clear only on a CURRENT flat engine sleeve AND a fresh same-account flat exchange read.
 
@@ -8147,6 +8326,7 @@ class SenderGateway:
         """
         if self.ledger is None or not self._close_proof_account_ok():
             return 0
+        self._clear_flat_held_closes()
         with _CLOSE_ESCALATIONS_LOCK:
             rows = (json.loads(CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig"))
                     if CLOSE_ESCALATIONS_FILE.exists() else {})
@@ -8313,6 +8493,7 @@ class SenderGateway:
                 # Exit/reduce bypasses 60s and rate-limit cooldowns; pending guard remains.
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
+                    self._hold_exit_during_pending_wire(intent)
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
                         "terminal_state": "PENDING_EXIT_GUARD_ACTIVE",
                         "reject_category": "PENDING_EXIT_GUARD",
@@ -8340,6 +8521,8 @@ class SenderGateway:
             if reserved_exit and not timing.get("exchange_order_invoked", False):
                 self._clear_pending_exit(intent)
         if result.get("exchange_called"):
+            if timing.get("held_close_remainder_ids"):
+                self._mark_held_close_sent(timing, intent)
             if reserved_exit and timing.get("exchange_order_invoked", False):
                 with self._pending_exit_lock:
                     self._last_exit_attempt_ms[coin_key] = utc_now_ms()
@@ -8529,7 +8712,7 @@ class SenderGateway:
         bps = self.cfg.marketable_bps()
         mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
         base_px = intent.fill.price
-        close_adv_limit = self.cfg.max_close_adverse_diff_pct() if lifecycle == "EXIT" else 0.0
+        close_adv_limit = 0.0  # Boss 29 Oct: an engine-owned exit is never refused by a price-tolerance control
         follower_px = 0.0
         # OD-01 (Boss ruling 2026-10-09): an entry/add is priced from a FRESH follower-market mid, never the
         # leader's fill price; a stale or missing mid means no order. Cross-network, every order is.
@@ -8732,6 +8915,11 @@ class SenderGateway:
                 "reject_category": "RISK_LIMIT", "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
                 "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
             }
+        if lifecycle in {"EXIT", "REDUCE"}:
+            wire_size, held_block = self._prepare_held_close(intent, resolved, limit_px, wire_size, timing)
+            if held_block is not None:
+                return False, held_block["status"], held_block
+            wire_notional = abs(wire_size * limit_px)
         _gate_ok, _gate_block = self._validate_final_wire_order(
             intent, resolved, sdk_coin, wire_size, limit_px, timing
         )
@@ -8788,6 +8976,8 @@ class SenderGateway:
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
                                          cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"},
                                          pre_send=_pending_send, intent=intent, path="send_other")
+            if timing.get("exchange_order_invoked") and timing.get("held_close_remainder_ids"):
+                self._mark_held_close_sent(timing, intent)
             if isinstance(response, dict) and response.get("exchange_called") is False:
                 # The gate refused inside _place_order: the exchange was never called. Returning here keeps
                 # the semantics (no call stamp, no retry, BLOCKED_AT_PLACE_ORDER) instead of letting the
@@ -8958,6 +9148,8 @@ class SenderGateway:
                 **({"notes": netting_note} if netting_note else {}),
             }
         except Exception as exc:
+            if timing.get("exchange_order_invoked") and timing.get("held_close_remainder_ids"):
+                self._mark_held_close_sent(timing, intent)
             if isinstance(exc, PendingSendWriteFailed):  # fail closed: no crash record means no order (caller releases any exit reservation)
                 cause = exc.__cause__ or exc
                 log_error("begin_pending_send", cause)
