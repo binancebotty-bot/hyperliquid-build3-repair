@@ -24,7 +24,24 @@ c.invalidate_open_orders_cache()
 events = []
 def reserve(**k):
     events.append("slot_cooldown_wait"); return 0
-gw = SimpleNamespace(_reserve_exchange_order_slot=reserve, _note_sender_key_rejection=lambda r: None)
+# _place_order now consults the master send gate (self._master_gate_reason(intent, path)) at the top and again
+# right before the physical call, and journals a refusal through self._gate_refusal_row. The fake gateway must
+# answer that gate with the REAL rules - a stub that always allows would delete the check the product added.
+# Every call below therefore carries an intent (a gate call without one fails CLOSED as MISSING_INTENT_CONTEXT)
+# and a config that says sends are allowed, so the real method answers "" exactly as a live ON/FULL wallet does.
+class _AllowAllCfg:
+    send_mode_now = staticmethod(lambda: "ON")
+    wallet_enabled = staticmethod(lambda _w: True)
+    wallet_mode = staticmethod(lambda _w: "FULL")
+
+INTENT = SimpleNamespace(intent_id="intent-1", path="test",
+                         fill=SimpleNamespace(leader_wallet=c.USER_WALLET, coin="BTC", leader_fill_id="fill-1"))
+gw = SimpleNamespace(_reserve_exchange_order_slot=reserve, _note_sender_key_rejection=lambda r: None,
+                     cfg=_AllowAllCfg(), sender_key_invalid=None)
+def _gate_refused(intent, path, reason):
+    raise AssertionError("master send gate refused the order: %s (path=%s)" % (reason, path))
+gw._gate_refusal_row = _gate_refused
+gw._master_gate_reason = c.SenderGateway._master_gate_reason.__get__(gw)
 
 probe = {}
 class Ex:
@@ -48,7 +65,7 @@ def pre_send_ok():
 
 # G1: a cache hit while exchange.order is in flight is rejected (every sweep re-reads, nothing is stored)
 c.invalidate_open_orders_cache()
-c.SenderGateway._place_order(gw, Ex(), "BTC", True, 1.0, 100.0, "Gtc", False, pre_send=pre_send_ok)
+c.SenderGateway._place_order(gw, Ex(), "BTC", True, 1.0, 100.0, "Gtc", False, pre_send=pre_send_ok, intent=INTENT)
 check("G1_CACHE_HIT_REJECTED_DURING_IN_FLIGHT_ORDER", probe.get("reads") == 2 and probe.get("stored") is False, str(probe))
 check("G1B_SEND_COUNTER_RAISED_IN_FLIGHT_AND_RELEASED_AFTER",
       probe.get("in_flight") == 1 and c._OPEN_ORDERS_CACHE_STATE["sends"] == 0, str((probe, c._OPEN_ORDERS_CACHE_STATE)))
@@ -72,7 +89,7 @@ class Ex2(Ex):
 def pre_send_fail():
     raise OSError("disk full")
 try:
-    c.SenderGateway._place_order(gw, Ex2(), "BTC", True, 1.0, 100.0, "Gtc", False, pre_send=pre_send_fail)
+    c.SenderGateway._place_order(gw, Ex2(), "BTC", True, 1.0, 100.0, "Gtc", False, pre_send=pre_send_fail, intent=INTENT)
     raised = None
 except Exception as exc:
     raised = exc
@@ -83,7 +100,7 @@ check("G4B_FAILED_PENDING_SEND_LEAVES_NO_GUARD_RAISED", c._OPEN_ORDERS_CACHE_STA
 class Ex3(Ex):
     def order(self, *a, **k): raise RuntimeError("timeout after send")
 try:
-    c.SenderGateway._place_order(gw, Ex3(), "BTC", True, 1.0, 100.0, "Gtc", False, pre_send=pre_send_ok)
+    c.SenderGateway._place_order(gw, Ex3(), "BTC", True, 1.0, 100.0, "Gtc", False, pre_send=pre_send_ok, intent=INTENT)
 except RuntimeError:
     pass
 check("G5_GUARD_RELEASED_AFTER_RAISED_ORDER", c._OPEN_ORDERS_CACHE_STATE["sends"] == 0, str(c._OPEN_ORDERS_CACHE_STATE))
