@@ -231,11 +231,18 @@ def main() -> None:
     startup_state_path = tmp / "startup_state.json"
     startup_state_path.write_text(json.dumps({"process_id": -1}), encoding="utf-8")
 
-    class StartupConfig:
-        def active_wallets(self):
+    real_config_manager = c.ConfigManager
+
+    # Contract note (CC-1 R35): main() now runs the shared stream-cap gate before building the
+    # core: `_cfg = ConfigManager(); if _cfg.live_over_stream_cap(): raise SystemExit(...)`.
+    # The old fake only implemented active_wallets(), so the gate raised AttributeError.
+    # Inherit the real ConfigManager and override wallets() -> [] so the REAL
+    # live_wallets()/live_over_stream_cap() code runs; the test asserts the current contract
+    # (no wallets => not over the leader-stream cap) instead of stubbing the method away.
+    class StartupConfig(real_config_manager):
+        def wallets(self):
             return []
 
-    real_config_manager = c.ConfigManager
     startup_cfg = real_config_manager()
     orphan_result = {"ok": True, "detail": "offline test"}
     orphan_error = None
