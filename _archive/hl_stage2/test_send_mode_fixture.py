@@ -53,6 +53,10 @@ def arm_offline_send(core, wallets, *, global_controls=None, copy_mode="fixed",
         "raw": raw,
         "positions_by_coin": positions,
     })
+    snap = core.load_json(core.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+    assert isinstance(snap, dict) and isinstance(snap.get("raw"), dict)
+    assert "withdrawable" in snap["raw"]  # top-level, never marginSummary.withdrawable
+    assert 0 <= core.utc_now_ms() - int(snap.get("created_at_ms", 0)) < 30000
     cfg = core.ConfigManager()
     assert cfg.send_mode_now() == "ON"
     assert all(cfg.wallet_enabled(w) and cfg.wallet_mode(w) == "ON" for w in names)
