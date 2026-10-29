@@ -158,6 +158,8 @@ RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-en
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
 CLOSE_RESERVATIONS_FILE = AUDIT_DIR / "close_inflight_reservations.json"
+CLOSE_DUST_HOLDS_FILE = AUDIT_DIR / "close_dust_holds.json"
+_CLOSE_DUST_HOLDS_LOCK = threading.RLock()
 # Serialise coin-claim read/modify/write across gateway instances in one engine process.
 _CLOSE_RESERVATIONS_LOCK = threading.RLock()
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
@@ -8178,6 +8180,19 @@ class SenderGateway:
         return {"state": state, "adverse_pct": adverse, "pnl_after_fees_usd": pnl,
                 "loss_pct": loss_pct, "leader_px": leader_px, "executable_px": executable_px}
 
+    def _record_unsent_close(self, intent: Intent, status: str) -> None:
+        """Every refused authorised EXIT leaves named audit and durable owed-close RED."""
+        reason = str(status or "UNKNOWN_CLOSE_REFUSAL")
+        self._trackb_escalate(intent, "AUTHORISED_CLOSE_NOT_SENT: " + reason)
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", "AUTHORISED_CLOSE_NOT_SENT",
+            leader_wallet=intent.fill.leader_wallet,
+            leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id,
+            coin=intent.fill.coin, action="OWED_CLOSE_RETRY_OR_OPERATOR_REVIEW",
+            reject_category=reason, terminal_state="AUTHORISED_CLOSE_NOT_SENT",
+            engine_can_close=False, engine_can_send=False,
+            notes=f"no confirmed close fill; reason={reason}; sleeve={intent.sleeve_id}")
+
     def _trackb_escalate(self, intent: Intent, reason: str, evidence: Optional[Dict[str, Any]] = None,
                          order_id: str = "") -> None:
         t = evidence or {}
@@ -8564,6 +8579,25 @@ class SenderGateway:
         return None
 
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
+        """Catch close refusals, including early returns before _send_real."""
+        owed = intent.send_allowed and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+        try:
+            result = self._send_if_allowed_impl(intent, entry_block_reason)
+        except Exception as exc:
+            if owed:
+                try:
+                    self._record_unsent_close(intent, "SEND_EXCEPTION_" + type(exc).__name__)
+                except Exception as audit_exc:
+                    log_error("close_refusal_journal_failed", audit_exc)
+            raise
+        if owed and not result[0]:
+            try:
+                self._record_unsent_close(intent, result[1])
+            except Exception as audit_exc:
+                log_error("close_refusal_journal_failed", audit_exc)
+        return result
+
+    def _send_if_allowed_impl(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
         stale_reason = stale_snapshot_replay_reason(intent.fill)
