@@ -15,10 +15,12 @@ sys.modules['hl_core_midk'] = C
 spec.loader.exec_module(C)
 
 FAIL = []
+CASES = []
 
 
 def check(n, c, d=''):
     print(('PASS ' if c else 'FAIL ') + n + ((' :: ' + d) if d and not c else ''))
+    CASES.append(n)
     if not c:
         FAIL.append(n)
 
@@ -64,5 +66,5 @@ check('reader resolves xyz:AMD', C.SenderGateway._reference_price(Obj(), 'xyz:AM
 check('reader resolves bare AMD to the default DEX', C.SenderGateway._reference_price(Obj(), 'AMD') == 100.0,
       str(C.SenderGateway._reference_price(Obj(), 'AMD')))
 
-print('FAILED: %d' % len(FAIL))
+print('TOTAL=%d FAILED=%d' % (len(CASES), len(FAIL)))
 sys.exit(1 if FAIL else 0)
