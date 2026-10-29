@@ -137,6 +137,8 @@ def main() -> None:
     fake_bad = FakeExchange(raise_on_leverage=True)
     gb = gateway(fake_bad, c.ManualLedger(path=tmp / "l3.json"))
     ent_ok, ent_status, _ = send_real(gb, mk_intent("ENTRY_ALLOWED", "ENTRY"))
+    gb.ledger.sleeve(A, "BTC")["signed_size"] = 1.0    # C7 T1: the close below must be of a position the engine records
+    gb.ledger._recompute_net(gb.ledger.data)
     cl_ok, cl_status, _ = send_real(gb, mk_intent("EXIT_ALLOWED", "EXIT", "SELL", 1.0, 1.0))
     check("L3_MARGIN_MODE_FAILURE_BLOCKS_ENTRY_NOT_CLOSE",
           ent_ok is False and "MARGIN_MODE_UNSET" in str(ent_status) and cl_ok is True,

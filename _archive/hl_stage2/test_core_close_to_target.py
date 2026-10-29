@@ -14,6 +14,9 @@ class Ledger:
     def coin_net(self, k): return self.net
 
 def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON"):
+    # C7 T1: this fixture drives the SIZING rules on a stand-in ledger that carries no sleeve store. Declare the trading
+    # account explicitly so an unknown identity can never be mistaken for a trusted one on this path.
+    os.environ.setdefault("HL_LIVE_HL_ACCOUNT_ADDRESS", "0x" + "c" * 40)
     snap = ({"RESOLV": ex}, "") if readable else ({}, "exchange snapshot unavailable")
     me = SimpleNamespace(ledger=Ledger(led), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
     me._reduce_only_for_intent = lambda i: lifecycle_exit

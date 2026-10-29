@@ -146,6 +146,13 @@ def main() -> None:
         c.AuditLogWriter().append_order_intent(it)  # intent built while the wallet was ON (wallet_mode="ON")
         ex = Ex([reply or FILLED(1.0, 100.0)])
         g = gw(ex)
+        if lifecycle in ("EXIT", "REDUCE"):
+            # C7 T1: a close must be of a position the engine actually records, and the venue must hold it. Seed the owned
+            # sleeve this fixture's exit is closing and the matching venue net; no assertion is relaxed by doing so.
+            owned = 1.0 if side == "SELL" else -1.0
+            g.ledger.sleeve(A, "BTC")["signed_size"] = owned
+            g.ledger._recompute_net(g.ledger.data)
+            g._fresh_exchange_net = lambda coin, _o=owned: _o
         set_mode(g, mode_at_send)
         sent, status = g.send_if_allowed(it)
         return ex, sent, status, it

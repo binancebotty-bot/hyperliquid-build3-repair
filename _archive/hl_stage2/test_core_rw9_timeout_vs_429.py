@@ -144,7 +144,7 @@ def main() -> None:
 
     R429 = ClientError(429, None, "Too many requests")  # structural 429 (was RuntimeError("ClientError(429...)") text)
     unreadable = lambda real, *a, **k: real(*a, **k)  # real resolver; orderStatus read raises below
-    real_post_many = c._XNET.post_many
+    real_post_many = c._XNET_MODULE.post_many  # the true function: c._XNET is a guard proxy that re-resolves the patched attribute
 
     def post_many(fetcher, payloads, *a, **k):
         if any(isinstance(p, dict) and p.get("type") == "orderStatus" for p in payloads):
@@ -198,6 +198,11 @@ def main() -> None:
         c.AuditLogWriter().append_order_intent(it)
         ex = Ex([R429, FILLED(1.0, 100.0)])
         g = gw(ex)
+        # C7 T1: a close must be of a position the engine records AND the venue holds, or it is held as unknown ownership
+        # before the wire and this reconcile-first case is never reached. Seed both; no assertion is relaxed.
+        g.ledger.sleeve(A, "BTC")["signed_size"] = 1.0
+        g.ledger._recompute_net(g.ledger.data)
+        g._fresh_exchange_net = lambda coin: 1.0
         seen = []
         real = g._resolve_ambiguous_send_outcome
 
