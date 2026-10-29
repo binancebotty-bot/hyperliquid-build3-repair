@@ -1,0 +1,30 @@
+name: C7W close-first offline safety tests
+on:
+  push:
+    branches:
+      - gpt/c7w-close-first-dust-20261029
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest requests
+      - name: C7W bounded dust and owed-close proof
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent/c7w-offline.env
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+        run: |
+          python -m pytest -q _archive/hl_stage2/test_core_c7w_close_dust.py --junitxml=c7w_offline.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c7w-offline-junit
+          path: c7w_offline.xml
