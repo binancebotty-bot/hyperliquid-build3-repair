@@ -48,32 +48,54 @@ def wt(x):
 
 
 def classify(rc, txt):
-    """Return (verdict, total, failed, failing_cases). Rules 2 and 3 live here."""
-    m = re.findall(r"TOTAL=(\d+)\s+FAILED=(\d+)", txt)
-    total, failed = (m[-1] if m else (None, None))
+    """Return (verdict, total, failed, failing_cases, dialect).
+
+    R34 item 3: ONE adapter normalising the three verdict dialects this suite speaks, so the
+    runner can score every file without rewriting the suite:
+      TOTAL=            '<n> cases, TOTAL=t FAILED=f'
+      unittest/pytest   'OK' / 'OK (skipped=n)' / 'FAILED (failures=n, errors=m)' / 'Ran n tests'
+      exit code only    process death or silence; a traceback is a CRASH, clean silence is NOT_RUN
+    Precedence: TOTAL= wins when present (it is the richest), then unittest/pytest, then exit code.
+    """
     cases = sorted(set(re.findall(r"RESULT::(\S+?)_FAIL\b", txt)))
     if rc == "TIMEOUT":
-        return "TIMEOUT", total, failed, cases
-    if total is None:
-        # No verdict was ever printed. Non-zero exit = died; zero exit = ran and said nothing.
-        return ("CRASH" if rc != 0 else "NOT_RUN"), None, None, cases
-    if int(failed) > 0 or rc != 0:
-        return "ASSERTION_FAIL", total, failed, cases
-    return "PASS", total, failed, cases
+        return "TIMEOUT", None, None, cases, "timeout"
+
+    # dialect 1: TOTAL= / FAILED=
+    m = re.findall(r"TOTAL=(\d+)\s+FAILED=(\d+)", txt)
+    if m:
+        total, failed = m[-1]
+        verdict = "ASSERTION_FAIL" if (int(failed) > 0 or rc != 0) else "PASS"
+        return verdict, total, failed, cases, "TOTAL="
+
+    # dialect 2: unittest / pytest summaries
+    u = re.search(r"^Ran (\d+) tests?", txt, re.M)
+    f2 = re.search(r"^FAILED \(([^)]*)\)", txt, re.M)
+    ok = re.search(r"^OK(?: \((.*)\))?\s*$", txt, re.M)
+    if f2:
+        return "ASSERTION_FAIL", (u.group(1) if u else None), None, cases, "unittest"
+    if ok:
+        return "PASS", (u.group(1) if u else None), "0", cases, "unittest"
+    if u and rc == 0:
+        return "PASS", u.group(1), "0", cases, "unittest"
+
+    # dialect 3: nothing parseable - the exit code and the traceback decide
+    died = rc != 0
+    has_tb = bool(re.search(r"Traceback \(most recent call last\)|Error:|Exception", txt))
+    if died:
+        return ("CRASH" if has_tb else "ASSERTION_FAIL"), None, None, cases, "exitcode"
+    return "NOT_RUN", None, None, cases, "silent"
 
 
 def run_one(d, t, sha, to):
     p = os.path.join(d, t)
     tmp = tempfile.mkdtemp(prefix="reg_", dir=r"C:\tmp")
-    env = {
-        **os.environ,
-        "PYTHONIOENCODING": "utf-8",
-        "TEMP": tmp,
-        "TMP": tmp,
-        "HL_LIVE_ENV_FILE": "/nonexistent/none.env",
-        "HL_LEADER_NETWORK": "testnet",
-        "HL_FOLLOWER_NETWORK": "testnet",
-    }
+    # R34 item 2: do NOT inject network/env overrides here. Forcing HL_LIVE_ENV_FILE at a
+    # nonexistent path and HL_*_NETWORK=testnet made 9 test_ui_* files refuse with
+    # NETWORK_STAMP_MISMATCH against a state dir stamped for the other network - a runner
+    # artifact that read as 9 product crashes. Each test establishes its own environment
+    # exactly as it does when run by hand; the runner only isolates TEMP and the encoding.
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "TEMP": tmp, "TMP": tmp}
     cmd = [sys.executable, "-m", "pytest", "-q", p] if t == "test_core_c7w_close_dust.py" else [sys.executable, p]
     t0 = time.time()
     try:
@@ -87,16 +109,23 @@ def run_one(d, t, sha, to):
     shutil.rmtree(tmp, ignore_errors=True)
     os.makedirs(OUT + r"\full", exist_ok=True)
     open(rf"{OUT}\full\{sha}_{t[:-3]}.txt", "w", encoding="utf-8").write(f"exit={rc}\n{txt}")
-    verdict, total, failed, cases = classify(rc, txt)
+    verdict, total, failed, cases, dialect = classify(rc, txt)
     last = [ln for ln in txt.strip().splitlines() if ln.strip()]
     return t, dict(
-        rc=rc, verdict=verdict, tot=f"TOTAL={total} FAILED={failed}" if total else "",
+        rc=rc, verdict=verdict, dialect=dialect,
+        tot=f"TOTAL={total} FAILED={failed}" if total else "",
         fails=cases, sec=round(time.time() - t0), tail=(last[-1][:100] if last else ""),
     )
 
 
-def enumerate_files(d, manifest):
-    """Rule 1: manifest, else every test_*.py. Never a prefix glob on its own."""
+def enumerate_files(d, manifest, sha=None):
+    """Rule 1: manifest, else every test_*.py. Never a prefix glob on its own.
+
+    R34 item 1: a pinned name that is absent is EXPECTED at the base, because some pinned files
+    exist only on later commits. So resolution is per SHA: `manifest_<sha>.txt` wins if present,
+    otherwise the pinned manifest filtered to the files that actually exist, and the dropped names
+    are reported as `not_at_this_sha` (informational) rather than MISSING (a gate failure).
+    """
     if manifest and os.path.exists(manifest):
         names = []
         with open(manifest, encoding="utf-8") as fh:
@@ -104,29 +133,49 @@ def enumerate_files(d, manifest):
                 line = line.split("#", 1)[0].strip()
                 if line:
                     names.append(line)
+        per_sha = None
+        if sha:
+            cand = os.path.join(os.path.dirname(manifest), f"manifest_{sha}.txt")
+            if os.path.exists(cand):
+                per_sha = cand
+        if per_sha:
+            names, _ = _read_names(per_sha)
         present = [n for n in names if os.path.exists(os.path.join(d, n))]
-        missing = [n for n in names if n not in present]
-        return sorted(present), missing, "manifest"
+        absent = [n for n in names if n not in present]
+        return sorted(present), absent, ("manifest_%s" % sha if per_sha else "manifest")
     files = sorted(os.path.basename(p) for p in glob.glob(os.path.join(d, "test_*.py")))
     return files, [], "test_*.py glob"
+
+
+def _read_names(path):
+    names = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip()
+            if line:
+                names.append(line)
+    return names, path
 
 
 def run_sha(w, j, to, manifest=None):
     d = os.path.join(wt(w), "_archive", "hl_stage2")
     sha = os.path.basename(wt(w)).replace("oc_wt_", "")
-    files, missing, source = enumerate_files(d, manifest)
+    files, absent, source = enumerate_files(d, manifest, sha)
     with ThreadPoolExecutor(j) as ex:
         res = dict(ex.map(lambda t: run_one(d, t, sha, to), files))
-    for m in missing:  # a pinned file that is absent is itself a finding
-        res[m] = dict(rc="ABSENT", verdict="MISSING", tot="", fails=[], sec=0, tail="pinned but not present")
+    # R34 item 1: absent pinned names are informational per SHA, NOT a gate failure at the base.
+    if absent:
+        json.dump(absent, open(rf"{OUT}\absent_{sha}.json", "w"), indent=1)
     json.dump(res, open(rf"{OUT}\reg_{sha}.json", "w"), indent=1)
     return sha, res, source
 
 
 def headline(sha, res, elapsed):
     counts = {}
+    dialects = {}
     for v in res.values():
         counts[v["verdict"]] = counts.get(v["verdict"], 0) + 1
+        dialects[v.get("dialect", "?")] = dialects.get(v.get("dialect", "?"), 0) + 1
     no_total = sum(1 for v in res.values() if not v["tot"] and v["verdict"] in ("NOT_RUN", "CRASH", "TIMEOUT"))
     return (
         f"SHA {sha}  files={len(res)} run  "
@@ -134,8 +183,8 @@ def headline(sha, res, elapsed):
         f"C={counts.get('CRASH', 0)} crashes  "
         f"M={no_total} files with no TOTAL=  "
         f"P={counts.get('PASS', 0)} pass  "
-        f"X={counts.get('MISSING', 0)} missing  "
-        f"T={counts.get('TIMEOUT', 0)} timeout  elapsed={elapsed}s"
+        f"T={counts.get('TIMEOUT', 0)} timeout  elapsed={elapsed}s  "
+        f"dialects={dialects}"
     )
 
 
