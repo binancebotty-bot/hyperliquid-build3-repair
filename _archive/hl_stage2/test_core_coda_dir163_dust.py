@@ -125,3 +125,28 @@ def test_unresolved_timeout_holds_claim_until_proven_not_landed(monkeypatch, tmp
     # Ambiguous outcome cannot be assumed to mean no fill, even if timeout.
     g._finish_close_wire("0x"+"6"*32, {"status":"err", "response":"timeout"})
     assert not g._reserve_close_wire(i, "NEAR", True, .1, 2.5, True, "0x"+"7"*32, 10)[0]
+
+def test_certain_filled_claim_reconciles_before_second_wire(monkeypatch, tmp_path):
+    g = setup(monkeypatch, tmp_path)
+    i = intent()
+    assert g._reserve_close_wire(i, "NEAR", True, 0.05, 2.5, True, "0x"+"a"*32, 10)[0]
+    fill = {"status":"ok","response":{"type":"order","data":{"statuses":[{"filled":{"totalSz":"0.05", "oid":88}}]}}}
+    g._finish_close_wire("0x"+"a"*32, fill)
+    # Other slice of ENGINE sleeve exists, but wait until first fill reaches ledger.
+    assert not g._reserve_close_wire(i, "NEAR", True, 0.05, 2.5, True, "0x"+"b"*32, 10)[0]
+    g.ledger.signed = -0.05
+    assert g._reserve_close_wire(i, "NEAR", True, 0.05, 2.5, True, "0x"+"b"*32, 10)[0]
+    assert g.ledger.user == -10.4
+
+
+def test_mismatched_read_wallet_rebinds_to_sdk_account(monkeypatch, tmp_path):
+    g = setup(monkeypatch, tmp_path)
+    monkeypatch.setattr(core, "USER_WALLET", "0x"+"a"*40)
+    recorded = []
+    monkeypatch.setattr(core, "follower_dex_scope", lambda: [""])
+    monkeypatch.setattr(core._XNET, "master_exposure", lambda account, *args, **kw:
+        (recorded.append(account) or {"ok":True, "by_coin":{"NEAR":{"net":-10.5}}}))
+    assert g._fresh_exchange_net("NEAR") == -10.5
+    assert recorded == [ACCOUNT]
+    # Existing strict terminal-clear proof still refuses a misconfigured read account.
+    assert g._follower_order_account_for_proof() is None

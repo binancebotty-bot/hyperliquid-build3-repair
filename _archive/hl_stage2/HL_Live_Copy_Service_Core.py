@@ -5720,8 +5720,9 @@ class SenderGateway:
             return False, "INVALID_CLOSE_WIRE"
         if size * price < min_notional and not reduce_only:
             return False, "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
-        account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
-        if not is_valid_wallet(account) and HLAccount is not None:
+        configured_account = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
+        account = normalise_wallet(configured_account)
+        if not configured_account and HLAccount is not None:
             try:
                 account = normalise_wallet(HLAccount.from_key(
                     os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()).address)
@@ -5751,12 +5752,19 @@ class SenderGateway:
                 quantity = fnum(row.get("size"), float("nan"))
                 if not math.isfinite(previous) or not math.isfinite(quantity):
                     return False, "CLOSE_RESERVATION_CORRUPT"
-                ledger_applied = max(0.0, previous - abs(signed))
+                # Only an exchange-proven terminal FILL can reconcile against ledger.
+                # Never apply a different cloid's ledger delta to an open GTC/IOC.
+                ledger_applied = (max(0.0, previous - abs(signed))
+                                  if row.get("state") == "FILL_AWAIT_LEDGER" else 0.0)
                 still_claimed = max(0.0, quantity - ledger_applied)
-                if still_claimed <= POSITION_EPSILON:
+                if still_claimed <= POSITION_EPSILON and row.get("state") == "FILL_AWAIT_LEDGER":
                     del claims[key]
                 else:
                     reserved += still_claimed
+            # Conservative single outstanding claim per sleeve prevents one fill's
+            # ledger change being used to free *another* unresolved cloid.
+            if reserved > POSITION_EPSILON:
+                return False, "CLOSE_SLEEVE_ALREADY_HAS_UNRECONCILED_WIRE"
             if size > max(0.0, abs(signed) - reserved) + POSITION_EPSILON:
                 return False, "CLOSE_SLEEVE_QUANTITY_ALREADY_IN_FLIGHT"
             claims[cloid] = {
@@ -5815,6 +5823,9 @@ class SenderGateway:
                 return False
             if size * limit_px < min_notional and reduce_only is not True:
                 return False
+            configured = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+            if configured and configured != row.get("account"):
+                return False  # SDK trading account changed after reservation
             try:
                 signed = float(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
                                .get("signed_size", float("nan")))
@@ -8177,7 +8188,7 @@ class SenderGateway:
             return True
         return abs(ex_net - led_net) > max(POSITION_EPSILON, 0.001 * abs(delta))
 
-    def _follower_order_account_for_proof(self) -> Optional[str]:
+    def _follower_order_account_for_proof(self, allow_rebind: bool = False) -> Optional[str]:
         """Resolve the exact SDK trading account and bind all close proof to it.
 
         SDK uses HL_LIVE_HL_ACCOUNT_ADDRESS if set, otherwise the signer's
@@ -8195,20 +8206,26 @@ class SenderGateway:
                     trading_account = normalise_wallet(HLAccount.from_key(key).address)
                 except Exception as exc:
                     log_error("trackb_close_proof_signer_address", exc)
-        if (not is_valid_wallet(read_account) or not is_valid_wallet(trading_account)
-                or read_account != trading_account):
-            log_error("trackb_close_proof_account_mismatch", RuntimeError(
-                "close proof BLOCKED: HL_USER_WALLET=" + (read_account or "<unset>") +
-                " SDK_TRADING_ACCOUNT=" + (trading_account or "<unavailable>") +
-                "; different/unverifiable account identities, owed close remains RED"))
+        if not is_valid_wallet(trading_account):
+            log_error("trackb_close_proof_account_unverifiable", RuntimeError(
+                "SDK trading account unavailable; terminal clear stays RED"))
             return None
+        if not is_valid_wallet(read_account) or read_account != trading_account:
+            log_error("trackb_close_proof_account_mismatch", RuntimeError(
+                "HL_USER_WALLET=" + (read_account or "<unset>") +
+                " SDK_TRADING_ACCOUNT=" + trading_account +
+                "; terminal clear RED until same-account proof"))
+            # A mismatched HL_USER_WALLET is not evidence for the SDK account,
+            # but close planning may read the SDK account itself (never wallet A).
+            if not allow_rebind:
+                return None
         return trading_account
 
     def _fresh_exchange_net(self, coin: str) -> Optional[float]:
         """The follower account's net position in one coin from a fresh read (scope DEXs plus the coin's own DEX), or
         None when the account cannot be read. Never raises."""
         try:
-            trading_account = self._follower_order_account_for_proof()
+            trading_account = self._follower_order_account_for_proof(allow_rebind=True)
             if trading_account is None:
                 return None
             key = canonical_coin_key(coin)
