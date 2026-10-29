@@ -8399,26 +8399,27 @@ class SenderGateway:
                     continue  # unavailable/USER net is never assumed to be flat
                 # Independent terminal obligations: a fresh same-account
                 # order read + matched closing fill/cancel history.
-                sdk_account = self._follower_order_account_for_proof()
-                if (sdk_account is None or
-                        not self._trackb_fresh_open_orders_clear(sdk_account, coin) or
-                        not self._trackb_terminal_close_evidence(key, row)):
-                    continue
-                with self._resting_lock:
-                    # Revalidate at the durable terminal write: settings may change mid-read.
-                    if self._follower_order_account_for_proof() is None:
+                # A close reservation cannot enter between fresh proof and the
+                # terminal write: both paths use this same lock order.
+                with _CLOSE_RESERVATIONS_LOCK:
+                    sdk_account = self._follower_order_account_for_proof()
+                    if (sdk_account is None or
+                            not self._trackb_fresh_open_orders_clear(sdk_account, coin) or
+                            not self._trackb_terminal_close_evidence(key, row)):
                         continue
-                    if self._trackb_escalations.get(key) != row:
-                        continue  # a newer escalation superseded this one
-                    latest = self.ledger.sleeve(wallet, coin)
-                    latest_size = fnum(latest.get("signed_size"), float("nan"))
-                    if not math.isfinite(latest_size) or abs(latest_size) > POSITION_EPSILON:
-                        continue
-                    remaining = dict(self._trackb_escalations)
-                    remaining.pop(key)
-                    # Write the durable proof state before removing the in-memory red alert.
-                    atomic_write_json(CLOSE_ESCALATIONS_FILE, remaining)
-                    self._trackb_escalations = remaining
+                    with self._resting_lock:
+                        if self._follower_order_account_for_proof() != sdk_account:
+                            continue
+                        if self._trackb_escalations.get(key) != row:
+                            continue  # a newer escalation superseded this one
+                        latest = self.ledger.sleeve(wallet, coin)
+                        latest_size = fnum(latest.get("signed_size"), float("nan"))
+                        if not math.isfinite(latest_size) or abs(latest_size) > POSITION_EPSILON:
+                            continue
+                        remaining = dict(self._trackb_escalations)
+                        remaining.pop(key)
+                        atomic_write_json(CLOSE_ESCALATIONS_FILE, remaining)
+                        self._trackb_escalations = remaining
                 done.append(row)
             except Exception as exc:
                 log_error("trackb_escalation_exchange_proof", exc)
