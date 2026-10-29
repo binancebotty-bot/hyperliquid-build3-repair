@@ -383,13 +383,21 @@ def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
 
 
 def w6c_wrong_account_exchange_reject_never_zeroes_the_sleeve():
-    """Same real wrong-account read; the close goes out and the exchange refuses it as reduce-only. The flat-repair that
-    follows must not trust the other account's flat read and must not zero the engine sleeve."""
+    """Same real wrong-account read (the reader account reads flat; the trading account holds +2). The unknown read means
+    the close is SENT from the sleeve, reduce-only; the injected exchange reject occurs and is handled; the flat-repair
+    branch is actually REACHED (spied, the real function still runs) and must not zero the sleeve; the close stays owed."""
     reject = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
         {"error": "Reduce only order would increase position."}]}}}
     led, ex = new_ledger(), FakeExchange([reject])
     gw = make_gateway(ex, led, [None], real_fresh=True)
     gw._persisted_exchange_positions = lambda: ({"BTC": 2.0}, "")
+    repair_calls = []
+    real_repair = gw._repair_ledger_if_exchange_flat
+
+    def spy(intent, exchange_error):
+        repair_calls.append(str(exchange_error))
+        return real_repair(intent, exchange_error)
+    gw._repair_ledger_if_exchange_flat = spy
     saved_w, saved_f = c.USER_WALLET, c.EXPOSURE_FETCHER
     c.USER_WALLET = OTHER_ACCOUNT
     c.EXPOSURE_FETCHER = account_fetcher({ACCOUNT.lower(): 2.0, OTHER_ACCOUNT.lower(): 0.0})
@@ -399,8 +407,14 @@ def w6c_wrong_account_exchange_reject_never_zeroes_the_sleeve():
     finally:
         c.USER_WALLET, c.EXPOSURE_FETCHER = saved_w, saved_f
     sl = sleeve_of(led, A)
-    return len(ex.calls) >= 1 and sl is not None and abs(sl - 2.0) < 1e-9, \
-        "ok=%r status=%r sleeve=%r calls=%d" % (ok, status, sl, len(ex.calls))
+    esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) or {}
+    owed = [k for k, v in esc.items() if A.lower() in k.lower() and v.get("state") == "OPEN"]
+    first_reduce_only = bool(ex.calls) and ex.calls[0]["reduce_only"] is True
+    reject_handled = (not ok) and status != "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET"
+    return (first_reduce_only and len(ex.calls) >= 1 and reject_handled and bool(repair_calls)
+            and sl is not None and abs(sl - 2.0) < 1e-9 and bool(owed)), \
+        ("first_call_reduce_only=%r sdk_calls=%d ok=%r status=%r repair_branch_reached=%d (%r) sleeve=%r owed_open_red=%r"
+         % (first_reduce_only, len(ex.calls), ok, status, len(repair_calls), repair_calls[:1], sl, owed))
 
 
 # ======================================================================================= W7 held / ambiguous is not consumed
