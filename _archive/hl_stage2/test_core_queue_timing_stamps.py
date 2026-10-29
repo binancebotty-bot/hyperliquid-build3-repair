@@ -247,3 +247,7 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
                     c._close_audit_handle(Path(_open_path))
 
 print("PASS: first-seen queue timing stamps and queue-depth trace")
+# C7 gate contract: one machine-readable verdict line and an exit code, so a gate can score this
+# file instead of reporting NOT_RUN. One case in this file; it reaches here only when it passes.
+print("TOTAL=1 FAILED=0")
+sys.exit(0)
