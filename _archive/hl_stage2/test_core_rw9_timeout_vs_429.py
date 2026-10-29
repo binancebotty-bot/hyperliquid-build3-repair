@@ -144,13 +144,13 @@ def main() -> None:
 
     R429 = ClientError(429, None, "Too many requests")  # structural 429 (was RuntimeError("ClientError(429...)") text)
     unreadable = lambda real, *a, **k: real(*a, **k)  # real resolver; orderStatus read raises below
-    real_post_many = c._XNET.post_many
+    real_post_many = sys.modules['exchange_truth'].post_many  # C7 harness fix: c._XNET is a guard proxy that re-resolves patched attrs and recurses
 
     def post_many(fetcher, payloads, *a, **k):
         if any(isinstance(p, dict) and p.get("type") == "orderStatus" for p in payloads):
             raise RuntimeError("info down")  # the cloid lookup is unreadable
         return real_post_many(fetcher, payloads, *a, **k)
-    c._XNET.post_many = post_many
+    sys.modules['exchange_truth'].post_many = post_many
 
     # 1. timeout, reconcile unreadable -> hold, exactly ONE exchange call, never resent
     ex, seen, ok, res, lat, it = run("TOHOLD", TO, unreadable)
