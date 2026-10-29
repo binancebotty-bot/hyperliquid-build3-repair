@@ -321,6 +321,25 @@ def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
         "ok=%r status=%r sleeve=%r calls=%r" % (ok, status, sl, ex.calls)
 
 
+def w6c_wrong_account_exchange_reject_never_zeroes_the_sleeve():
+    """The send goes out (a read of another account is UNKNOWN) and the exchange then refuses it as reduce-only; the
+    flat-repair that follows must not trust the other account's flat read and must not zero the engine sleeve."""
+    reject = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+        {"error": "Reduce only order would increase position."}]}}}
+    led, ex, net = new_ledger(), FakeExchange([reject]), [0.0]
+    gw = make_gateway(ex, led, net)
+    gw._persisted_exchange_positions = lambda: ({"BTC": 2.0}, "")
+    saved = c.USER_WALLET
+    c.USER_WALLET = OTHER_ACCOUNT
+    try:
+        it = exit_intent(led, A, "SELL", 2.0, "w6c-f", 2.0)
+        ok, status = gw.send_if_allowed(it)
+    finally:
+        c.USER_WALLET = saved
+    sl = sleeve_of(led, A)
+    return len(ex.calls) >= 1 and sl is not None and abs(sl - 2.0) < 1e-9,         "ok=%r status=%r sleeve=%r calls=%d" % (ok, status, sl, len(ex.calls))
+
+
 # ======================================================================================= W7 held / ambiguous is not consumed
 def w7_held_same_fill_is_not_consumed():
     led, ex, net = new_ledger(), FakeExchange(), [0.0]
@@ -491,6 +510,7 @@ def main():
         ("W6A_UNREADABLE_EXCHANGE_NEVER_CLAIMS_FLAT", w6a_unreadable_exchange_never_claims_flat),
         ("W6B_WRONG_ACCOUNT_FLAT_READ_NEVER_CLAIMS_FLAT_AND_THE_CLOSE_IS_SENT",
          w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent),
+        ("W6C_WRONG_ACCOUNT_EXCHANGE_REJECT_NEVER_ZEROES_THE_SLEEVE", w6c_wrong_account_exchange_reject_never_zeroes_the_sleeve),
         ("W7_HELD_DUST_ON_THE_SAME_FILL_ID_IS_NOT_CONSUMED", w7_held_same_fill_is_not_consumed),
         ("W8_ABSENT_KEY_IN_A_PARTIAL_LEDGER_IS_UNKNOWN_NO_FABRICATED_SLEEVE", w8_absent_key_in_a_partial_ledger_is_unknown),
         ("W9_TWO_SIMULTANEOUS_STALE_REPLAYS_PRODUCE_EXACTLY_ONE_NO_SEND", w9),
