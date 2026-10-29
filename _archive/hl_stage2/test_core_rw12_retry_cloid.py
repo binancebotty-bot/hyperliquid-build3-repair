@@ -137,7 +137,7 @@ def main() -> None:
     os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"  # plain entry IOC retry path, not the missed-entry GTC
     os.environ["HL_LIVE_ENTRY_IOC_RETRY_BPS"] = "300"
     os.environ["HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"] = "300"
-    real_post_many = c._XNET.post_many
+    real_post_many = c._XNET_MODULE.post_many  # the true function: c._XNET is a guard proxy that re-resolves the patched attribute
 
     def post_many(fetcher, payloads, *a, **k):
         if any(isinstance(p, dict) and p.get("type") == "orderStatus" for p in payloads):
