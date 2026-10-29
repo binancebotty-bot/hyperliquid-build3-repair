@@ -174,16 +174,17 @@ def _read_names(path):
     return names, path
 
 
-def run_sha(w, j, to, manifest=None):
+def run_sha(w, j, to, manifest=None, label=None):
     d = os.path.join(wt(w), "_archive", "hl_stage2")
     sha = os.path.basename(wt(w)).replace("oc_wt_", "")
+    suffix = f".{label}" if label else ""
     files, absent, source = enumerate_files(d, manifest, sha)
     with ThreadPoolExecutor(j) as ex:
         res = dict(ex.map(lambda t: run_one(d, t, sha, to), files))
     # R34 item 1: absent pinned names are informational per SHA, NOT a gate failure at the base.
     if absent:
-        json.dump(absent, open(rf"{OUT}\absent_{sha}.json", "w"), indent=1)
-    json.dump(res, open(rf"{OUT}\reg_{sha}.json", "w"), indent=1)
+        json.dump(absent, open(rf"{OUT}\absent_{sha}{suffix}.json", "w"), indent=1)
+    json.dump(res, open(rf"{OUT}\reg_{sha}{suffix}.json", "w"), indent=1)
     return sha, res, source
 
 
@@ -213,12 +214,18 @@ def main():
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--manifest", default=DEFAULT_MANIFEST)
     ap.add_argument("--no-base", action="store_true", help="baseline only; do not diff against --base")
+    # R35 item 1: without a label, two runs against the same worktree overwrite reg_<sha>.json and
+    # the second silently destroys the first. That happened during the R34 work and I read the wrong
+    # breakdown for a while. The label disambiguates; it defaults to the sha so nothing breaks.
+    ap.add_argument("--label", default="", help="suffix for result files, e.g. 'pinned' or 'full'. Default: <sha>")
     a = ap.parse_args()
     t0 = time.time()
-    sha, res, source = run_sha(a.cand, a.j, a.timeout, a.manifest)
+    label = a.label or None
+    sha, res, source = run_sha(a.cand, a.j, a.timeout, a.manifest, label)
     elapsed = round(time.time() - t0)
     print(headline(sha, res, elapsed))
     print(f"enumeration: {source}  ({len(res)} files)")
+    print(f"result file: {OUT}\\reg_{sha}{('.' + label) if label else ''}.json")
 
     if a.no_base:
         return
