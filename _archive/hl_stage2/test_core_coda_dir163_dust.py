@@ -167,3 +167,11 @@ def test_actual_nonreduce_only_subminimum_never_uses_exemption(monkeypatch, tmp_
     accepted, reason = g._reserve_close_wire(i, "NEAR", True, .1, 2.5, False, "0x"+"e"*32, 10)
     assert not accepted and reason == "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
     assert not g._close_reservations
+
+def test_final_boundary_rejects_unrounded_close_size(monkeypatch, tmp_path):
+    g = setup(monkeypatch, tmp_path)
+    i = intent()
+    key = "0x"+"f"*32
+    assert g._reserve_close_wire(i, "NEAR", True, 0.005, 2.5, True, key, 10)[0]
+    g._active_close_wire_decimals = {key: 2}
+    assert not g._verify_close_reserved_wire(i, key, True, .005, True, 2.5, 10)

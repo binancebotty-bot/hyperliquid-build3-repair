@@ -5825,6 +5825,9 @@ class SenderGateway:
                 return False
             if size * limit_px < min_notional and reduce_only is not True:
                 return False
+            decimals = (getattr(self, "_active_close_wire_decimals", {}) or {}).get(cloid)
+            if decimals is not None and abs(size - self._floor_wire_size(size, int(decimals))) > POSITION_EPSILON:
+                return False
             configured = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
             if configured and configured != row.get("account"):
                 return False  # SDK trading account changed after reservation
@@ -5900,6 +5903,9 @@ class SenderGateway:
                     "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
                     "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
+        if _reserved_close:
+            self.__dict__.setdefault("_active_close_wire_decimals", {})[_close_cloid] = (
+                (timing or {}).get("final_wire_sz_decimals"))
         if _reserved_close and not self._verify_close_reserved_wire(
                 intent, _close_cloid, is_buy, size, reduce_only, limit_px, _close_min):
             self._finish_close_wire(_close_cloid, None, cancelled=True)
@@ -7446,6 +7452,7 @@ class SenderGateway:
             close_size = _sz
             if _res.get("ok"):
                 _sc_t["final_wire_min_notional"] = self._effective_symbol_min_notional(_res)
+                _sc_t["final_wire_sz_decimals"] = sz_dec
                 _ok, _bad = self._validate_final_wire_order(
                     intent, _res, sdk_coin, close_size, limit_px, _sc_t, wire_reduce_only=_ro)
                 if not _ok:
@@ -9107,6 +9114,7 @@ class SenderGateway:
                         "notes": block}
         if lifecycle in {"EXIT", "REDUCE"}:
             timing["final_wire_min_notional"] = self._effective_symbol_min_notional(resolved)
+            timing["final_wire_sz_decimals"] = sz_dec
             final_ok, final_block = self._validate_final_wire_order(
                 intent, resolved, sdk_coin, wire_size, limit_px, timing,
                 wire_reduce_only=use_reduce_only)
@@ -15122,7 +15130,7 @@ def run_self_test() -> None:
     global LIVE_WS_HEALTH_FILE, MANUAL_LIVE_POSITIONS_FILE, EXCHANGE_ACCOUNT_SNAPSHOT_FILE, ORDER_INTENTS_CSV
     global SEND_ATTEMPTS_CSV, LIVE_FILLS_CSV, RECONCILIATION_CSV, ERRORS_CSV, RAW_LEADER_FILLS_CSV
     global MANUAL_WALLETS_FILE, WALLET_GATE_FILE, UI_STATE_FILE, FORBIDDEN_LIVE_POSITIONS_FILE, FORBIDDEN_WOULD_SEND_ORDERS_CSV
-    global LIVE_INTEGRITY_STATUS_FILE, RESTING_ENTRY_ORDERS_FILE, STANDING_CLOSES_FILE
+    global LIVE_INTEGRITY_STATUS_FILE, RESTING_ENTRY_ORDERS_FILE, STANDING_CLOSES_FILE, CLOSE_RESERVATIONS_FILE
 
     old_env = dict(os.environ)
     global LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET, MIDS_FETCHER, _SELF_TEST_MIDS
@@ -15175,6 +15183,7 @@ def run_self_test() -> None:
         EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
         RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"
         STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"
+        CLOSE_RESERVATIONS_FILE = AUDIT_DIR / "close_inflight_reservations.json"
         LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
         ORDER_INTENTS_CSV = APPEND_ONLY_DIR / "order_intents.csv"
         SEND_ATTEMPTS_CSV = APPEND_ONLY_DIR / "send_attempts.csv"
