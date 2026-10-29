@@ -5798,7 +5798,9 @@ class SenderGateway:
                     row["state"] = "FILL_AWAIT_LEDGER"
             else:
                 ok, status, oid, _err = self._parse_hl_response(response)
-                if not ok and status == "ORDER_REJECTED":
+                if (not ok and status == "ORDER_REJECTED"
+                        and classify_rate_limit_kind(_err) != "TIMEOUT"
+                        and not re.search(r"timeout|timed out|unknown outcome", str(_err), re.I)):
                     claims.pop(cloid, None)
                 elif ok and status == "ORDER_FILLED":
                     filled = self._filled_size(response)

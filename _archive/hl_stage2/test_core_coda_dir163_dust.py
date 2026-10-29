@@ -144,9 +144,26 @@ def test_mismatched_read_wallet_rebinds_to_sdk_account(monkeypatch, tmp_path):
     monkeypatch.setattr(core, "USER_WALLET", "0x"+"a"*40)
     recorded = []
     monkeypatch.setattr(core, "follower_dex_scope", lambda: [""])
-    monkeypatch.setattr(core._XNET, "master_exposure", lambda account, *args, **kw:
-        (recorded.append(account) or {"ok":True, "by_coin":{"NEAR":{"net":-10.5}}}))
+    monkeypatch.setattr(core, "_XNET", SimpleNamespace(master_exposure=lambda account, *args, **kw:
+        (recorded.append(account) or {"ok":True, "by_coin":{"NEAR":{"net":-10.5}}})))
     assert g._fresh_exchange_net("NEAR") == -10.5
     assert recorded == [ACCOUNT]
     # Existing strict terminal-clear proof still refuses a misconfigured read account.
     assert g._follower_order_account_for_proof() is None
+
+def test_timeout_error_reply_is_not_proven_reject(monkeypatch, tmp_path):
+    g = setup(monkeypatch, tmp_path)
+    i = intent()
+    first = "0x"+"c"*32
+    assert g._reserve_close_wire(i, "NEAR", True, .1, 2.5, True, first, 10)[0]
+    g._finish_close_wire(first, {"status":"err", "response":"request timed out"})
+    assert first in g._close_reservations
+    assert not g._reserve_close_wire(i, "NEAR", True, .1, 2.5, True, "0x"+"d"*32, 10)[0]
+
+
+def test_actual_nonreduce_only_subminimum_never_uses_exemption(monkeypatch, tmp_path):
+    g = setup(monkeypatch, tmp_path)
+    i = intent()
+    accepted, reason = g._reserve_close_wire(i, "NEAR", True, .1, 2.5, False, "0x"+"e"*32, 10)
+    assert not accepted and reason == "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
+    assert not g._close_reservations
