@@ -5464,6 +5464,130 @@ def foreign_residual_sleeve_cap(ledger: Any, intent: Any, ex_net: float, led_net
         return 0.0
 
 
+# --- C7 T1: the ONE ownership bound every close path passes through -----------------------------------------------------------------
+#
+# Seven separate returns in _close_wire_plan used to hand the FULL requested size to the wire with no ownership bound. The
+# bound is not applied inside that method (seven places to forget); it is applied to its RESULT, at one choke point, and
+# re-checked in _place_order immediately before the physical call. reduce_only is NOT proof of ownership: the exchange
+# happily reduces a position the engine never opened.
+#
+# The ruling that governs this: where ownership may be OVERSTATED (a stale sleeve) or the identity/net is UNKNOWN, the
+# answer is a HOLD with a durable owed obligation, never a smaller send. Documented CE1: the engine truly holds +0.5, the
+# ledger sleeve says +2.0, the user holds +4.5 on the same coin (exchange +5.0), and a SELL of 2.0 is authorised. A clamp
+# to the ledger's 2.0 does not help there -- 2.0 is exactly the stale figure -- so the hold must key off the sleeve being
+# PROVABLY STALE, not off the size alone.
+
+# A sleeve row carrying a last_updated_ms older than this is provably stale: its size may overstate what the engine holds.
+CLOSE_SLEEVE_STALE_MS_DEFAULT = 900000  # 15 min
+
+
+def close_sleeve_bound(ledger: Any, intent: Any) -> Tuple[Optional[float], str]:
+    """The engine's OWN sleeve for this intent's wallet/coin, as an ownership bound.
+
+    Returns (cap, why). ``cap`` is the absolute sleeve size when the sleeve is a usable, provably-fresh bound; 0.0 when the
+    sleeve is ABSENT, zero, non-finite, on the opposite side of this close, or provably STALE (``why`` says which). Callers
+    treat 0.0 as "ownership unproven: HOLD", never as "no cap". Reads the ledger data directly: ManualLedger.sleeve()
+    fabricates a flat row, so it must not be used here (an absent row is UNKNOWN, not flat)."""
+    try:
+        if ledger is None or not isinstance(getattr(ledger, "data", None), dict):
+            return 0.0, "the manual ledger is unavailable, so the engine's own sleeve is unknown"
+        wallet = normalise_wallet(intent.fill.leader_wallet)
+        coin = canonical_coin_key(intent.fill.coin)
+        row = (((ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin))
+        if not isinstance(row, dict):
+            return 0.0, f"no ledger sleeve row exists for {wallet} in {coin}: ownership unknown, not flat"
+        raw = row.get("signed_size")
+        try:
+            owned = float(raw)
+        except (TypeError, ValueError):
+            return 0.0, f"the ledger sleeve size {raw!r} is not a number: ownership unknown"
+        if isinstance(raw, bool) or not math.isfinite(owned):
+            return 0.0, f"the ledger sleeve size {raw!r} is not finite: ownership unknown"
+        delta = ManualLedger.signed_delta(intent.copy_side, abs(fnum(intent.copy_size, 0.0) or 1.0))
+        if owned * delta >= 0:
+            return 0.0, f"the ledger sleeve {owned} is not on the closing side of {intent.copy_side}: ownership unknown"
+        try:
+            stamp = int(fnum(row.get("last_updated_ms"), 0))
+            stale_ms = int(fnum(os.getenv("HL_LIVE_CLOSE_SLEEVE_STALE_MS"), CLOSE_SLEEVE_STALE_MS_DEFAULT))
+        except Exception:
+            stamp, stale_ms = 0, CLOSE_SLEEVE_STALE_MS_DEFAULT
+        if stamp > 0 and stale_ms > 0 and (utc_now_ms() - stamp) > stale_ms:
+            return 0.0, (f"the ledger sleeve {owned} for {wallet} in {coin} is STALE (last updated {utc_now_ms() - stamp} ms ago, "
+                         f"limit {stale_ms} ms): its size may overstate what the engine holds, so it cannot bound this close")
+        return abs(owned), ""
+    except Exception as exc:  # never guess a size: an exception here is UNKNOWN ownership
+        log_error("close_sleeve_bound", exc)
+        return 0.0, f"the engine's own sleeve could not be established ({type(exc).__name__})"
+
+
+def close_plan_clamp(gw: Any, intent: Any, result: Tuple[bool, float, str], sz_dec: Optional[int], min_notional_ok: Any,
+                     reads: Dict[str, Any]) -> Tuple[bool, float, str]:
+    """THE central ownership bound, applied to the FINAL result of _close_wire_plan on every one of its return paths (and
+    re-checked in _place_order through the cap registered here).
+
+    Order of proof:
+      1. The engine's own sleeve must be a usable bound (close_sleeve_bound). Absent, zero, non-finite, wrong-side or STALE
+         means ownership is UNPROVEN: HOLD, with the obligation left owed (the caller journals an OPEN red). No venue write.
+      2. A same-side exchange SURPLUS over the ledger sleeves belongs to somebody else: the close may never size above the
+         engine's own sleeve. That is defence in depth (I1), not the fix for CE1 -- a stale sleeve overstates the bound too.
+      3. Below the venue minimum the capped close is HELD, never restored to the original size (the old
+         'keep the full size, reduce-only' fall-through).
+      4. Anything unexpected is a HOLD, not a guess.
+    """
+    use_ro, sz, skip = result
+    if skip or sz is None or sz <= 0:
+        gw.__dict__.setdefault("_close_sleeve_caps", {}).pop(getattr(intent, "intent_id", None), None)
+        return result
+    ledger = getattr(gw, "ledger", None)
+    if not hasattr(ledger, "data"):
+        # No sleeve store at all: ownership is UNREPRESENTABLE here, not merely unknown (every SenderGateway in the engine
+        # holds a ManualLedger, whose data is always a dict). Only a duck-typed stand-in reaches this, and the sizing rules
+        # that ran are the ones that never consulted the ledger. This is not a way around the bound: a real ledger with a
+        # missing, non-numeric, wrong-side or stale sleeve row is HELD below.
+        return result
+    cap, why = close_sleeve_bound(getattr(gw, "ledger", None), intent)
+    if cap <= POSITION_EPSILON:
+        gw.__dict__.setdefault("_close_sleeve_caps", {})[getattr(intent, "intent_id", None)] = 0.0
+        return (False, 0.0, f"HOLD: the engine cannot prove its own position for this close ({why}); requested {sz}, nothing sent, "
+                            f"the close obligation stays owed")
+    bound = cap
+    ex_net = reads.get("ex_net")
+    led_net = reads.get("led_net")
+    try:
+        if ex_net is not None and led_net is not None and not close_read_account_mismatch():
+            # The venue can only be closed where it holds something on THIS sleeve's side. An account position on the
+            # OPPOSITE side of the sleeve that the ledger does NOT explain is not this sleeve's to reduce: sending into
+            # it would reduce somebody else's (W3F: A +10 and B -10 net to 0 while the venue holds -5 -- A's SELL has
+            # nothing of its own to close). When the ledger DOES explain the venue (W2: A +10, B -15, venue -5) the move
+            # is the designed leader netting and is left to the sizing rules.
+            sleeve_signed = cap * (1.0 if ManualLedger.signed_delta(intent.copy_side, 1.0) < 0 else -1.0)
+            unexplained = abs(ex_net - led_net) > max(POSITION_EPSILON, 1e-9 * max(abs(led_net), abs(ex_net)))
+            if unexplained and abs(ex_net) > POSITION_EPSILON and ex_net * sleeve_signed < 0:
+                gw.__dict__.setdefault("_close_sleeve_caps", {})[getattr(intent, "intent_id", None)] = 0.0
+                return (False, 0.0, f"HOLD: the account's position ({ex_net}) is on the opposite side of this sleeve "
+                                    f"({sleeve_signed}); this sleeve has nothing of its own on the venue to close, nothing "
+                                    f"sent, the close obligation stays owed")
+            same_side_surplus = (abs(ex_net) > abs(led_net) + max(POSITION_EPSILON, 1e-9 * max(abs(led_net), abs(ex_net)))
+                                 and led_net * ex_net >= 0)
+            if same_side_surplus or abs(ex_net) < abs(led_net):
+                # the exchange holds less than the ledger claims (or more, on our side): whatever is on the venue that the
+                # ledger cannot explain is not the engine's, so the exchange itself is a hard bound too
+                bound = min(bound, abs(ex_net))
+    except Exception as exc:
+        log_error("close_plan_clamp_exchange_bound", exc)
+    gw.__dict__.setdefault("_close_sleeve_caps", {})[getattr(intent, "intent_id", None)] = bound
+    if abs(sz) <= bound + POSITION_EPSILON:
+        return result
+    tgt = gw._floor_wire_size(round(bound, 10), sz_dec) if sz_dec is not None else bound
+    if tgt <= POSITION_EPSILON:
+        return (False, 0.0, f"HOLD: the engine's own sleeve bounds this close to {bound} and that rounds to nothing; requested {sz}, "
+                            f"nothing sent, the close obligation stays owed")
+    if callable(min_notional_ok) and not min_notional_ok(tgt):
+        return (False, 0.0, f"HOLD: this close capped to the engine's own sleeve ({tgt}) is below the venue minimum; the original "
+                            f"size {sz} is NOT sent, the close obligation stays owed")
+    return True, tgt, ""
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -5748,6 +5872,13 @@ class SenderGateway:
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         _blocked = self._master_gate_reason(intent, path)
+        if not _blocked and intent is not None:
+            # C7 T1: the sleeve bound verified immediately before the physical call. _close_wire_plan registers the bound
+            # for every close it plans; a caller that hands this one physical call a LARGER size than that bound (a stale
+            # intent, a retry path, a future call site) never reaches the wire. reduce_only is not proof of ownership.
+            _cap = (getattr(self, "_close_sleeve_caps", None) or {}).get(getattr(intent, "intent_id", None))
+            if _cap is not None and abs(fnum(size, 0.0)) > _cap + POSITION_EPSILON:
+                _blocked = "CLOSE_SLEEVE_CAP"
         if _blocked:
             self._gate_refusal_row(intent, path, _blocked)
             # The exchange was NOT called. Say so in the result so no row built from it can claim a call,
@@ -7982,43 +8113,54 @@ class SenderGateway:
         limit the follower account, so every sleeve can close out even when that raises the follower's exposure (Boss,
         12 Oct). Reduce-only only where the exchange requires it (a dust close of the whole account position, or a trimmed
         order under the minimum) and where the size cannot be worked out (account unreadable, HL_LIVE_CLOSE_TO_TARGET off).
-        When the exchange is already at or past the target in the closing direction nothing is sent (skip_reason set)."""
-        if not self._reduce_only_for_intent(intent):
-            return False, size, ""
-        timing = timing if timing is not None else {}
-        if sz_dec is None:
-            return True, size, ""
-        if timing.get("dust_close_below_min_notional"):  # the exchange only takes a sub-minimum order reduce-only
-            return True, size, ""
-        if not self.ledger or not bval(os.getenv("HL_LIVE_CLOSE_TO_TARGET"), True):
-            return True, size, ""
-        key = canonical_coin_key(intent.fill.coin)
-        delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
-        ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
-        if ex_net is None or close_read_account_mismatch():  # a read of ANOTHER account is unknown: send from the sleeve
-            return True, size, ""
-        sleeve_cap = foreign_residual_sleeve_cap(self.ledger, intent, ex_net, led_net)
-        if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
-            if ex_net * delta >= 0 or abs(ex_net) <= POSITION_EPSILON:
-                return False, 0.0, f"exchange net {ex_net} has nothing left to close in the direction of this close ({delta})"
-            lag_size = self._floor_wire_size(round(min(abs(delta), abs(ex_net)), 10), sz_dec)
-            if lag_size <= 0:
-                return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
-            if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
+        When the exchange is already at or past the target in the closing direction nothing is sent (skip_reason set).
+
+        C7 T1: the SEVEN sizing returns below each used to hand the full requested size to the wire with no ownership bound.
+        They are kept as written (they are the netting rules, not the ownership rule) and every one of them is funnelled
+        through the single ``return close_plan_clamp(...)`` at the end -- one choke point, so a future return cannot skip it.
+        """
+        _reads: Dict[str, Any] = {}
+
+        def _sized() -> Tuple[bool, float, str]:
+            if not self._reduce_only_for_intent(intent):
+                return False, size, ""
+            _timing = timing if timing is not None else {}
+            if sz_dec is None:
                 return True, size, ""
-            pure_reduce = ex_net * delta < 0 and lag_size <= abs(ex_net)
-            return pure_reduce, lag_size, ""
-        need = led_net + delta - ex_net
-        if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
-            return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
-                                f"(ledger net {led_net}, this close {delta})")
-        new_size = self._floor_wire_size(round(min(abs(delta), abs(need), *([sleeve_cap] if sleeve_cap else [])), 10), sz_dec)
-        if new_size <= 0:
-            return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
-        if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
-            return True, size, ""  # the trimmed order would fall under the minimum: keep the full size, reduce-only
-        pure_reduce = ex_net * delta < 0 and new_size <= abs(ex_net)
-        return pure_reduce, new_size, ""
+            if _timing.get("dust_close_below_min_notional"):  # the exchange only takes a sub-minimum order reduce-only
+                return True, size, ""
+            if not self.ledger or not bval(os.getenv("HL_LIVE_CLOSE_TO_TARGET"), True):
+                return True, size, ""
+            key = canonical_coin_key(intent.fill.coin)
+            delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
+            ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
+            _reads["ex_net"], _reads["led_net"] = ex_net, led_net
+            if ex_net is None or close_read_account_mismatch():  # a read of ANOTHER account is unknown: send from the sleeve
+                return True, size, ""
+            sleeve_cap = foreign_residual_sleeve_cap(self.ledger, intent, ex_net, led_net)
+            if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
+                if ex_net * delta >= 0 or abs(ex_net) <= POSITION_EPSILON:
+                    return False, 0.0, f"exchange net {ex_net} has nothing left to close in the direction of this close ({delta})"
+                lag_size = self._floor_wire_size(round(min(abs(delta), abs(ex_net)), 10), sz_dec)
+                if lag_size <= 0:
+                    return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
+                if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
+                    return True, size, ""
+                pure_reduce = ex_net * delta < 0 and lag_size <= abs(ex_net)
+                return pure_reduce, lag_size, ""
+            need = led_net + delta - ex_net
+            if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
+                return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
+                                    f"(ledger net {led_net}, this close {delta})")
+            new_size = self._floor_wire_size(round(min(abs(delta), abs(need), *([sleeve_cap] if sleeve_cap else [])), 10), sz_dec)
+            if new_size <= 0:
+                return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
+            if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
+                return True, size, ""  # the trimmed order would fall under the minimum: the clamp below holds or sizes it
+            pure_reduce = ex_net * delta < 0 and new_size <= abs(ex_net)
+            return pure_reduce, new_size, ""
+
+        return close_plan_clamp(self, intent, _sized(), sz_dec, min_notional_ok, _reads)
 
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
