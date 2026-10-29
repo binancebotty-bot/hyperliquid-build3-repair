@@ -10,8 +10,14 @@ SEND_NOT_ATTEMPTED_STALE_OR_CONSUMED_FLAT_SLEEVE ONLY when its exact wallet+coin
 a close of an open sleeve is never refused by this gate (netting closes that raise gross exposure, a user residual on the
 coin, whole-position dust, ...).
 
-Real ownership gate and real final-wire validator: neither is patched. Only DATA sources are faked: the fake exchange, the
-fresh exchange-net read, the persisted exchange snapshot and the asset metadata. Own temp state dir; offline; testnet.
+What is REAL: SenderGateway.send_if_allowed, _send_real, the ownership gate (_pre_send_ownership_gate), the final-wire
+validator (_validate_final_wire_order), _close_wire_plan, the audit writers and the escalation store.
+What is STUBBED (make_gateway): the asset metadata (_resolve_coin), the SDK client (_get_exchange_client,
+_exchange_client_for_coin, _exchange_client_has_symbol -> the fake exchange), the pre-exchange asset safety check
+(_pre_exchange_asset_safety), leader_reduced_since, the margin-mode cache, the master/wallet switch reads (cfg.* -> ON), the
+persisted exchange snapshot (_persisted_exchange_positions) and, EXCEPT in W6B/W6C, the fresh exchange-net read
+(_fresh_exchange_net -> a number the test controls). W6B/W6C use the REAL _fresh_exchange_net and fake only the HTTP
+fetcher (c.EXPOSURE_FETCHER), answering per account address. Own temp state dir; offline; testnet.
 
 Standalone process: python test_core_c7_close_must_send.py
 Prints RESULT::<NAME>_PASS|_FAIL per check and TOTAL=n FAILED=m; exits non-zero when anything failed.
@@ -116,7 +122,24 @@ def set_sleeve(ledger, wallet, signed):
     ledger._recompute_net(ledger.data)
 
 
-def make_gateway(ex, ledger, net, account=ACCOUNT, snapshot=True):
+def durable(ledger, wallet):
+    """Persist the ledger (explicitly touching this wallet's sleeve) and reload it from disk: durable state, not memory."""
+    ledger.save(touched_sleeves=[(wallet, COIN)])
+    return c.ManualLedger(path=ledger.path)
+
+
+def account_fetcher(positions):
+    """An HTTP fetcher for c.EXPOSURE_FETCHER answering per account address (lower-case keys -> signed BTC size)."""
+    def fetch(p):
+        if p.get("type") == "perpDexs":
+            return []
+        n = positions.get(str(p.get("user", "")).lower())
+        ap = [] if not n else [{"position": {"coin": "BTC", "szi": str(n), "positionValue": str(abs(n) * PX)}}]
+        return {"assetPositions": ap, "marginSummary": {"accountValue": "1000"}}
+    return fetch
+
+
+def make_gateway(ex, ledger, net, account=ACCOUNT, snapshot=True, real_fresh=False):
     """A real SenderGateway; the REAL _pre_send_ownership_gate, _validate_final_wire_order, _close_wire_plan and
     send path run. Only data sources are replaced."""
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
@@ -126,7 +149,8 @@ def make_gateway(ex, ledger, net, account=ACCOUNT, snapshot=True):
     gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
     gw._exchange_client_for_coin = lambda coin: (ex, "BTC")
     gw._follower_order_account_for_proof = lambda *a, **k: account
-    gw._fresh_exchange_net = lambda coin: net[0]
+    if not real_fresh:
+        gw._fresh_exchange_net = lambda coin: net[0]
     if snapshot:
         gw._persisted_exchange_positions = lambda: (({"BTC": net[0]}, "") if net[0] is not None else ({}, "unavailable"))
     gw.leader_reduced_since = lambda f: 0
@@ -160,6 +184,10 @@ def named_rows(fid):
     return [r for r in recon_rows(fid) if NAME in (r.get("terminal_state"), r.get("status"))]
 
 
+def named_btw(it):
+    return named_rows(it.fill.leader_fill_id)
+
+
 def sleeve_of(ledger, wallet):
     row = ((ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(COIN)
     return None if row is None else float(row.get("signed_size"))
@@ -170,7 +198,10 @@ def w1():
     led, ex, net = new_ledger(), FakeExchange(), [0.0]
     gw = make_gateway(ex, led, net)
     it = exit_intent(led, A, "SELL", 2.0, "w1-f", 2.0, source="WS_SNAPSHOT_REPLAY", ts=1)
-    set_sleeve(led, A, 0.0)                                          # the position is gone: loaded, explicit 0
+    set_sleeve(led, A, 0.0)                                          # the position is gone: explicit 0, persisted and reloaded
+    led = durable(led, A)
+    gw = make_gateway(ex, led, net)
+    assert sleeve_of(led, A) == 0.0, "durable flat sleeve not loaded from disk"
     ok, status = gw.send_if_allowed(it)
     rows = recon_rows("w1-f")
     return (not ok and status == NAME and not ex.calls and len(rows) == 1 and len(named_rows("w1-f")) == 1
@@ -180,22 +211,29 @@ def w1():
 
 # ======================================================================================= W2 netted opposite-leader reduction
 def w2():
-    led, ex, net = new_ledger(), FakeExchange(), [-5.0]
+    led, net = new_ledger(), [-5.0]
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
     gw = make_gateway(ex, led, net)
     set_sleeve(led, B, -15.0)                                        # leader B short 15: exchange net = +10 - 15 = -5
     it = exit_intent(led, A, "SELL", 10.0, "w2-f", 10.0)
     ok, status = gw.send_if_allowed(it)
-    return ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9 and ex.calls[0]["reduce_only"] is False, \
-        "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
+    return ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9 and ex.calls[0]["reduce_only"] is False \
+        and abs(net[0] - (-15.0)) < 1e-9, \
+        "ok=%r status=%r calls=%r exchange_net_after=%r (expected -15, gross rises 5 -> 15, non-reduce-only)" % (ok, status, ex.calls, net[0])
 
 
 def w2b():
-    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    led, net = new_ledger(), [5.0]
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
     gw = make_gateway(ex, led, net)
     set_sleeve(led, B, -5.0)                                         # leader B short 5: exchange net = +10 - 5 = +5
     it = exit_intent(led, A, "SELL", 10.0, "w2b-f", 10.0)
     ok, status = gw.send_if_allowed(it)
-    return ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9, "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
+    return ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9 and ex.calls[0]["reduce_only"] is False \
+        and abs(net[0] - (-5.0)) < 1e-9, \
+        "ok=%r status=%r calls=%r exchange_net_after=%r (expected -5, non-reduce-only)" % (ok, status, ex.calls, net[0])
 
 
 # ======================================================================================= W3 live sleeve / user residual
@@ -228,46 +266,55 @@ def w4a_whole_position():
 
 
 def w4b_submin_remainder_is_held_not_sent():
-    led, ex, net = new_ledger(), FakeExchange(), [5.05]   # engine +0.05 ($5) with a user +5 residual
+    led, ex, net = new_ledger(), FakeExchange(), [5.05]               # engine +0.05 ($5) with a user +5 residual
     gw = make_gateway(ex, led, net)
     it = exit_intent(led, A, "SELL", 0.05, "w4b-f", 0.05)
     ok, status = gw.send_if_allowed(it)
     sub_min = [x for x in ex.calls if x["size"] * PX < MIN_USD - 1e-9]
-    return not sub_min and not ok, "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
+    esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) or {}
+    open_red = [k for k, v in esc.items() if A.lower() in k.lower() and v.get("state") == "OPEN"]
+    terminal = [r for r in recon_rows("w4b-f") if (r.get("terminal_state") in c.TERMINAL_ROW_NAMES or r.get("status") in c.TERMINAL_ROW_NAMES)]
+    return (not ok) and not sub_min and bool(open_red) and not terminal, \
+        "ok=%r status=%r calls=%r open_red=%r terminal_rows=%r" % (ok, status, ex.calls, open_red, [(r.get("status"), r.get("terminal_state")) for r in terminal])
 
 
 def w4c_resolved_by_whole_position_close_when_account_would_go_flat():
     led, ex, net = new_ledger(), FakeExchange(), [5.05]
     gw = make_gateway(ex, led, net)
-    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4c-f1", 0.05))        # held / refused: sub-minimum with a residual
-    net[0] = 0.05                                                              # the user residual is gone: engine's 0.05 is the whole position
+    it = exit_intent(led, A, "SELL", 0.05, "w4c-f", 0.05)
+    ok1, st1 = gw.send_if_allowed(it)                                        # held: sub-minimum with a residual
+    net[0] = 0.05                                                            # the user residual is gone: the engine's 0.05 is the whole position
     before = len(ex.calls)
-    ok, status = gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4c-f2", 0.05))
+    ok, status = gw.send_if_allowed(it)                                      # the SAME fill id retried through the same path
     new = ex.calls[before:]
-    return ok and len(new) == 1 and abs(new[0]["size"] - 0.05) < 1e-9 and new[0]["reduce_only"] is True, \
-        "ok=%r status=%r new_calls=%r" % (ok, status, new)
+    return (not ok1) and ok and len(new) == 1 and abs(new[0]["size"] - 0.05) < 1e-9 and new[0]["reduce_only"] is True, \
+        "first=%r/%r retry=%r/%r new_calls=%r" % (ok1, st1, ok, status, new)
 
 
 def w4d_no_engine_dust_remains_when_exchange_is_flat():
-    led, ex, net = new_ledger(), FakeExchange(), [5.05]
-    gw = make_gateway(ex, led, net)
-    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4d-f1", 0.05))        # held
-    net[0] = 0.0                                                               # the asset is flat on the exchange
-    before = len(ex.calls)
-    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4d-f2", 0.05))
-    for nm in ("clear_close_escalations", "clear_trackb_escalations"):           # the periodic double-flat clear, either name
-        fn = getattr(gw, nm, None)
-        if callable(fn):
-            fn()
-    esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) if hasattr(c, "CLOSE_ESCALATIONS_FILE") else {}
-    held = {}
-    for p in TMP.glob("*.json"):
-        if any(k in p.name.lower() for k in ("dust", "held", "remainder")):
-            held.update(c.load_json(p, {}) or {})
-    sl = sleeve_of(led, A)
-    return (sl is not None and abs(sl) < 1e-9 and not held and not [v for v in (esc or {}).values() if v.get("state") == "OPEN"]
-            and len(ex.calls) == before), \
-        "sleeve=%r held=%r esc=%r new_calls=%d" % (sl, held, esc, len(ex.calls) - before)
+    """Isolated: its own wallet and its own escalation store (the Core's CLOSE_ESCALATIONS_FILE is redirected for this
+    witness), so 'no open red' is judged on this witness alone."""
+    D0 = "0x" + "e" * 40
+    saved = c.CLOSE_ESCALATIONS_FILE
+    c.CLOSE_ESCALATIONS_FILE = TMP / "w4d_close_escalations.json"
+    try:
+        led, ex, net = new_ledger(), FakeExchange(), [5.05]
+        gw = make_gateway(ex, led, net)
+        gw.send_if_allowed(exit_intent(led, D0, "SELL", 0.05, "w4d-f1", 0.05))   # held
+        net[0] = 0.0                                                            # the asset is flat on the exchange
+        before = len(ex.calls)
+        gw.send_if_allowed(exit_intent(led, D0, "SELL", 0.05, "w4d-f2", 0.05))
+        for nm in ("clear_close_escalations", "clear_trackb_escalations"):      # the periodic double-flat clear, either name
+            fn = getattr(gw, nm, None)
+            if callable(fn):
+                fn()
+        esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) or {}
+        sl = sleeve_of(led, D0)
+        open_red = [k for k, v in esc.items() if v.get("state") == "OPEN"]
+    finally:
+        c.CLOSE_ESCALATIONS_FILE = saved
+    return sl is not None and abs(sl) < 1e-9 and not open_red and len(ex.calls) == before, \
+        "sleeve=%r open_red=%r new_calls=%d" % (sl, open_red, len(ex.calls) - before)
 
 
 # ======================================================================================= B_REAL_SEND shape
@@ -278,6 +325,16 @@ def b_real_send():
     ok, status, res = gw._send_real(it)
     return ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is True and (res or {}).get("exchange_called", True) is not False, \
         "ok=%r status=%r calls=%r exchange_called=%r" % (ok, status, ex.calls, (res or {}).get("exchange_called"))
+
+
+def b_real_send_public_path():
+    led, ex, net = new_ledger(), FakeExchange(), [0.05]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 0.05, "breal-pub-f", 0.05)
+    ok, status = gw.send_if_allowed(it)
+    rows = [r for r in c.send_attempt_rows() if r.get("intent_id") == it.intent_id]
+    return ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is True and bool(rows), \
+        "ok=%r status=%r calls=%r send_attempt_rows=%d" % (ok, status, ex.calls, len(rows))
 
 
 # ======================================================================================= W5 older terminal id
@@ -298,46 +355,52 @@ def w6a_unreadable_exchange_never_claims_flat():
     it = exit_intent(led, A, "SELL", 2.0, "w6a-f", 2.0)
     ok, status = gw.send_if_allowed(it)
     sl = sleeve_of(led, A)
-    return status != NAME and not named_rows("w6a-f") and sl is not None and abs(sl - 2.0) < 1e-9, \
-        "ok=%r status=%r sleeve=%r" % (ok, status, sl)
+    named_hold = str(status).startswith("OWNERSHIP_GATE_") or "HOLD" in str(status)
+    return status != NAME and not named_btw(it) and (not ex.calls) and named_hold and sl is not None and abs(sl - 2.0) < 1e-9, \
+        "ok=%r status=%r sdk_calls=%d named_hold=%r sleeve=%r" % (ok, status, len(ex.calls), named_hold, sl)
 
 
 def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
-    """The fresh exchange read comes from a DIFFERENT trading account than the SDK signer's (c.USER_WALLET != the account
-    the orders go to): its flat reading says nothing about the engine's account, so the sleeve must not be zeroed and the
-    close must be sent from the sleeve."""
-    led, ex, net = new_ledger(), FakeExchange(), [0.0]
-    gw = make_gateway(ex, led, net)
+    """REAL vulnerability: c.USER_WALLET (the account _fresh_exchange_net READS) is not the account the orders go to
+    (HL_LIVE_HL_ACCOUNT_ADDRESS / the SDK signer). The real _fresh_exchange_net reads the reader account, whose answer
+    is flat; the engine's own account still holds +2. A flat read of the wrong account must not zero the sleeve or
+    drop the close. (Only the HTTP fetcher is faked, answering per address.)"""
+    led, ex = new_ledger(), FakeExchange()
+    gw = make_gateway(ex, led, [None], real_fresh=True)
     gw._persisted_exchange_positions = lambda: ({"BTC": 2.0}, "")            # the engine's own account snapshot: still +2
-    saved = c.USER_WALLET
-    c.USER_WALLET = OTHER_ACCOUNT                                             # the reader account != HL_LIVE_HL_ACCOUNT_ADDRESS
+    saved_w, saved_f = c.USER_WALLET, c.EXPOSURE_FETCHER
+    c.USER_WALLET = OTHER_ACCOUNT                                             # the reader account != the trading account
+    c.EXPOSURE_FETCHER = account_fetcher({ACCOUNT.lower(): 2.0, OTHER_ACCOUNT.lower(): 0.0})
     try:
         it = exit_intent(led, A, "SELL", 2.0, "w6b-f", 2.0)
         ok, status = gw.send_if_allowed(it)
+        read = gw._fresh_exchange_net(COIN)
     finally:
-        c.USER_WALLET = saved
+        c.USER_WALLET, c.EXPOSURE_FETCHER = saved_w, saved_f
     sl = sleeve_of(led, A)
-    return status != NAME and sl is not None and abs(sl - 2.0) < 1e-9 and ok and len(ex.calls) == 1, \
-        "ok=%r status=%r sleeve=%r calls=%r" % (ok, status, sl, ex.calls)
+    return read == 0.0 and status != NAME and sl is not None and abs(sl - 2.0) < 1e-9 and ok and len(ex.calls) == 1, \
+        "fresh_read=%r (the other account: flat) ok=%r status=%r sleeve=%r calls=%r" % (read, ok, status, sl, ex.calls)
 
 
 def w6c_wrong_account_exchange_reject_never_zeroes_the_sleeve():
-    """The send goes out (a read of another account is UNKNOWN) and the exchange then refuses it as reduce-only; the
-    flat-repair that follows must not trust the other account's flat read and must not zero the engine sleeve."""
+    """Same real wrong-account read; the close goes out and the exchange refuses it as reduce-only. The flat-repair that
+    follows must not trust the other account's flat read and must not zero the engine sleeve."""
     reject = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
         {"error": "Reduce only order would increase position."}]}}}
-    led, ex, net = new_ledger(), FakeExchange([reject]), [0.0]
-    gw = make_gateway(ex, led, net)
+    led, ex = new_ledger(), FakeExchange([reject])
+    gw = make_gateway(ex, led, [None], real_fresh=True)
     gw._persisted_exchange_positions = lambda: ({"BTC": 2.0}, "")
-    saved = c.USER_WALLET
+    saved_w, saved_f = c.USER_WALLET, c.EXPOSURE_FETCHER
     c.USER_WALLET = OTHER_ACCOUNT
+    c.EXPOSURE_FETCHER = account_fetcher({ACCOUNT.lower(): 2.0, OTHER_ACCOUNT.lower(): 0.0})
     try:
         it = exit_intent(led, A, "SELL", 2.0, "w6c-f", 2.0)
         ok, status = gw.send_if_allowed(it)
     finally:
-        c.USER_WALLET = saved
+        c.USER_WALLET, c.EXPOSURE_FETCHER = saved_w, saved_f
     sl = sleeve_of(led, A)
-    return len(ex.calls) >= 1 and sl is not None and abs(sl - 2.0) < 1e-9,         "ok=%r status=%r sleeve=%r calls=%d" % (ok, status, sl, len(ex.calls))
+    return len(ex.calls) >= 1 and sl is not None and abs(sl - 2.0) < 1e-9, \
+        "ok=%r status=%r sleeve=%r calls=%d" % (ok, status, sl, len(ex.calls))
 
 
 # ======================================================================================= W7 held / ambiguous is not consumed
@@ -357,7 +420,11 @@ def w8_absent_key_in_a_partial_ledger_is_unknown():
     led, ex, net = new_ledger(), FakeExchange(), [0.0]
     gw = make_gateway(ex, led, net)
     it = exit_intent(led, A, "SELL", 1.0, "w8-f", 1.0, source="WS_SNAPSHOT_REPLAY", ts=1)
-    (led.data.get("by_wallet") or {}).pop(A, None)                            # the wallet is simply missing from the loaded map
+    data = {k: v for k, v in led.data.items()}
+    data["by_wallet"] = {w: v for w, v in (led.data.get("by_wallet") or {}).items() if w != A}   # the wallet is missing on disk
+    c.atomic_write_json(led.path, data)
+    led = c.ManualLedger(path=led.path)
+    gw = make_gateway(ex, led, net)
     ok, status = gw.send_if_allowed(it)
     fabricated = ((led.data.get("by_wallet") or {}).get(A) or {}).get(COIN)
     return status != NAME and not named_rows("w8-f") and fabricated is None, \
@@ -370,6 +437,9 @@ def w9():
     gw = make_gateway(ex, led, net)
     it = exit_intent(led, A, "SELL", 2.0, "w9-f", 2.0, source="WS_SNAPSHOT_REPLAY", ts=1)
     set_sleeve(led, A, 0.0)
+    led = durable(led, A)
+    gw = make_gateway(ex, led, net)
+    assert sleeve_of(led, A) == 0.0, "durable flat sleeve not loaded from disk"
     gate, out = threading.Barrier(2), []
 
     def go():
@@ -481,6 +551,7 @@ def restart_consumed_exit_never_opens_a_position():
     ok1, st1 = gw1.send_if_allowed(it)                                        # the close goes out and fills
     set_sleeve(led, A, 0.0)
     net[0] = 0.0                                                              # sleeve flat AND exchange flat
+    led = durable(led, A)                                                     # persisted, then reloaded by the restart
     gw2 = make_gateway(ex, led, net)                                          # the restart
     before = len(ex.calls)
     ok2, st2 = gw2.send_if_allowed(it)                                        # the same stale exit intent is replayed
@@ -506,6 +577,7 @@ def main():
          w4c_resolved_by_whole_position_close_when_account_would_go_flat),
         ("W4D_NO_ENGINE_DUST_REMAINS_WHEN_THE_EXCHANGE_IS_FLAT", w4d_no_engine_dust_remains_when_exchange_is_flat),
         ("B_REAL_SEND_A_REDUCE_ONLY_CLOSE_REACHES_THE_SDK_EXCHANGE_CALLED_TRUE", b_real_send),
+        ("B_REAL_SEND_PUBLIC_PATH_A_REDUCE_ONLY_CLOSE_REACHES_THE_SDK_VIA_SEND_IF_ALLOWED", b_real_send_public_path),
         ("W5_OLDER_TERMINAL_FILL_ID_DOES_NOT_BLOCK_A_FRESH_EXIT_ON_A_LIVE_SLEEVE", w5),
         ("W6A_UNREADABLE_EXCHANGE_NEVER_CLAIMS_FLAT", w6a_unreadable_exchange_never_claims_flat),
         ("W6B_WRONG_ACCOUNT_FLAT_READ_NEVER_CLAIMS_FLAT_AND_THE_CLOSE_IS_SENT",
