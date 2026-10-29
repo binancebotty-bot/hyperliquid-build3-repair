@@ -647,6 +647,18 @@ def w3h_unknown_notional_or_price_is_capped_and_sent_or_held_red_never_uncapped(
         ro, sz, skip, ok2, status2, ex2.calls, net2[0], open_red_for("w3h2-f"))
 
 
+def w3i_place_order_rechecks_the_sleeve_cap_before_the_wire():
+    """Whatever size a caller hands the one physical call, a reduce-only close larger than the engine's own sleeve while a
+    foreign same-side surplus exists never reaches the SDK (the plan registered the cap for this intent)."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.05]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 1.0, "w3i-f", 0.05)
+    it.copy_size = 1.0
+    gw._close_wire_plan(it, 1.0, 3, lambda sz: abs(sz * PX) >= MIN_USD, {})           # registers the cap for this intent
+    resp = gw._place_order(ex, "BTC", False, 1.0, 99.8, "Ioc", True, intent=it, path="w3i")
+    return not ex.calls and (resp or {}).get("exchange_called") is False, "sdk_calls=%r response=%r" % (ex.calls, resp)
+
+
 # ======================================================================================= restart: consumed exit vs flat everything
 def restart_consumed_exit_never_opens_a_position():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
@@ -679,6 +691,7 @@ def main():
         ("W3F_OPPOSITE_ENGINE_LEADERS_WITH_AN_OPPOSITE_SIDE_SURPLUS_ARE_NOT_ADMITTED", w3f_opposite_engine_leaders_with_an_opposite_side_surplus_are_not_admitted),
         ("W3G_LAG_BRANCH_AND_ABSENT_ROW_NEVER_SIZE_ABOVE_THE_SLEEVE", w3g_lag_branch_and_absent_row_never_size_above_the_sleeve),
         ("W3H_UNKNOWN_NOTIONAL_OR_PRICE_IS_CAPPED_AND_SENT_OR_HELD_RED_NEVER_UNCAPPED", w3h_unknown_notional_or_price_is_capped_and_sent_or_held_red_never_uncapped),
+        ("W3I_PLACE_ORDER_RECHECKS_THE_SLEEVE_CAP_BEFORE_THE_WIRE", w3i_place_order_rechecks_the_sleeve_cap_before_the_wire),
         ("W4A_DUST_WHOLE_POSITION_CLOSE_SENDS_EXACT_FULL_CLOSE", w4a_whole_position),
         ("W4B_SUBMIN_REMAINDER_WITH_RESIDUAL_IS_HELD_NOT_SENT_AS_A_PARTIAL", w4b_submin_remainder_is_held_not_sent),
         ("W4C_HELD_REMAINDER_RESOLVED_BY_WHOLE_POSITION_CLOSE_WHEN_ACCOUNT_WOULD_GO_FLAT",
