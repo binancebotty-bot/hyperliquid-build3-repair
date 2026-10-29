@@ -5815,7 +5815,7 @@ class SenderGateway:
 
     def _verify_close_reserved_wire(self, intent: Intent, cloid: str, is_buy: bool,
                                     size: float, reduce_only: bool, limit_px: float,
-                                    min_notional: float) -> bool:
+                                    min_notional: float, size_decimals: Optional[int] = None) -> bool:
         """Final physical order boundary: validate actual side, size and transmitted RO."""
         with self._resting_lock:
             row = self.__dict__.setdefault("_close_reservations", {}).get(cloid)
@@ -5825,8 +5825,8 @@ class SenderGateway:
                 return False
             if size * limit_px < min_notional and reduce_only is not True:
                 return False
-            decimals = (getattr(self, "_active_close_wire_decimals", {}) or {}).get(cloid)
-            if decimals is not None and abs(size - self._floor_wire_size(size, int(decimals))) > POSITION_EPSILON:
+            if (size_decimals is not None and
+                    abs(size - self._floor_wire_size(size, int(size_decimals))) > POSITION_EPSILON):
                 return False
             configured = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
             if configured and configured != row.get("account"):
@@ -5903,11 +5903,9 @@ class SenderGateway:
                     "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
                     "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
-        if _reserved_close:
-            self.__dict__.setdefault("_active_close_wire_decimals", {})[_close_cloid] = (
-                (timing or {}).get("final_wire_sz_decimals"))
         if _reserved_close and not self._verify_close_reserved_wire(
-                intent, _close_cloid, is_buy, size, reduce_only, limit_px, _close_min):
+                intent, _close_cloid, is_buy, size, reduce_only, limit_px, _close_min,
+                (timing or {}).get("final_wire_sz_decimals")):
             self._finish_close_wire(_close_cloid, None, cancelled=True)
             self._trackb_escalate(intent, "FINAL_PHYSICAL_CLOSE_WIRE_MISMATCH", timing)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:FINAL_PHYSICAL_CLOSE_WIRE_MISMATCH",

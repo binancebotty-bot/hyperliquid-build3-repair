@@ -173,5 +173,4 @@ def test_final_boundary_rejects_unrounded_close_size(monkeypatch, tmp_path):
     i = intent()
     key = "0x"+"f"*32
     assert g._reserve_close_wire(i, "NEAR", True, 0.005, 2.5, True, key, 10)[0]
-    g._active_close_wire_decimals = {key: 2}
-    assert not g._verify_close_reserved_wire(i, key, True, .005, True, 2.5, 10)
+    assert not g._verify_close_reserved_wire(i, key, True, .005, True, 2.5, 10, size_decimals=2)
