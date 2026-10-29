@@ -80,9 +80,10 @@ def filled(sz, px, oid=1):
 class FakeExchange:
     """Records every physical order call. With no queued replies it fills exactly the size asked (a full fill)."""
 
-    def __init__(self, replies=None):
+    def __init__(self, replies=None, on_order=None):
         self.calls = []
         self.replies = list(replies or [])
+        self.on_order = on_order
         self._lock = threading.Lock()
 
     def update_leverage(self, leverage, name, is_cross=True):
@@ -92,6 +93,8 @@ class FakeExchange:
         with self._lock:
             self.calls.append({"coin": coin, "is_buy": is_buy, "size": float(size), "px": px, "reduce_only": reduce_only,
                                "cloid": None if cloid is None else str(cloid)})
+            if self.on_order is not None:
+                self.on_order(self.calls[-1])
             if self.replies:
                 return self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
             return filled(size, px, oid=len(self.calls))
@@ -300,11 +303,19 @@ def w6a_unreadable_exchange_never_claims_flat():
 
 
 def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
+    """The fresh exchange read comes from a DIFFERENT trading account than the SDK signer's (c.USER_WALLET != the account
+    the orders go to): its flat reading says nothing about the engine's account, so the sleeve must not be zeroed and the
+    close must be sent from the sleeve."""
     led, ex, net = new_ledger(), FakeExchange(), [0.0]
-    gw = make_gateway(ex, led, net, account=OTHER_ACCOUNT, snapshot=False)
+    gw = make_gateway(ex, led, net)
     gw._persisted_exchange_positions = lambda: ({"BTC": 2.0}, "")            # the engine's own account snapshot: still +2
-    it = exit_intent(led, A, "SELL", 2.0, "w6b-f", 2.0)
-    ok, status = gw.send_if_allowed(it)
+    saved = c.USER_WALLET
+    c.USER_WALLET = OTHER_ACCOUNT                                             # the reader account != HL_LIVE_HL_ACCOUNT_ADDRESS
+    try:
+        it = exit_intent(led, A, "SELL", 2.0, "w6b-f", 2.0)
+        ok, status = gw.send_if_allowed(it)
+    finally:
+        c.USER_WALLET = saved
     sl = sleeve_of(led, A)
     return status != NAME and sl is not None and abs(sl - 2.0) < 1e-9 and ok and len(ex.calls) == 1, \
         "ok=%r status=%r sleeve=%r calls=%r" % (ok, status, sl, ex.calls)
@@ -353,6 +364,96 @@ def w9():
         "named_rows=%d calls=%d results=%r" % (len(named_rows("w9-f")), len(ex.calls), out)
 
 
+# ======================================================================================= W3C / W3D oversize and user residual
+def _fills_hook(net, led):
+    sold = []
+
+    def on_order(call):
+        sz = call["size"] * (1 if call["is_buy"] else -1)
+        net[0] += sz
+        set_sleeve(led, A, sleeve_of(led, A) + sz)
+        sold.append(call["size"])
+    return on_order, sold
+
+
+def w3c_oversize_close_never_sent_at_the_users_size():
+    led, net = new_ledger(), [5.5]                                           # engine +0.5, user-managed +5
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 0.9, "w3c-f", 0.5)
+    it.copy_size = 0.9                                                       # an oversize close: larger than the engine sleeve
+    ok, status = gw.send_if_allowed(it)
+    return all(x["size"] <= 0.5 + 1e-9 for x in ex.calls) and net[0] >= 5.0 - 1e-9, \
+        "ok=%r status=%r calls=%r exchange_net_after=%r (cut to the sleeve or refused; never the user's size)" % (
+            ok, status, ex.calls, net[0])
+
+
+def w3d_user_residual_untouched_after_the_engine_close():
+    led, net = new_ledger(), [5.5]
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 0.5, "w3d-f", 0.5)
+    ok, status = gw.send_if_allowed(it)
+    sl = sleeve_of(led, A)
+    return ok and abs(net[0] - 5.0) < 1e-9 and sl is not None and abs(sl) < 1e-9 and abs(sum(sold) - 0.5) < 1e-9, \
+        "ok=%r status=%r exchange_net_after=%r (user residual must stay 5.0) sleeve=%r sold=%r" % (ok, status, net[0], sl, sold)
+
+
+# ======================================================================================= W-A STOP RACE (negative control)
+def w_a_stop_race():
+    """Last read mode was LIVE; the operator then wrote OFF (a new generation); the send-time mode read raises; a genuine
+    pending owned close exists. Required: ZERO SDK sends and a durable RED obligation that survives a restart."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 2.0, "wa-f", 2.0)
+
+    def unreadable():
+        raise RuntimeError("mode file unreadable (operator generation changed)")
+    gw.cfg.send_mode_now = unreadable
+    try:
+        res = gw.send_if_allowed(it)
+    except Exception as exc:                                                 # noqa: BLE001
+        res = ("EXCEPTION", "%s: %s" % (type(exc).__name__, str(exc)[:80]))
+    esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) if hasattr(c, "CLOSE_ESCALATIONS_FILE") else {}
+    open_now = [k for k, v in (esc or {}).items() if v.get("state") == "OPEN"]
+    gw2 = make_gateway(ex, led, net)                                         # simulated restart
+    restarted = getattr(gw2, "_close_escalations", None) or {}
+    open_after = [k for k, v in restarted.items() if v.get("state") == "OPEN"]
+    return not ex.calls and bool(open_now) and bool(open_after), \
+        "result=%r sdk_calls=%d open_red_on_disk=%r open_red_after_restart=%r" % (res, len(ex.calls), open_now, open_after)
+
+
+# ======================================================================================= W-B SAME NET, DIFFERENT OWNERSHIP (CLO)
+def _wb(owned):
+    led, net = new_ledger(), [10.0]                                          # master coin +10 in both variants
+    on_order, sold = _fills_hook(net, led)
+    ex = FakeExchange(on_order=on_order)
+    gw = make_gateway(ex, led, net)
+    gw.cfg.wallet_mode = lambda w: "CLO"                                     # CLOSE ONLY: reductions allowed, entries not
+    it = exit_intent(led, A, "SELL", 3.0, "wb-%s-f" % ("own" if owned else "foreign"), 10.0)
+    it.copy_size = 3.0                                                       # the event-derived owed reduction
+    if not owned:
+        set_sleeve(led, A, 0.0)                                              # the +10 is somebody else's
+    ok, status = gw.send_if_allowed(it)
+    return ex, net, led, ok, status, sold
+
+
+def w_b_owned():
+    ex, net, led, ok, status, sold = _wb(True)
+    return ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 3.0) < 1e-9 and ex.calls[0]["reduce_only"] is True and ex.calls[0]["is_buy"] is False, \
+        "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
+
+
+def w_b_foreign():
+    ex, net, led, ok, status, sold = _wb(False)
+    sl = sleeve_of(led, A)
+    print("W_B_FOREIGN_STATUS=%r" % (status,))
+    return (not ok) and not ex.calls and abs(net[0] - 10.0) < 1e-9 and (sl is None or abs(sl) < 1e-9) and bool(status), \
+        "ok=%r status=%r calls=%r exchange_net=%r sleeve=%r" % (ok, status, ex.calls, net[0], sl)
+
+
 # ======================================================================================= restart: consumed exit vs flat everything
 def restart_consumed_exit_never_opens_a_position():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
@@ -375,6 +476,11 @@ def main():
         ("W2B_NETTED_OPPOSITE_LEADER_REDUCTION_STILL_SENDS", w2b),
         ("W3A_LIVE_SLEEVE_CLOSE_SENDS_REDUCE_ONLY", w3a),
         ("W3B_USER_RESIDUAL_ON_THE_COIN_ENGINE_CLOSE_OF_ITS_OWN_SLEEVE_STILL_SENDS", w3b_user_residual),
+        ("W3C_OVERSIZE_CLOSE_IS_CUT_TO_THE_ENGINE_SLEEVE_OR_REFUSED_NEVER_SENT_AT_THE_USERS_SIZE", w3c_oversize_close_never_sent_at_the_users_size),
+        ("W3D_USER_RESIDUAL_IS_UNTOUCHED_AFTER_THE_ENGINE_CLOSE", w3d_user_residual_untouched_after_the_engine_close),
+        ("WA_STOP_RACE_UNREADABLE_MODE_AFTER_OFF_SENDS_NOTHING_AND_LEAVES_A_DURABLE_RED", w_a_stop_race),
+        ("WB_OWNED_SAME_NET_CLO_REDUCE_ONLY_SELL_3_SENDS", w_b_owned),
+        ("WB_FOREIGN_SAME_NET_CLO_SENDS_NOTHING_NAMED_HOLD_NOTHING_FLATTENED", w_b_foreign),
         ("W4A_DUST_WHOLE_POSITION_CLOSE_SENDS_EXACT_FULL_CLOSE", w4a_whole_position),
         ("W4B_SUBMIN_REMAINDER_WITH_RESIDUAL_IS_HELD_NOT_SENT_AS_A_PARTIAL", w4b_submin_remainder_is_held_not_sent),
         ("W4C_HELD_REMAINDER_RESOLVED_BY_WHOLE_POSITION_CLOSE_WHEN_ACCOUNT_WOULD_GO_FLAT",
