@@ -11,8 +11,10 @@ sys.modules['hl_core_xyz'] = C
 spec.loader.exec_module(C)
 
 FAIL = []
+CASES = []
 def check(name, cond, detail=''):
     print(('PASS ' if cond else 'FAIL ') + name + ((' :: ' + detail) if detail and not cond else ''))
+    CASES.append(name)
     if not cond: FAIL.append(name)
 
 def xyz_snapshot():
@@ -37,7 +39,7 @@ def run():
     if data:
         v = float(data[-1].get('account_value') or data[-1].get('value') or 0.0)
         check('recorded equity is 39.67 not 0.0', abs(v - 39.67) < 1e-6, 'got %r' % (v,))
-    print('\nFAILED: %d' % len(FAIL))
+    print('TOTAL=%d FAILED=%d' % (len(CASES), len(FAIL)))
     return 1 if FAIL else 0
 
 if __name__ == '__main__':

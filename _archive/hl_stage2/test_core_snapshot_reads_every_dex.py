@@ -10,8 +10,10 @@ sys.modules['hl_core_dex'] = C
 spec.loader.exec_module(C)
 
 FAIL = []
+CASES = []
 def check(n, c, d=''):
     print(('PASS ' if c else 'FAIL ') + n + ((' :: ' + d) if d and not c else ''))
+    CASES.append(n)
     if not c: FAIL.append(n)
 
 CALLS = []
@@ -64,5 +66,5 @@ if isinstance(raw_by_dex, dict):
           repr(raw_by_dex.get('xyz')))
 check('raw still present for the default dex (back-compat)', isinstance(snap.get('raw'), dict) and snap['raw'], 'missing raw')
 
-print('\nFAILED: %d' % len(FAIL))
+print('TOTAL=%d FAILED=%d' % (len(CASES), len(FAIL)))
 sys.exit(1 if FAIL else 0)
