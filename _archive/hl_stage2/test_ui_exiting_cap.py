@@ -88,5 +88,39 @@ with tempfile.TemporaryDirectory(prefix="ui_exiting_") as tmp:
     check("ENGINE_LEDGER_NEVER_WRITTEN_BY_DISPLAY", lambda:
           (lambda c: (U._core_wallet_nonflat(ledger(), W1) is True and c == config()))(config()))
 
+
+    def get_does_not_write():
+        pending = config()
+        U._apply_remove_wallet_command(pending, W1, ledger())
+        saved = []
+        with patch.object(U, "_load_live_copy_config", return_value=pending), \
+             patch.object(U, "_load_manual_live_positions", return_value=ledger(False)), \
+             patch.object(U, "_save_live_copy_config", side_effect=lambda c: saved.append(c)):
+            U.get_live_config()
+        return not saved and W1 in pending["wallets"]
+    check("GET_LIVE_CONFIG_IS_READ_ONLY", get_does_not_write)
+
+    def post_authorized_finalise():
+        pending = config()
+        U._apply_remove_wallet_command(pending, W1, ledger())
+        saved = []
+        with patch.object(U, "_load_live_copy_config", return_value=pending), \
+             patch.object(U, "_load_manual_live_positions", return_value=ledger(False)), \
+             patch.object(U, "_save_live_copy_config", side_effect=lambda c: saved.append(c)):
+            result = U.finalise_exiting_wallets()
+        return (result.status_code == 200 and len(saved) == 1
+                and W1 not in pending["wallets"] and W1 in pending["archived_wallets"])
+    check("AUTHORIZED_POST_FINALISES_ONLY_PENDING_FLAT", post_authorized_finalise)
+
+    def no_pending_no_write():
+        ordinary = config()
+        saved = []
+        with patch.object(U, "_load_live_copy_config", return_value=ordinary), \
+             patch.object(U, "_load_manual_live_positions", return_value=ledger(False)), \
+             patch.object(U, "_save_live_copy_config", side_effect=lambda c: saved.append(c)):
+            result = U.finalise_exiting_wallets()
+        return result.status_code == 200 and not saved
+    check("FINALISE_POST_NO_PENDING_DOES_NOT_WRITE", no_pending_no_write)
+
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), RESULTS.count(False)))
 sys.exit(1 if False in RESULTS else 0)
