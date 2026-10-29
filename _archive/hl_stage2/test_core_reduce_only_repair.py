@@ -41,7 +41,7 @@ def run(sleeves, ex_net, ok=True):
     me._fresh_exchange_net = lambda coin: c.SenderGateway._fresh_exchange_net(me, coin)
     if hasattr(c.SenderGateway, "_follower_order_account_for_proof"):
         me._follower_order_account_for_proof = (
-            lambda: c.SenderGateway._follower_order_account_for_proof(me))
+            lambda **kwargs: c.SenderGateway._follower_order_account_for_proof(me, **kwargs))
     c._XNET.master_exposure = lambda *a, **k: ({"ok": True, "by_coin": {"RESOLV": {"net": ex_net}}} if ok else {"ok": False})
     c.follower_dex_scope = lambda: [""]
     intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet=W, coin="RESOLV", leader_fill_id="f1"))
