@@ -1145,6 +1145,7 @@ TERMINAL_ROW_NAMES = frozenset({
     "EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK", "ILLIQUID_SKIP",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
+    "AUTHORISED_CLOSE_REFUSAL",
     "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
     "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL", "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
     "BLOCKED_DUPLICATE_DEDUPE_STORE", "BLOCKED_DUPLICATE_PRE_SEND", "BLOCKED_NO_TERMINAL_RECORDED",
@@ -5755,7 +5756,12 @@ class SenderGateway:
             timing[started_key] = utc_now_ms()
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
         try:
-            response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
+            physical_order = exchange.order
+            # Set only at the real SDK invocation boundary, after slot, write-ahead,
+            # and final mode checks; stays true across retries.
+            if timing is not None:
+                timing["exchange_order_invoked"] = True
+            response = physical_order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         finally:
             _open_orders_send_end()
         self._note_sender_key_rejection(response)
@@ -8197,16 +8203,18 @@ class SenderGateway:
 
     def _journal_authorised_close_refusal(self, intent: Intent, reason: str) -> None:
         """An authorised close without confirmed success must have a named durable row."""
-        # Install durable RED first: a failed CSV append must not lose the owed close.
+        # RED JSON persists first. The dispatcher owns the single terminal fill
+        # row; this named supplemental refusal must not count as a second terminal.
         self._open_close_escalation(intent, reason)
+        if self.audit.has_fill_row(intent.fill.leader_fill_id):
+            return
         self.audit.append_reconciliation(
-            "SEND_TERMINAL", "AUTHORISED_CLOSE_REFUSAL",
+            "CLOSE_ESCALATION", "AUTHORISED_CLOSE_REFUSAL",
             leader_wallet=intent.fill.leader_wallet,
             leader_fill_id=intent.fill.leader_fill_id,
             intent_id=intent.intent_id, coin=intent.fill.coin,
             action="RECONCILE_OWED_CLOSE_BEFORE_RETRY",
             reject_category=str(reason or "UNSPECIFIED_CLOSE_FAILURE")[:160],
-            terminal_state="AUTHORISED_CLOSE_REFUSAL",
             engine_can_send="False",
             notes=(f"authorised close has no confirmed successful send; "
                    f"reason={reason}; side={intent.copy_side}; size={intent.copy_size}; "
@@ -8214,39 +8222,31 @@ class SenderGateway:
         )
 
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
-        """Guarantee a named refusal for each authorised close that cannot succeed."""
         authorised_close = (intent.send_allowed and
                             classify_send_lifecycle(intent) in {"EXIT", "REDUCE"})
-        try:
-            ok, status = self._send_if_allowed_impl(intent, entry_block_reason)
-        except Exception as exc:
-            if authorised_close:
-                self._journal_authorised_close_refusal(
-                    intent, "SEND_EXCEPTION_" + type(exc).__name__)
-            raise
-        if authorised_close and not ok:
-            self._journal_authorised_close_refusal(intent, status)
-        return ok, status
 
-    def _send_if_allowed_impl(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
+        def _finish(ok: bool, status: str) -> Tuple[bool, str]:
+            if authorised_close and not ok:
+                self._journal_authorised_close_refusal(intent, status)
+            return ok, status
         if not intent.send_allowed:
-            return False, "INTENT_NOT_SEND_ALLOWED"
+            return _finish(False, "INTENT_NOT_SEND_ALLOWED")
         stale_reason = stale_snapshot_replay_reason(intent.fill)
         if stale_reason:
-            return False, stale_reason
+            return _finish(False, stale_reason)
         if not self.cfg.master_switch_now():
-            return False, "MASTER_REAL_ORDERS_OFF"
+            return _finish(False, "MASTER_REAL_ORDERS_OFF")
         if self.sender_key_invalid:
-            return False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
+            return _finish(False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID")
         lifecycle = classify_send_lifecycle(intent)
         coin_key = str(intent.fill.coin or "").strip().lower()
         now_ms = utc_now_ms()
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
-            return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"  # CLOSE: reductions only, no entry or top-up
+            return _finish(False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY")  # CLOSE: reductions only, no entry or top-up
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
-            return False, f"ENTRY_BLOCKED_{entry_block_reason}"
+            return _finish(False, f"ENTRY_BLOCKED_{entry_block_reason}")
         if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
-            return False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
+            return _finish(False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED")
         timing = self._base_timing(intent)
         timing["ownership_gate_started_ms"] = utc_now_ms()
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
@@ -8272,27 +8272,27 @@ class SenderGateway:
         if not gate_ok:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)
-            return False, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED")
+            return _finish(False, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"))
         # THE COOLDOWN CACHE IS CHECKED HERE, AFTER THE OWNERSHIP GATE - not before it. A cached halt / IOC /
         # margin refusal used to return before the gate ran, and the refusal remedy then placed a rest-or-diff order
         # through _place_order, which rechecks the master gate but NOT current ownership: a stale entry intent could
         # become a real order for a coin we no longer own (ENG-016, shared netting). Nothing may short-cut the gate.
         if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_market_halted_until_ms", {}).get(coin_key, 0) > utc_now_ms():
-            return False, "SKIPPED_MARKET_HALTED"
+            return _finish(False, "SKIPPED_MARKET_HALTED")
         if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_ioc_no_match_until_ms", {}).get(coin_key, 0) > utc_now_ms():
-            return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
+            return _finish(False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH")
         if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_margin_reject_until_ms", {}).get(coin_key, 0) > utc_now_ms():
-            return False, "SKIPPED_INSUFFICIENT_MARGIN"
+            return _finish(False, "SKIPPED_INSUFFICIENT_MARGIN")
         if not self.cfg.master_switch_now():  # switched off while the gate waited for fresh records
-            return False, "MASTER_REAL_ORDERS_OFF"
+            return _finish(False, "MASTER_REAL_ORDERS_OFF")
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
-            return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+            return _finish(False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY")
         mode_block = self._send_time_wallet_mode_block(intent, lifecycle)  # rw12: the wallet may have moved to CLO/OFF since the intent was made
         if mode_block is not None:
             self._append_local_block_reconciliation(intent, mode_block[0], {
                 "terminal_state": mode_block[0], "reject_category": "WALLET_MODE_BLOCK",
                 "operator_action": "NO_SEND_WALLET_MODE_CHANGED", "notes": mode_block[1], "timing": timing})
-            return False, mode_block[0]
+            return _finish(False, mode_block[0])
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.liq_parity_enabled():
             timing["liq_parity_started_ms"] = utc_now_ms()
             parity = self.liq_parity_block(intent)
@@ -8302,7 +8302,7 @@ class SenderGateway:
                     1, int(fnum(os.getenv("HL_LIVE_LIQ_PARITY_DISPATCH_COOLDOWN_MS"), 1000)))
                 parity["timing"] = timing
                 self._append_local_block_reconciliation(intent, "LIQ_PARITY_BLOCKED", parity)
-                return False, "LIQ_PARITY_BLOCKED"
+                return _finish(False, "LIQ_PARITY_BLOCKED")
         # Pending-exit guard: atomically block-or-reserve so a burst of close fills
         # cannot each submit a full-sleeve close before copy-poll catches up. A
         # reduce-only order already cannot flip the position; this also prevents the
@@ -8311,9 +8311,7 @@ class SenderGateway:
         reserved_exit = False
         if is_exit_like:
             with self._pending_exit_lock:
-                last_exit = self._last_exit_attempt_ms.get(coin_key, 0)
-                if utc_now_ms() - last_exit < 60000:
-                    return False, "EXIT_ATTEMPT_COOLDOWN"
+                # Exit/reduce bypasses 60s and rate-limit cooldowns; pending guard remains.
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
@@ -8324,16 +8322,28 @@ class SenderGateway:
                         "timing": timing,
                         "notes": guard_reason,
                     })
-                    return False, "PENDING_EXIT_GUARD_ACTIVE"
+                    return _finish(False, "PENDING_EXIT_GUARD_ACTIVE")
                 self._mark_pending_exit(intent)
-                self._last_exit_attempt_ms[coin_key] = utc_now_ms()
                 reserved_exit = True
-        if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
-            self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
-            return True, "MOCK_ORDER_SENT"
-        timing["send_real_started_ms"] = utc_now_ms()
-        ok, send_status, result = self._send_real(intent, timing)
+        try:
+            if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
+                self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
+                return True, "MOCK_ORDER_SENT"
+            timing["send_real_started_ms"] = utc_now_ms()
+            ok, send_status, result = self._send_real(intent, timing)
+        except Exception as exc:
+            if authorised_close:
+                self._journal_authorised_close_refusal(intent, "SEND_EXCEPTION_" + type(exc).__name__)
+            raise
+        finally:
+            # Definite no-call paths release their reservation; invoked orders,
+            # including ambiguous exceptions, remain held until reconciled.
+            if reserved_exit and not timing.get("exchange_order_invoked", False):
+                self._clear_pending_exit(intent)
         if result.get("exchange_called"):
+            if reserved_exit and timing.get("exchange_order_invoked", False):
+                with self._pending_exit_lock:
+                    self._last_exit_attempt_ms[coin_key] = utc_now_ms()
             category = str(result.get("reject_category") or "")
             if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
                 until = utc_now_ms() + 600000
@@ -8393,13 +8403,10 @@ class SenderGateway:
             except Exception as exc:
                 self._report_post_send_bookkeeping_error(intent, send_status, result, exc)
         else:
-            # No real order placed — release any exit reservation so we never wrongly
-            # block a genuine later close because of a non-exchange (symbol/cred) miss.
-            if reserved_exit:
-                self._clear_pending_exit(intent)
+            # No-call exits are already released by the finally block.
             if result.get("write_send_attempt") or result.get("write_reconciliation"):
                 self._append_local_block_reconciliation(intent, send_status, result)
-        return ok, send_status
+        return _finish(ok, send_status)
 
     def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
@@ -8973,7 +8980,7 @@ class SenderGateway:
             error_text = repr(exc)
             reject_category = classify_reject_category(error_text, {})
             self._note_exchange_rate_limit(error_text)
-            if gtc_px > 0:
+            if gtc_px > 0 and timing.get("exchange_order_invoked", False):
                 oid = ""
                 try:
                     oid = self.find_open_entry_order(intent.fill.coin, sdk_coin, intent.copy_side, gtc_px, wire_size)
@@ -8987,7 +8994,7 @@ class SenderGateway:
                           "not found in open orders; check open orders on the exchange")
                 return False, "EXCHANGE_ERROR", {
                     "exchange_response": {}, "oid": "", "limit_px": gtc_px, "wire_size": wire_size,
-                    "exchange_called": True, "error": error_text, "timing": timing, "reject_category": reject_category,
+                    "exchange_called": bool(timing.get("exchange_order_invoked", False)), "error": error_text, "timing": timing, "reject_category": reject_category,
                     "terminal_state": "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN", "operator_action": "MANUAL_REVIEW_CHECK_OPEN_ORDERS",
                     "reduce_only_sent": False, "notes": detail,
                 }
@@ -9029,7 +9036,7 @@ class SenderGateway:
             return False, "EXCHANGE_ERROR", {
                 "exchange_response": {}, "oid": "",
                 "limit_px": limit_px, "wire_size": wire_size,
-                "exchange_called": True, "error": error_text, "timing": timing,
+                "exchange_called": bool(timing.get("exchange_order_invoked", False)), "error": error_text, "timing": timing,
                 "reject_category": reject_category,
                 "reduce_only_sent": use_reduce_only,
             }
