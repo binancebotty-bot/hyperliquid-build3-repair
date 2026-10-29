@@ -50,9 +50,27 @@ class Ex:
 class BadEx(Ex):
     def order(self, *a, **k): raise RuntimeError("timeout after send")
     def cancel(self, *a, **k): raise RuntimeError("timeout after cancel")
-gw = SimpleNamespace(_reserve_exchange_order_slot=lambda **k: 0, _note_sender_key_rejection=lambda r: None)
+# Contract note (CC-1 R35): _place_order now consults the master gate at the one physical call
+#   _blocked = self._master_gate_reason(intent, path)
+# so a bare SimpleNamespace gateway raises AttributeError before any exchange call, and the cache
+# invalidation this test measures never runs. Rather than stub the gate out, bind the REAL gate
+# methods and pass a real intent the real gate APPROVES - the send then reaches the exchange
+# exactly as before, so SEND_INVALIDATES_CACHE still measures the production path.
+SEND_INTENT = SimpleNamespace(
+    fill=SimpleNamespace(leader_wallet=c.USER_WALLET, coin="BTC", leader_fill_id="f1"),
+    intent_id="i-cache", notes="lifecycle=ENTRY", reason="ENTRY",
+    wallet_position_before=0, copy_side="BUY", copy_size=1.0)
+gw = SimpleNamespace(
+    cfg=SimpleNamespace(send_mode_now=lambda: "ON", wallet_enabled=lambda w: True, wallet_mode=lambda w: "LIVE"),
+    sender_key_invalid=False, audit=SimpleNamespace(append_reconciliation=lambda *a, **k: None),
+    _gate_journal_failures=0,
+    _reserve_exchange_order_slot=lambda **k: 0, _note_sender_key_rejection=lambda r: None)
+gw._master_gate_reason = lambda intent, path="": c.SenderGateway._master_gate_reason(gw, intent, path)
+gw._gate_refusal_row = lambda intent, path, reason: c.SenderGateway._gate_refusal_row(gw, intent, path, reason)
+check("GATE_ALLOWS_THE_TEST_SEND", c.SenderGateway._master_gate_reason(gw, SEND_INTENT, "cache") == "",
+      repr(c.SenderGateway._master_gate_reason(gw, SEND_INTENT, "cache")))
 before = len(calls)
-c.SenderGateway._place_order(gw, Ex(), "BTC", True, 1.0, 100.0, "Gtc", False)
+c.SenderGateway._place_order(gw, Ex(), "BTC", True, 1.0, 100.0, "Gtc", False, intent=SEND_INTENT)
 sweep_pair()
 check("SEND_INVALIDATES_CACHE", len(calls) == before + 1, str((before, len(calls))))
 before = len(calls)
@@ -62,7 +80,9 @@ c.SenderGateway._cancel_order(gw, Ex(), "BTC", "9")
 sweep_pair()
 check("CANCEL_INVALIDATES_CACHE", len(calls) == before + 1, str((before, len(calls))))
 before = len(calls)
-try: c.SenderGateway._place_order(gw, BadEx(), "BTC", True, 1.0, 100.0, "Gtc", False)
+# Same gate contract as above: a real intent is required, or the gate refuses before the exchange
+# is reached and this case would silently test nothing. Here the send must fail AT THE EXCHANGE.
+try: c.SenderGateway._place_order(gw, BadEx(), "BTC", True, 1.0, 100.0, "Gtc", False, intent=SEND_INTENT)
 except RuntimeError: pass
 sweep_pair()
 check("FAILED_SEND_INVALIDATES_CACHE", len(calls) == before + 1, str((before, len(calls))))
