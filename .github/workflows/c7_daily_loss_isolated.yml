@@ -1,0 +1,21 @@
+name: C7 daily loss isolated test
+on:
+  push:
+    branches:
+      - gpt/c7-daily-loss-ci-run-20261029i2
+permissions:
+  contents: read
+jobs:
+  daily-loss-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm base and execute standalone no-network test
+        working-directory: _archive/hl_stage2
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LIVE_AUTO_SEND_ENABLED: "0"
+        run: |
+          python3 -V
+          python3 test_core_daily_loss_durable_row.py
