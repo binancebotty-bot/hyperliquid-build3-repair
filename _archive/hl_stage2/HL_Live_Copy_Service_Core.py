@@ -8311,9 +8311,8 @@ class SenderGateway:
         reserved_exit = False
         if is_exit_like:
             with self._pending_exit_lock:
-                last_exit = self._last_exit_attempt_ms.get(coin_key, 0)
-                if utc_now_ms() - last_exit < 60000:
-                    return False, "EXIT_ATTEMPT_COOLDOWN"
+                # EXIT/REDUCE never consults a time-based cooldown. The separate
+                # pending-exit guard still prevents duplicate unreconciled wires.
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
@@ -8326,7 +8325,6 @@ class SenderGateway:
                     })
                     return False, "PENDING_EXIT_GUARD_ACTIVE"
                 self._mark_pending_exit(intent)
-                self._last_exit_attempt_ms[coin_key] = utc_now_ms()
                 reserved_exit = True
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
@@ -8334,6 +8332,11 @@ class SenderGateway:
         timing["send_real_started_ms"] = utc_now_ms()
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
+            # Stamp the timestamp only after a physical call is confirmed.
+            # It is telemetry, never an EXIT suppression gate.
+            if reserved_exit:
+                with self._pending_exit_lock:
+                    self._last_exit_attempt_ms[coin_key] = utc_now_ms()
             category = str(result.get("reject_category") or "")
             if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
                 until = utc_now_ms() + 600000
