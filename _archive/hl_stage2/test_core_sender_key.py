@@ -90,6 +90,8 @@ def main() -> None:
         def __init__(self):
             self.calls = []
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "reduce_only": reduce_only})
             return REJECT
@@ -205,6 +207,8 @@ def main() -> None:
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = FAKE_KEY
         role["reply"] = {"role": "missing"}
         argv = sys.argv
+        saved_locks = c.acquire_global_instance_lock, c.acquire_instance_lock
+        c.acquire_global_instance_lock = c.acquire_instance_lock = lambda *a, **k: None
         sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
         err = io.StringIO()
         try:
@@ -215,12 +219,139 @@ def main() -> None:
             refused = str(exc)
         finally:
             sys.argv = argv
+            c.acquire_global_instance_lock, c.acquire_instance_lock = saved_locks
         check("K5_ENGINE_REFUSES_TO_START", refused.startswith("SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK")
               and FAKE_KEY[2:] not in refused, refused)
     finally:
         c.HLAccount = saved_acct
         for k in ("HL_LIVE_HL_PRIVATE_KEY", "HL_LIVE_HL_ACCOUNT_ADDRESS"):
             os.environ.pop(k, None)
+
+    # ---- K6: publish the new process before startup reconciliation can wait --------------------------------
+    startup_state_path = tmp / "startup_state.json"
+    startup_state_path.write_text(json.dumps({"process_id": -1}), encoding="utf-8")
+
+    class StartupConfig:
+        def active_wallets(self):
+            return []
+
+    real_config_manager = c.ConfigManager
+    startup_cfg = real_config_manager()
+    orphan_result = {"ok": True, "detail": "offline test"}
+    orphan_error = None
+    startup_writer_error = None
+
+    class StartupStateWriter:
+        def __init__(self):
+            self.writer = c.ServiceStateWriter()
+            self.failed = False
+
+        def write_startup(self, *args):
+            if startup_writer_error and not self.failed:
+                self.failed = True
+                raise startup_writer_error
+            self.writer.write_startup(*args)
+
+    class StartupSender:
+        def startup_orphan_order_check(self):
+            state = c.load_json(startup_state_path, {})
+            check("K6_STATUS_FRESH_BEFORE_STARTUP_RECONCILIATION", state.get("process_id") == os.getpid(), str(state))
+            check("K6_STARTUP_STATUS_STAYS_BLOCKED", state.get("cycle") == "startup"
+                  and state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_PENDING", str(state))
+            if orphan_error:
+                raise orphan_error
+            return orphan_result
+
+    class StartupCore:
+        def __init__(self, source_csv=None):
+            self.state_writer = StartupStateWriter()
+            self.dedupe = c.DedupeStore({}, state_dir=tmp)
+            self.cfg = startup_cfg
+            self.sender = StartupSender()
+            self.ws = object()
+            self.wallets = []
+            self.hot_send_workers = 0
+
+        def run_cycle(self, **kwargs):
+            summary = c.CycleSummary()
+            self.state_writer.write_startup(summary, self.dedupe, self.cfg)
+            return summary
+
+        def stop(self):
+            pass
+
+    patch_names = ("SERVICE_STATE_FILE", "ConfigManager", "LiveCopyCore", "sender_key_check",
+                   "acquire_global_instance_lock", "acquire_instance_lock", "install_core_attribution_hooks")
+    saved_patch = {name: getattr(c, name) for name in patch_names}
+    saved_claim, saved_refusal = c._XNET.claim_network_stamp, c._XNET.stamp_state_refusal
+    saved_argv = sys.argv
+    try:
+        c.SERVICE_STATE_FILE = startup_state_path
+        c.ConfigManager = StartupConfig
+        c.LiveCopyCore = StartupCore
+        c.sender_key_check = lambda: {"ok": True, "detail": "offline test"}
+        c.acquire_global_instance_lock = lambda *a, **k: None
+        c.acquire_instance_lock = lambda *a, **k: None
+        c.install_core_attribution_hooks = lambda: None
+        c._XNET.claim_network_stamp = lambda *a, **k: None
+        c._XNET.stamp_state_refusal = lambda *a, **k: ""
+        sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
+        with redirect_stderr(io.StringIO()):
+            c.main()
+        successful_state = c.load_json(startup_state_path, {})
+        check("K6_SUCCESSFUL_CHECK_ADVANCES_STATUS", successful_state.get("cycle") == "run_cycle"
+              and successful_state.get("entry_sends_blocked_reason") != "STARTUP_ORPHAN_CHECK_PENDING", str(successful_state))
+        startup_writer_error = RuntimeError("offline writer failure")
+        startup_state_path.write_text(json.dumps({"process_id": -1}), encoding="utf-8")
+        try:
+            with redirect_stderr(io.StringIO()):
+                c.main()
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        except Exception as exc:
+            refused = f"UNCAUGHT:{type(exc).__name__}:{exc}"
+        failed_state = c.load_json(startup_state_path, {})
+        check("K6_WRITER_FAILURE_IS_FATAL_STATUS", refused.startswith("STARTUP_ORPHAN_CHECK_WRITER_FAILED")
+              and failed_state.get("ok") is False
+              and failed_state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_WRITER_FAILED"
+              and failed_state.get("fatal_errors") == 1 and failed_state.get("process_id") == os.getpid()
+              and "offline writer failure" in failed_state.get("send_block_reason", "")
+              and failed_state.get("entry_sends_blocked_reason") != "STARTUP_ORPHAN_CHECK_PENDING", str(failed_state))
+        startup_writer_error = None
+        orphan_result.update(ok=False, detail="offline refusal")
+        sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
+        try:
+            with redirect_stderr(io.StringIO()):
+                c.main()
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        failed_state = c.load_json(startup_state_path, {})
+        check("K6_FAILED_RECONCILIATION_IS_PUBLISHED", refused.startswith("STARTUP_ORPHAN_CHECK_FAILED")
+              and failed_state.get("ok") is False
+              and failed_state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_FAILED"
+              and failed_state.get("fatal_errors") == 1, str(failed_state))
+        orphan_result.update(ok=True)
+        orphan_error = RuntimeError("offline exception")
+        try:
+            with redirect_stderr(io.StringIO()):
+                c.main()
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        except RuntimeError as exc:
+            refused = f"UNCAUGHT:{type(exc).__name__}"
+        failed_state = c.load_json(startup_state_path, {})
+        check("K6_EXCEPTION_RECONCILIATION_IS_PUBLISHED", refused.startswith("STARTUP_ORPHAN_CHECK_FAILED")
+              and failed_state.get("ok") is False
+              and failed_state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_FAILED"
+              and failed_state.get("fatal_errors") == 1, str(failed_state))
+    finally:
+        sys.argv = saved_argv
+        c._XNET.claim_network_stamp, c._XNET.stamp_state_refusal = saved_claim, saved_refusal
+        for name, value in saved_patch.items():
+            setattr(c, name, value)
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
