@@ -8268,6 +8268,16 @@ class SenderGateway:
     def _record_unsent_close(self, intent: Intent, status: str) -> None:
         """Every refused authorised EXIT leaves named audit and durable owed-close RED."""
         reason = str(status or "UNKNOWN_CLOSE_REFUSAL")
+        # An early SDK/credential/mode failure must not evade the dust ledger
+        # merely because it returned before the wire-planning gate.
+        px = fnum(intent.fill.price, 0.0)
+        qty = abs(fnum(intent.copy_size, 0.0))
+        if (px > 0 and qty > 0
+                and px * qty < max(DEFAULT_MIN_NOTIONAL, fnum(self.cfg.min_notional(), DEFAULT_MIN_NOTIONAL))):
+            try:
+                self._record_close_dust_hold(intent, qty, px, "EARLY_CLOSE_REFUSAL: " + reason)
+            except Exception as exc:
+                log_error("close_dust_hold_journal_failed", exc)
         self._trackb_escalate(intent, "AUTHORISED_CLOSE_NOT_SENT: " + reason)
         self.audit.append_reconciliation(
             "SEND_TERMINAL", "AUTHORISED_CLOSE_NOT_SENT",
