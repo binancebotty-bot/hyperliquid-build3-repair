@@ -5761,7 +5761,7 @@ class SenderGateway:
             # and final mode checks; stays true across retries.
             if timing is not None:
                 timing["exchange_order_invoked"] = True
-            response = physical_order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
+            response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         finally:
             _open_orders_send_end()
         self._note_sender_key_rejection(response)
