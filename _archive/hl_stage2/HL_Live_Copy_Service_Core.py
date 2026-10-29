@@ -8092,7 +8092,38 @@ class SenderGateway:
             return "BLOCKED_CLO_ENTRY", f"CLO blocks entries/adds at send time (intent created in mode {intent.wallet_mode})"
         return None
 
+    def _journal_authorised_close_refusal(self, intent: Intent, reason: str) -> None:
+        """An authorised close without confirmed success must have a named durable row."""
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", "AUTHORISED_CLOSE_REFUSAL",
+            leader_wallet=intent.fill.leader_wallet,
+            leader_fill_id=intent.fill.leader_fill_id,
+            intent_id=intent.intent_id, coin=intent.fill.coin,
+            action="RECONCILE_OWED_CLOSE_BEFORE_RETRY",
+            reject_category=str(reason or "UNSPECIFIED_CLOSE_FAILURE")[:160],
+            terminal_state="AUTHORISED_CLOSE_REFUSAL",
+            engine_can_send="False",
+            notes=(f"authorised close has no confirmed successful send; "
+                   f"reason={reason}; side={intent.copy_side}; size={intent.copy_size}; "
+                   "check any ambiguous exchange outcome before resending"),
+        )
+
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
+        """Guarantee a named refusal for each authorised close that cannot succeed."""
+        authorised_close = (intent.send_allowed and
+                            classify_send_lifecycle(intent) in {"EXIT", "REDUCE"})
+        try:
+            ok, status = self._send_if_allowed_impl(intent, entry_block_reason)
+        except Exception as exc:
+            if authorised_close:
+                self._journal_authorised_close_refusal(
+                    intent, "SEND_EXCEPTION_" + type(exc).__name__)
+            raise
+        if authorised_close and not ok:
+            self._journal_authorised_close_refusal(intent, status)
+        return ok, status
+
+    def _send_if_allowed_impl(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
         stale_reason = stale_snapshot_replay_reason(intent.fill)
