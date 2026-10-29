@@ -1,0 +1,28 @@
+{
+ "counts": {
+  "UNRESOLVED": 371,
+  "OK": 15,
+  "LOST_OBLIGATION": 24,
+  "PENDING": 1
+ },
+ "subcounts": {
+  "UNRESOLVED/-": 371,
+  "OK/-": 15,
+  "LOST_OBLIGATION/leader_flat_follower_holds": 3,
+  "LOST_OBLIGATION/leader_open_follower_never_opened": 6,
+  "LOST_OBLIGATION/quantity_short_of_one_unit": 14,
+  "LOST_OBLIGATION/sign_inversion": 1,
+  "PENDING/-": 1
+ },
+ "pairs": 411,
+ "orders_total": 10,
+ "orders_proven": 6,
+ "orders_unknown": 4,
+ "dexes_read": 87,
+ "dexes_failed": 0,
+ "dexes_with_positions": [
+  "(default)",
+  "xyz"
+ ],
+ "out": "tools/oracle/runs\\m3_oracle_20261029T224357Z"
+}
