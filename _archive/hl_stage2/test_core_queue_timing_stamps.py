@@ -2,6 +2,7 @@
 """Offline check for queue timing stamps; clears inherited env and never constructs an exchange client."""
 from __future__ import annotations
 
+import collections
 import json
 import os
 import queue
@@ -50,6 +51,18 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     core._already_handled = lambda _fill: True
     core._guard_key = lambda fill: fill.leader_fill_id
     core._release_queued = lambda batch, q: [q.task_done() for _ in batch]
+
+    # _fill_trace only QUEUES a line; LiveCopyCore.__init__ starts the writer thread that turns the queue
+    # into fill_trace.jsonl. This test builds the core with object.__new__ (no __init__), so without the
+    # writer below nothing ever reaches disk and the trace read fails with FileNotFoundError. Start it here
+    # exactly as __init__ does, and stop it (further down) before the file is read and the temp dir removed.
+    core._fill_trace_condition = threading.Condition()
+    core._fill_trace_buffer = collections.deque(maxlen=c.FILL_TRACE_QUEUE_MAX)
+    core._fill_trace_dropped = 0
+    core._fill_trace_writer_done = False
+    core._fill_trace_writer = threading.Thread(target=core._fill_trace_writer_loop, daemon=True,
+                                               name="test-fill-trace-writer")
+    core._fill_trace_writer.start()
 
     fills = [
         c.LeaderFill(f"fill-{i}", "wallet-a", f"COIN-{i}", "BUY", 1.0, 1.0,
@@ -118,6 +131,14 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     core._queue_depth_loop()
     core._fill_trace("cycle_start", None, {"cycle_id": 7})
     core._fill_trace("cycle_end", None, {"cycle_id": 7, "duration_ms": 12})
+    # Drain the queue and let the writer exit before reading: _fill_trace is asynchronous, so reading
+    # straight after it races the writer (and leaves the handle open when the temp dir is removed).
+    with core._fill_trace_condition:
+        core._fill_trace_writer_done = True
+        core._fill_trace_condition.notify()
+    core._fill_trace_writer.join(timeout=10.0)
+    if core._fill_trace_writer.is_alive():
+        raise AssertionError("fill-trace writer thread did not drain the queue before the trace was read")
     trace = Path(tmp) / "fill_trace.jsonl"
     rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
     if not any(row.get("k") == "queue_depth" and row.get("hot_depth") == [0]
@@ -211,5 +232,18 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
             finally:
                 c.CORE_RUNTIME_STATE_FILE = previous_runtime_state
                 c.HEADROOM.ws_provider = previous_ws_provider
+                # __init__ also starts a fill-trace writer for startup_core; stop it before the temp dir goes,
+                # or it can still hold fill_trace.jsonl while TemporaryDirectory tries to remove it (WinError 32).
+                if startup_core is not None:
+                    writer = getattr(startup_core, "_fill_trace_writer", None)
+                    if writer is not None and writer.ident is not None:
+                        with startup_core._fill_trace_condition:
+                            startup_core._fill_trace_writer_done = True
+                            startup_core._fill_trace_condition.notify()
+                        writer.join(timeout=5.0)
+                # The audit writer keeps errors.csv open in a module-level handle table; close every handle
+                # before the temp dirs are removed (Windows refuses to unlink an open file).
+                for _open_path in list(c._AUDIT_HANDLES):
+                    c._close_audit_handle(Path(_open_path))
 
 print("PASS: first-seen queue timing stamps and queue-depth trace")
