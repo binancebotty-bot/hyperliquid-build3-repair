@@ -1048,10 +1048,7 @@ def _save_live_copy_config(config: Dict[str, Any]) -> None:
 
 
 def _normalise_wallet_address(wallet: Any) -> str:
-    value = str(wallet or "").strip().lower()
-    if not value.startswith("0x") or len(value) != 42:
-        raise ValueError("BAD_WALLET")
-    return value
+    return normalise_wallet_for_purge(wallet)
 
 
 def normalize_live_wallet_config(wallet: Any, cfg: Any, repair: bool = False) -> Dict[str, Any]:
@@ -1134,6 +1131,93 @@ def _active_live_copy_wallet_count(config: Dict[str, Any]) -> int:
     )
 
 
+def _core_control_state() -> Dict[str, Any]:
+    """Display only Core's single published service heartbeat; no UI count recomputation."""
+    state = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    state = state if isinstance(state, dict) else {}
+    modes = state.get("wallet_modes_active")
+    controls = state.get("effective_global_controls")
+    modes = modes if isinstance(modes, dict) else {}
+    controls = controls if isinstance(controls, dict) else {}
+
+    def count(value: Any) -> Optional[int]:
+        return value if type(value) is int and value >= 0 else None
+
+    cap = controls.get("max_total_live_exposure_usd")
+    cap = float(cap) if isinstance(cap, (int, float)) and not isinstance(cap, bool) and math.isfinite(float(cap)) and cap >= 0 else None
+    return {
+        "configured_live": count(modes.get("LIVE")),
+        "applied_live": count(state.get("active_wallets")),
+        "ws_cap": 10,
+        "global_exposure_cap_usd": cap,
+        "core_state_written_ms": state.get("last_state_write_ms"),
+    }
+
+
+def _core_wallet_nonflat(ledger: Dict[str, Any], wallet: str) -> Optional[bool]:
+    """Inspect Core's existing owned-sleeve ledger, without independent accounting."""
+    if not isinstance(ledger, dict) or not str(ledger.get("schema", "")).startswith(
+            ("manual_live_positions.v1", "manual_live_positions.v2")):
+        return None
+    by_wallet = ledger.get("by_wallet")
+    if not isinstance(by_wallet, dict):
+        return None
+    sleeves = next((v for k, v in by_wallet.items() if str(k).lower() == wallet.lower()), {})
+    if not isinstance(sleeves, dict):
+        return None
+    nonflat = False
+    for pos in sleeves.values():
+        if not isinstance(pos, dict) or "signed_size" not in pos:
+            return None
+        try:
+            size = float(pos["signed_size"])
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(size):
+            return None
+        nonflat |= (size != 0.0)
+    return nonflat
+
+
+def _finish_removing_wallet(config: Dict[str, Any], wallet: str, existing: Dict[str, Any], archive: bool) -> None:
+    """Fulfil a validated operator remove only after Core's ledger is flat."""
+    existing = _normalise_live_wallet_payload({"mode": "OFF", "enabled": False}, existing)
+    existing.pop("exit_requested", None)
+    existing.pop("exit_archive", None)
+    if archive:
+        existing["archived_at"] = utc_now_iso()
+        config["wallets"].pop(wallet, None)
+        config["archived_wallets"][wallet] = existing
+    else:
+        config["wallets"][wallet] = existing
+
+
+def _apply_remove_wallet_command(config: Dict[str, Any], wallet: str, ledger: Dict[str, Any],
+                                 archive: bool = True) -> bool:
+    """Operator remove is deferred in CLO while any Core-owned sleeve remains or is unreadable."""
+    wallets = config["wallets"]
+    if wallet not in wallets:
+        return False
+    existing = dict(wallets[wallet])
+    if _core_wallet_nonflat(ledger, wallet) is not False:
+        existing.update(mode="CLO", enabled=True, exit_requested=True, exit_archive=bool(archive))
+        wallets[wallet] = existing
+    else:
+        _finish_removing_wallet(config, wallet, existing, bool(archive))
+    return True
+
+
+def _finalise_exiting_wallets(config: Dict[str, Any], ledger: Dict[str, Any]) -> bool:
+    """Complete only previously authorised removals after the Core ledger proves flat."""
+    changed = False
+    for wallet, existing in list(config["wallets"].items()):
+        if isinstance(existing, dict) and existing.get("exit_requested") is True:
+            if _core_wallet_nonflat(ledger, wallet) is False:
+                _finish_removing_wallet(config, wallet, existing, bool(existing.get("exit_archive", True)))
+                changed = True
+    return changed
+
+
 def _live_copy_config_response(config: Dict[str, Any]) -> Dict[str, Any]:
     wallets = config.get("wallets", {}) if isinstance(config.get("wallets"), dict) else {}
     return {
@@ -1142,6 +1226,7 @@ def _live_copy_config_response(config: Dict[str, Any]) -> Dict[str, Any]:
         "wallet_count": len(wallets),
         "active_wallets": _active_live_copy_wallet_count(config),
         "max_wallets": 10,
+        "core_control_state": _core_control_state(),
     }
 
 
@@ -8473,7 +8558,11 @@ def sort_column(column: str, request: Request, direction: str = ""):
 
 @app.get("/api/live-config")
 def get_live_config():
-    return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
+    config = _load_live_copy_config()
+    # Finish only a previously validated operator remove, once Core's owned sleeves are flat.
+    if _finalise_exiting_wallets(config, _load_manual_live_positions()):
+        _save_live_copy_config(config)
+    return JSONResponse(_live_copy_config_response(config))
 
 
 @app.get("/live-copy", response_class=HTMLResponse)
@@ -8625,15 +8714,8 @@ async def remove_live_config_wallet(req: Request):
         config = _load_live_copy_config()
         wallets = config["wallets"]
         archived = config["archived_wallets"]
-        existing = wallets.pop(wallet, archived.get(wallet, {}))
-        if not isinstance(existing, dict):
-            existing = {}
-        existing = _normalise_live_wallet_payload({"mode": "OFF", "enabled": False}, existing)
-        if archive:
-            existing["archived_at"] = utc_now_iso()
-            archived[wallet] = existing
-        else:
-            wallets[wallet] = existing
+        if not _apply_remove_wallet_command(config, wallet, _load_manual_live_positions(), archive):
+            raise ValueError("WALLET_NOT_FOUND")
         repair_live_config_consistency(config)
         _save_live_copy_config(config)
         return JSONResponse(_live_copy_config_response(config))
