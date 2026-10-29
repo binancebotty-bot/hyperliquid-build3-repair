@@ -137,13 +137,13 @@ def main() -> None:
     os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"  # plain entry IOC retry path, not the missed-entry GTC
     os.environ["HL_LIVE_ENTRY_IOC_RETRY_BPS"] = "300"
     os.environ["HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"] = "300"
-    real_post_many = c._XNET.post_many
+    real_post_many = sys.modules['exchange_truth'].post_many
 
     def post_many(fetcher, payloads, *a, **k):
         if any(isinstance(p, dict) and p.get("type") == "orderStatus" for p in payloads):
             raise RuntimeError("info down")  # the cloid lookup is unreadable
         return real_post_many(fetcher, payloads, *a, **k)
-    c._XNET.post_many = post_many
+    sys.modules['exchange_truth'].post_many = post_many
 
     def run(label, retry_resolves_absent):
         iid = "r" + label
