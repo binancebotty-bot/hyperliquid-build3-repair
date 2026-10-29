@@ -5707,6 +5707,26 @@ class SenderGateway:
             print("ALERT: the gate refused an order (%s) but could not journal it: %r"
                   % (reason, exc), file=sys.stderr)
 
+    @staticmethod
+    def _sdk_order_account() -> Optional[str]:
+        """One SDK account resolver for close reservations AND exchange proof.
+
+        The SDK uses the configured account, or the signing address when absent.
+        Never silently replace an invalid explicit account with the signer.
+        """
+        configured = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
+        if configured:
+            account = normalise_wallet(configured)
+        else:
+            account = ""
+            key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+            if key and HLAccount is not None:
+                try:
+                    account = normalise_wallet(HLAccount.from_key(key).address)
+                except Exception as exc:
+                    log_error("trackb_sdk_order_account", exc)
+        return account if is_valid_wallet(account) else None
+
     def _reserve_close_wire(self, intent: Intent, sdk_coin: str, is_buy: bool, size: float,
                             price: float, reduce_only: bool, cloid: str,
                             min_notional: float) -> Tuple[bool, str]:
@@ -5722,15 +5742,8 @@ class SenderGateway:
             return False, "INVALID_CLOSE_WIRE"
         if size * price < min_notional and not reduce_only:
             return False, "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
-        configured_account = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
-        account = normalise_wallet(configured_account)
-        if not configured_account and HLAccount is not None:
-            try:
-                account = normalise_wallet(HLAccount.from_key(
-                    os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()).address)
-            except Exception:
-                pass
-        if not is_valid_wallet(account):
+        account = self._sdk_order_account()
+        if account is None:
             return False, "SDK_TRADING_ACCOUNT_UNVERIFIABLE"
         if normalise_wallet(USER_WALLET) != account:
             log_error("close_wire_read_account_rebind", RuntimeError(
@@ -5859,8 +5872,7 @@ class SenderGateway:
             if (size_decimals is not None and
                     abs(size - self._floor_wire_size(size, int(size_decimals))) > POSITION_EPSILON):
                 return False
-            configured = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
-            if configured and configured != row.get("account"):
+            if self._sdk_order_account() != row.get("account"):
                 return False  # SDK trading account changed after reservation
             try:
                 signed = float(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
@@ -7294,16 +7306,20 @@ class SenderGateway:
             })
 
     def _exit_recovery_exists(self, intent: Intent) -> bool:
-        """One standing recovery close per intent. Kept in memory (the reconciliation file used to be re-read in
-        full for every unmatched close, on the send path); loaded from the file once per run."""
-        known = getattr(self, "_recovery_intent_ids", None)
-        if known is None:
-            known = set()
-            for row in iter_audit_history(RECONCILIATION_CSV):
-                if str(row.get("status") or "").startswith("EXIT_RECOVERY") and row.get("intent_id"):
-                    known.add(str(row.get("intent_id")))
-            self._recovery_intent_ids = known
-        return intent.intent_id in known
+        """Only an ACTUAL outstanding/reconciling close suppresses a fresh recovery.
+
+        Failed historical GTC attempts cannot permanently suppress the owed close.
+        """
+        with _CLOSE_RESERVATIONS_LOCK, self._resting_lock:
+            if any(str(r.get("intent_id")) == intent.intent_id
+                   for r in self._standing_closes.values() if isinstance(r, dict)):
+                return True
+            claims = (json.loads(CLOSE_RESERVATIONS_FILE.read_text(encoding="utf-8"))
+                      if CLOSE_RESERVATIONS_FILE.exists() else {})
+            if not isinstance(claims, dict):
+                return True  # unreadable truth is not permission to double-send
+            return any(str(r.get("intent_id")) == intent.intent_id
+                       for r in claims.values() if isinstance(r, dict))
 
     def _record_placed_order(self, intent: Intent, oid: str, size: float, px: float, reduce_only: bool, order_type: str,
                              terminal_state: str, action: str, notes: str) -> None:
@@ -7502,7 +7518,6 @@ class SenderGateway:
                                                   limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre, intent=intent, path="exit_recovery")
             ok, status, oid, error = self._parse_hl_response(recovery_response)
-            self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
                 with self._resting_lock:
                     self._standing_closes[intent.sleeve_id] = {
@@ -7532,8 +7547,7 @@ class SenderGateway:
             if _sc_t.get("send_cloid"):  # the standing-close send itself raised: it may exist, reconcile before anything else
                 _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, close_size, limit_px, _ro, _sc_t)
                 if _out is not None:
-                    self._recovery_intent_ids.add(intent.intent_id)  # no second blind standing close for this intent
-                    return
+                    return  # existing unresolved reservation/cloid, not a historical suppression
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUE_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
@@ -8234,18 +8248,8 @@ class SenderGateway:
         public address. Never accept a different HL_USER_WALLET read account.
         """
         read_account = normalise_wallet(USER_WALLET)
-        configured = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
-        if configured:
-            trading_account = normalise_wallet(configured)
-        else:
-            trading_account = ""
-            key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
-            if key and HLAccount is not None:
-                try:
-                    trading_account = normalise_wallet(HLAccount.from_key(key).address)
-                except Exception as exc:
-                    log_error("trackb_close_proof_signer_address", exc)
-        if not is_valid_wallet(trading_account):
+        trading_account = SenderGateway._sdk_order_account()
+        if trading_account is None:
             log_error("trackb_close_proof_account_unverifiable", RuntimeError(
                 "SDK trading account unavailable; terminal clear stays RED"))
             return None
@@ -8281,6 +8285,81 @@ class SenderGateway:
         except Exception as exc:
             log_error("fresh_exchange_net", exc)
             return None
+
+    def _trackb_fresh_open_orders_clear(self, account: str, coin: str) -> bool:
+        """Fresh, uncached same-SDK-account openOrders proof. Any unreadable DEX blocks."""
+        dexes = list(follower_dex_scope())
+        if ":" in str(coin):
+            dex = str(coin).split(":", 1)[0].lower()
+            if dex and dex not in dexes:
+                dexes.append(dex)
+        if not dexes:
+            return False
+        try:
+            results = _XNET.post_many(
+                OPEN_ORDERS_FETCHER,
+                [{"type": "openOrders", "user": account,
+                  **({"dex": dex} if dex else {})} for dex in dexes],
+                HL_INFO_URL, HTTP_TIMEOUT_SEC)
+            if len(results) != len(dexes):
+                return False
+            key = canonical_coin_key(coin)
+            for result in results:
+                if not (isinstance(result, dict) and result.get("ok")
+                        and isinstance(result.get("data"), list)):
+                    return False
+                # Conservatively refuse clear for ANY working order on the coin:
+                # we cannot safely classify unknown ownership as USER.
+                for order in result["data"]:
+                    if not isinstance(order, dict):
+                        return False
+                    if canonical_coin_key(order.get("coin")) == key:
+                        return False
+            with _CLOSE_RESERVATIONS_LOCK:
+                claims = (json.loads(CLOSE_RESERVATIONS_FILE.read_text(encoding="utf-8"))
+                          if CLOSE_RESERVATIONS_FILE.exists() else {})
+                if not isinstance(claims, dict):
+                    return False
+                for r in claims.values():
+                    if not isinstance(r, dict):
+                        return False
+                    if (r.get("account") == account and r.get("coin") == key
+                            and r.get("state") != "FILL_AWAIT_LEDGER"):
+                        return False
+            return True
+        except Exception as exc:
+            log_error("trackb_fresh_open_orders", exc)
+            return False
+
+    def _trackb_terminal_close_evidence(self, sleeve_id: str, row: Dict[str, Any]) -> bool:
+        """A matched final fill/cancel record, not proximity or only a flat read."""
+        coin = canonical_coin_key(row.get("coin"))
+        intent_id = str(row.get("intent_id") or "")
+        wallet = normalise_wallet(row.get("leader_wallet"))
+        if not coin or not intent_id or not wallet:
+            return False
+        try:
+            for r in iter_audit_history(LIVE_FILLS_CSV):
+                if (str(r.get("intent_id") or "") == intent_id
+                        and str(r.get("sleeve_id") or "") == str(sleeve_id)
+                        and canonical_coin_key(r.get("coin")) == coin
+                        and normalise_wallet(r.get("leader_wallet")) == wallet
+                        and fnum(r.get("fill_size"), 0.0) > 0
+                        and str(r.get("exchange_order_id") or "")
+                        and abs(fnum(r.get("wallet_position_after"), float("nan"))) <= POSITION_EPSILON):
+                    return True
+            # A CONFIRMED cancel is terminal for that order, but never treated as
+            # evidence of a fill. Ledger+exchange-flat are separately mandatory.
+            for r in iter_audit_history(RECONCILIATION_CSV):
+                if (str(r.get("intent_id") or "") == intent_id
+                        and normalise_wallet(r.get("leader_wallet")) == wallet
+                        and canonical_coin_key(r.get("coin")) == coin
+                        and r.get("status") == "STANDING_CLOSE_WITHDRAWN"
+                        and str(r.get("exchange_order_id") or "")):
+                    return True
+        except Exception as exc:
+            log_error("trackb_terminal_evidence", exc)
+        return False
 
     def clear_trackb_escalations(self) -> int:
         """Terminal clear requires BOTH engine-ledger flat and fresh exchange-net flat.
@@ -8318,6 +8397,13 @@ class SenderGateway:
                 net = exchange_by_coin[coin_key]
                 if net is None or not math.isfinite(net) or abs(net) > POSITION_EPSILON:
                     continue  # unavailable/USER net is never assumed to be flat
+                # Independent terminal obligations: a fresh same-account
+                # order read + matched closing fill/cancel history.
+                sdk_account = self._follower_order_account_for_proof()
+                if (sdk_account is None or
+                        not self._trackb_fresh_open_orders_clear(sdk_account, coin) or
+                        not self._trackb_terminal_close_evidence(key, row)):
+                    continue
                 with self._resting_lock:
                     # Revalidate at the durable terminal write: settings may change mid-read.
                     if self._follower_order_account_for_proof() is None:
@@ -8341,10 +8427,10 @@ class SenderGateway:
             self.audit.append_reconciliation(
                 "CLOSE_ESCALATION", "CLOSE_ESCALATION_CLEARED",
                 leader_wallet=row["leader_wallet"], coin=row["coin"], intent_id=row["intent_id"],
-                action="ENGINE_LEDGER_AND_EXCHANGE_NET_FLAT_PROVEN",
+                action="LEDGER_NET_OPEN_ORDER_AND_TERMINAL_PROVEN",
                 terminal_state="CLOSE_ESCALATION_CLEARED",
-                notes="fresh exchange net FLAT AND engine-owned sleeve ledger FLAT; "
-                      "neither alone authorises terminal clear")
+                notes="same SDK account: sleeve flat + fresh exchange net flat + "
+                      "fresh no outstanding open orders + matched terminal fill/cancel record")
         return len(done)
 
     def _trackb_remainder_entry_block(self, intent: Intent, qty: float, px: float) -> str:
@@ -9310,7 +9396,7 @@ class SenderGateway:
                 self._trackb_escalate(intent, "REDUCE_ONLY_REJECTED_AWAIT_EXCHANGE_NET_REPLAN", timing)
             # A reduce-only rejection is never proof the ENGINE sleeve is flat:
             # the USER sleeve can net the whole account to zero. Keep it owed/red.
-            if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"} and not rest_now:
+            if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"}:
                 self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, intent.fill.price, wire_size, response, parsed_error, sz_dec=sz_dec)
             if (ok and status == "ORDER_FILLED" and lifecycle in {"REDUCE", "EXIT"} and
                     use_reduce_only and fnum(timing.get("trackb_close_remainder"), 0.0) > POSITION_EPSILON):
