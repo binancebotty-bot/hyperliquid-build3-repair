@@ -22,7 +22,7 @@ import HL_Live_Copy_Service_Core as core  # noqa: E402
 
 RESULTS = []
 WALLET = "0x" + "a" * 40
-COIN = "near"
+COIN = "NEAR"
 PX = 3.2
 RESOLVED = {"ok": True, "raw_coin": "NEAR", "sdk_coin": "NEAR",
             "min_order_value_usd": 10.0}
@@ -123,7 +123,7 @@ def run():
           spy.calls)
     check("E_HELD_ROW_HAS_COIN_SIZE_NOTIONAL_AND_AGE",
           held_first is not None and held_first[1] is not None
-          and any(row.get("coin") == "near" and row.get("size") == 0.1
+          and any(row.get("coin") == COIN and row.get("size") == 0.1
                   and abs(row.get("notional", 0.0) - 0.32) < 1e-8
                   and isinstance(row.get("age_ms"), int)
                   for row in core.load_json(core.HELD_CLOSE_REMAINDERS_FILE, {}).values()),
@@ -181,10 +181,15 @@ def run():
             allowed, _ = user._validate_final_wire_order(it, RESOLVED, "NEAR", sz, PX, timing)
             if allowed:
                 fake_wire(user, user_spy, it, sz, timing)
+    # The engine may reduce its OWN units when the account also holds a user
+    # residual. It must never oversize into the user's extra 0.5.
+    wire_sizes = [call[0][2] for call in user_spy.calls]
+    total_wire = sum(wire_sizes)
     check("D_USER_MANAGED_RESIDUAL_NEVER_ADOPTED_OR_CLOSED",
-          len(user_spy.calls) == 0 and all(user_result)
-          and user._exchange_net_for_test == 4.5 and user.ledger.coin_net(COIN) == 4.0,
-          (user_result.count(True), user._exchange_net_for_test))
+          len(wire_sizes) <= 1 and total_wire <= 4.0 + 1e-9
+          and user._exchange_net_for_test - total_wire >= 0.5 - 1e-9
+          and all(call[1].get("reduce_only") is True for call in user_spy.calls),
+          (wire_sizes, user._exchange_net_for_test))
     no_clear = user.clear_close_escalations()
     red = core.load_json(core.CLOSE_ESCALATIONS_FILE, {})
     check("D_UNEXPLAINED_RESIDUAL_STAYS_HELD_AND_RED",

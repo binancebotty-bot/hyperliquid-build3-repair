@@ -1147,7 +1147,7 @@ TERMINAL_ROW_NAMES = frozenset({
     "EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK", "ILLIQUID_SKIP",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
-    "AUTHORISED_CLOSE_REFUSAL",
+    "AUTHORISED_CLOSE_REFUSAL", "HELD_CLOSE_REMAINDER",
     "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
     "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL", "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
     "BLOCKED_DUPLICATE_DEDUPE_STORE", "BLOCKED_DUPLICATE_PRE_SEND", "BLOCKED_NO_TERMINAL_RECORDED",
@@ -7020,6 +7020,15 @@ class SenderGateway:
         return True, {}
 
     def _append_local_block_reconciliation(self, intent: Intent, status: str, result: Dict[str, Any]) -> None:
+        if (result.get("operator_action") == "HOLD_DUST_OR_AGGREGATE"
+                or status == "PENDING_EXIT_GUARD_ACTIVE") and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+            # HELD is not a terminal state. The durable held ledger is retry-owned.
+            self.audit.append_reconciliation(
+                "CLOSE_HELD", "HELD_CLOSE_REMAINDER", coin=canonical_coin_key(intent.fill.coin),
+                leader_wallet=intent.fill.leader_wallet, intent_id=intent.intent_id,
+                action="RETRY_HELD_ENGINE_CLOSE", engine_can_close="True",
+                notes=str(result.get("notes") or status))
+            return
         terminal = str(result.get("terminal_state") or status)
         lifecycle = classify_send_lifecycle(intent)
         reject_category = str(result.get("reject_category") or "OWNERSHIP_CONTRACT_BLOCK")
@@ -8163,6 +8172,7 @@ class SenderGateway:
                     "leader_fill_id": str(intent.fill.leader_fill_id),
                     "size": size,
                     "notional": abs(size * fnum(intent.fill.price)),
+                    "price": fnum(intent.fill.price),
                     "first_seen_ms": now, "age_ms": 0, "state": "HELD",
                 }
                 atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
@@ -8193,9 +8203,13 @@ class SenderGateway:
             ex_net = None if reason else fnum(exchange.get(coin))
             delta = ManualLedger.signed_delta(side, 1.0)
             tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(led_net)))
-            safe = (ex_net is not None and abs(ex_net - led_net) <= tol
-                    and sleeve_size * delta < 0
-                    and led_net * delta < 0)
+            safe = (ex_net is not None
+                    and sleeve_size * delta < 0 and led_net * delta < 0
+                    and ex_net * delta < 0
+                    and abs(ex_net) + tol >= abs(led_net))
+            # An exchange surplus is someone else's position. A reduce-only
+            # batch may close *only* engine-owned units and must leave that
+            # surplus on the account; it may never enlarge into the surplus.
             pending = [(rid, row) for rid, row in rows.items()
                        if isinstance(row, dict) and row.get("wallet") == wallet and row.get("coin") == coin
                        and row.get("side") == side and row.get("state") == "HELD"]
@@ -8218,7 +8232,7 @@ class SenderGateway:
                     "wallet": wallet, "coin": coin, "side": side, "intent_id": key,
                     "leader_fill_id": str(intent.fill.leader_fill_id),
                     "size": size, "notional": abs(size * price), "first_seen_ms": now,
-                    "age_ms": 0, "state": "HELD",
+                    "price": price, "age_ms": 0, "state": "HELD",
                 }
             for row in rows.values():
                 if isinstance(row, dict) and row.get("state") == "HELD":
@@ -8236,6 +8250,8 @@ class SenderGateway:
                             and row.get("state") == "HELD"]
                 timing["held_close_remainder_ids"] = selected
                 timing["held_close_total"] = total
+                for rid in selected:
+                    rows[rid]["state"] = "RESERVED"
                 atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
                 return round(total, 10), None
             atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
@@ -8251,6 +8267,88 @@ class SenderGateway:
                 "operator_action": "HOLD_DUST_OR_AGGREGATE", "notes": info, "timing": timing,
                 "wire_size": size, "copy_notional": abs(size * price),
             }
+
+    def _release_unsubmitted_held_close(self, timing: Dict[str, Any]) -> None:
+        """A no-call failure can safely release a batch; an invoked SDK call cannot."""
+        ids = timing.get("held_close_remainder_ids") or []
+        if not ids or timing.get("exchange_order_invoked"):
+            return
+        with _HELD_CLOSE_REMAINDERS_LOCK:
+            rows = load_json(HELD_CLOSE_REMAINDERS_FILE, {})
+            if not isinstance(rows, dict):
+                raise ValueError("HELD_CLOSE_REMAINDERS_CORRUPT")
+            changed = False
+            for rid in ids:
+                if rid in rows and rows[rid].get("state") == "RESERVED":
+                    rows[rid]["state"] = "HELD"
+                    changed = True
+            if changed:
+                atomic_write_json(HELD_CLOSE_REMAINDERS_FILE, rows)
+
+
+    def retry_held_close_remainders(self) -> int:
+        """One attempt per eligible wallet/coin on the existing cycle; no new leader fill needed.
+
+        An IN_FLIGHT/RESERVED row is never retried without reconciliation. A
+        fresh, same-direction account read and an owned sleeve bound the wire.
+        """
+        if not self.ledger or not self.cfg.master_switch_now():
+            return 0
+        rows = load_json(HELD_CLOSE_REMAINDERS_FILE, {})
+        if not isinstance(rows, dict) or not rows:
+            return 0
+        groups: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {}
+        for row in rows.values():
+            if isinstance(row, dict) and row.get("state") in {"HELD", "RESERVED", "IN_FLIGHT"}:
+                key = (str(row.get("wallet") or ""), canonical_coin_key(row.get("coin")),
+                       str(row.get("side") or ""))
+                groups.setdefault(key, []).append(row)
+        sent = 0
+        for (wallet, coin, side), group in groups.items():
+            if any(row.get("state") != "HELD" for row in group):
+                continue
+            sleeve = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
+            if not isinstance(sleeve, dict):
+                continue
+            owned = fnum(sleeve.get("signed_size"))
+            delta = ManualLedger.signed_delta(side, 1.0)
+            if owned * delta >= 0:
+                continue
+            ex_net = self._fresh_exchange_net(coin)
+            led_net = self.ledger.coin_net(coin)
+            if (ex_net is None or ex_net * delta >= 0 or led_net * delta >= 0
+                    or abs(ex_net) + POSITION_EPSILON < abs(led_net)):
+                continue
+            size = round(sum(fnum(row.get("size")) for row in group), 10)
+            if size <= POSITION_EPSILON or size > abs(owned) + POSITION_EPSILON:
+                continue
+            price = follower_mid(coin) or follower_position_mark(coin)
+            if not price or price <= 0:
+                continue
+            resolved = self._resolve_coin(coin)
+            if not resolved.get("ok"):
+                continue
+            minimum = self._effective_symbol_min_notional(resolved)
+            whole = abs(ex_net) > POSITION_EPSILON and abs(ex_net + ManualLedger.signed_delta(side, size)) <= POSITION_EPSILON
+            if size * price + 1e-9 < minimum and not whole:
+                continue
+            row = group[0]
+            fill = LeaderFill(str(row.get("leader_fill_id") or row.get("intent_id")),
+                              wallet, coin, side, price, fnum(row.get("size")),
+                              utc_now_ms(), "HELD_CLOSE_RETRY",
+                              raw={"dir": "Close Long" if side == "SELL" else "Close Short"})
+            intent = Intent(str(row.get("intent_id")), fill, side, fnum(row.get("size")),
+                            abs(fnum(row.get("size")) * price), "ON", "fixed",
+                            "EXIT_ALLOWED", "EXIT", ManualLedger.sleeve_id(wallet, coin),
+                            str(sleeve.get("position_id") or ""),
+                            ManualLedger.direction_from_size(owned), owned, led_net,
+                            True, True, utc_now_ms(), "lifecycle=EXIT; held_close_retry")
+            # Use the same durable send/ownership path as a leader close.
+            self.audit.append_order_intent(intent)
+            ok, status = self.send_if_allowed(intent)
+            if ok:
+                sent += 1
+        return sent
 
     def _mark_held_close_sent(self, timing: Dict[str, Any], intent: Intent) -> None:
         """Physical exchange invocation means no held item may be blindly reoffered."""
@@ -8406,10 +8504,20 @@ class SenderGateway:
 
         def _finish(ok: bool, status: str) -> Tuple[bool, str]:
             if authorised_close and not ok:
-                self._journal_authorised_close_refusal(intent, status)
+                if status in {"SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL", "PENDING_EXIT_GUARD_ACTIVE"}:
+                    # Owed dust is explicitly nonterminal until exchange ownership
+                    # proves a fill or a double-flat repair.
+                    self._open_close_escalation(intent, status)
+                else:
+                    self._journal_authorised_close_refusal(intent, status)
             return ok, status
         if not intent.send_allowed:
             return _finish(False, "INTENT_NOT_SEND_ALLOWED")
+        if authorised_close and getattr(self, "ledger", None) is not None:
+            repaired = self._repair_ledger_if_exchange_flat(intent, "pre-send exchange-flat proof")
+            if repaired:
+                self.clear_close_escalations()
+                return False, "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET"
         stale_reason = stale_snapshot_replay_reason(intent.fill)
         if stale_reason:
             return _finish(False, stale_reason)
@@ -8520,8 +8628,10 @@ class SenderGateway:
             # including ambiguous exceptions, remain held until reconciled.
             if reserved_exit and not timing.get("exchange_order_invoked", False):
                 self._clear_pending_exit(intent)
-        if result.get("exchange_called"):
             if timing.get("held_close_remainder_ids"):
+                self._release_unsubmitted_held_close(timing)
+        if result.get("exchange_called"):
+            if timing.get("held_close_remainder_ids") and timing.get("exchange_order_invoked"):
                 self._mark_held_close_sent(timing, intent)
             if reserved_exit and timing.get("exchange_order_invoked", False):
                 with self._pending_exit_lock:
@@ -8916,10 +9026,54 @@ class SenderGateway:
                 "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
             }
         if lifecycle in {"EXIT", "REDUCE"}:
+            # Require SDK account truth for an exact whole-position dust exemption.
+            whole_live = (self._fresh_exchange_net(intent.fill.coin)
+                          if wire_size * limit_px < self._effective_symbol_min_notional(resolved) else None)
             wire_size, held_block = self._prepare_held_close(intent, resolved, limit_px, wire_size, timing)
             if held_block is not None:
                 return False, held_block["status"], held_block
             wire_notional = abs(wire_size * limit_px)
+            if timing.get("held_close_remainder_ids"):
+                # Final SDK-account proof: no stale persisted snapshot may
+                # authorise pooling into user-owned units.
+                live_net = self._fresh_exchange_net(intent.fill.coin)
+                delta = ManualLedger.signed_delta(intent.copy_side, wire_size)
+                owned = (((self.ledger.data.get("by_wallet") or {})
+                          .get(normalise_wallet(intent.fill.leader_wallet)) or {})
+                          .get(canonical_coin_key(intent.fill.coin)) or {})
+                owned_size = fnum(owned.get("signed_size"))
+                if (live_net is None or live_net * delta >= 0
+                        or abs(live_net) + POSITION_EPSILON < wire_size
+                        or owned_size * delta >= 0
+                        or abs(owned_size) + POSITION_EPSILON < wire_size):
+                    self._release_unsubmitted_held_close(timing)
+                    return False, "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL", {
+                        "status": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+                        "exchange_called": False, "write_reconciliation": True,
+                        "terminal_state": "DUST_BELOW_MIN_NOTIONAL",
+                        "operator_action": "HOLD_DUST_OR_AGGREGATE",
+                        "notes": "fresh SDK account or owned sleeve cannot cover the held batch",
+                        "timing": timing,
+                    }
+            if wire_notional < self._effective_symbol_min_notional(resolved):
+                if whole_live is None:
+                    whole_live = self._fresh_exchange_net(intent.fill.coin)
+                delta = ManualLedger.signed_delta(intent.copy_side, wire_size)
+                owned_net = self.ledger.coin_net(canonical_coin_key(intent.fill.coin)) if self.ledger else 0.0
+                whole_proven = (whole_live is not None
+                                and abs(whole_live) > POSITION_EPSILON
+                                and abs(whole_live + delta) <= POSITION_EPSILON
+                                and abs(owned_net - whole_live) <= POSITION_EPSILON)
+                if not whole_proven:
+                    self._release_unsubmitted_held_close(timing)
+                    return False, "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL", {
+                        "status": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+                        "exchange_called": False, "write_reconciliation": True,
+                        "terminal_state": "DUST_BELOW_MIN_NOTIONAL",
+                        "operator_action": "HOLD_DUST_OR_AGGREGATE",
+                        "notes": "SDK account did not prove entire coin position for subminimum close",
+                        "timing": timing,
+                    }
         _gate_ok, _gate_block = self._validate_final_wire_order(
             intent, resolved, sdk_coin, wire_size, limit_px, timing
         )
@@ -13717,11 +13871,13 @@ class LiveCopyCore:
             except Exception as exc:
                 log_error("missed_entry_at_refusal", exc)
             try:
-                if _refusal_outcome is None:  # the refusal rule already wrote this fill's one terminal row
+                if (_refusal_outcome is None and send_status not in
+                        {"SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL", "PENDING_EXIT_GUARD_ACTIVE"}):
                     self._append_send_terminal(fill, intent, send_status)
             except Exception as exc:
                 log_error("append_send_terminal", exc)
-            if not self.audit.has_fill_row(fill.leader_fill_id):  # the invariant: no fill ends without a row, whatever the status
+            if (send_status not in {"SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL", "PENDING_EXIT_GUARD_ACTIVE"}
+                    and not self.audit.has_fill_row(fill.leader_fill_id)):  # owed dust remains OPEN, not terminal
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "BLOCKED_NO_TERMINAL_RECORDED", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
                     intent_id=intent.intent_id, coin=fill.coin, action="MANUAL_REVIEW_UNRECORDED_BLOCK",
@@ -14629,6 +14785,7 @@ class LiveCopyCore:
             try:
                 self.sender.prune_standing_closes()
                 self.sender.guard_standing_closes()
+                self.sender.retry_held_close_remainders()
             except Exception as exc:
                 log_error("prune_standing_closes", exc)
             if self.sender.resting_entries():
