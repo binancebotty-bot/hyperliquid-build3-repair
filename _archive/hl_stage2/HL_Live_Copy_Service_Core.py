@@ -5722,8 +5722,11 @@ class SenderGateway:
         delta = size if is_buy else -size
         if not (math.isfinite(size) and size > 0 and math.isfinite(price) and price > 0):
             return False, "INVALID_CLOSE_WIRE"
-        if size * price < min_notional and not reduce_only:
-            return False, "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
+        if size * price < min_notional:
+            if not reduce_only:
+                return False, "NON_REDUCE_ONLY_SUBMINIMUM_CLOSE"
+            if not self._is_whole_exchange_close(intent, size, True):
+                return False, "PARTIAL_REDUCE_ONLY_DUST_HELD"
         configured_account = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
         account = normalise_wallet(configured_account)
         if not configured_account and HLAccount is not None:
@@ -5856,7 +5859,8 @@ class SenderGateway:
                     or not math.isfinite(size) or not math.isfinite(limit_px)
                     or size <= 0 or limit_px <= 0):
                 return False
-            if size * limit_px < min_notional and reduce_only is not True:
+            if size * limit_px < min_notional and not self._is_whole_exchange_close(
+                    intent, size, reduce_only):
                 return False
             if (size_decimals is not None and
                     abs(size - self._floor_wire_size(size, int(size_decimals))) > POSITION_EPSILON):
@@ -8180,6 +8184,87 @@ class SenderGateway:
         return {"state": state, "adverse_pct": adverse, "pnl_after_fees_usd": pnl,
                 "loss_pct": loss_pct, "leader_px": leader_px, "executable_px": executable_px}
 
+    def _is_whole_exchange_close(self, intent: Intent, qty: float, ro: bool) -> bool:
+        """The sole verified venue exemption below $10 is the ENTIRE exchange coin."""
+        if ro is not True or qty <= POSITION_EPSILON:
+            return False
+        net = self._fresh_exchange_net(intent.fill.coin)
+        try:
+            exchange = float(net) if net is not None else float("nan")
+            own = float(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
+                        .get("signed_size", float("nan")))
+        except (TypeError, ValueError, AttributeError, KeyError):
+            return False
+        delta = ManualLedger.signed_delta(intent.copy_side, qty)
+        return (math.isfinite(exchange) and math.isfinite(own)
+                and exchange * delta < 0 and own * delta < 0
+                and abs(abs(exchange) - qty) <= POSITION_EPSILON
+                and qty <= abs(own) + POSITION_EPSILON)
+
+    def _record_close_dust_hold(self, intent: Intent, qty: float, px: float, reason: str) -> float:
+        """Journal every unique held remainder with age; never multiply replayed fills.
+
+        The existing fill matcher credits one OID to one wallet. Therefore this
+        initial safe aggregation is SAME-SLEEVE only. Other wallets' dust stays
+        owed/red, not silently booked to this sleeve or to USER inventory.
+        """
+        wallet, coin, side = (normalise_wallet(intent.fill.leader_wallet),
+                              canonical_coin_key(intent.fill.coin), intent.copy_side.upper())
+        try:
+            owned = float(self.ledger.sleeve(wallet, coin).get("signed_size", float("nan")))
+        except (TypeError, ValueError, AttributeError, KeyError):
+            return 0.0
+        delta = ManualLedger.signed_delta(side, 1.0)
+        if not math.isfinite(owned) or owned * delta >= 0 or qty <= 0:
+            return 0.0
+        quantity = min(abs(owned), abs(qty))
+        now = utc_now_ms()
+        key = stable_hash([wallet, coin, side, str(intent.fill.leader_fill_id)])
+        with _CLOSE_DUST_HOLDS_LOCK:
+            rows = load_json(CLOSE_DUST_HOLDS_FILE, {}) or {}
+            if not isinstance(rows, dict):
+                raise ValueError("CLOSE_DUST_HOLDS_CORRUPT")
+            previous = rows.get(key) if isinstance(rows.get(key), dict) else {}
+            first = int(fnum(previous.get("first_seen_ms"), now))
+            rows[key] = dict(wallet=wallet, coin=coin, side=side,
+                             leader_fill_id=str(intent.fill.leader_fill_id), intent_id=intent.intent_id,
+                             size=quantity, notional=quantity * px, first_seen_ms=first,
+                             last_seen_ms=now, age_ms=max(0, now - first),
+                             state="HELD_DUST", reason=str(reason), engine_owned_only=True)
+            atomic_write_json(CLOSE_DUST_HOLDS_FILE, rows)
+            total = sum(max(0.0, fnum(r.get("size"))) for r in rows.values()
+                        if isinstance(r, dict) and r.get("wallet") == wallet
+                        and r.get("coin") == coin and r.get("side") == side)
+        return min(abs(owned), total)
+
+    def _clear_flat_close_dust(self) -> int:
+        """Remove held rows only on fresh same-account flat AND engine sleeve flat."""
+        with _CLOSE_DUST_HOLDS_LOCK:
+            rows = load_json(CLOSE_DUST_HOLDS_FILE, {}) or {}
+            if not isinstance(rows, dict) or not rows or self.ledger is None:
+                return 0
+            if self._follower_order_account_for_proof() is None:
+                return 0
+            nets = {}
+            remaining = dict(rows)
+            for key, row in rows.items():
+                if not isinstance(row, dict):
+                    continue
+                coin = row.get("coin")
+                if coin not in nets:
+                    nets[coin] = self._fresh_exchange_net(coin)
+                try:
+                    net = float(nets[coin])
+                    owned = float(self.ledger.sleeve(row["wallet"], coin).get("signed_size"))
+                    if (math.isfinite(net) and math.isfinite(owned)
+                            and abs(net) <= POSITION_EPSILON and abs(owned) <= POSITION_EPSILON):
+                        remaining.pop(key, None)
+                except (TypeError, ValueError, KeyError, AttributeError):
+                    continue
+            if len(remaining) != len(rows):
+                atomic_write_json(CLOSE_DUST_HOLDS_FILE, remaining)
+            return len(rows) - len(remaining)
+
     def _record_unsent_close(self, intent: Intent, status: str) -> None:
         """Every refused authorised EXIT leaves named audit and durable owed-close RED."""
         reason = str(status or "UNKNOWN_CLOSE_REFUSAL")
@@ -8352,6 +8437,10 @@ class SenderGateway:
             except Exception as exc:
                 log_error("trackb_escalation_exchange_proof", exc)
                 # Any failed read/write leaves the escalation OPEN; never ledger-only clear.
+        try:
+            self._clear_flat_close_dust()
+        except Exception as exc:
+            log_error("close_dust_cleanup", exc)
         for row in done:
             self.audit.append_reconciliation(
                 "CLOSE_ESCALATION", "CLOSE_ESCALATION_CLEARED",
@@ -8446,12 +8535,8 @@ class SenderGateway:
             first_size = self._floor_wire_size(first_size, sz_dec)
         if first_size <= 0:
             return False, 0.0, "CLOSE_SPLIT_SUB_WIRE_DUST"
-        # A partial reduce-only close has the same proposed sub-$10 exemption as
-        # a full close. Unknown-net dust may be attempted only with physical RO.
-        if (not first_ro and exchange_net is None and callable(min_notional_ok)
-                and not min_notional_ok(first_size)):
-            first_ro = True
-            reason = "UNKNOWN_EXCHANGE_NET_CAPPED_ENGINE_SLEEVE_RO_DUST_ATTEMPT"
+        # C7-DIR-175: the venue refuses sub-$10 partial RO.
+        # Only exact whole exchange position is exempt at the physical gate.
         t["trackb_close_remainder"] = remainder
         t["trackb_close_net"] = exchange_net
         t["trackb_close_split_reason"] = reason
@@ -10241,9 +10326,11 @@ class SenderGateway:
             and math.isfinite(sleeve) and sleeve * delta < 0
             and wire_size <= abs(sleeve) + POSITION_EPSILON
         )
-        if wire_notional < cfg_min and dust_close:
-            timing["dust_close_below_min_notional"] = f"{wire_notional:.4f}<{cfg_min:.2f}"
-        if wire_notional < cfg_min and not dust_close and not (
+        whole_exchange_close = (dust_close and self._is_whole_exchange_close(
+            intent, wire_size, wire_reduce_only))
+        if wire_notional < cfg_min and whole_exchange_close:
+            timing["whole_exchange_dust_exemption"] = f"{wire_notional:.4f}<{cfg_min:.2f}"
+        if wire_notional < cfg_min and not whole_exchange_close and not (
                 defer_close_notional and self._reduce_only_for_intent(intent)):
             error = (
                 f"blocked before exchange: notional < min_notional; "
