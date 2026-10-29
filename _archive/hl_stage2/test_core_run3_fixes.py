@@ -23,6 +23,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from test_send_mode_fixture import arm_offline_send, fresh_offline_snapshot
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -62,7 +63,9 @@ def main() -> None:
         c._FOLLOWER_MIDS.update(px={}, ms=0)
         c._LEADER_MIDS.update(px={}, ms=0)
 
-    def config(wallets=(A, B), **gc):
+    def config(wallets=(A, B), send=False, **gc):
+        if send:
+            return arm_offline_send(c, wallets, global_controls=gc)
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000} for w in wallets}})
 
@@ -270,7 +273,7 @@ def main() -> None:
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
 
     # ---- S2: stale entries ------------------------------------------------------------------------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)
     set_mid(100.1)   # 10 bps worse than the leader: inside tolerance
     led = c.ManualLedger(path=tmp / "s2.json")
     fresh = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY"))
@@ -295,7 +298,7 @@ def main() -> None:
 
     # ---- N: leaders net like the exchange ---------------------------------------------------------------------
     def snapshot(net):
-        c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {"BTC": {"signed_size": net}}})
+        fresh_offline_snapshot(c, positions={"BTC": {"signed_size": net}})
 
     def ledger(**sleeves):
         led = c.ManualLedger(path=tmp / f"n{seq[0]}.json")
@@ -356,6 +359,8 @@ def main() -> None:
     check("N8_OPPOSITE_ENTRY_NEVER_SKIPPED", c.classify_send_lifecycle(it) == "ENTRY" and it.copy_side == "SELL"
           and "BLOCK" not in str(it.decision), f"{c.classify_send_lifecycle(it)} {it.decision}")
 
+    # The real fake-exchange N9 sends require ON; prior planning checks stay OFF.
+    config(send=True)
     # a close rejected because the account moved first: once the records catch up it is resent without reduce-only
     led = ledger(a=447.0)
     snapshot(447.0)   # stale: B's opposite fill not seen yet by either view
