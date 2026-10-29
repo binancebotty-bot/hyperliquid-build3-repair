@@ -18,6 +18,9 @@ def check(n, ok, d=""):
 W = "0x" + "a" * 40
 W2 = "0x" + "b" * 40
 c.USER_WALLET = "0x" + "c" * 40
+# The newer close-proof gate must read the same account that the SDK orders.
+# Base Core has no SDK proof guard; its historical behavior remains unchanged.
+os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = c.USER_WALLET
 rows = []
 class Audit:
     def append_reconciliation(self, *a, **k): rows.append((a, k))
@@ -36,6 +39,9 @@ def run(sleeves, ex_net, ok=True):
     rows.clear()
     me = SimpleNamespace(ledger=Ledger(sleeves), audit=Audit(), _send_lock=threading.Lock())
     me._fresh_exchange_net = lambda coin: c.SenderGateway._fresh_exchange_net(me, coin)
+    if hasattr(c.SenderGateway, "_follower_order_account_for_proof"):
+        me._follower_order_account_for_proof = (
+            lambda: c.SenderGateway._follower_order_account_for_proof(me))
     c._XNET.master_exposure = lambda *a, **k: ({"ok": True, "by_coin": {"RESOLV": {"net": ex_net}}} if ok else {"ok": False})
     c.follower_dex_scope = lambda: [""]
     intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet=W, coin="RESOLV", leader_fill_id="f1"))
