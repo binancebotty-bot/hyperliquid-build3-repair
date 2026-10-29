@@ -144,7 +144,7 @@ def main() -> None:
 
     R429 = ClientError(429, None, "Too many requests")  # structural 429 (was RuntimeError("ClientError(429...)") text)
     unreadable = lambda real, *a, **k: real(*a, **k)  # real resolver; orderStatus read raises below
-    real_post_many = c._XNET.post_many
+    real_post_many = c._XNET_MODULE.post_many  # the true function: c._XNET is a guard proxy that re-resolves the patched attribute
 
     def post_many(fetcher, payloads, *a, **k):
         if any(isinstance(p, dict) and p.get("type") == "orderStatus" for p in payloads):
