@@ -1,0 +1,19 @@
+[
+ {
+  "name": "A2_H1_PLAN_TREATS_A_READ_OF_ANOTHER_ACCOUNT_AS_UNKNOWN_AND_SENDS_FROM_THE_SLEEVE",
+  "old": "        if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position\n",
+  "new": "        if ex_net is None or close_read_account_mismatch():  # a read of ANOTHER account is unknown: send from the sleeve\n",
+  "expect_fail": [
+   "W6B_WRONG_ACCOUNT_FLAT_READ_NEVER_CLAIMS_FLAT_AND_THE_CLOSE_IS_SENT",
+   "W6C_WRONG_ACCOUNT_EXCHANGE_REJECT_NEVER_ZEROES_THE_SLEEVE"
+  ]
+ },
+ {
+  "name": "A2_H2_FLAT_REPAIR_IGNORES_A_READ_OF_ANOTHER_ACCOUNT",
+  "old": "                return \"\"\n            sleeve = ",
+  "new": "                return \"\"\n            if close_read_account_mismatch():  # a flat read of ANOTHER account never zeroes this account's sleeve\n                return \"\"\n            sleeve = ",
+  "expect_fail": [
+   "W6C_WRONG_ACCOUNT_EXCHANGE_REJECT_NEVER_ZEROES_THE_SLEEVE"
+  ]
+ }
+]
