@@ -8272,8 +8272,13 @@ class SenderGateway:
         # merely because it returned before the wire-planning gate.
         px = fnum(intent.fill.price, 0.0)
         qty = abs(fnum(intent.copy_size, 0.0))
-        if (px > 0 and qty > 0
-                and px * qty < max(DEFAULT_MIN_NOTIONAL, fnum(self.cfg.min_notional(), DEFAULT_MIN_NOTIONAL))):
+        # No config read may prevent persisting the owed-close red state.
+        minimum = DEFAULT_MIN_NOTIONAL
+        try:
+            minimum = max(minimum, fnum(self.cfg.min_notional(), minimum))
+        except Exception:
+            pass
+        if px > 0 and qty > 0 and px * qty < minimum:
             try:
                 self._record_close_dust_hold(intent, qty, px, "EARLY_CLOSE_REFUSAL: " + reason)
             except Exception as exc:
@@ -15318,7 +15323,7 @@ def run_self_test() -> None:
     global LIVE_WS_HEALTH_FILE, MANUAL_LIVE_POSITIONS_FILE, EXCHANGE_ACCOUNT_SNAPSHOT_FILE, ORDER_INTENTS_CSV
     global SEND_ATTEMPTS_CSV, LIVE_FILLS_CSV, RECONCILIATION_CSV, ERRORS_CSV, RAW_LEADER_FILLS_CSV
     global MANUAL_WALLETS_FILE, WALLET_GATE_FILE, UI_STATE_FILE, FORBIDDEN_LIVE_POSITIONS_FILE, FORBIDDEN_WOULD_SEND_ORDERS_CSV
-    global LIVE_INTEGRITY_STATUS_FILE, RESTING_ENTRY_ORDERS_FILE, STANDING_CLOSES_FILE, CLOSE_RESERVATIONS_FILE
+    global LIVE_INTEGRITY_STATUS_FILE, RESTING_ENTRY_ORDERS_FILE, STANDING_CLOSES_FILE, CLOSE_RESERVATIONS_FILE, CLOSE_DUST_HOLDS_FILE
 
     old_env = dict(os.environ)
     global LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET, MIDS_FETCHER, _SELF_TEST_MIDS
@@ -15372,6 +15377,7 @@ def run_self_test() -> None:
         RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"
         STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"
         CLOSE_RESERVATIONS_FILE = AUDIT_DIR / "close_inflight_reservations.json"
+        CLOSE_DUST_HOLDS_FILE = AUDIT_DIR / "close_dust_holds.json"
         LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
         ORDER_INTENTS_CSV = APPEND_ONLY_DIR / "order_intents.csv"
         SEND_ATTEMPTS_CSV = APPEND_ONLY_DIR / "send_attempts.csv"
