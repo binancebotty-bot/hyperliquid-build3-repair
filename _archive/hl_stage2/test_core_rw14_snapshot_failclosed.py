@@ -44,7 +44,10 @@ def main():
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
                        "HL_FOLLOWER_DEXES": "xyz", "HL_LIVE_DISABLE_NETWORK_REFRESH": "0",
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_HL_PRIVATE_KEY": "0x" + "1" * 64})
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(Path(tempfile.mkdtemp(prefix="hl_lock_")) / "engine-global.lock")
     import HL_Live_Copy_Service_Core as c
+    state_dir = Path(tempfile.mkdtemp(prefix="hl_state_"))
+    c.acquire_global_instance_lock(state_dir)
 
     c.USER_WALLET = FOLLOWER
     c.HLAccount, c.HLExchange = object, object
@@ -240,6 +243,7 @@ def main():
     g.warm_symbol_cache()
     check("W1_FAILED_WARM_DOES_NOT_START_REFRESH_TIMER", not g._universe_last_refresh_ms, str(g._universe_last_refresh_ms))
 
+    c.release_global_instance_lock()
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)

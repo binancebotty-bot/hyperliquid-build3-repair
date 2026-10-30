@@ -100,7 +100,10 @@ def main() -> None:
     os.environ["HL_LIVE_ENV_FILE"] = "/nonexistent"   # never read a real .env / key
 
     import requests
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(Path(tempfile.mkdtemp(prefix="hl_lock_")) / "engine-global.lock")
     import HL_Live_Copy_Service_Core as c
+    state_dir = Path(tempfile.mkdtemp(prefix="hl_state_"))
+    c.acquire_global_instance_lock(state_dir)
 
     def offline(*_a, **_k):
         raise RuntimeError("offline test: no network")
@@ -287,6 +290,7 @@ def main() -> None:
     check("DEFER_NO_FILL_CONSUMED_AS_BLOCKED_WHILE_UNREADABLE", not blocked_unreadable, str(blocked_unreadable[:3]))
 
     c.HLAccount, c.HLExchange = saved_acct
+    c.release_global_instance_lock()
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
     raise SystemExit(1 if failed else 0)

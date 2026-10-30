@@ -33,7 +33,10 @@ def main() -> None:
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(Path(tempfile.mkdtemp(prefix="hl_lock_")) / "engine-global.lock")
     import HL_Live_Copy_Service_Core as c
+    state_dir = Path(tempfile.mkdtemp(prefix="hl_state_"))
+    c.acquire_global_instance_lock(state_dir)
 
     c.USER_WALLET = FOLLOWER
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100", "ETH": "100"}
@@ -368,6 +371,7 @@ def main() -> None:
           blocked is not None and blocked[1] == "MARGIN_MODE_UNSET" and took_f < 3.0 and closes_ok and "CCC" not in tf.names,
           "%s %.2f %s %s" % (blocked and blocked[1], took_f, closes_ok, tf.names))
 
+    c.release_global_instance_lock()
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
