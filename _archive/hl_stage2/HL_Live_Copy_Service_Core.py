@@ -7012,21 +7012,23 @@ class SenderGateway:
                 manual_net, exchange_net,
             )
         if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
-            # never close into a position the engine's own sleeves don't explain (another bot's or a person's,
-            # e.g. the mainnet leftovers): the exchange holding MORE than the sleeves' sum, or the other way
             if unexplained:
-                block = self._ownership_gate_block(
-                    intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
-                    f"exchange holds {exchange_net} but the engine's own sleeves explain {manual_net}; not closing into "
-                    "a position the engine did not open; reconcile on the exchange",
-                    manual_net, exchange_net,
-                )
-                block["operator_action"] = "MANUAL_REVIEW_UNEXPLAINED_EXCHANGE_POSITION"
-                return False, block
-        if len(live_sleeves) > 1:
-            # For EXIT/REDUCE: ownership is unambiguous — the leader_wallet identifies the
-            # sleeve to close. Fall through to the wallet-sleeve existence check below.
-            pass
+                wallet = normalise_wallet(intent.fill.leader_wallet)
+                sleeve = next((s for w, s in sleeves if w == wallet), None)
+                owned = fnum((sleeve or {}).get("signed_size"), 0.0)
+                foreign = exchange_net - manual_net
+                # A0: same-side foreign excess stays untouched. Final fresh
+                # proof still clamps to this copy-owned sleeve (CS-I2/I3).
+                bounded = (owned * exchange_net > 0 and manual_net * exchange_net >= 0
+                           and owned * foreign > 0
+                           and abs(exchange_net) + tol >= abs(manual_net))
+                if not bounded:
+                    block = self._ownership_gate_block(
+                        intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
+                        f"unproved close: exchange={exchange_net}, engine={manual_net}; reconcile before sending",
+                        manual_net, exchange_net)
+                    block["operator_action"] = "MANUAL_REVIEW_UNEXPLAINED_EXCHANGE_POSITION"
+                    return False, block
         if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
             wallet = normalise_wallet(intent.fill.leader_wallet)
             sleeve = next((s for w, s in sleeves if w == wallet), None)
