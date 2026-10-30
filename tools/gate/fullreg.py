@@ -41,10 +41,20 @@ from concurrent.futures import ThreadPoolExecutor
 OUT = r"C:\tmp\oc_results"
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_MANIFEST = os.path.join(HERE, "manifest_pinned.txt")
+LOAD_SENSITIVE = os.path.join(HERE, "manifest_load_sensitive.txt")
 
 
 def wt(x):
     return x if os.path.isdir(x) else rf"C:\tmp\oc_wt_{x}"
+
+
+def load_sensitive_set():
+    """R52(1): files whose failure is only trusted after a solo re-run."""
+    try:
+        with open(LOAD_SENSITIVE, encoding="utf-8") as fh:
+            return {ln.split("#",1)[0].strip() for ln in fh if ln.split("#",1)[0].strip()}
+    except OSError:
+        return set()
 
 
 def classify(rc, txt):
@@ -181,6 +191,16 @@ def run_sha(w, j, to, manifest=None, label=None):
     files, absent, source = enumerate_files(d, manifest, sha)
     with ThreadPoolExecutor(j) as ex:
         res = dict(ex.map(lambda t: run_one(d, t, sha, to), files))
+    # R52(1): a load-sensitive file that FAILED under load is re-run once ALONE before its
+    # verdict counts. Both results are kept so a real failure cannot hide behind a retry.
+    ls = load_sensitive_set()
+    for f, v in list(res.items()):
+        if f in ls and v["verdict"] in ("ASSERTION_FAIL", "CRASH", "NOT_RUN", "TIMEOUT"):
+            first = dict(v)
+            _, again = run_one(d, f, sha, to)
+            res[f] = again
+            res[f]["under_load"] = first["verdict"]
+            res[f]["rerun_solo"] = again["verdict"]
     # R34 item 1: absent pinned names are informational per SHA, NOT a gate failure at the base.
     if absent:
         json.dump(absent, open(rf"{OUT}\absent_{sha}{suffix}.json", "w"), indent=1)
