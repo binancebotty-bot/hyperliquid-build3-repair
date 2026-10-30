@@ -3988,45 +3988,36 @@ class CycleSummary:
 class ConfigManager:
     def __init__(self, config_path: Optional[Path] = None):
         self.config_path = config_path or LIVE_CONFIG_FILE
-        self._switch_mtime = self._mtime()
         self.config = self._load()
-        self._switch_on = True
-
-    def _mtime(self) -> int:
-        try:
-            return self.config_path.stat().st_mtime_ns
-        except OSError:
-            return 0
 
     def master_switch_now(self) -> bool:
-        """The master switch as it is on disk NOW (re-read only when the file changed). Run 4: turning sending
-        off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
-        start of the cycle. OFF on disk stops the next order at once; arming still waits for the next cycle."""
+        """Read the master switch from disk; a failed settings read is a fault."""
         return self.send_mode_now() != "OFF"
 
     @staticmethod
     def _send_mode_of(cfg: Dict[str, Any]) -> str:
         """OFF / CLOSE / ON. global_controls.send_mode wins when present; otherwise the legacy auto_send_enabled
         (false -> OFF, true -> ON; absent -> the HL_LIVE_AUTO_SEND_ENABLED env)."""
-        gc = cfg.get("global_controls") if isinstance(cfg.get("global_controls"), dict) else {}
-        raw = str(gc.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
-        if raw in {"OFF", "ON"}:
-            return raw
-        if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
-            return "CLOSE"
-        # Fail closed: a present-but-unrecognised send_mode never falls through to a looser source.
-        if raw:
-            return "OFF"
-        # No send_mode and no explicit auto_send_enabled key: OFF. A stray env var must not arm sending.
+        gc = cfg["global_controls"]
+        if "send_mode" in gc:
+            raw = str(gc["send_mode"]).upper().strip().replace("_", " ").replace("-", " ")
+            if raw in {"OFF", "ON"}:
+                return raw
+            if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
+                return "CLOSE"
+            raise ValueError("INVALID_CONFIG_SEND_MODE")
         if "auto_send_enabled" not in cfg:
             return "OFF"
-        legacy = cfg.get("auto_send_enabled")
-        # An explicit ON arms; anything else (absent, false, junk) is OFF.
-        return "ON" if legacy is True or str(legacy).strip().lower() in {"1", "true", "yes", "y", "on"} else "OFF"
+        legacy = str(cfg["auto_send_enabled"]).strip().lower()
+        if legacy in {"true", "1", "yes", "y", "on"}:
+            return "ON"
+        if legacy in {"false", "0", "no", "n", "off"}:
+            return "OFF"
+        raise ValueError("INVALID_CONFIG_AUTO_SEND_ENABLED")
 
     @property
     def send_mode(self) -> str:
-        return self._send_mode_of(self.config)
+        return self._send_mode_of(self._load())
 
     def follower_leverage(self) -> int:
         """Leverage the follower account copies at (global_controls.follower_leverage, default 3, cross margin)."""
@@ -4043,25 +4034,17 @@ class ConfigManager:
         return not bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
 
     def send_mode_now(self) -> str:
-        """The three-state sending switch as it is on disk NOW (re-read only when the file changed). Run 4: turning
-        sending off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
-        start of the cycle. OFF on disk stops the next order at once; arming (from OFF) still waits for the next cycle."""
-        if self.send_mode == "OFF":
-            return "OFF"
-        mtime = self._mtime()
-        if mtime and mtime != self._switch_mtime:
-            fresh = load_json(self.config_path, None)
-            if isinstance(fresh, dict):
-                self._switch_mtime = mtime
-                self._switch_mode = self._send_mode_of(fresh)
-        return getattr(self, "_switch_mode", None) or self.send_mode
+        """Read current disk mode; errors propagate to the engine fault path."""
+        return self.send_mode
 
     def _load(self) -> Dict[str, Any]:
-        cfg = load_json(self.config_path, {})
+        cfg = json.loads(self.config_path.read_text(encoding="utf-8-sig"))
         if not isinstance(cfg, dict):
-            cfg = {}
+            raise ValueError("INVALID_CONFIG_ROOT")
         cfg.setdefault("wallets", {})
         cfg.setdefault("global_controls", {})
+        if not isinstance(cfg["wallets"], dict) or not isinstance(cfg["global_controls"], dict):
+            raise ValueError("INVALID_CONFIG_SECTIONS")
         return cfg
 
     @property
@@ -4098,17 +4081,19 @@ class ConfigManager:
 
     @property
     def global_controls(self) -> Dict[str, Any]:
-        return self.config.get("global_controls") if isinstance(self.config.get("global_controls"), dict) else {}
+        return self._load()["global_controls"]
 
     def wallets(self) -> Dict[str, Dict[str, Any]]:
-        raw = self.config.get("wallets")
+        raw = self._load()["wallets"]
         out: Dict[str, Dict[str, Any]] = {}
-        if isinstance(raw, dict) and raw:
+        if raw:
             for key, value in raw.items():
                 w = normalise_wallet(key)
                 if not is_valid_wallet(w):
                     continue
-                out[w] = dict(value) if isinstance(value, dict) else {}
+                if not isinstance(value, dict):
+                    raise ValueError("INVALID_CONFIG_WALLET_RECORD")
+                out[w] = dict(value)
             return out
         if MANUAL_WALLETS_FILE.exists():
             for line in MANUAL_WALLETS_FILE.read_text(encoding="utf-8-sig").splitlines():
@@ -4121,13 +4106,19 @@ class ConfigManager:
         return self.wallets().get(normalise_wallet(wallet), {})
 
     def wallet_mode(self, wallet: str) -> str:
-        cfg = self.wallet_cfg(wallet)
-        mode = str(cfg.get("mode", cfg.get("gate", "OFF"))).upper().strip()
+        configured = self.wallets()
+        key = normalise_wallet(wallet)
+        if key not in configured:
+            return "OFF"
+        cfg = configured[key]
+        mode = str(cfg.get("mode", cfg.get("gate", ""))).upper().strip()
         if mode == "CLOSE_ONLY":
             mode = "CLO"
         if mode == "LIVE":
             mode = "ON"
-        return mode if mode in {"ON", "CLO", "OFF"} else "OFF"
+        if mode not in {"ON", "CLO", "OFF"}:
+            raise ValueError("INVALID_CONFIG_WALLET_MODE")
+        return mode
 
     def wallet_enabled(self, wallet: str) -> bool:
         return bval(self.wallet_cfg(wallet).get("enabled"), True)
@@ -8161,14 +8152,10 @@ class SenderGateway:
         """Re-reads the wallet's CURRENT mode (the same ConfigManager source _decision uses) at the final send gate, so an
         intent queued/delayed while LIVE cannot send after the wallet was switched. OFF/disabled: nothing is sent. CLO: entries/adds
         blocked; closes/exits unchanged (leader closes only, sized from the follower net; not forced reduce-only). ON: unchanged.
-        Unreadable mode: fail OPEN to the intent-time decision, loudly. Never writes a wallet mode."""
+        A settings-read error propagates as an engine fault; never use intent-time mode."""
         wallet = intent.fill.leader_wallet
-        try:
-            enabled = self.cfg.wallet_enabled(wallet)
-            mode = self.cfg.wallet_mode(wallet)
-        except Exception as exc:
-            log_error("send_time_wallet_mode_unreadable", f"intent_id={intent.intent_id} wallet={wallet}: {exc!r}; using the intent-time decision")
-            return None
+        enabled = self.cfg.wallet_enabled(wallet)
+        mode = self.cfg.wallet_mode(wallet)
         if not enabled:
             return "BLOCKED_OFF", f"wallet disabled at send time (intent created in mode {intent.wallet_mode})"
         if mode == "OFF":
