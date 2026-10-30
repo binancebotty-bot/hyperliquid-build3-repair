@@ -5243,16 +5243,30 @@ class IntentBuilder:
         BEFORE the fill, which the ingestor already copies verbatim (10356) and the chain code
         already reads (466-471, 10335). Sleeves are FOLLOWER-sized by fixed notional, so the two
         numbers are not in the same units and may never be compared directly - only the ratio is
-        meaningful. Missing, zero or unparseable startPosition, or a fraction at or above 1, means
-        the FULL sleeve: over-closing is the safe side and a close is never dropped."""
+        meaningful.
+
+        R81 SIGN: the fill must OPPOSE the sign of startPosition to be a close at all. A leader
+        who is SHORT and SELLs is ADDING to the short, and a leader who is LONG and BUYs is adding
+        to the long; such a fill closes nothing, so the fraction is 0.0 and the caller holds
+        rather than fabricating a close out of an add. Missing / zero / unparseable startPosition
+        or an unknown side keeps the old FULL-sleeve answer: over-closing is the safe side and a
+        close is never dropped when the evidence is merely absent."""
         try:
-            sp = abs(float((fill.raw or {}).get("startPosition")))
+            sp = float((fill.raw or {}).get("startPosition"))
         except (TypeError, ValueError, AttributeError):
             return 1.0
-        if not math.isfinite(sp) or sp <= 0:
+        if not math.isfinite(sp) or sp == 0:
             return 1.0
         try:
-            frac = abs(float(fill.size)) / sp
+            side_delta = ManualLedger.signed_delta(getattr(fill, "side", ""), 1.0)
+        except (TypeError, ValueError, AttributeError):
+            return 1.0
+        if side_delta == 0:
+            return 1.0
+        if sp * side_delta > 0:
+            return 0.0
+        try:
+            frac = abs(float(fill.size)) / abs(sp)
         except (TypeError, ValueError, ZeroDivisionError):
             return 1.0
         if not math.isfinite(frac) or frac >= 1.0 - POSITION_EPSILON:

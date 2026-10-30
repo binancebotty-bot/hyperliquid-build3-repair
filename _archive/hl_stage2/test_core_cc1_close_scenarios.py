@@ -550,6 +550,94 @@ def r81_half_leader_close_is_half_sleeve():
     it = exit_intent(led, A, "SELL", 1.0, "r81d-f", 2.0, start=2.0)
     return abs(it.copy_size - 1.0) < 1e-9, "copy_size=%r expected 1.0 (half of sleeve)" % it.copy_size
 
+
+# ======================================== R81 SIGN: an ADD is not a close (wire-level)
+def r81_sign_flip_through_zero():
+    """(a) Leader LONG +5 SELLs 8 and flips to -3. Our sleeve is +2, so the whole sleeve closes: wire SELL 2.0
+    reduce-only, net 0. The wire size is asserted, never intent.copy_size."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 8.0, "r81s-a1-f", 2.0, start=5.0)
+    ok, status = gw.send_if_allowed(it)
+    return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 2.0) < 1e-9
+            and ex.calls[0]["is_buy"] is False and ex.calls[0]["reduce_only"] is True
+            and abs(net[0]) < 1e-9), \
+        "ok=%r status=%r calls=%r net=%r" % (ok, status, ex.calls, net)
+
+
+def r81_sign_add_to_short_never_reaches_the_wire():
+    """(a) NEGATIVE: leader SHORT -5 SELLs 2 - the leader is ADDING to a short. Nothing was closed, so nothing may
+    be sent: no wire call at all, a terminal SEND_NOT_ATTEMPTED_INVALID_SIZE, net and sleeve untouched."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 2.0, "r81s-a2-f", 2.0, start=-5.0)
+    ok, status = gw.send_if_allowed(it)
+    return (not ok and status == "SEND_NOT_ATTEMPTED_INVALID_SIZE" and ex.calls == []
+            and abs(net[0] - 2.0) < 1e-9 and abs(sleeve_of(led, A) - 2.0) < 1e-9), \
+        "ok=%r status=%r calls=%r net=%r sleeve=%r" % (ok, status, ex.calls, net, sleeve_of(led, A))
+
+
+def r81_sign_chained_catchup():
+    """(b) Three successive partial leader closes on a +10 sleeve. Each wire size is the SHARE of the sleeve the
+    leader closed, applied to the ledger between fills: 2.0, 2.0, 6.0; net 10.0 -> 8.0 -> 6.0 -> 0.0."""
+    led, ex, net = new_ledger(), FakeExchange(), [10.0]
+    gw = make_gateway(ex, led, net)
+    plan = [("r81s-b1-f", 1.0, 5.0, 10.0), ("r81s-b2-f", 1.0, 4.0, 8.0), ("r81s-b3-f", 2.5, 2.5, 6.0)]
+    got = []
+    for fid, size, start, sleeve in plan:
+        it = exit_intent(led, A, "SELL", size, fid, sleeve, start=start)
+        ok, status = gw.send_if_allowed(it)
+        if not ok or len(ex.calls) != 1:
+            return False, "fid=%s ok=%r status=%r calls=%r got=%r" % (fid, ok, status, ex.calls, got)
+        wire = ex.calls[0]
+        if wire["is_buy"] is not False or wire["reduce_only"] is not True:
+            return False, "fid=%s side/reduce_only wrong: %r" % (fid, wire)
+        got.append(wire["size"])
+        led.apply_copy_fill(it, {"side": "SELL", "size": wire["size"], "price": PX, "copy_fill_id": "cf-" + fid})
+        ex.calls.clear()
+    return (all(abs(g - w) < 1e-9 for g, w in zip(got, (2.0, 2.0, 6.0)))
+            and abs(sleeve_of(led, A)) < 1e-9 and abs(net[0]) < 1e-9), \
+        "wire=%r expected [2.0, 2.0, 6.0]; sleeve=%r net=%r" % (got, sleeve_of(led, A), net[0])
+
+
+def r81_sign_rounding_at_size_decimals():
+    """(c) Leader +3 SELLs 1 (share 1/3) on a +10 sleeve: copy 3.33333333 floors to 3.333 at sz_decimals=3 and
+    3.33 at sz_decimals=2. The WIRE size is asserted; net keeps the remainder."""
+    out = []
+    for dec, want, want_net in ((3, 3.333, 6.667), (2, 3.33, 6.67)):
+        led, ex, net = new_ledger(), FakeExchange(), [10.0]
+        gw = make_gateway(ex, led, net)
+        gw._resolve_coin = lambda coin, _d=dec: dict(RESOLVED, sz_decimals=_d)
+        it = exit_intent(led, A, "SELL", 1.0, "r81s-c%d-f" % dec, 10.0, start=3.0)
+        ok, status = gw.send_if_allowed(it)
+        if not ok or len(ex.calls) != 1:
+            return False, "dec=%d ok=%r status=%r calls=%r" % (dec, ok, status, ex.calls)
+        if abs(ex.calls[0]["size"] - want) > 1e-9 or ex.calls[0]["reduce_only"] is not True:
+            return False, "dec=%d wire=%r expected %r reduce_only" % (dec, ex.calls[0], want)
+        if abs(net[0] - want_net) > 1e-6:
+            return False, "dec=%d net=%r expected %r" % (dec, net[0], want_net)
+        out.append((dec, ex.calls[0]["size"], round(net[0], 6)))
+    return True, "ok=%r" % (out,)
+
+
+def r81_sign_subminimum_residual_is_whole_close():
+    """(d) Share 0.996 of a +10 sleeve leaves $4 of dust below the $10 minimum, so I23 rounds UP to the whole
+    owned sleeve: wire 10.0, one call, no residue. Negative twin: share 1/30 closes 0.333 and leaves 9.667 owned."""
+    led, ex, net = new_ledger(), FakeExchange(), [10.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 0.996, "r81s-d1-f", 10.0, start=1.0)
+    ok, status = gw.send_if_allowed(it)
+    if not (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9
+            and ex.calls[0]["reduce_only"] is True and abs(net[0]) < 1e-9):
+        return False, "round-up ok=%r status=%r calls=%r net=%r" % (ok, status, ex.calls, net)
+    led2, ex2, net2 = new_ledger(), FakeExchange(), [10.0]
+    gw2 = make_gateway(ex2, led2, net2)
+    it2 = exit_intent(led2, A, "SELL", 0.1, "r81s-d2-f", 10.0, start=3.0)
+    ok2, status2 = gw2.send_if_allowed(it2)
+    if not (ok2 and len(ex2.calls) == 1 and abs(ex2.calls[0]["size"] - 0.333) < 1e-9 and abs(net2[0] - 9.667) < 1e-6):
+        return False, "partial ok=%r status=%r calls=%r net=%r" % (ok2, status2, ex2.calls, net2)
+    return True, "round-up wire=10.0 net=0; partial wire=0.333 net=9.667"
+
 # ============================================== CC1-B-RULING-CEILING-1920: split, never cap
 def _ceiling_fixture(copy_size, fixed_notional=500.0, wallets=None):
     """A real gateway on a +10 owned sleeve whose account holds exactly that sleeve (so the close fits the net and is
@@ -728,6 +816,11 @@ def main():
         ("R81_MISSING_START_POSITION_IS_FULL_SLEEVE", r81_missing_start_is_full_sleeve),
         ("R81_WHOLE_LEADER_CLOSE_IS_FULL_SLEEVE", r81_whole_leader_close_is_full_sleeve),
         ("R81_HALF_LEADER_CLOSE_IS_HALF_SLEEVE", r81_half_leader_close_is_half_sleeve),
+        ("R81_SIGN_FILL_OPPOSING_START_IS_CAUGHT_FLIP_THROUGH_ZERO", r81_sign_flip_through_zero),
+        ("R81_SIGN_ADD_TO_SHORT_NEVER_REACHES_THE_WIRE", r81_sign_add_to_short_never_reaches_the_wire),
+        ("R81_SIGN_CHAINED_CATCHUP_PARTIAL_CLOSES", r81_sign_chained_catchup),
+        ("R81_SIGN_ROUNDING_AT_SIZE_DECIMALS", r81_sign_rounding_at_size_decimals),
+        ("R81_SIGN_SUBMINIMUM_RESIDUAL_IS_WHOLE_CLOSE", r81_sign_subminimum_residual_is_whole_close),
         ("EVENT_LOSS_CS_I2_COIN_NET_EQUALITY_NOT_FILL_PROOF",
          missing_fill_equal_coin_net_is_not_proof),
         ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
