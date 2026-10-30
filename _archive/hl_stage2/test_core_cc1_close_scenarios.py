@@ -541,6 +541,78 @@ def r81_half_leader_close_is_half_sleeve():
     it = exit_intent(led, A, "SELL", 1.0, "r81d-f", 2.0, start=2.0)
     return abs(it.copy_size - 1.0) < 1e-9, "copy_size=%r expected 1.0 (half of sleeve)" % it.copy_size
 
+# ============================================== CC1-B-RULING-CEILING-1920: split, never cap
+def _ceiling_fixture(copy_size, fixed_notional=500.0, wallets=None):
+    """A real gateway on a +10 owned sleeve whose account holds exactly that sleeve (so the close fits the net and is
+    sent reduce-only). Only data sources are replaced: config scope, fixed_notional, the exposure read."""
+    led, ex, net = new_ledger(), FakeExchange(), [10.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", copy_size, "ceil-%s-f" % copy_size, 10.0)
+    it.copy_size = float(copy_size)  # a close-lifecycle order may exceed our own sleeve (W2b shape)
+    it.copy_notional = abs(float(copy_size) * PX)
+    gw.cfg.wallets = lambda: ({A: {}, B: {}} if wallets is None else wallets)
+    gw.cfg.fixed_notional = lambda w: fixed_notional
+    # the ONE entry-cap code, wired exactly as the core wires it (sender.cap_source = the intent builder)
+    capb = c.IntentBuilder(gw.cfg, led)
+    capb.follower_exposure = lambda: {"ok": True, "total_usd": 0.0, "by_coin": {}}
+    capb._resting = lambda: {}
+    gw.cap_source = capb
+    return led, ex, net, gw, it
+
+
+def ceil_w2b_excess_is_clipped_to_entry_size():
+    """(i) W2b at 200 pct of the sleeve: the wire shows the sleeve CLOSE (10, reduce-only) PLUS the excess as an ENTRY
+    sized by fixed_notional (500 usd / 100 = 5 units), never 20 and never a clip of the close."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0)
+    ok, status = gw.send_if_allowed(it)
+    calls = ex.calls
+    close_calls = [x for x in calls if x["reduce_only"] is True]
+    entry_calls = [x for x in calls if x["reduce_only"] is False]
+    return (ok and len(close_calls) == 1 and abs(close_calls[0]["size"] - 10.0) < 1e-9
+            and len(entry_calls) == 1 and entry_calls[0]["size"] <= 10.0 + 1e-9
+            and abs(entry_calls[0]["size"] - 5.01) < 1e-9
+            and entry_calls[0]["is_buy"] is False), \
+        "ok=%r status=%r calls=%r (want close 10 ro=True + entry 5 ro=False)" % (ok, status, calls)
+
+
+def ceil_pure_close_never_reduced_by_any_cap():
+    """(ii) A pure close at or under the sleeve is never reduced, at ANY cap setting: tiny total/asset caps and a tiny
+    max_order_notional are set and the close still goes out whole and reduce-only. Closes are sacred."""
+    led, ex, net, gw, it = _ceiling_fixture(8.0)
+    gw.cfg.max_total_exposure = lambda: 1.0
+    gw.cfg.max_asset_directional_exposure = lambda: 1.0
+    gw.cfg.max_order_notional = lambda: 0.01
+    ok, status = gw.send_if_allowed(it)
+    return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 8.0) < 1e-9
+            and ex.calls[0]["reduce_only"] is True), \
+        "ok=%r status=%r calls=%r (want exactly one close of 8 ro=True under tiny caps)" % (ok, status, ex.calls)
+
+
+def ceil_unknown_entry_sizing_is_a_loud_fault_and_the_close_still_sends():
+    """(iii) Excess with entry sizing that CANNOT be computed (wallet not in config scope) is a LOUD fault row through
+    the existing error path - not a pass, not a silent clip - and the close part still sends."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, wallets={})
+    ok, status = gw.send_if_allowed(it)
+    faults = [r for r in recon_rows("ceil-20.0-f")
+              if r.get("terminal_state") == "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN"]
+    return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9
+            and ex.calls[0]["reduce_only"] is True and len(faults) == 1), \
+        "ok=%r status=%r calls=%r faults=%r" % (ok, status, ex.calls,
+                                               [(r.get("status"), r.get("terminal_state")) for r in faults])
+
+
+def ceil_excess_above_the_cap_is_blocked_close_untouched():
+    """(b)+(d) The excess is an ENTRY: when the global cap leaves no allowance the increase is blocked (no second
+    wire call) and the close is unaffected. max_order_notional is NOT the gate: setting it tiny changes nothing."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0)
+    gw.cfg.max_total_exposure = lambda: 0.5
+    gw.cfg.max_order_notional = lambda: 0.01
+    ok, status = gw.send_if_allowed(it)
+    return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9
+            and ex.calls[0]["reduce_only"] is True), \
+        "ok=%r status=%r calls=%r (want only the close; the capped excess sends nothing)" % (ok, status, ex.calls)
+
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -574,6 +646,14 @@ def main():
          missing_fill_equal_coin_net_is_not_proof),
         ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
          unresolved_owed_survives_restart),
+        ("CEILING_W2B_200PCT_SLEEVE_CLOSE_PLUS_EXCESS_CLIPPED_TO_ENTRY_SIZE",
+         ceil_w2b_excess_is_clipped_to_entry_size),
+        ("CEILING_PURE_CLOSE_AT_OR_UNDER_SLEEVE_NEVER_REDUCED_BY_ANY_CAP",
+         ceil_pure_close_never_reduced_by_any_cap),
+        ("CEILING_EXCESS_WITH_UNKNOWN_ENTRY_SIZING_LOUD_FAULT_CLOSE_STILL_SENDS",
+         ceil_unknown_entry_sizing_is_a_loud_fault_and_the_close_still_sends),
+        ("CEILING_EXCESS_ABOVE_CAP_BLOCKED_CLOSE_UNTOUCHED",
+         ceil_excess_above_the_cap_is_blocked_close_untouched),
         *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
            (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]

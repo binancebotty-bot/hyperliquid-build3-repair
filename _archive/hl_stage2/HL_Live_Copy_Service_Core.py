@@ -5464,6 +5464,10 @@ class SenderGateway:
         self.cfg = cfg
         self.audit = audit
         self.ledger = ledger
+        # CC1-B-RULING-CEILING-1920(b): the exposure-cap decision for a SPLIT excess ENTRY is the ONE entry-cap
+        # code (_exposure_cap_block), which lives on IntentBuilder; the core wires the real builder here. None
+        # means the caps cannot be computed, which fails CLOSED for the excess only.
+        self.cap_source: Any = None
         self.truth_refresh: Optional[Callable[[], None]] = None  # the service: bring ledger + exchange snapshot up to date
         self.on_late_fill_incident: Optional[Callable[..., None]] = None  # the core wakes the convergence loop
         self._meta_cache: Dict[str, Dict[str, Any]] = {}
@@ -5751,7 +5755,7 @@ class SenderGateway:
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
                      pre_send: Optional[Callable[[], str]] = None,
-                     intent: Any = None, path: str = "") -> Any:
+                     intent: Any = None, path: str = "", entry_leg: bool = False) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -5779,7 +5783,9 @@ class SenderGateway:
         # C7-WO-1-R93: pacing slot wait -> lease check -> close proof -> pre_send (write-ahead) -> wire call.
         # Lease = who may send. Close proof = whether this close is right. Neither subsumes the other.
         _pending_id = ""
-        _is_close = (intent is not None and hasattr(intent, "reduce_only_intended")
+        # entry_leg: the ENTRY half of a SPLIT close order (CC1-B-RULING-CEILING-1920(b)) rides the same close
+        # lifecycle intent but is NOT a close, so the close proof must never judge it.
+        _is_close = (not entry_leg and intent is not None and hasattr(intent, "reduce_only_intended")
                      and self._reduce_only_for_intent(intent))
         # C7-WO-1-R95: LITERAL ownership test. A sender that is not already the
         # machine-wide lease holder must not reach the wire. No acquire-on-demand,
@@ -8075,6 +8081,133 @@ class SenderGateway:
         state["close_verified_sz_decimals"] = sz_dec
         return decide("SEND", amount, ro)
 
+    def _ceiling_split_plan(self, intent: Intent, requested: float, limit_px: float,
+                            sz_dec: Optional[int]) -> Tuple[float, str]:
+        """CC1-B-RULING-CEILING-1920: a close-lifecycle order larger than this leader's own sleeve is SPLIT, never
+        capped. (a) The part up to the proven-owned sleeve is the CLOSE: sacred, never blocked or clipped by any
+        notional or cap. (b) The EXCESS beyond the sleeve is an ENTRY in the other direction: it gets entry sizing
+        (the wallet's fixed_notional per leader fill), the global cap may size it DOWN, and an increase above the cap
+        is blocked. (c) Excess whose entry size CANNOT be computed is a LOUD fault, never a pass and never a silent
+        clip; the close part still sends. (d) No new policy number: max_order_notional is NOT used here.
+        Returns (excess_wire_size, note). Never raises."""
+        try:
+            requested = float(requested or 0.0)
+            if not math.isfinite(requested) or requested <= 0:
+                return 0.0, ""
+            if not self.ledger:
+                return 0.0, ""
+            coin = canonical_coin_key(intent.fill.coin)
+            wallet = normalise_wallet(intent.fill.leader_wallet)
+            row = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
+            if not isinstance(row, dict) or "signed_size" not in row:
+                return 0.0, ""
+            try:
+                owned = abs(float(row["signed_size"]))
+            except (TypeError, ValueError):
+                return 0.0, ""
+            excess = round(requested - owned, 10)
+            if not math.isfinite(excess) or excess <= 0:
+                return 0.0, ""
+            if limit_px <= 0 or sz_dec is None:
+                return 0.0, self._ceiling_excess_fault(
+                    intent, requested, owned,
+                    "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN: no price/precision to size the excess ENTRY")
+            # entry sizing: the wallet's fixed_notional per leader fill. A wallet outside the config scope, or an
+            # unreadable config, means the ENTRY cannot be sized: LOUD fault, the close is untouched.
+            try:
+                if wallet not in (self.cfg.wallets() or {}):
+                    return 0.0, self._ceiling_excess_fault(
+                        intent, requested, owned,
+                        "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN: wallet not in config scope; the excess is an ENTRY "
+                        "and its size cannot be computed")
+                entry_notional = float(self.cfg.fixed_notional(wallet))
+            except Exception as exc:
+                return 0.0, self._ceiling_excess_fault(
+                    intent, requested, owned,
+                    "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN: entry sizing unreadable (%s); the excess is an ENTRY "
+                    "and its size cannot be computed" % type(exc).__name__)
+            if not math.isfinite(entry_notional) or entry_notional <= 0:
+                return 0.0, self._ceiling_excess_fault(
+                    intent, requested, owned,
+                    "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN: fixed_notional is %r; the excess is an ENTRY" % entry_notional)
+            merged = max(1, int(fnum((intent.fill.raw or {}).get("merged_fill_count"), 1)))
+            entry_units = self._floor_wire_size((entry_notional * merged) / limit_px, sz_dec)
+            if entry_units <= 0:
+                return 0.0, self._ceiling_excess_fault(
+                    intent, requested, owned,
+                    "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN: entry sizing rounded to zero units; the excess is an ENTRY")
+            send_units = min(excess, entry_units)
+            note = "CEILING_SPLIT: close=%s excess=%s entry_sized=%s" % (owned, excess, send_units)
+            # the global cap sizes the excess ENTRY down; an increase above the cap is blocked. The close is not affected.
+            try:
+                cap_total = float(self.cfg.max_total_exposure())
+                cap_asset = float(self.cfg.max_asset_directional_exposure())
+            except Exception as exc:
+                return 0.0, note + "; CEILING_EXCESS_CAP_UNREADABLE: %s (the close is not affected)" % type(exc).__name__
+            if cap_total > 0 or cap_asset > 0:
+                cap = getattr(self, "cap_source", None)
+                if cap is None:
+                    return 0.0, note + ("; CEILING_EXCESS_BLOCKED_ABOVE_CAP: caps are set but the exposure read is "
+                                        "not wired; the excess cannot be proven inside the cap (the close is not affected)")
+                try:
+                    _CAP_TLS.scale, _CAP_TLS.cap_detail = 1.0, None
+                    block = cap._exposure_cap_block(intent.fill, send_units * limit_px, limit_px)
+                    frac = float(getattr(_CAP_TLS, "scale", 1.0) or 1.0)
+                    _CAP_TLS.scale, _CAP_TLS.cap_detail = 1.0, None
+                    if block:
+                        return 0.0, note + "; CEILING_EXCESS_BLOCKED_ABOVE_CAP: %s (the close is not affected)" % block
+                    if frac < 1.0 - 1e-9:
+                        send_units = self._floor_wire_size(send_units * frac, sz_dec)
+                        note += "; CAP_SIZED_DOWN to %.4f" % frac
+                except Exception as exc:
+                    return 0.0, note + "; CEILING_EXCESS_CAP_UNREADABLE: %s (the close is not affected)" % type(exc).__name__
+            if send_units <= 0:
+                return 0.0, note + "; CEILING_EXCESS_BELOW_LOT"
+            return send_units, note
+        except Exception as exc:
+            log_error("ceiling_split_plan", exc)
+            return 0.0, "CEILING_EXCESS_PLAN_UNREADABLE"
+
+    def _ceiling_excess_fault(self, intent: Intent, requested: float, owned: float, detail: str) -> str:
+        """CC1-B-RULING-CEILING-1920(c): the excess beyond the sleeve is an ENTRY whose size cannot be computed. That is
+        a LOUD fault through the existing error path. The close part still sends; nothing is clipped silently."""
+        try:
+            log_error("ceiling_excess_entry_sizing", RuntimeError(detail))
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin,
+                action="MANUAL_REVIEW_EXCESS_ENTRY_NOT_SENT",
+                reject_category="CEILING_EXCESS_ENTRY_SIZING_UNKNOWN",
+                terminal_state="CEILING_EXCESS_ENTRY_SIZING_UNKNOWN",
+                engine_can_send="False",
+                notes=("%s; requested=%s; proven_owned_sleeve=%s; the close part (up to the sleeve) is still sent: "
+                       "closes are sacred" % (detail, requested, owned)))
+        except Exception as exc:
+            log_error("ceiling_excess_fault_journal", exc)
+        return detail
+
+    def _send_ceiling_excess(self, exchange: Any, sdk_coin: str, intent: Intent, size: float, limit_px: float,
+                             sz_dec: int, timing: Dict[str, Any]) -> None:
+        """The ENTRY half of a SPLIT close order (CC1-B-RULING-CEILING-1920(b)): the excess beyond this leader's sleeve,
+        same wire side as the close but never reduce-only, already sized as an entry and capped. It gets its own cloid
+        and its own write-ahead pending row. A refusal here never touches the close, which has already gone."""
+        try:
+            size = self._floor_wire_size(size, sz_dec)
+            if size <= 0:
+                return
+            timing["ceiling_excess_started_ms"] = utc_now_ms()
+            _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC_CEILING_EXCESS", limit_px, size, False,
+                                                  timing, "ceiling_excess")
+            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, limit_px, "Ioc", False,
+                                         timing, "ceiling_excess_call_started_ms", cloid=_cl, pre_send=_pre,
+                                         intent=intent, path="send_ceiling_excess", entry_leg=True)
+            ok, status, _oid, error = self._parse_hl_response(response)
+            timing["ceiling_excess_result"] = "%s %s %s" % ("OK" if ok else "NOT_SENT", status, str(error or "")[:120])
+        except Exception as exc:
+            log_error("send_ceiling_excess", exc)
+            timing["ceiling_excess_result"] = "EXCEPTION %s" % type(exc).__name__
+
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
         20 of them, the records said the sleeve was open and the account was flat). A fresh read of the follower account on the
@@ -8875,6 +9008,7 @@ class SenderGateway:
         if _margin_block is not None:
             return _margin_block
         use_reduce_only, close_size_planned, close_skip = (False, wire_size, "")
+        _close_requested_size = wire_size  # CC1-B-RULING-CEILING-1920: the size the leader traded, before any clamp
         if lifecycle in {"EXIT", "REDUCE"}:
             _min_n = self._effective_symbol_min_notional(resolved)
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
@@ -8895,6 +9029,12 @@ class SenderGateway:
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
                 wire_size = close_size_planned
+            # CC1-B-RULING-CEILING-1920: the part above our sleeve is an ENTRY, not a clip. Sized here (a fault is
+            # journaled loud now); sent below only after the close itself reached the wire.
+            _ceiling_excess_units, _ceiling_note = self._ceiling_split_plan(
+                intent, _close_requested_size, limit_px, sz_dec)
+            if _ceiling_note:
+                timing["ceiling_split"] = _ceiling_note
 
         # Validate the FINAL size once, AFTER close-owned dust uplift (I23).
         # A sub-minimum requested close can become a valid whole-position close.
@@ -8964,6 +9104,10 @@ class SenderGateway:
                     "exchange_called": True, "error": parsed_error, "timing": timing,
                     "reject_category": "", "reduce_only_sent": use_reduce_only,
                 })
+                # CC1-B-RULING-CEILING-1920(b): the close is on the wire; now the excess ENTRY, separately sized and
+                # capped, with its own cloid and pending row. A failed excess never affects the close just sent.
+                if _ceiling_excess_units > 0 and lifecycle in {"EXIT", "REDUCE"}:
+                    self._send_ceiling_excess(exchange, sdk_coin, intent, _ceiling_excess_units, limit_px, sz_dec, timing)
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
             if (
                 not ok
@@ -12329,6 +12473,7 @@ class LiveCopyCore:
         self.reconciler = ExchangeReconciler(self.ledger, self.audit)
         self.sender.truth_refresh = self._refresh_truth_for_gate
         self.intent_builder.resting_exposure = self.sender.resting_entry_exposure
+        self.sender.cap_source = self.intent_builder  # CC1-B-RULING-CEILING-1920(b): ONE entry-cap code for the excess
         self._truth_refresh_lock = threading.Lock()
         self._last_truth_refresh = 0.0
         self.state_writer = ServiceStateWriter()
