@@ -252,11 +252,18 @@ def main():
             check(name, False, "VACUOUS: unrelated gate blocks first (%s)" % gate)
     else:
         result = None
+        # CC1 close-r3 EARLY RETURN: the lease is ALREADY unowned at entry, so the write-ahead hook must
+        # never be invoked. C2's purpose - a pending row that ALREADY exists is durably terminalised after
+        # a NO_EXCHANGE_CALL - is therefore exercised with the row written up front and named by the
+        # timing, not by a pre_send that must not run.
+        write_pending("fence-denial-1")
+        pre_send_calls = []
         try:
             result = gw._place_order(
                 spy, "BTC", True, 0.01, 50000.0, "Ioc", False,
+                timing={"send_attempt_id": "fence-denial-1"},
                 bypass_rate_limit_cooldown=True, intent=intent, path="fence",
-                pre_send=lambda: write_pending("fence-denial-1"))
+                pre_send=lambda: (pre_send_calls.append(1) or "should-never-be-written"))
         except Exception:
             note("place_order raised: %s" % traceback.format_exc(limit=2).replace("\n", " | ")[:300])
         check("C2_PHYSICAL_FENCE",
@@ -281,6 +288,9 @@ def main():
               and persisted[-1].get("operator_action") == "NO_EXCHANGE_CALL"
               and persisted[-1].get("status") != "pending_send",
               "a prewritten pending row must be DURABLY terminalised after NO_EXCHANGE_CALL")
+        check("C2_EARLY_RETURN_PRE_SEND_NEVER_INVOKED", pre_send_calls == [],
+              "the write-ahead hook ran %d time(s) although the lease was already unowned at entry"
+              % len(pre_send_calls))
 
     # ---- C3 -------------------------------------------------------------------------------
     reap(a)

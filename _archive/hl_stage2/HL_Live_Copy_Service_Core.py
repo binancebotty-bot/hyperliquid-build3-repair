@@ -5796,7 +5796,11 @@ class SenderGateway:
             _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
         if not _late_block and _is_close:
             _late_block = self._final_close_proof(intent, size, reduce_only, timing)
-        if pre_send is not None:  # write-ahead row after the lease check, immediately before the wire
+        # CC1 close-r3 EARLY RETURN: when the lease, the mode or the close proof ALREADY failed above, this
+        # send can never reach the wire, so the write-ahead hook is not invoked: no pending row is created for
+        # an order that was never attempted. The durable terminalisation below stays for state that changes
+        # AFTER a pending row exists (the TOCTOU case: pre_send ran and the proof went stale under it).
+        if pre_send is not None and not _late_block:
             try:
                 _pending_id = str(pre_send() or "")
             except Exception as exc:

@@ -682,6 +682,23 @@ def ceil_excess_above_the_cap_is_blocked_close_untouched():
         "ok=%r status=%r calls=%r (want only the close; the capped excess sends nothing)" % (ok, status, ex.calls)
 
 
+def early_return_unowned_lease_never_calls_pre_send():
+    """EARLY RETURN: when the lease is ALREADY unowned at entry, the write-ahead hook is never invoked (count the
+    calls) and NO pending_send row is written: nothing is attempted, so nothing is terminalised."""
+    led, ex, net, gw, it = _ceiling_fixture(5.0)
+    attempts = []
+    gw._begin_pending_send = lambda *a, **k: (attempts.append(1) or "should-never-be-written")
+    saved = c._GLOBAL_INSTANCE_LOCK_OWNED
+    try:
+        c._GLOBAL_INSTANCE_LOCK_OWNED = False   # unowned at ENTRY, before any pending row could exist
+        ok, status = gw.send_if_allowed(it)
+    finally:
+        c._GLOBAL_INSTANCE_LOCK_OWNED = saved
+    rows = send_rows("ceil-5.0-f")
+    return (not ok and not ex.calls and attempts == [] and rows == []), \
+        "ok=%r status=%r sends=%r pre_send_calls=%d rows=%r" % (ok, status, ex.calls, len(attempts), rows)
+
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -727,6 +744,8 @@ def main():
          toctou_pre_send_ledger_moves_gives_zero_calls_and_terminalises_the_row),
         ("TOCTOU_PRE_SEND_MODE_OFF_ZERO_CALLS_ROW_TERMINALISED",
          toctou_pre_send_mode_off_gives_zero_calls_and_terminalises_the_row),
+        ("EARLY_RETURN_UNOWNED_LEASE_AT_ENTRY_NEVER_CALLS_PRE_SEND",
+         early_return_unowned_lease_never_calls_pre_send),
         *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
            (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]
