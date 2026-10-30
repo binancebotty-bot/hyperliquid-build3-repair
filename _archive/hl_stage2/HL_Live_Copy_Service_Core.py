@@ -5754,10 +5754,10 @@ class SenderGateway:
         # write-ahead row can take seconds; a mode or wallet change during them must stop this
         # order (Codex 6406031822: the early gate alone leaves that race open).
         _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
-        if self._reduce_only_for_intent(intent) and not _late_block:
+        if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
             _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         if _late_block:
-            close_red = self._reduce_only_for_intent(intent) and _late_block.startswith(
+            close_red = (intent is not None and self._reduce_only_for_intent(intent)) and _late_block.startswith(
                 ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
             status = "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER"
             _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
