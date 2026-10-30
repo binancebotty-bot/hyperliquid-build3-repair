@@ -7961,73 +7961,61 @@ class SenderGateway:
 
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
                          timing: Optional[Dict[str, Any]] = None, ledger_may_lag: bool = False) -> Tuple[bool, float, str]:
-        """ONE close decision: SEND / HOLD / SETTLED, with ownership and dust clamp.
-
-        Tuple compatibility is kept for existing callers: (reduce_only, wire_size, reason).
-        A nonempty reason always means NO SEND. No fallback can return the unproved
-        leader-requested size; recovery with a lagging ledger also HOLDS until reconciled.
-        """
+        """CS-I1..I4: the single SEND/HOLD/SETTLED owned close decision and clamp."""
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
         state = timing if isinstance(timing, dict) else {}
-
-        def finish(decision: str, ro: bool, amount: float, reason: str = "") -> Tuple[bool, float, str]:
-            state["close_decision"] = decision
-            state["close_proof_reason"] = reason
-            return ro, amount, reason
-
-        if not self.ledger:
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_NO_LEDGER")
+        def decide(kind: str, amount: float = 0.0, ro: bool = False, why: str = "") -> Tuple[bool, float, str]:
+            state["close_decision"] = kind
+            return ro, amount, why
+        if not self.ledger or ledger_may_lag:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_CURRENT_LEDGER")
+        if sz_dec is None:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_PRECISION")
         coin = canonical_coin_key(intent.fill.coin)
         wallet = normalise_wallet(intent.fill.leader_wallet)
-        by_wallet = (self.ledger.data.get("by_wallet") or {})
-        sleeve = (by_wallet.get(wallet) or {}).get(coin)
-        if not isinstance(sleeve, dict) or "signed_size" not in sleeve:
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_UNKNOWN_SLEEVE")
+        row = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
+        if not isinstance(row, dict) or "signed_size" not in row:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_SLEEVE")
         try:
-            owned = float(sleeve["signed_size"])
-            led_net = float(self.ledger.coin_net(coin))
-        except (ValueError, TypeError, KeyError):
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_UNREADABLE_LEDGER")
-        if not math.isfinite(owned) or not math.isfinite(led_net):
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_INVALID_LEDGER")
-        ex_net = self._fresh_exchange_net(intent.fill.coin)
-        try:
-            ex_net = float(ex_net) if ex_net is not None else float("nan")
-        except (TypeError, ValueError):
-            ex_net = float("nan")
-        if not math.isfinite(ex_net):
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_UNREADABLE_EXCHANGE")
+            owned, led = float(row["signed_size"]), float(self.ledger.coin_net(coin))
+            actual = self._fresh_exchange_net(intent.fill.coin)
+            actual, requested = float(actual), abs(float(size))
+        except (ValueError, TypeError, OverflowError):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNREADABLE_NET")
+        if not all(map(math.isfinite, (owned, led, actual, requested))):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NONFINITE_NET")
         if not self._close_proof_account_ok():
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
-        tol = max(POSITION_EPSILON, 1e-9 * max(abs(ex_net), abs(led_net), 1.0))
-        if abs(ex_net - led_net) > tol or ledger_may_lag:
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_NET_MISMATCH_OR_LEDGER_LAG")
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
+        tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(actual), abs(led)))
         if abs(owned) <= tol:
-            if abs(ex_net) <= tol:
-                return finish("SETTLED", False, 0.0, "CLOSE_ALREADY_PROVEN_FLAT")
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+            if abs(led) <= tol:
+                return decide("SETTLED", why="CLOSE_ALREADY_PROVEN_FLAT")
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
         side = ManualLedger.signed_delta(intent.copy_side, 1.0)
-        if owned * side >= 0:
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_WRONG_DIRECTION")
-        requested = abs(float(size))
-        if not math.isfinite(requested) or requested <= 0:
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_INVALID_SIZE")
+        if owned * side >= 0 or requested <= 0:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
+        # A0: ledger sleeves are copy-fill-owned. Same-side foreign excess is
+        # not ours to trade, but a reduce-only close <= this sleeve is safe.
+        foreign = actual - led
+        equal_net = abs(foreign) <= tol
+        safe_foreign = (actual * owned > 0 and led * actual >= 0
+                        and foreign * owned > 0 and abs(actual) + tol >= abs(led))
+        if not (equal_net or safe_foreign):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_MISMATCH")
         amount = min(requested, abs(owned))
-        remaining = max(0.0, abs(owned) - amount)
-        # CS-I4 / I23: a sub-minimum remainder of an otherwise owned position
-        # must be removed with this close, never silently abandoned as dust.
-        if remaining > tol and callable(min_notional_ok) and not min_notional_ok(remaining):
-            amount = abs(owned)
-        if sz_dec is not None:
-            amount = self._floor_wire_size(round(amount, 10), sz_dec)
+        if (abs(owned) - amount > tol and callable(min_notional_ok)
+                and not min_notional_ok(abs(owned) - amount)):
+            amount = abs(owned)  # I23: no abandoned sub-minimum owned dust
+        amount = self._floor_wire_size(round(amount, 10), sz_dec)
         if amount <= tol:
-            return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
-        # With equal signed ledger/exchange nets, this delta is entirely engine
-        # owned. Opposite sleeves can force a non-reduce-only crossing of flat.
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
         delta = ManualLedger.signed_delta(intent.copy_side, amount)
-        ro = ex_net * delta < 0 and amount <= abs(ex_net) + tol
-        return finish("SEND", ro, amount)
+        ro = actual * delta < 0 and amount <= abs(actual) + tol
+        if safe_foreign and not ro:  # foreign residue must never be crossed
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
+        state["close_verified_sz_decimals"] = sz_dec
+        return decide("SEND", amount, ro)
 
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
