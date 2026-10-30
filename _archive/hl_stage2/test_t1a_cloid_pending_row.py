@@ -109,7 +109,7 @@ def main() -> None:
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
         return gw
 
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"marketable_bps": 20},
                                              "wallets": {LEADER: {"enabled": True, "mode": "ON",
                                                                   "copy_mode": "fixed", "fixed_notional": 1000}}})
     seq = [0]
