@@ -3996,8 +3996,7 @@ class ConfigManager:
 
     @staticmethod
     def _send_mode_of(cfg: Dict[str, Any]) -> str:
-        """OFF / CLOSE / ON. global_controls.send_mode wins when present; otherwise the legacy auto_send_enabled
-        (false -> OFF, true -> ON; absent -> the HL_LIVE_AUTO_SEND_ENABLED env)."""
+        """Disk send mode; absent explicit switch uses the legacy config field."""
         gc = cfg["global_controls"]
         if "send_mode" in gc:
             raw = str(gc["send_mode"]).upper().strip().replace("_", " ").replace("-", " ")
@@ -4101,16 +4100,11 @@ class ConfigManager:
         return self.wallets().get(normalise_wallet(wallet), {})
 
     def wallet_mode(self, wallet: str) -> str:
-        configured = self.wallets()
-        key = normalise_wallet(wallet)
-        if key not in configured:
+        cfg = self.wallets().get(normalise_wallet(wallet))
+        if cfg is None:
             return "OFF"
-        cfg = configured[key]
         mode = str(cfg.get("mode", cfg.get("gate", ""))).upper().strip()
-        if mode == "CLOSE_ONLY":
-            mode = "CLO"
-        if mode == "LIVE":
-            mode = "ON"
+        mode = {"CLOSE_ONLY": "CLO", "LIVE": "ON"}.get(mode, mode)
         if mode not in {"ON", "CLO", "OFF"}:
             raise ValueError("INVALID_CONFIG_WALLET_MODE")
         return mode
