@@ -205,8 +205,8 @@ place.
 **Stated plainly, the data cannot tell you:**
 
 - The value of the 261 unread `0x7717a7a2` rows — outside every total above.
-- Realised PnL versus open exposure: there is no entry price per sleeve, so "3,022 USD of gap" is not
-  "3,022 USD lost".
+- Realised PnL versus open exposure: there is no entry price per sleeve, so no dollar figure here is a loss —
+  every one is open notional.
 - The largest `delta_usd` rows are not the largest exposures: BNB's 771.16 USD is mostly price effect on 1.182
   coins at 704 USD, with a follower book of 832 USD. Use the coin-level gap column, not the ranked `delta_usd`.
 - HYPE, PONS, WLFI, AVAX and both PUMP rows have account-level ledger 0 and the exposure sits in-flight or in a
