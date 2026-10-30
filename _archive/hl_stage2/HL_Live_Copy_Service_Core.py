@@ -5763,9 +5763,9 @@ class SenderGateway:
                 "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
             }, durable=True):
                 raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
-            if close_red:
+            if close_red and _late_block != "CLOSE_ALREADY_PROVEN_FLAT":
                 self._journal_authorised_close_refusal(intent, _late_block)
-            else:
+            elif not close_red:
                 self._gate_refusal_row(intent, path, _late_block)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
                     "exchange_called": False, "reject_category": status,
@@ -7998,9 +7998,7 @@ class SenderGateway:
             ex_net = float("nan")
         if not math.isfinite(ex_net):
             return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_UNREADABLE_EXCHANGE")
-        if (os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
-                and is_valid_wallet(normalise_wallet(USER_WALLET))
-                and not self._close_proof_account_ok()):
+        if not self._close_proof_account_ok():
             return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
         tol = max(POSITION_EPSILON, 1e-9 * max(abs(ex_net), abs(led_net), 1.0))
         if abs(ex_net - led_net) > tol or ledger_may_lag:
@@ -8294,9 +8292,7 @@ class SenderGateway:
                         owned = led_net = float("nan")
                     if math.isfinite(owned) and abs(owned) <= POSITION_EPSILON and math.isfinite(led_net):
                         ex_net = self._fresh_exchange_net(intent.fill.coin)
-                        account_ok = (not os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
-                                      or not is_valid_wallet(normalise_wallet(USER_WALLET))
-                                      or self._close_proof_account_ok())
+                        account_ok = self._close_proof_account_ok()
                         if (ex_net is not None and math.isfinite(float(ex_net)) and account_ok
                                 and abs(float(ex_net)) <= POSITION_EPSILON
                                 and abs(led_net) <= POSITION_EPSILON):
