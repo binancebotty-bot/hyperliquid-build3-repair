@@ -5768,39 +5768,34 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        # Reuse the durable attempt terminal for any fault before the SDK call.
+        fault = None
         try:
             _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
             if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
                 _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
-            config_fault = isinstance(exc, ValueError) and str(exc).startswith("INVALID_CONFIG")
-            status = ("CONFIG_READ_FAULT_NO_EXCHANGE_CALL" if config_fault
-                      else "PRE_WIRE_FAULT_NO_EXCHANGE_CALL")
-            category = "CONFIG_READ_FAULT" if config_fault else "PRE_WIRE_FAULT"
+            fault = exc
+            is_config = isinstance(exc, ValueError) and str(exc).startswith("INVALID_CONFIG")
+            _late_block = "CONFIG_READ_FAULT_NO_EXCHANGE_CALL" if is_config else "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+        if _late_block:
+            close_red = (fault is None and intent is not None and self._reduce_only_for_intent(intent)
+                         and _late_block.startswith(("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT")))
+            status = (_late_block if fault else
+                      "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER")
+            category = ("CONFIG_READ_FAULT" if _late_block.startswith("CONFIG_READ_FAULT")
+                        else "PRE_WIRE_FAULT") if fault else status
             _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
             if _aid and not update_send_attempt_row(_aid, {
                 "status": status, "terminal_state": status,
                 "reject_category": category, "operator_action": "NO_EXCHANGE_CALL",
-                "error": f"{type(exc).__name__}: {str(exc)[:200]}",
-                "notes": "post-wait proof fault before exchange.order; no SDK call",
+                "error": str(fault or _late_block), "notes": "NO_EXCHANGE_CALL: " + str(fault or _late_block),
             }, durable=True):
-                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid) from exc
-            log_error("physical_final_gate_fault_no_call", exc)
-            if intent is not None and self._reduce_only_for_intent(intent):
-                self._journal_authorised_close_refusal(intent, status)
-            raise PreWireNoCallFault(status, category, exc) from exc
-        if _late_block:
-            close_red = (intent is not None and self._reduce_only_for_intent(intent)) and _late_block.startswith(
-                ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
-            status = "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER"
-            _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
-            if _aid and not update_send_attempt_row(_aid, {
-                "status": status, "terminal_state": status,
-                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
-                "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
-            }, durable=True):
-                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
+                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid) from fault
+            if fault is not None:
+                log_error("physical_final_gate_fault_no_call", fault)
+                if intent is not None and self._reduce_only_for_intent(intent):
+                    self._journal_authorised_close_refusal(intent, status)
+                raise PreWireNoCallFault(status, category, fault) from fault
             if close_red and _late_block != "CLOSE_ALREADY_PROVEN_FLAT":
                 self._journal_authorised_close_refusal(intent, _late_block)
             elif not close_red:
