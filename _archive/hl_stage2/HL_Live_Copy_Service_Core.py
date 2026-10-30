@@ -5738,7 +5738,18 @@ class SenderGateway:
         # FINAL recheck, immediately before the physical call. The pacing slot wait and the
         # write-ahead row can take seconds; a mode or wallet change during them must stop this
         # order (Codex 6406031822: the early gate alone leaves that race open).
-        _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+        # I08/R3: reassert the ONE machine-wide lease at the physical send boundary.
+        # Its live OS-locked file handle is the authority; a missing, closed or
+        # replaced lock file fails closed. No second lock or ownership gate.
+        _lease = _GLOBAL_INSTANCE_LOCK
+        try:
+            _lease_held = (_lease is not None and not _lease.closed
+                           and os.path.samestat(os.fstat(_lease.fileno()),
+                                                _global_instance_lock_path().stat()))
+        except (OSError, ValueError, AttributeError):
+            _lease_held = False
+        _late_block = ("SEND_BLOCKED_NO_SENDER_LEASE" if not _lease_held else
+                       self._master_gate_reason(intent, (path or "") + ":post_wait"))
         if _late_block:
             self._gate_refusal_row(intent, path, _late_block)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
