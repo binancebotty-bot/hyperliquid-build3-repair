@@ -4037,7 +4037,10 @@ class ConfigManager:
         return self.send_mode
 
     def _load(self) -> Dict[str, Any]:
-        cfg = json.loads(self.config_path.read_text(encoding="utf-8-sig"))
+        try:
+            cfg = json.loads(self.config_path.read_text(encoding="utf-8-sig"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ValueError("INVALID_CONFIG_READ") from exc
         if not isinstance(cfg, dict):
             raise ValueError("INVALID_CONFIG_ROOT")
         cfg.setdefault("wallets", {})
@@ -5766,19 +5769,15 @@ class SenderGateway:
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
         # Reuse the durable attempt terminal for any fault before the SDK call.
-        phase = "gate"
         try:
             _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
-            phase = "close_proof"
             if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
                 _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
-            config_fault = (phase == "gate" and
-                            (isinstance(exc, (OSError, UnicodeError, json.JSONDecodeError))
-                             or (isinstance(exc, ValueError) and str(exc).startswith("INVALID_CONFIG"))))
+            config_fault = isinstance(exc, ValueError) and str(exc).startswith("INVALID_CONFIG")
             status = ("CONFIG_READ_FAULT_NO_EXCHANGE_CALL" if config_fault
-                      else "PRE_WIRE_PROOF_FAULT_NO_EXCHANGE_CALL")
-            category = "CONFIG_READ_FAULT" if config_fault else "PRE_WIRE_PROOF_FAULT"
+                      else "PRE_WIRE_FAULT_NO_EXCHANGE_CALL")
+            category = "CONFIG_READ_FAULT" if config_fault else "PRE_WIRE_FAULT"
             _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
             if _aid and not update_send_attempt_row(_aid, {
                 "status": status, "terminal_state": status,
