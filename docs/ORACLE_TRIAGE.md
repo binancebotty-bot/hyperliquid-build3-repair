@@ -180,7 +180,7 @@ that 429'd — which alone accounts for 34 of the 58 rows (31 stable, 3 volatile
 - `0x7717a7a2` (34): 2Z, AAVE, ALT, ANIME, APE, CHIP, COMP, DASH, EIGEN, ETH, FARTCOIN, FET, HBAR, INJ, IOTA,
   KLUNC, KPEPE, NEAR, NIL, ONDO, PUMP, PYTH, RENDER, RUNE, SPX, STABLE, STX, TAO, TRUMP, USELESS, VVV,
   XYZ:COPPER, XYZ:TSLA, ZRO
-- `0x20ad98` ETH; `0xd4c1f7` ETH, MON, ONDO, SUI.
+- `0x20ad98` ETH; `0xd4c1f7` DOGE, ETH, MON, ONDO, SUI.
 
 **Rows v1 carried that are gone from the unthrottled run** (6 pairs, none of which is an outstanding obligation):
 `0xbee000` PUMP and WLD, `0xd4c1f7` AVAX, BTC and WLD, `0xfe7ce0` MON. These were either throttling artefacts or
