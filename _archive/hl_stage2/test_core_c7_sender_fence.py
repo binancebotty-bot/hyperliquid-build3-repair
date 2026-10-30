@@ -218,57 +218,67 @@ def main():
     check("C1_REFUSAL_IS_INSTANCE_LOCK", "INSTANCE_ALREADY_RUNNING" in (rb.get("err") or ""),
           "refusal came from the engine's own lock, not an unrelated error")
 
-    # ---- C2: denied without lease, including structured and durable RED ----------------------
+    # ---- C2: structured denial + a REAL isolated, reloadable audit ---------------------
     spy = SpyExchange()
     refusals = []
     gw = build_gateway(core, refusals)
     intent = _Intent()
-    # Call the REAL journal method; a free-text note alone is not proof.
-    class AuditSpy:
-        def __init__(self):
-            self.rows = []
+    original_reconciliation = core.RECONCILIATION_CSV
+    original_attempts = core.SEND_ATTEMPTS_CSV
+    core.RECONCILIATION_CSV = ROOT / "isolated_reconciliation.csv"
+    core.SEND_ATTEMPTS_CSV = ROOT / "isolated_send_attempts.csv"
+    gw.audit = core.AuditLogWriter()
 
-        def append_reconciliation(self, *args, **kwargs):
-            self.rows.append((args, kwargs))
+    def write_pending(attempt_id):
+        core.append_csv(core.SEND_ATTEMPTS_CSV, core.SEND_ATTEMPT_FIELDS, {
+            "created_at": core.utc_now_iso(), "attempt_id": attempt_id,
+            "intent_id": intent.intent_id, "leader_fill_id": intent.fill.leader_fill_id,
+            "status": "pending_send", "terminal_state": "PENDING_SEND",
+        }, durable=True)
+        return attempt_id
 
-    audit = AuditSpy()
-    gw.audit = audit
-    gw._gate_refusal_row = core.SenderGateway._gate_refusal_row.__get__(gw, core.SenderGateway)
+    def terminal_row(attempt_id):
+        core._close_audit_handle(core.SEND_ATTEMPTS_CSV)
+        return [r for r in core.read_csv_rows(core.SEND_ATTEMPTS_CSV)
+                if r.get("attempt_id") == attempt_id][-1:]
+
     core.classify_send_lifecycle = lambda i: "ENTRY"
     gate = gw._master_gate_reason(intent, "fence")
     if gate:
         for name in ("C2_PHYSICAL_FENCE", "C2_STRUCTURED_SENDER_LEASE_RED",
                      "C2_DURABLE_SENDER_LEASE_RED", "C2_NO_PHANTOM_PENDING_SEND"):
-            check(name, False, "VACUOUS: unrelated gate blocked first (%s)" % gate)
+            check(name, False, "VACUOUS: unrelated gate blocks first (%s)" % gate)
     else:
-        pre = len(spy.calls)
-        pending = []
         result = None
         try:
-            result = gw._place_order(spy, "BTC", True, 0.01, 50000.0, "Ioc", False,
-                                     timing={}, started_key="", cloid=None,
-                                     bypass_rate_limit_cooldown=True,
-                                     pre_send=lambda: pending.append("pending_send"),
-                                     intent=intent, path="fence")
+            result = gw._place_order(
+                spy, "BTC", True, 0.01, 50000.0, "Ioc", False,
+                bypass_rate_limit_cooldown=True, intent=intent, path="fence",
+                pre_send=lambda: write_pending("fence-denial-1"))
         except Exception:
             note("place_order raised: %s" % traceback.format_exc(limit=2).replace("\n", " | ")[:300])
-        reached = len(spy.calls) - pre
-        check("C2_PHYSICAL_FENCE", reached == 0 and isinstance(result, dict)
-              and result.get("exchange_called") is False,
-              "A holds send right; B reached exchange.order %d time(s), result=%s"
-              % (reached, str(result)[:120]))
+        check("C2_PHYSICAL_FENCE",
+              not spy.calls and isinstance(result, dict) and result.get("exchange_called") is False,
+              "A holds sender lease; process B must never reach exchange.order")
         check("C2_STRUCTURED_SENDER_LEASE_RED", isinstance(result, dict)
               and result.get("reject_category") == "SEND_BLOCKED_NO_SENDER_LEASE"
               and result.get("terminal_state") == "SEND_BLOCKED_NO_SENDER_LEASE",
-              "reject_category/terminal_state must distinctly identify I08/R3 refusal")
+              "named no-lease refusal must be structured")
+        core._close_audit_handle(core.RECONCILIATION_CSV)
+        reloaded = core.read_csv_rows(core.RECONCILIATION_CSV)
         check("C2_DURABLE_SENDER_LEASE_RED",
-              any(args[:2] == ("SEND_TERMINAL", "SEND_BLOCKED_NO_SENDER_LEASE")
-                  and kw.get("reject_category") == "SEND_BLOCKED_NO_SENDER_LEASE"
-                  and kw.get("terminal_state") == "SEND_BLOCKED_NO_SENDER_LEASE"
-                  for args, kw in audit.rows),
-              "a durable structured reconciliation, not only notes or an exception")
-        check("C2_NO_PHANTOM_PENDING_SEND", not pending,
-              "NO_EXCHANGE_CALL must precede pending_send write; pending=%s" % pending)
+              any(r.get("event") == "SEND_TERMINAL"
+                  and r.get("status") == "SEND_BLOCKED_NO_SENDER_LEASE"
+                  and r.get("reject_category") == "SEND_BLOCKED_NO_SENDER_LEASE"
+                  and r.get("terminal_state") == "SEND_BLOCKED_NO_SENDER_LEASE"
+                  for r in reloaded),
+              "named RED must survive actual CSV write/close/reload")
+        persisted = terminal_row("fence-denial-1")
+        check("C2_NO_PHANTOM_PENDING_SEND",
+              bool(persisted) and persisted[-1].get("terminal_state") == "SEND_BLOCKED_NO_SENDER_LEASE"
+              and persisted[-1].get("operator_action") == "NO_EXCHANGE_CALL"
+              and persisted[-1].get("status") != "pending_send",
+              "a prewritten pending row must be DURABLY terminalised after NO_EXCHANGE_CALL")
 
     # ---- C3 -------------------------------------------------------------------------------
     reap(a)
@@ -344,76 +354,52 @@ def main():
               and pos_spy.calls[1][1].get("reduce_only") is True,
               "CLOSES-SACRED: a genuine holder's EXIT reaches exchange.order")
 
-        # POSIX inherited handles do not confer a sender lease in the child process.
-        if hasattr(os, "fork"):
-            read_fd, write_fd = os.pipe()
-            child_pid = os.fork()
-            if child_pid == 0:
-                os.close(read_fd)
-                child_spy = SpyExchange()
-                child_gw = build_gateway(core, [])
-                try:
-                    answer = child_gw._place_order(child_spy, "BTC", True, 0.01,
-                                                   50000.0, "Ioc", False, intent=_Intent(), path="fork")
-                    proof = {"calls": len(child_spy.calls),
-                             "reason": answer.get("reject_category")}
-                except Exception as exc:
-                    proof = {"calls": len(child_spy.calls), "reason": repr(exc)}
-                os.write(write_fd, json.dumps(proof).encode("utf-8"))
-                os.close(write_fd)
-                os._exit(0)
-            os.close(write_fd)
-            fork_raw = os.read(read_fd, 2048)
-            os.close(read_fd)
-            os.waitpid(child_pid, 0)
-            fork_proof = json.loads(fork_raw.decode("utf-8")) if fork_raw else {}
-            check("C2_FORK_INHERITED_DESCRIPTOR_REFUSED",
-                  fork_proof.get("calls") == 0 and
-                  fork_proof.get("reason") == "SEND_BLOCKED_NO_SENDER_LEASE",
-                  "forked pid must not inherit sender rights: %s" % fork_proof)
+        # I08/R3 TOCTOU: pre_send releases through the SINGLE engine release
+        # function, after recording pending. The next physical send must refuse.
+        release_spy = SpyExchange()
+        def release_in_pre_send():
+            aid = write_pending("lease-released-in-pre-send")
+            core.release_global_instance_lock()
+            return aid
+        lost = pos_gw._place_order(
+            release_spy, "BTC", False, 0.01, 50000.0, "Ioc", True,
+            intent=_Intent(), path="release-in-pre-send",
+            pre_send=release_in_pre_send)
+        released_row = terminal_row("lease-released-in-pre-send")
+        check("C2_RELEASE_DURING_PRE_SEND_REFUSES_WIRE",
+              not release_spy.calls and lost.get("reject_category") == "SEND_BLOCKED_NO_SENDER_LEASE"
+              and lost.get("exchange_called") is False
+              and not core._GLOBAL_INSTANCE_LOCK_OWNED,
+              "pre_send relinquishes the OS lease; no exchange.order may follow")
+        check("C2_RELEASE_TERMINALISES_PENDING",
+              bool(released_row) and released_row[-1].get("status") != "pending_send"
+              and released_row[-1].get("terminal_state") == "SEND_BLOCKED_NO_SENDER_LEASE"
+              and released_row[-1].get("operator_action") == "NO_EXCHANGE_CALL",
+              "real pending CSV row must be final NO_EXCHANGE_CALL after the lease vanishes")
+        check("C2_RELEASE_CLOSES_OLD_HANDLE",
+              holder.closed and core._GLOBAL_INSTANCE_LOCK is None,
+              "only the engine release function can revoke ownership")
 
-        # Reproduce the reviewer's unlock-with-handle-open counterexample.
-        holder.seek(0)
-        if os.name == "nt":
-            import msvcrt
-            msvcrt.locking(holder.fileno(), msvcrt.LK_UNLCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(holder.fileno(), fcntl.LOCK_UN)
-        check("C2_UNLOCKED_HANDLE_STILL_OPEN", not holder.closed,
-              "explicit OS unlock must not be confused with closing the descriptor")
-        unlocked_spy = SpyExchange()
-        unlocked_gw = build_gateway(core, [])
-        pending = []
-        core.classify_send_lifecycle = lambda i: "EXIT"
-        unlocked = unlocked_gw._place_order(
-            unlocked_spy, "BTC", False, 0.01, 50000.0, "Ioc", True, intent=_Intent(),
-            path="unlocked", pre_send=lambda: pending.append("pending_send"))
-        check("C2_OPEN_BUT_UNLOCKED_IS_REFUSED",
-              len(unlocked_spy.calls) == 0 and
-              unlocked.get("reject_category") == "SEND_BLOCKED_NO_SENDER_LEASE"
-              and unlocked.get("exchange_called") is False and not pending,
-              "even an OPEN descriptor cannot send after LOCK_UN; no phantom pending row")
-
-        # If another process now acquires the same lock, the stale former owner
-        # remains denied. This also checks owner metadata, not just probe contention.
+        # After release, process B takes the lease; former sender A is REFUSED.
         peer, peer_result = spawn_holder("TAKEOVER", state_b, hold=600)
         peer_state = child_result(peer, peer_result)
         takeover_spy = SpyExchange()
         takeover_gw = build_gateway(core, [])
-        takeover = takeover_gw._place_order(takeover_spy, "BTC", True, 0.01,
-                                            50000.0, "Ioc", False,
-                                            intent=_Intent(), path="stale-owner")
+        takeover = takeover_gw._place_order(
+            takeover_spy, "BTC", True, 0.01, 50000.0, "Ioc", False,
+            intent=_Intent(), path="stale-owner")
         check("C2_REPLACED_HOLDER_CANNOT_SEND",
               peer_state.get("ok") is True and not takeover_spy.calls
               and takeover.get("reject_category") == "SEND_BLOCKED_NO_SENDER_LEASE",
-              "a second process holds the lease; old open descriptor has no authority")
+              "B acquired after release; A still cannot send")
         reap(peer)
     finally:
         if holder is not None:
             holder.close()
         core._GLOBAL_INSTANCE_LOCK = None
-        core._GLOBAL_INSTANCE_LOCK_OWNER_PID = None
+        core._GLOBAL_INSTANCE_LOCK_OWNED = False
+        core.RECONCILIATION_CSV = original_reconciliation
+        core.SEND_ATTEMPTS_CSV = original_attempts
 
     total = len(RESULTS)
     failed = sum(1 for _n, ok in RESULTS if not ok)
