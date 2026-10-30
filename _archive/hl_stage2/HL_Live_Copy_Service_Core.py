@@ -8831,7 +8831,7 @@ class SenderGateway:
                           else "SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD")
                 return False, status, {
                     "status": status, "error": close_skip, "exchange_response": {}, "oid": "",
-                    "exchange_called": False, "write_reconciliation": not settled,
+                    "exchange_called": False, "write_reconciliation": False,  # owed row already persisted
                     "notes": f"{close_skip}; close remains owed unless doubly flat; no exchange call",
                     "reject_category": "" if settled else "CLOSE_PROOF_HOLD",
                     "terminal_state": status, "operator_action": "NO_SEND_CLOSE_PROOF_UNRESOLVED",
