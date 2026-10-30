@@ -36,6 +36,12 @@ os.environ.update({
 })
 import HL_Live_Copy_Service_Core as c
 
+# W4D's *sending* proof requires the same identified follower account.
+# W1/W9 must still settle without any exchange read (tested below).
+ACCOUNT = "0x" + "c" * 40
+os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = ACCOUNT
+c.USER_WALLET = ACCOUNT
+
 R = []
 
 
@@ -83,6 +89,7 @@ def close_intent(intent_id, size, px=100.0):
 # ---------------------------------------------------------------- W1
 # GUT I05: a replayed close against a consumed (FLAT) sleeve is a NAMED no-send with exactly ONE durable row.
 gw1, _ = fresh_gateway("w1", ledger_size=0.0, exchange_net=0.0)
+gw1._fresh_exchange_net = lambda _: (_ for _ in ()).throw(AssertionError("W1 requires no exchange read"))
 it1 = close_intent("w1_stale_close_replay", 0.05)
 sent1 = []
 gw1._send_real = lambda intent, timing=None: (sent1.append(intent.intent_id) or (True, "SHOULD_NOT_SEND", {}))
@@ -99,6 +106,7 @@ check("W1_EXACTLY_ONE_DURABLE_ROW_NAMING_THE_REASON",
 # ---------------------------------------------------------------- W9
 # GUT I06: two simultaneous replays of the SAME intent produce ONE no-send between them, never two rows.
 gw9, _ = fresh_gateway("w9", ledger_size=0.0, exchange_net=0.0)
+gw9._fresh_exchange_net = lambda _: (_ for _ in ()).throw(AssertionError("W9 requires no exchange read"))
 it9 = close_intent("w9_duplicate_stale_replay", 0.05)
 sent9 = []
 gw9._send_real = lambda intent, timing=None: (sent9.append(intent.intent_id) or (True, "SHOULD_NOT_SEND", {}))
