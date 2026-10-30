@@ -5742,7 +5742,16 @@ class SenderGateway:
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
-        _blocked = self._master_gate_reason(intent, path)
+        try:
+            _blocked = self._master_gate_reason(intent, path)
+        except Exception as exc:
+            is_config = isinstance(exc, ValueError) and str(exc).startswith("INVALID_CONFIG")
+            category = "CONFIG_READ_FAULT" if is_config else "PRE_WIRE_FAULT"
+            status = category + "_NO_EXCHANGE_CALL"
+            log_error("physical_first_gate_fault_no_call", exc)
+            if intent is not None and self._reduce_only_for_intent(intent):
+                self._journal_authorised_close_refusal(intent, status)
+            raise PreWireNoCallFault(status, category, exc) from exc
         if _blocked:
             self._gate_refusal_row(intent, path, _blocked)
             # The exchange was NOT called. Say so in the result so no row built from it can claim a call,
