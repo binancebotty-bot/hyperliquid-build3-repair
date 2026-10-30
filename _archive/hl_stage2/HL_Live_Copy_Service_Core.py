@@ -5231,6 +5231,30 @@ class IntentBuilder:
         except Exception:
             return False
 
+    @staticmethod
+    def _leader_close_fraction(fill: Any) -> float:
+        """R81 (CS-I1/I2): what SHARE of the leader position this fill closed, 0..1.
+
+        `fill.size` is the LEADER coin size; `fill.raw["startPosition"]` is the leader position
+        BEFORE the fill, which the ingestor already copies verbatim (10356) and the chain code
+        already reads (466-471, 10335). Sleeves are FOLLOWER-sized by fixed notional, so the two
+        numbers are not in the same units and may never be compared directly - only the ratio is
+        meaningful. Missing, zero or unparseable startPosition, or a fraction at or above 1, means
+        the FULL sleeve: over-closing is the safe side and a close is never dropped."""
+        try:
+            sp = abs(float((fill.raw or {}).get("startPosition")))
+        except (TypeError, ValueError, AttributeError):
+            return 1.0
+        if not math.isfinite(sp) or sp <= 0:
+            return 1.0
+        try:
+            frac = abs(float(fill.size)) / sp
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 1.0
+        if not math.isfinite(frac) or frac >= 1.0 - POSITION_EPSILON:
+            return 1.0
+        return max(0.0, min(1.0, frac))
+
     def build(self, fill: LeaderFill) -> Intent:
         wallet = fill.leader_wallet
         coin = fill.coin
@@ -5247,7 +5271,7 @@ class IntentBuilder:
             # reduction (fill.size < sleeve) must not be copied as a 100% close; a whole-sleeve
             # exit and a dust close still target the full sleeve, and _close_wire_plan keeps the
             # I23 sub-minimum round-up for the remaining dust.
-            copy_size = round(min(abs(before), abs(fill.size)), 8) if fill.size else round(abs(before), 8)
+            copy_size = round(abs(before) * self._leader_close_fraction(fill), 8)
             copy_notional = copy_size * fill.price
         else:
             copy_notional = self._copy_notional(wallet, fill)
