@@ -37,6 +37,10 @@ for _k in ("HL_LIVE_HL_PRIVATE_KEY", "HL_LIVE_HL_ACCOUNT_ADDRESS"):
 sys.path.insert(0, str(HERE))
 import HL_Live_Copy_Service_Core as c  # noqa: E402
 
+# C7-WO-1-R95: the sender refuses unless the engine ALREADY owns the machine-wide lease.
+# Acquire it as the real engine does at start, in the ISOLATED temp lock path above.
+c.acquire_global_instance_lock(TMP / "state")
+
 NAME = "SEND_NOT_ATTEMPTED_STALE_OR_CONSUMED_FLAT_SLEEVE"
 DUMMY_KEY = "0x" + "1" * 64            # synthetic, not a secret: only satisfies the credentials-present pre-check
 A = "0x" + "a" * 40                    # leader wallet A

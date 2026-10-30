@@ -33,8 +33,14 @@ os.environ.update({
     "HL_LIVE_ENV_FILE": "/nonexistent",
     "HL_LEADER_NETWORK": "testnet",
     "HL_FOLLOWER_NETWORK": "testnet",
+    "HL_LIVE_GLOBAL_LOCK_FILE": str(TMP / "engine-global.lock"),
 })
 import HL_Live_Copy_Service_Core as c
+
+# C7-WO-1-R95: the sender now refuses unless the engine ALREADY owns the machine-wide
+# lease, so the suite acquires it exactly as the real engine does at start - in an
+# ISOLATED temp lock path, never the live machine lock.
+c.acquire_global_instance_lock(TMP / "state")
 
 # W4D's *sending* proof requires the same identified follower account.
 # W1/W9 must still settle without any exchange read (tested below).

@@ -5746,23 +5746,6 @@ class SenderGateway:
         return ("CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
                 if abs(actual - size) > POSITION_EPSILON or ro != reduce_only else "")
 
-    def _wire_sender_lease(self) -> bool:
-        """I08/R3 C7-WO-1-R93: who may send. True when this host HOLDS the machine-wide lease.
-
-        An owner passes. A host that does not own it takes a FREE lease through the engine's own
-        acquire; while another process holds it, this host must never reach the wire."""
-        if (_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
-                and not _GLOBAL_INSTANCE_LOCK.closed):
-            return True
-        try:
-            acquire_global_instance_lock(None)
-        except SystemExit:
-            return False
-        except Exception:
-            return False
-        return bool(_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
-                    and not _GLOBAL_INSTANCE_LOCK.closed)
-
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
@@ -5797,7 +5780,12 @@ class SenderGateway:
         _pending_id = ""
         _is_close = (intent is not None and hasattr(intent, "reduce_only_intended")
                      and self._reduce_only_for_intent(intent))
-        _late_block = ("" if self._wire_sender_lease() else "SEND_BLOCKED_NO_SENDER_LEASE")
+        # C7-WO-1-R95: LITERAL ownership test. A sender that is not already the
+        # machine-wide lease holder must not reach the wire. No acquire-on-demand,
+        # no fallback, no retry: an engine that does not know its own state does not send.
+        _lease_owned = bool(_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
+                            and not _GLOBAL_INSTANCE_LOCK.closed)
+        _late_block = ("" if _lease_owned else "SEND_BLOCKED_NO_SENDER_LEASE")
         if not _late_block:
             _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
         if not _late_block and _is_close:

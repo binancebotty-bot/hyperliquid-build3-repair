@@ -49,6 +49,13 @@ def main() -> None:
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    # C7-WO-1-R95 lease: the sender refuses unless the engine already owns the machine-
+    # wide lease. Acquire it as the real engine does at start, in an ISOLATED temp lock
+    # path so the live machine lock is never opened.
+    import tempfile as _tf, pathlib as _pl
+    _lockdir = _pl.Path(_tf.mkdtemp(prefix='r95lock_'))
+    os.environ['HL_LIVE_GLOBAL_LOCK_FILE'] = str(_lockdir / 'engine-global.lock')
+    c.acquire_global_instance_lock(_lockdir / 'state')
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")

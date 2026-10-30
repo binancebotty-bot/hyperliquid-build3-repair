@@ -16,7 +16,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+# C7-WO-1-R95: _place_order refuses unless the engine ALREADY owns the machine-wide lease.
+# Acquire it exactly as the real engine does at start, in an ISOLATED temp lock path so the
+# live machine lock is never opened.
+import os as _os, tempfile as _tempfile
+_LOCK_DIR = Path(_tempfile.mkdtemp(prefix="master_gate_lock_"))
+_os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(_LOCK_DIR / "engine-global.lock")
 import HL_Live_Copy_Service_Core as C  # noqa: E402
+C.acquire_global_instance_lock(_LOCK_DIR / "state")
 
 SRC_PATH = HERE / 'HL_Live_Copy_Service_Core.py'
 results = []

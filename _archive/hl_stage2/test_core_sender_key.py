@@ -61,6 +61,13 @@ def main() -> None:
         os.environ.pop(k, None)
     import requests
     import HL_Live_Copy_Service_Core as c
+    # C7-WO-1-R95 lease: the sender refuses unless the engine already owns the machine-
+    # wide lease. Acquire it as the real engine does at start, in an ISOLATED temp lock
+    # path so the live machine lock is never opened.
+    import tempfile as _tf, pathlib as _pl
+    _lockdir = _pl.Path(_tf.mkdtemp(prefix='r95lock_'))
+    os.environ['HL_LIVE_GLOBAL_LOCK_FILE'] = str(_lockdir / 'engine-global.lock')
+    c.acquire_global_instance_lock(_lockdir / 'state')
     import HL_Copy_App_SSOT as ui
 
     def offline(*a, **k):
