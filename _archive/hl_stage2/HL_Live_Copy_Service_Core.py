@@ -8799,12 +8799,6 @@ class SenderGateway:
                 "reject_category": "RISK_LIMIT", "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
                 "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
             }
-        _gate_ok, _gate_block = self._validate_final_wire_order(
-            intent, resolved, sdk_coin, wire_size, limit_px, timing
-        )
-        timing["wire_validated_ms"] = utc_now_ms()
-        if not _gate_ok:
-            return False, _gate_block["status"], _gate_block
         # â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         # Exchange call â€" exchange_called=True from this point.
         # EXIT/REDUCE closes (and any reduce_only_intended intent) MUST be reduce-only
@@ -8839,13 +8833,16 @@ class SenderGateway:
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
                 wire_size = close_size_planned
-                # Gate B saw the leader size; validate the actual dust-uplifted
-                # physical size as well, not only the earlier proposed size.
-                _again_ok, _again_block = self._validate_final_wire_order(
-                    intent, resolved, sdk_coin, wire_size, limit_px, timing)
-                if not _again_ok:
-                    self._journal_authorised_close_refusal(intent, _again_block.get("status", "CLOSE_WIRE_INVALID"))
-                    return False, _again_block["status"], _again_block
+
+        # Validate the FINAL size once, AFTER close-owned dust uplift (I23).
+        # A sub-minimum requested close can become a valid whole-position close.
+        _gate_ok, _gate_block = self._validate_final_wire_order(
+            intent, resolved, sdk_coin, wire_size, limit_px, timing)
+        timing["wire_validated_ms"] = utc_now_ms()
+        if not _gate_ok:
+            if lifecycle in {"EXIT", "REDUCE"}:
+                self._journal_authorised_close_refusal(intent, _gate_block["status"])
+            return False, _gate_block["status"], _gate_block
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
         # T1a: the pending_send row (with the cloid) is written by _place_order synchronously, AFTER the slot/cooldown wait
