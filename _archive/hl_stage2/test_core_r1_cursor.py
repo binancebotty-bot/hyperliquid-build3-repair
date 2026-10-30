@@ -103,7 +103,14 @@ def main():
     # run_cycle calls this as _leader_poll_due(force=...); a zero-arg stub raised TypeError, which
     # run_cycle swallows, so the poll never ran and the fill this test reads was never created.
     core._leader_poll_due = lambda force=False: True
-    core.poll_wallets = lambda: [A]
+    # The real poll_wallets() also sets _poll_wallet_selection_changed (Core:14200); run_cycle reads
+    # that attribute straight after calling it (Core:14348). Stubbing the method dropped the side
+    # effect, run_cycle raised AttributeError, swallowed it, and the poll never ran - so the fill
+    # this test reads was never created. Keep the side effect in the stub.
+    def poll_wallets_stub():
+        core._poll_wallet_selection_changed = False
+        return [A]
+    core.poll_wallets = poll_wallets_stub
     def poll_fills(wallet, start_ms, end_ms=None):
         poll_starts.append(start_ms)
         if poll_fill[0] is None:
