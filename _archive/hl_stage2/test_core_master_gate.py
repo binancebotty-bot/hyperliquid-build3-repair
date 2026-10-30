@@ -45,20 +45,24 @@ place_order = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) a
 lo = place_order.lineno
 hi = max(getattr(n, 'lineno', lo) for n in ast.walk(place_order))
 
-def client_calls(attrs):
-    found = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in attrs:
-            recv = node.func.value
-            recv_name = str(getattr(recv, 'id', None) or getattr(recv, 'attr', '') or '')
-            if 'exchange' in recv_name.lower() or recv_name.lower() in {'ex', 'client', 'sdk'}:
-                found.append((node.lineno, node.func.attr))
-    return found
+def attr_calls(tree_or_src, attrs):
+    """EVERY attribute-call named in `attrs`, receiver-agnostic.
+
+    The old version resolved the receiver via getattr(id/attr), so `get_client().order(...)`
+    produced "" and the guard passed vacuously. The receiver is irrelevant to the invariant:
+    one physical exchange order call is permitted in the whole module. Only genuine Call nodes
+    with an Attribute func are matched, so docstrings, comments and string literals can never
+    appear here, and a bare `order(...)` (Name, not Attribute) is not an SDK call.
+    """
+    tree = ast.parse(tree_or_src) if isinstance(tree_or_src, str) else tree_or_src
+    return [(n.lineno, n.func.attr) for n in ast.walk(tree)
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+            and n.func.attr in attrs]
 
 
-calls_anywhere = client_calls(ORDER_PLACING)
+calls_anywhere = attr_calls(tree, ORDER_PLACING)
 calls_outside = [(ln, a) for ln, a in calls_anywhere if not (lo <= ln <= hi)]
-withdrawals = client_calls(WITHDRAWAL)
+withdrawals = attr_calls(tree, WITHDRAWAL)
 cancel_fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == '_cancel_order')
 clo = cancel_fn.lineno
 chi = max(getattr(n, 'lineno', clo) for n in ast.walk(cancel_fn))
@@ -70,6 +74,26 @@ check('WITHDRAWALS_LIVE_IN_ONE_PLACE_TOO', len(withdrawals) == 1 and withdrawals
       (withdrawals, withdrawals_outside))
 check('PLACE_ORDER_CONTAINS_THE_ONE_CALL', bool(calls_anywhere) and lo <= calls_anywhere[0][0] <= hi,
       (calls_anywhere, lo, hi))
+
+# ---- NEGATIVE CONTROL: a call-expression receiver has no .id/.attr, so the old guard saw "". The
+# receiver-agnostic walk must catch it, or EXACTLY_ONE_ORDER_CALL_IN_THE_AST stays vacuously green.
+CONTROL_SRC = '''
+class X:
+    def a(self):
+        return get_client().order("BTC", True, 1.0, 1.0)
+    def b(self):
+        return (self.ex or build_ex()).order("BTC", True, 1.0, 1.0)
+'''
+control_hits = attr_calls(CONTROL_SRC, ORDER_PLACING)
+check('GUARD_CATCHES_A_CALL_EXPRESSION_RECEIVER',
+      len(control_hits) == 2 and control_hits[0][1] == 'order' and control_hits[1][1] == 'order',
+      control_hits)
+control_src_real = SRC_PATH.read_text(encoding='utf-8-sig', errors='replace') + \
+    chr(10) + 'def _smuggled():' + chr(10) + '    return something().order("BTC", True, 1.0, 1.0)' + chr(10)
+control_real_hits = attr_calls(control_src_real, ORDER_PLACING)
+control_real_outside = [(ln, a) for ln, a in control_real_hits if not (lo <= ln <= hi)]
+check('GUARD_CATCHES_A_SMUGGLED_ORDER_IN_THE_REAL_CORE',
+      len(control_real_hits) == 2 and control_real_outside != [], (control_real_hits, control_real_outside))
 gate_line = next(n.lineno for n in ast.walk(place_order)
                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
                  and n.func.attr == '_master_gate_reason')
