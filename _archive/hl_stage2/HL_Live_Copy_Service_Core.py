@@ -8221,18 +8221,14 @@ class SenderGateway:
             self._close_escalations = rows
 
     def _follower_order_account_for_proof(self) -> str:
-        """R1/CS-I3: the account the PHYSICAL order will actually sign for.
+            """R1/CS-I3: the account the PHYSICAL order will actually sign for.
 
-        The reader (USER_WALLET) and the signer can differ. A fresh read of anything other
-        than the signing account can never authenticate a close (C7-WO-1-R77(b))."""
-        if HLAccount is not None:
-            key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
-            if key:
-                try:
-                    return normalise_wallet(HLAccount.from_key(key).address)
-                except Exception:
-                    return ""
-        return normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+            The reader (USER_WALLET) and the signer can differ. A fresh read of anything other
+            than the signing account can never authenticate a close (C7-WO-1-R77(b))."""
+            account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+            if is_valid_wallet(account):
+                return account
+            return ""
 
     @staticmethod
     @staticmethod
