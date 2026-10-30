@@ -62,7 +62,7 @@ those failures are counted as harness, not engine.
 | **UNDECIDED** | 2 — fill_lag (3 cases), deferred_entry_refusal (R6) |
 | **DUPLICATE** | 0 |
 
-Of the **89** failing cases on this board: 54 are the OFF arming literal (or a config the file never writes), 4 are `_place_order` called with no intent (`MISSING_INTENT_CONTEXT`), 18 are other fixture faults (cached open-orders read, wallet missing from the config, switch thrown before the send, fake exchange without `cloid`, `Path.open` patch that never fires, unseeded `_SLOW_EXCHANGE`, engine-snapshot inputs the UI stub never seeds), 1 is a host lock held by another engine, 7 assert superseded rules, 1 is the real defect, and 4 are UNDECIDED (fill_lag ×3, R6). `G0`/`G2` in network_and_global_controls only surface *after* arming and are counted in the row, not in this total.
+Of the **89** failing cases on this board: **34 CONFIRMED** as the OFF arming literal (measured; see correction below), not 54 (or a config the file never writes), 4 are `_place_order` called with no intent (`MISSING_INTENT_CONTEXT`), 18 are other fixture faults (cached open-orders read, wallet missing from the config, switch thrown before the send, fake exchange without `cloid`, `Path.open` patch that never fires, unseeded `_SLOW_EXCHANGE`, engine-snapshot inputs the UI stub never seeds), 1 is a host lock held by another engine, 7 assert superseded rules, 1 is the real defect, and 4 are UNDECIDED (fill_lag ×3, R6). `G0`/`G2` in network_and_global_controls only surface *after* arming and are counted in the row, not in this total.
 
 ## WORST FIRST — the five most dangerous real defects
 
@@ -75,3 +75,27 @@ are the assertions I confirmed are **not** false and that no other row on this b
 4. **Unknown intent at the physical call is a hard refusal** (`:5656-5662`, `MISSING_INTENT_CONTEXT`). Three test files call `_place_order` with no intent and are refused. In production this is the right default, but it means any future call site that forgets to pass `intent=` fails silently as a "gate refusal" rather than a code error — the 66 ALERT lines in the slot-pacing log are what an operator would see.
 5. **The UI no longer writes account history or the P&L graph** (`:2601-2605`, early `return`). The engine owns `exchange_account_history.json` now. Anything still reading the UI's expectation — including `test_screen_run4.py`'s history and graph rows — is asserting a dead path; if the engine stops appending, the screen shows a frozen graph with no error.
 
+
+
+---
+
+## CORRECTION (CC-1 R69, measured after this document was written)
+
+This document said **54** failures were "the OFF arming literal". That figure came from a scratch-copy
+experiment plus a worker summary. It has now been tested file by file with before/after measurement:
+
+| file | before | after arming | cases fixed |
+|---|---|---|---|
+| test_readiness1_ambiguous_timeout_no_blind_resend.py | 21/19 | **21/0** | 19 |
+| test_t1a_cloid_pending_row.py | 14/6 | **14/0** | 6 |
+| test_core_network_and_global_controls.py | 71/7 | **71/3** | 4 |
+| test_core_run3_fixes.py | 61/9 | **61/4** | 5 |
+| | | | **34 confirmed** |
+
+**test_screen_run4.py (86/9) got WORSE when armed - 86/10 - and was reverted.** Part of it asserts a
+refusal, so blanket arming would have made the suite worse while looking like progress.
+
+**34 are provably unarmed fixtures; 20 are something else.** Two files (test_core_trace_stamps.py,
+test_core_run4_fixes.py) contain ZERO auto_send_enabled occurrences and arm through an untraced path.
+network_and_global_controls still fails 3 and run3_fixes still fails 4 AFTER arming - a real reason,
+not a missing lease. The "54" is withdrawn. Edits live on branch tools/arming-adopt.
