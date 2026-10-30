@@ -5435,6 +5435,13 @@ class PendingSendWriteFailed(RuntimeError):
     """The pending_send write-ahead row could not be written: the order was NOT sent."""
 
 
+class PreWireNoCallFault(RuntimeError):
+    """A named ordinary fault before the physical exchange call, not an exchange rejection."""
+    def __init__(self, status: str, category: str, cause: Exception):
+        super().__init__(f"{status}: {type(cause).__name__}: {cause}")
+        self.status, self.category = status, category
+
+
 class _MarginSymbolUnresolved(Exception):
     """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
 
@@ -5758,27 +5765,32 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        # A fault AFTER the durable pending row but BEFORE exchange.order is a proven
-        # no-call. Reuse the existing terminal updater; never leave this attempt PENDING.
+        # Reuse the durable attempt terminal for any fault before the SDK call.
+        phase = "gate"
         try:
             _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+            phase = "close_proof"
             if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
                 _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
+            config_fault = (phase == "gate" and
+                            (isinstance(exc, (OSError, UnicodeError, json.JSONDecodeError))
+                             or (isinstance(exc, ValueError) and str(exc).startswith("INVALID_CONFIG"))))
+            status = ("CONFIG_READ_FAULT_NO_EXCHANGE_CALL" if config_fault
+                      else "PRE_WIRE_PROOF_FAULT_NO_EXCHANGE_CALL")
+            category = "CONFIG_READ_FAULT" if config_fault else "PRE_WIRE_PROOF_FAULT"
             _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
             if _aid and not update_send_attempt_row(_aid, {
-                "status": "CONFIG_READ_FAULT_NO_EXCHANGE_CALL",
-                "terminal_state": "CONFIG_READ_FAULT_NO_EXCHANGE_CALL",
-                "reject_category": "CONFIG_READ_FAULT",
-                "operator_action": "NO_EXCHANGE_CALL",
+                "status": status, "terminal_state": status,
+                "reject_category": category, "operator_action": "NO_EXCHANGE_CALL",
                 "error": f"{type(exc).__name__}: {str(exc)[:200]}",
-                "notes": "post-wait gate failed before exchange.order; no SDK call",
+                "notes": "post-wait proof fault before exchange.order; no SDK call",
             }, durable=True):
                 raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid) from exc
             log_error("physical_final_gate_fault_no_call", exc)
             if intent is not None and self._reduce_only_for_intent(intent):
-                self._journal_authorised_close_refusal(intent, "CONFIG_READ_FAULT_NO_EXCHANGE_CALL")
-            raise
+                self._journal_authorised_close_refusal(intent, status)
+            raise PreWireNoCallFault(status, category, exc) from exc
         if _late_block:
             close_red = (intent is not None and self._reduce_only_for_intent(intent)) and _late_block.startswith(
                 ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
@@ -9075,6 +9087,15 @@ class SenderGateway:
                 **({"notes": netting_note} if netting_note else {}),
             }
         except Exception as exc:
+            if isinstance(exc, PreWireNoCallFault):
+                log_error("send_real_pre_wire_fault", exc.__cause__ or exc)
+                return False, exc.status, {
+                    "status": exc.status, "error": str(exc), "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_reconciliation": True,
+                    "notes": str(exc), "reject_category": exc.category,
+                    "terminal_state": exc.status, "operator_action": "NO_EXCHANGE_CALL",
+                    "timing": timing,
+                }
             if isinstance(exc, PendingSendWriteFailed):  # fail closed: no crash record means no order (caller releases any exit reservation)
                 cause = exc.__cause__ or exc
                 log_error("begin_pending_send", cause)
