@@ -162,14 +162,20 @@ conflicting `(actual, in_flight)` across its rows in the 58-run, so the single-p
 | STABLE 50 | 50 | 43 | 14 | $1,991.23 | -$21.28 |
 | 55-run | 55 | 46 | 15 | $1,995.66 | -$9.32 |
 
-So: **58 rows → 48 distinct coin exposures → 16 coins actually carrying a non-zero position**. The material
-concentration is 6 coins (|exposure| ≥ $100): XPL $916.36, XMR $895.23, BNB $845.13, SUI $133.75, WLFI $114.00,
-MON $101.82 — 5 of those 6 are STABLE (XPL, BNB, SUI, WLFI, MON); only XMR is volatile.
+So: **58 rows → 48 distinct coin exposures → 16 coins actually carrying a non-zero position**. Only three coins
+carry |exposure| ≥ $100 — XPL -$916.36, XMR -$895.23, BNB +$845.13 — and only XMR is a volatile carrier (its
+single row exists in one run only). Everything else is small: AAVE +$59.17, FARTCOIN +$35.80, ETH +$22.80,
+BTC -$21.63, CASHCAT -$20.90, and nine coins under $15.
 
-The STABLE-only gross ($1,991.23) is the defensible figure for a money statement: it excludes the two volatile
-carriers — XMR (+$895.23 long) and ZRO (-$10.94 short) — whose appearance in only one run makes them
-unverifiable. Signed net over STABLE is -$21.28, i.e. the stable set is near directionally balanced; the
--$905.57 on all 58 is almost entirely the volatile XMR position.
+Do not confuse this with `delta_usd`. SUI ($133.75), WLFI ($114.00) and MON ($101.82) look material in the row
+table, but each holds `actual + in_flight = 0`: their Δ$ is an **absent obligation** (a copy that never opened),
+not a position. They add $0 to exposure. Counting Δ$ as exposure would triple-count absent copies and is the
+error v1's "distinct exposures" line invited.
+
+The STABLE-only gross ($1,991.23) is the defensible figure for a money statement: it excludes the volatile
+carriers XMR (-$895.23 short) and ZRO (+$10.94 long), whose appearance in only one run makes them unverifiable.
+Signed net over STABLE is -$21.28, i.e. the stable set is near directionally balanced; the -$905.57 on all 58 is
+almost entirely the volatile XMR short.
 
 ## WHAT CHANGED FROM V1
 
@@ -200,6 +206,8 @@ positions that closed between runs.
 | 0xfe7ce0 CASHCAT | SIGN_INVERSION | STALE_LEDGER | both sides negative (-113 unit vs -237 held); no inversion, just over-held |
 | 0xfe7ce0 BTC | PARTIAL_COPY | BASELINE_ARTEFACT | no leader fill and no post-baseline leader net — nothing was ever copied |
 | 0xfe7ce0 KPEPE | PARTIAL_COPY | BASELINE_ARTEFACT | same: pre-baseline inventory, zero fill activity |
+| 0xd4c1f7 PONS | STALE_LEDGER | PARTIAL_COPY | in_flight -41 against a -64 unit: one unit short and still in flight, not over-held |
+| 0x92bbd8 XMR | PARTIAL_COPY | STALE_LEDGER (VOLATILE) | follower holds -1.44 against a -0.13 unit — over-held, not short; but this row is volatile, so the class is provisional |
 
 v1's own caveat that "none of the 24 is a BASELINE_ARTEFACT" was true only because the throttled run could not
 reach the pre-baseline-inventory rows; the unthrottled run produces 7 of them (6 STABLE, 1 volatile).
