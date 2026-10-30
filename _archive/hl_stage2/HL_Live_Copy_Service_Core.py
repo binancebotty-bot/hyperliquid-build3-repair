@@ -1143,6 +1143,10 @@ TERMINAL_ROW_NAMES = frozenset({
     "NO_MANUAL_POSITION_TO_CLOSE",
     # The follower entry exclusion's own terminal row (Core:11798/11805); written once per refused leader fill.
     "EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK", "ILLIQUID_SKIP",
+    # CC1-B-RULING-CEILING-1920 excess-ENTRY fault (Core:_ceiling_excess_fault): the close part still sends, the
+    # excess ENTRY is NOT sent, and the reconciliation row is SEND_TERMINAL with
+    # operator_action=MANUAL_REVIEW_EXCESS_ENTRY_NOT_SENT and engine_can_send=False. Terminal, never pending.
+    "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
     "AUTHORISED_CLOSE_REFUSAL",
@@ -9022,6 +9026,10 @@ class SenderGateway:
             return _margin_block
         use_reduce_only, close_size_planned, close_skip = (False, wire_size, "")
         _close_requested_size = wire_size  # CC1-B-RULING-CEILING-1920: the size the leader traded, before any clamp
+        # Only an EXIT/REDUCE can carry an excess ENTRY. Bound the names for every other lifecycle: an ENTRY
+        # that raised anywhere below used to reach the send-site read of _ceiling_excess_units and die with
+        # UnboundLocalError, masking the real exception behind a log_error that waits on the audit lock.
+        _ceiling_excess_units, _ceiling_note = 0.0, ""
         if lifecycle in {"EXIT", "REDUCE"}:
             _min_n = self._effective_symbol_min_notional(resolved)
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
