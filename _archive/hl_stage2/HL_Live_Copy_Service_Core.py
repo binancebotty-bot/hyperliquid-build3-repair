@@ -2131,7 +2131,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
         return True
     finally:
         lock.release()
-def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
+def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None, *, durable: bool = False) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
     send path and could drop rows appended meanwhile). The newest row for an attempt_id is its current state; the
@@ -2146,7 +2146,7 @@ def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: 
     if base is None:
         return False
     base.update(updates)
-    append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base)
+    append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base, durable=durable)
     return True
 
 
@@ -5708,7 +5708,7 @@ class SenderGateway:
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
-                     pre_send: Optional[Callable[[], None]] = None,
+                     pre_send: Optional[Callable[[], str]] = None,
                      intent: Any = None, path: str = "") -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
@@ -5730,10 +5730,11 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        if pre_send is not None:  # the pending_send write-ahead row: after the slot/cooldown wait, synchronously, right before the call
+        _pending_id = ""
+        if pre_send is not None:  # synchronous write-ahead, before final close proof
             try:
-                pre_send()
-            except Exception as exc:  # fail closed: no crash record means no order
+                _pending_id = str(pre_send() or "")
+            except Exception as exc:
                 raise PendingSendWriteFailed(repr(exc)) from exc
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
@@ -5743,11 +5744,32 @@ class SenderGateway:
         # write-ahead row can take seconds; a mode or wallet change during them must stop this
         # order (Codex 6406031822: the early gate alone leaves that race open).
         _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+        if self._reduce_only_for_intent(intent) and not _late_block:
+            # CS-I1..I3/R1: re-prove signed ownership after pre_send and all
+            # waits. Pending has already been written, so a refused order must
+            # be terminalised, not left ambiguous or silently sent.
+            _new_ro, _new_sz, _close_hold = self._close_wire_plan(intent, size, None, timing=timing)
+            if (_close_hold or abs(_new_sz - size) > POSITION_EPSILON or
+                    _new_ro != reduce_only):
+                _late_block = _close_hold or "CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
         if _late_block:
-            self._gate_refusal_row(intent, path, _late_block)
+            close_red = self._reduce_only_for_intent(intent) and _late_block.startswith(
+                ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
+            status = "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER"
+            _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
+            if _aid and not update_send_attempt_row(_aid, {
+                "status": status, "terminal_state": status,
+                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
+                "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
+            }, durable=True):
+                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
+            if close_red:
+                self._journal_authorised_close_refusal(intent, _late_block)
+            else:
+                self._gate_refusal_row(intent, path, _late_block)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
-                    "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
-                    "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
+                    "exchange_called": False, "reject_category": status,
+                    "terminal_state": status, "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
         # Stamp the call time HERE, after the final recheck: the pacing slot wait and the write-ahead row
         # can take seconds, and a refusal at the late gate must not leave a start stamp on the timing
@@ -6194,11 +6216,12 @@ class SenderGateway:
         key = f"{intent.intent_id}:{label}:{n}:{utc_now_ms()}"
         cloid, attempt_id = generate_cloid(key), generate_attempt_id(key)
 
-        def _pre() -> None:
+        def _pre() -> str:
             wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # never raises
             t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
-            self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
+            aid = self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
             t["pending_send_done_ms"] = utc_now_ms()
+            return aid
         return cloid, _pre
 
     @staticmethod
@@ -8851,10 +8874,11 @@ class SenderGateway:
         timing["send_cloid"] = cloid
 
         def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now else "REAL_IOC", _px=limit_px,
-                          _sz=wire_size, _ro=use_reduce_only) -> None:
+                          _sz=wire_size, _ro=use_reduce_only) -> str:
             wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # barrier: intent row on disk first; never raises
-            self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
+            aid = self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
             timing["pending_send_done_ms"] = utc_now_ms()
+            return aid
         accepted_result: Optional[Tuple[bool, str, Dict[str, Any]]] = None
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
