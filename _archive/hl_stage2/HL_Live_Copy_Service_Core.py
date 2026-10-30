@@ -4095,11 +4095,6 @@ class ConfigManager:
                     raise ValueError("INVALID_CONFIG_WALLET_RECORD")
                 out[w] = dict(value)
             return out
-        if MANUAL_WALLETS_FILE.exists():
-            for line in MANUAL_WALLETS_FILE.read_text(encoding="utf-8-sig").splitlines():
-                w = normalise_wallet(line)
-                if is_valid_wallet(w):
-                    out[w] = {"mode": "OFF", "enabled": True}
         return out
 
     def wallet_cfg(self, wallet: str) -> Dict[str, Any]:
