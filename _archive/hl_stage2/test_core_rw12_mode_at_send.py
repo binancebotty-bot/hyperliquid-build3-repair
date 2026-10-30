@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""rw12 item 2: send_if_allowed re-reads the wallet's CURRENT mode at the final send gate. An intent queued while ON must not
-send an entry/add after the wallet moved to CLO or OFF; closes still go in CLO. No wallet mode is ever changed by the engine.
+"""rw12 / CC-1 CS-I2, I05, CH-2/8/9: send_if_allowed re-reads the wallet's CURRENT mode at the final send gate. An intent queued while ON must not
+send an entry/add after the wallet moved to CLO or OFF; closes still go in CLO. No wallet mode is ever changed by the engine. A torn config must raise, never trade under a cached/default mode.
 
 Run (from _archive/hl_stage2):  env -u HL_LIVE_AUDIT_DIR python3 test_core_rw12_mode_at_send.py
 Prints RESULT::name_PASS/FAIL and TOTAL=n FAILED=m. No network, no orders: every send goes to a fake exchange.
@@ -138,7 +138,12 @@ def main() -> None:
     os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
 
     def set_mode(g, mode):
-        g.cfg.config["wallets"][A]["mode"] = mode  # the operator flips the wallet AFTER the intent was built
+        # CH-9: external operator writes disk; never mutate ConfigManager's
+        # cached representation (that would falsely certify a stale-read path).
+        import json
+        data = json.loads(c.LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+        data["wallets"][A]["mode"] = mode
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, data)
 
     def attempt(label, mode_at_send, side="BUY", lifecycle="ENTRY", reply=None):
         iid = "m" + label
@@ -167,18 +172,32 @@ def main() -> None:
     check("M4_OFF_AUDIT_ROW_BLOCKED_OFF", any(r.get("terminal_state") == "BLOCKED_OFF" for r in recon("moff_ENTRY")), str(recon("moff_ENTRY")))
     ex, sent, status, it = attempt("on_entry", "ON")
     check("M5_ON_ENTRY_UNCHANGED", sent and len(ex.calls) == 1, "%s %s" % (sent, status))
-    # unreadable mode: fail OPEN to the intent-time decision, loudly
-    it = mk_intent("munread")
+    # M6 / CC-1 CS-I2, I05, CH-2/8/9: real config read failure is an
+    # engine fault, NOT a wallet mode. Retires the former WA witness:
+    # M6_UNREADABLE_MODE_FAILS_OPEN_LOUDLY (send with intent-time cached ON
+    # and error log) is invalid. No synthetic replacement mode or extra gate.
+    # Seed a genuine valid disk file, initialise a gateway, then break its
+    # own config path after the cached ON has been loaded. Old behaviour
+    # silently kept cached ON / default OFF. Required: exception propagates
+    # out of the actual send path and zero physical exchange.order calls.
+    it = mk_intent("mconfig_read_fault")
     c.AuditLogWriter().append_order_intent(it)
     ex = Ex([FILLED(1.0, 100.0)])
     g = gw(ex)
-
-    def boom(w):
-        raise RuntimeError("config unreadable")
-    g.cfg.wallet_mode = boom
-    sent, status = g.send_if_allowed(it)
-    errs = [r for r in disk_rows(c.ERRORS_CSV) if r.get("context") == "send_time_wallet_mode_unreadable"]
-    check("M6_UNREADABLE_MODE_FAILS_OPEN_LOUDLY", sent and len(ex.calls) == 1 and bool(errs), "%s %s errs=%d" % (sent, status, len(errs)))
+    config_path = g.cfg.config_path
+    original_bytes = config_path.read_bytes()
+    caught = None
+    try:
+        config_path.write_text('{"auto_send_enabled":true,"global_controls":{},"wallets":', encoding="utf-8")
+        try:
+            g.send_if_allowed(it)
+        except (ValueError, OSError, UnicodeError) as exc:
+            caught = exc
+        check("M6_CONFIG_READ_FAULT_PROPAGATES_NO_ORDER_CS_I2_I05",
+              caught is not None and len(ex.calls) == 0,
+              "exception=%r sdk_calls=%r" % (caught, ex.calls))
+    finally:
+        config_path.write_bytes(original_bytes)
     mode = _json.loads(c.LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig"))["wallets"][A]["mode"]
     check("M7_NO_WALLET_MODE_CHANGED_ON_DISK", mode == "ON", mode)
     failed = [n for n, ok in RESULTS if not ok]
