@@ -34,6 +34,11 @@ def main():
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
                        "HL_LIVE_HOT_SEND_WORKERS": "2"})
     import HL_Live_Copy_Service_Core as c
+    # Seed the cutover in the past: leader_cursor_next() ignores a pending fill stamped before
+    # dedupe.live_start_ms (it can only ever be PRE_CUTOVER_NOT_SENT), so a fill dated "now - 60s"
+    # against a cutover of "now" is not pending at all and the cursor floor test means nothing.
+    # Same idiom already used by the cutover tests in HL_Live_Copy_Service_Core.py.
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, {"live_start_ms": 1})
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {}, "wallets": {
         A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
@@ -95,7 +100,9 @@ def main():
     core.ws.write_health = lambda: {"ws_summary": {}}
     core._daily_loss_block = lambda: ""
     core._scope_sweep_block = lambda: ""
-    core._leader_poll_due = lambda: True
+    # run_cycle calls this as _leader_poll_due(force=...); a zero-arg stub raised TypeError, which
+    # run_cycle swallows, so the poll never ran and the fill this test reads was never created.
+    core._leader_poll_due = lambda force=False: True
     core.poll_wallets = lambda: [A]
     def poll_fills(wallet, start_ms, end_ms=None):
         poll_starts.append(start_ms)
@@ -113,12 +120,18 @@ def main():
     first = core.run_cycle(use_source_csv=False, poll_live=True)
     check("poll_fill_was_rejected_for_queue_saturation", poll_fill[0] is not None and first.leader_fills_queued == 0)
     saved = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(A, 0)
-    check("poll_queue_full_cursor_holds_unqueued_fill", saved <= poll_fill[0].timestamp_ms,
-          f"cursor={saved} fill={poll_fill[0].timestamp_ms}")
+    # C7 harness fix: poll_fill[0] is None when the cycle never called the poll at all (a full queue can
+    # legitimately skip polling). The previous line dereferenced it unguarded, so the file died with an
+    # AttributeError and every assertion after this point was never evaluated. Report a FAIL instead of
+    # crashing; do not assume the poll ran.
+    _pf = poll_fill[0]
+    check("poll_queue_full_cursor_holds_unqueued_fill",
+          _pf is not None and saved <= _pf.timestamp_ms,
+          f"cursor={saved} fill={'NEVER_POLLED' if _pf is None else _pf.timestamp_ms}")
     core.run_cycle(use_source_csv=False, poll_live=True)
     check("poll_queue_full_retry_window_includes_fill",
-          len(poll_starts) == 2 and poll_starts[1] <= poll_fill[0].timestamp_ms,
-          f"starts={poll_starts} fill={poll_fill[0].timestamp_ms}")
+          _pf is not None and len(poll_starts) == 2 and poll_starts[1] <= _pf.timestamp_ms,
+          f"starts={poll_starts} fill={'NEVER_POLLED' if _pf is None else _pf.timestamp_ms}")
 
     # A terminally skipped late entry is handled, not a queue-rejected fill to pin the cursor on.
     late_fill = c.LeaderFill("r1late", A, "SOL", "BUY", 100.0, 1.0,
