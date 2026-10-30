@@ -103,7 +103,7 @@ class FakeExchange:
                 return self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
             if self.physical_net is not None:
                 self.physical_net[0] += float(size) * (1 if is_buy else -1)
-            return filled(size, px, oid=len(self.calls))
+            return filled(size, px, oid=len(self.calls) + int(getattr(self, "oid_base", 0)))
 
     def cancel(self, coin, oid):
         return {"response": {"data": {"statuses": ["success"]}}}
@@ -696,12 +696,15 @@ def r81_sign_subminimum_residual_is_whole_close():
     return True, "round-up wire=10.0 net=0; partial wire=0.333 net=9.667"
 
 # ============================================== CC1-B-RULING-CEILING-1920: split, never cap
-def _ceiling_fixture(copy_size, fixed_notional=500.0, wallets=None):
+def _ceiling_fixture(copy_size, fixed_notional=500.0, wallets=None, fid=None, oid_base=None):
     """A real gateway on a +10 owned sleeve whose account holds exactly that sleeve (so the close fits the net and is
-    sent reduce-only). Only data sources are replaced: config scope, fixed_notional, the exposure read."""
+    sent reduce-only). Only data sources are replaced: config scope, fixed_notional, the exposure read.
+    ``oid_base`` isolates this witness's exchange order ids from every other witness's fill-ledger rows."""
     led, ex, net = new_ledger(), FakeExchange(), [10.0]
+    if oid_base is not None:
+        ex.oid_base = int(oid_base)
     gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", copy_size, "ceil-%s-f" % copy_size, 10.0)
+    it = exit_intent(led, A, "SELL", copy_size, fid or ("ceil-%s-f" % copy_size), 10.0)
     it.copy_size = float(copy_size)  # a close-lifecycle order may exceed our own sleeve (W2b shape)
     it.copy_notional = abs(float(copy_size) * PX)
     gw.cfg.wallets = lambda: ({A: {}, B: {}} if wallets is None else wallets)
@@ -717,7 +720,9 @@ def _ceiling_fixture(copy_size, fixed_notional=500.0, wallets=None):
 def ceil_w2b_excess_is_clipped_to_entry_size():
     """(i) W2b at 200 pct of the sleeve: the wire shows the sleeve CLOSE (10, reduce-only) PLUS the excess as an ENTRY
     sized by fixed_notional (500 usd / 100 = 5 units), never 20 and never a clip of the close."""
-    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0)
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-w2b-f", oid_base=1000)
+    # CC1-B-SENDBACK2-2140(2): the excess may only follow a close PROVEN filled in full by the fill ledger.
+    _record_owned_close_fill(gw, ex, 10.0)
     ok, status = gw.send_if_allowed(it)
     calls = ex.calls
     close_calls = [x for x in calls if x["reduce_only"] is True]
@@ -844,6 +849,123 @@ def early_return_unowned_lease_never_calls_pre_send():
         "ok=%r status=%r sends=%r pre_send_calls=%d rows=%r" % (ok, status, ex.calls, len(attempts), rows)
 
 
+def _ceil_close_oid(ex, index=0):
+    """The exchange order id of the close leg's wire call, as the fake exchange returned it (oid = call number)."""
+    return str(index + 1 + int(getattr(ex, "oid_base", 0)))
+
+
+def _ceiling_owed_rows(fid):
+    return [r for r in recon_rows(fid) if str(r.get("terminal_state") or "").startswith("CEILING_EXCESS_OWED")]
+
+
+def _record_owned_close_fill(gw, ex, size, call_index=0):
+    """Make the FILL LEDGER carry the close leg's own exchange order id for ``size`` - the external fill that proves
+    the close matched IN FULL. Only live_fills.csv is written; no order is placed. Each witness must use its OWN
+    ``oid_base`` so the per-order owned-size index (keyed by exchange order id) cannot accumulate across witnesses."""
+    gw._owned_fill_size("0")  # prime the incremental per-order owned-size index before the row lands
+    c.append_csv(c.LIVE_FILLS_CSV, c.LIVE_FILL_FIELDS, {
+        "created_at": c.utc_now_iso(), "created_at_ms": c.utc_now_ms(),
+        "copy_fill_id": "cf-ceil-%d" % call_index, "intent_id": "ceil-ext", "leader_fill_id": "ceil-ext",
+        "leader_wallet": A, "sleeve_id": "", "position_id": "", "coin": COIN, "side": "SELL",
+        "fill_price": PX, "fill_size": size, "fill_notional": size * PX, "fee": 0, "source": "TEST",
+        "exchange_hash": "h-ceil-%d" % call_index, "exchange_order_id": _ceil_close_oid(ex, call_index),
+        "ledger_action": "UPDATED", "wallet_position_before": "", "wallet_position_after": "",
+        "coin_net_after": "", "notes": "external close fill, matched in full",
+    })
+
+
+def ceil_clo_blocks_the_excess_and_the_close_still_sends():
+    """CC1-B-SENDBACK2-2140(1): the excess leg is an ENTRY for EVERY mode gate. A wallet in CLO (close-only) must
+    still get its CLOSE, and must NOT get a NEW non-reduce-only ENTRY as the excess. The close is matched in full
+    first, so the MODE GATE is the one and only thing standing between the excess and the wire."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-clo-f", oid_base=2000)
+    _record_owned_close_fill(gw, ex, 10.0)
+    gw.cfg.wallet_mode = lambda w: "CLO"
+    ok, status = gw.send_if_allowed(it)
+    close_calls = [x for x in ex.calls if x["reduce_only"] is True]
+    entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
+    owed = _ceiling_owed_rows("ceil-clo-f")
+    return (ok and len(close_calls) == 1 and abs(close_calls[0]["size"] - 10.0) < 1e-9
+            and entry_calls == [] and len(owed) == 1
+            and "CLO_BLOCKS_ENTRY" in str(owed[0].get("terminal_state") or "")), \
+        "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,
+                                              [(r.get("terminal_state"), r.get("notes")) for r in owed])
+
+
+def ceil_global_close_only_blocks_the_excess_and_the_close_still_sends():
+    """CC1-B-SENDBACK2-2140(1): global CLOSE-only (send_mode CLOSE) blocks the excess ENTRY too. The close still sends."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-gclo-f", oid_base=3000)
+    _record_owned_close_fill(gw, ex, 10.0)
+    gw.cfg.send_mode_now = lambda: "CLOSE"
+    ok, status = gw.send_if_allowed(it)
+    close_calls = [x for x in ex.calls if x["reduce_only"] is True]
+    entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
+    owed = _ceiling_owed_rows("ceil-gclo-f")
+    return (ok and len(close_calls) == 1 and abs(close_calls[0]["size"] - 10.0) < 1e-9
+            and entry_calls == [] and len(owed) == 1
+            and "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY" in str(owed[0].get("terminal_state") or "")), \
+        "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,
+                                              [(r.get("terminal_state"), r.get("notes")) for r in owed])
+
+
+def ceil_resting_close_leaves_the_excess_owed():
+    """CC1-B-SENDBACK2-2140(3): a RESTING close proves nothing about a fill, so the excess is NOT sent - it is left
+    OWED in the journal, named, with its size. Not lost, not sent on an unconfirmed ack."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-rest-f", oid_base=4000)
+    ex.replies = [{"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 4242}}]}}}]
+    ok, status = gw.send_if_allowed(it)
+    entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
+    owed = _ceiling_owed_rows("ceil-rest-f")
+    return (len(ex.calls) == 1 and entry_calls == [] and len(owed) == 1
+            and "ORDER_RESTING" in str(owed[0].get("terminal_state") or "")
+            and "owed_size=5.0" in str(owed[0].get("notes") or "")), \
+        "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,
+                                              [(r.get("terminal_state"), r.get("notes")) for r in owed])
+
+
+def ceil_partial_close_leaves_the_excess_owed():
+    """CC1-B-SENDBACK2-2140(2)/(3): the close ack says filled, but the FILL LEDGER only matched 4 of the 10 units -
+    the close is PARTIAL, so the excess is NOT sent and stays OWED."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-part-f", oid_base=5000)
+    _record_owned_close_fill(gw, ex, 4.0)
+    ok, status = gw.send_if_allowed(it)
+    entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
+    owed = _ceiling_owed_rows("ceil-part-f")
+    return (len(ex.calls) == 1 and entry_calls == [] and len(owed) == 1
+            and "CEILING_EXCESS_OWED_CLOSE_NOT_MATCHED_IN_FULL" == str(owed[0].get("terminal_state") or "")), \
+        "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,
+                                              [(r.get("terminal_state"), r.get("notes")) for r in owed])
+
+
+def ceil_unknown_close_leaves_the_excess_owed():
+    """CC1-B-SENDBACK2-2140(3): an UNKNOWN close outcome (unparseable ack) never sends the excess; it is left OWED."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-unk-f", oid_base=6000)
+    ex.replies = [{"status": "ok", "response": {"type": "order", "data": {"statuses": [{"whatever": {}}]}}}]
+    ok, status = gw.send_if_allowed(it)
+    entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
+    owed = _ceiling_owed_rows("ceil-unk-f")
+    return (len(ex.calls) == 1 and entry_calls == [] and len(owed) == 1
+            and "ORDER_UNKNOWN" in str(owed[0].get("terminal_state") or "")), \
+        "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,
+                                              [(r.get("terminal_state"), r.get("notes")) for r in owed])
+
+
+def ceil_matched_close_then_the_excess_sends():
+    """POSITIVE: the close leg is matched IN FULL by the fill ledger (its own exchange order id, 10 of 10), the net is
+    re-read, the mode is re-checked ON - and ONLY THEN does the excess ENTRY go, on its own cloid, non-reduce-only."""
+    led, ex, net, gw, it = _ceiling_fixture(20.0, fixed_notional=500.0, fid="ceil-ok-f", oid_base=7000)
+    _record_owned_close_fill(gw, ex, 10.0)
+    ok, status = gw.send_if_allowed(it)
+    close_calls = [x for x in ex.calls if x["reduce_only"] is True]
+    entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
+    owed = _ceiling_owed_rows("ceil-ok-f")
+    return (ok and len(close_calls) == 1 and abs(close_calls[0]["size"] - 10.0) < 1e-9
+            and len(entry_calls) == 1 and entry_calls[0]["size"] > 0
+            and entry_calls[0]["is_buy"] is False and owed == []), \
+        "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,
+                                              [(r.get("terminal_state")) for r in owed])
+
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -892,6 +1014,18 @@ def main():
          ceil_unknown_entry_sizing_is_a_loud_fault_and_the_close_still_sends),
         ("CEILING_EXCESS_ABOVE_CAP_BLOCKED_CLOSE_UNTOUCHED",
          ceil_excess_above_the_cap_is_blocked_close_untouched),
+        ("CEILING_CLO_BLOCKS_THE_EXCESS_THE_CLOSE_STILL_SENDS",
+         ceil_clo_blocks_the_excess_and_the_close_still_sends),
+        ("CEILING_GLOBAL_CLOSE_ONLY_BLOCKS_THE_EXCESS_THE_CLOSE_STILL_SENDS",
+         ceil_global_close_only_blocks_the_excess_and_the_close_still_sends),
+        ("CEILING_RESTING_CLOSE_LEAVES_THE_EXCESS_OWED",
+         ceil_resting_close_leaves_the_excess_owed),
+        ("CEILING_PARTIAL_CLOSE_LEAVES_THE_EXCESS_OWED",
+         ceil_partial_close_leaves_the_excess_owed),
+        ("CEILING_UNKNOWN_CLOSE_LEAVES_THE_EXCESS_OWED",
+         ceil_unknown_close_leaves_the_excess_owed),
+        ("CEILING_CLOSE_MATCHED_IN_FULL_THEN_THE_EXCESS_SENDS",
+         ceil_matched_close_then_the_excess_sends),
         ("TOCTOU_PRE_SEND_LEDGER_MOVES_ZERO_CALLS_ROW_TERMINALISED",
          toctou_pre_send_ledger_moves_gives_zero_calls_and_terminalises_the_row),
         ("TOCTOU_PRE_SEND_MODE_OFF_ZERO_CALLS_ROW_TERMINALISED",

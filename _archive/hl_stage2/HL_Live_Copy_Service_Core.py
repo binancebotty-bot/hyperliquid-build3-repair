@@ -5701,7 +5701,7 @@ class SenderGateway:
     # only in a swallowed exception (Codex fix 4).
     _gate_journal_failures: int = 0
 
-    def _master_gate_reason(self, intent: Any, path: str = "") -> str:
+    def _master_gate_reason(self, intent: Any, path: str = "", entry_leg: bool = False) -> str:
         """Why this order may NOT go to the exchange, or "" when it may.
 
         Checked INSIDE _place_order, at the one physical call, so no call site - present or future -
@@ -5726,6 +5726,13 @@ class SenderGateway:
         if wmode == "OFF":
             return "WALLET_OFF"
         lifecycle = classify_send_lifecycle(intent)
+        if entry_leg:
+            # CC1-B-SENDBACK2-2140(1): the EXCESS leg of a SPLIT close (CC1-B-RULING-CEILING-1920(b)) is an
+            # ENTRY, not a close. It rides a close-lifecycle intent, so classifying it by the INTENT made every
+            # mode gate read it as an EXIT and let a NEW non-reduce-only order out under CLO / global CLOSE-only /
+            # OFF. The lifecycle is therefore forced to ENTRY here: every gate below blocks the excess, and the
+            # close part (a real EXIT/REDUCE, never entry_leg) is untouched.
+            lifecycle = "ENTRY"
         if wmode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
             return "CLO_BLOCKS_ENTRY"
         if mode == "CLOSE" and lifecycle in {"ENTRY", "ADD"}:
@@ -5778,7 +5785,7 @@ class SenderGateway:
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
-        _blocked = self._master_gate_reason(intent, path)
+        _blocked = self._master_gate_reason(intent, path, entry_leg=entry_leg)
         if _blocked:
             self._gate_refusal_row(intent, path, _blocked)
             # The exchange was NOT called. Say so in the result so no row built from it can claim a call,
@@ -8239,6 +8246,66 @@ class SenderGateway:
             log_error("send_ceiling_excess", exc)
             timing["ceiling_excess_result"] = "EXCEPTION %s" % type(exc).__name__
 
+    def _journal_ceiling_excess_owed(self, intent: Intent, size: float, reason: str, detail: str) -> None:
+        """CC1-B-SENDBACK2-2140(3): the excess ENTRY is OWED - not lost and not sent. One durable row names the size
+        still owed and why it did not go. Nothing on the close side changes."""
+        try:
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "CEILING_EXCESS_OWED",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin,
+                action="EXCESS_ENTRY_OWED_NOT_SENT",
+                reject_category=str(reason)[:160], terminal_state=str(reason)[:160],
+                engine_can_send="False",
+                notes=("the excess ENTRY of a split close is OWED and was NOT sent: %s; owed_size=%s; %s"
+                       % (reason, size, detail)))
+        except Exception as exc:
+            log_error("ceiling_excess_owed_journal", exc)
+
+    def _ceiling_excess_entry_block(self, intent: Intent, close_oid: str, close_wire_size: float) -> str:
+        """CC1-B-SENDBACK2-2140(2): why the excess ENTRY may NOT go now, or "" when it may.
+
+        (a) the close leg must be matched IN FULL by the fill ledger for ITS OWN exchange order id;
+        (b) the current net must be re-read (an unreadable account proves nothing);
+        (c) every ENTRY mode gate (OFF / CLO / global CLOSE-only) must still pass at this moment."""
+        oid = str(close_oid or "").strip()
+        if not oid:
+            return "CEILING_EXCESS_OWED_CLOSE_OID_UNKNOWN"
+        try:
+            matched = self._owned_fill_size(oid)
+        except Exception as exc:
+            log_error("ceiling_excess_owned_read", exc)
+            return "CEILING_EXCESS_OWED_CLOSE_FILL_UNREADABLE"
+        if matched + POSITION_EPSILON < abs(float(close_wire_size)):
+            return "CEILING_EXCESS_OWED_CLOSE_NOT_MATCHED_IN_FULL"
+        if self._fresh_exchange_net(intent.fill.coin) is None:
+            return "CEILING_EXCESS_OWED_NET_UNREADABLE"
+        blocked = self._master_gate_reason(intent, "send_ceiling_excess:precondition", entry_leg=True)
+        return ("CEILING_EXCESS_OWED_" + blocked) if blocked else ""
+
+    def _dispatch_ceiling_excess(self, exchange: Any, sdk_coin: str, intent: Intent, size: float, limit_px: float,
+                                 sz_dec: int, timing: Dict[str, Any], close_status: str, close_oid: str,
+                                 close_wire_size: float) -> None:
+        """CC1-B-SENDBACK2-2140(2)/(3): the split close's excess ENTRY goes out ONLY when the close leg is PROVEN
+        filled in full. A RESTING, PARTIAL or UNKNOWN close leaves the excess OWED in the journal - never sent on an
+        unconfirmed ack, never lost. The close part is unaffected in every branch."""
+        try:
+            status = str(close_status or "").strip()
+            if status != "ORDER_FILLED":
+                self._journal_ceiling_excess_owed(
+                    intent, size, "CEILING_EXCESS_OWED_CLOSE_" + (status or "UNKNOWN"),
+                    "the close leg ended %r, so nothing about the excess is proven" % status)
+                return
+            reason = self._ceiling_excess_entry_block(intent, close_oid, close_wire_size)
+            if reason:
+                self._journal_ceiling_excess_owed(
+                    intent, size, reason,
+                    "close_oid=%s close_wire_size=%s" % (close_oid, close_wire_size))
+                return
+            self._send_ceiling_excess(exchange, sdk_coin, intent, size, limit_px, sz_dec, timing)
+        except Exception as exc:
+            log_error("dispatch_ceiling_excess", exc)
+
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
         20 of them, the records said the sleeve was open and the account was flat). A fresh read of the follower account on the
@@ -9149,11 +9216,15 @@ class SenderGateway:
                     "exchange_called": True, "error": parsed_error, "timing": timing,
                     "reject_category": "", "reduce_only_sent": use_reduce_only,
                 })
-                # CC1-B-RULING-CEILING-1920(b): the close is on the wire; now the excess ENTRY, separately sized and
-                # capped, with its own cloid and pending row. A failed excess never affects the close just sent.
-                if _ceiling_excess_units > 0 and lifecycle in {"EXIT", "REDUCE"}:
-                    self._send_ceiling_excess(exchange, sdk_coin, intent, _ceiling_excess_units, limit_px, sz_dec, timing)
+                # CC1-B-RULING-CEILING-1920(b): the close is on the wire; the excess ENTRY is a SEPARATE, separately
+                # sized and capped order. CC1-B-SENDBACK2-2140: its own dispatch below decides whether it may go.
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
+            # CC1-B-SENDBACK2-2140(2)/(3): the excess ENTRY may go ONLY once the close leg is matched in full by the
+            # fill ledger, the net has been re-read and the ENTRY mode gate still passes. RESTING, PARTIAL, REJECTED
+            # or UNKNOWN leaves it OWED in the journal - not sent on an unconfirmed ack, not lost.
+            if _ceiling_excess_units > 0 and lifecycle in {"EXIT", "REDUCE"}:
+                self._dispatch_ceiling_excess(exchange, sdk_coin, intent, _ceiling_excess_units, limit_px, sz_dec,
+                                              timing, status, oid, wire_size)
             if (
                 not ok
                 and status == "ORDER_REJECTED"
