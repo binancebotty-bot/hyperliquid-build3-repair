@@ -5705,6 +5705,16 @@ class SenderGateway:
             print("ALERT: the gate refused an order (%s) but could not journal it: %r"
                   % (reason, exc), file=sys.stderr)
 
+    def _final_close_proof(self, intent: Intent, size: float, reduce_only: bool,
+                           timing: Optional[Dict[str, Any]]) -> str:
+        """R1: reuse the ONE close decision after every wait, at the physical wire."""
+        dec = timing.get("close_verified_sz_decimals") if isinstance(timing, dict) else None
+        ro, actual, why = self._close_wire_plan(intent, size, dec, timing=timing)
+        if why:
+            return why
+        return ("CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
+                if abs(actual - size) > POSITION_EPSILON or ro != reduce_only else "")
+
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
@@ -5745,13 +5755,7 @@ class SenderGateway:
         # order (Codex 6406031822: the early gate alone leaves that race open).
         _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
         if self._reduce_only_for_intent(intent) and not _late_block:
-            # CS-I1..I3/R1: re-prove signed ownership after pre_send and all
-            # waits. Pending has already been written, so a refused order must
-            # be terminalised, not left ambiguous or silently sent.
-            _new_ro, _new_sz, _close_hold = self._close_wire_plan(intent, size, None, timing=timing)
-            if (_close_hold or abs(_new_sz - size) > POSITION_EPSILON or
-                    _new_ro != reduce_only):
-                _late_block = _close_hold or "CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
+            _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         if _late_block:
             close_red = self._reduce_only_for_intent(intent) and _late_block.startswith(
                 ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
@@ -7291,7 +7295,8 @@ class SenderGateway:
             _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC_RECOVERY_CLOSE", limit_px, close_size, _ro,
                                                   _sc_t, "standing_close")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                  limit_px, "Gtc", _ro, timing=_sc_t, cloid=_cl,
+                                                  bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre, intent=intent, path="exit_recovery")
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
