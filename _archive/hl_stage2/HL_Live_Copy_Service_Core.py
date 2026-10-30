@@ -8022,7 +8022,6 @@ class SenderGateway:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_MISMATCH")
         amount = min(requested, abs(owned))
         if (abs(owned) - amount > tol and callable(min_notional_ok)
-                and min_notional_ok(amount)  # R78: bump only when the REQUESTED part alone clears the venue minimum
                 and not min_notional_ok(abs(owned) - amount)):
             amount = abs(owned)  # I23: no abandoned sub-minimum owned dust
         amount = self._floor_wire_size(round(amount, 10), sz_dec)
