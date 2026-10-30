@@ -1,0 +1,5 @@
+# leader fill cache: persisted pages, regenerable, tens of MB
+cache/
+# ad-hoc comparison runs; the before/after pair backing RETRY_AND_CACHE.md is committed explicitly
+runs/prefix_before/
+runs/after_warm/

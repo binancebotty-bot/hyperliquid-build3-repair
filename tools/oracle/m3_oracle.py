@@ -10,7 +10,7 @@ expected = target - actual - in_flight
 Second implementation: imports no engine code (GUT I26 / VERIFY-008). Stdlib only,
 read-only. CSV parsing and leader replay scaffolding reused from oracle_v1.
 """
-import argparse, collections, csv, json, os, sys, time
+import argparse, collections, csv, json, os, random, sys, time
 from decimal import Decimal as D, getcontext
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -26,6 +26,10 @@ PENDING_DELAY_MS = 120_000
 # 5.00 USD: copy_mode fixed 12.00 USD per entry, so >40% of a copy unit; not dust.
 MATERIAL_USD = D('5.00')
 EPS = D('0.000001')
+# Spacing BETWEEN leaders. Each leader's page sequence is already serial; the 429 storm
+# came from 14 sequences fired back to back with no gap. Jitter keeps re-runs decorrelated.
+LEADER_GAP_S = 6.0
+LEADER_GAP_JITTER_S = 2.0
 
 
 def rd(p):
@@ -64,8 +68,13 @@ def main():
     ap.add_argument('--audit', default=AUD)
     ap.add_argument('--state', default=ST)
     ap.add_argument('--out', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runs'))
+    ap.add_argument('--cache', default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                    'cache', 'leader_fills'))
+    ap.add_argument('--no-cache', action='store_true')
+    ap.add_argument('--leader-gap', type=float, default=LEADER_GAP_S)
     ap.add_argument('--follower')
     a = ap.parse_args()
+    cache_dir = None if a.no_cache else a.cache
     os.makedirs(a.out, exist_ok=True)
     stamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
 
@@ -97,12 +106,27 @@ def main():
     lrows = list(lrows.values())
 
     lc, lmeta, lnow, lerr = {}, {}, collections.defaultdict(dict), collections.defaultdict(list)
-    for w in sorted({r['leader_wallet'] for r in lrows if r.get('leader_wallet')}):
+    lwallets = sorted({r['leader_wallet'] for r in lrows if r.get('leader_wallet')})
+    for wi, w in enumerate(lwallets):
+        if wi:
+            # pace leaders apart: 429s came from 14 page sequences back to back
+            time.sleep(max(0.0, a.leader_gap + random.uniform(0, LEADER_GAP_JITTER_S)))
+        fst = {}
         try:
-            lf, pages, capped = hl.leader_fills(w, baseline, hl.MAINNET)
-            lmeta[w] = {'pages': pages, 'fills': len(lf), 'capped': capped, 'error': None}
+            lf, pages, capped = hl.leader_fills(w, baseline, hl.MAINNET, stats=fst, cache_dir=cache_dir)
+            lmeta[w] = {'pages': pages, 'fills': len(lf), 'capped': capped, 'error': None,
+                        'attempts': fst.get('attempts'), 'last_status': fst.get('last_status'),
+                        'rate_limited': bool(fst.get('rate_limited')),
+                        'pages_reused': fst.get('pages_reused'),
+                        'cache': fst.get('cache')}
         except Exception as e:
-            lmeta[w] = {'pages': 0, 'fills': 0, 'capped': False, 'error': str(e)[:160]}
+            # attempt count + last status keep "rate limited hard" distinguishable from "gone"
+            lmeta[w] = {'pages': fst.get('pages_fetched'), 'fills': 0, 'capped': False,
+                        'error': str(e)[:160], 'attempts': fst.get('attempts'),
+                        'last_status': fst.get('last_status'),
+                        'rate_limited': bool(fst.get('rate_limited')),
+                        'pages_reused': fst.get('pages_reused'),
+                        'cache': fst.get('cache')}
             lf = []
         for c, st in hl.replay(lf).items():
             lc[(w, c)] = st
@@ -267,7 +291,18 @@ def main():
             'build3_live_commit': 'a1acc28', 'audit_dir': a.audit, 'state_dir': a.state,
             'baseline_ms': baseline, 'follower_master': acct[:6] + '...' + acct[-4:],
             'params': {'PENDING_DELAY_MS': PENDING_DELAY_MS,
-                       'MATERIAL_USD': str(MATERIAL_USD), 'EPS': str(EPS)},
+                       'MATERIAL_USD': str(MATERIAL_USD), 'EPS': str(EPS),
+                       'LEADER_GAP_S': a.leader_gap, 'LEADER_GAP_JITTER_S': LEADER_GAP_JITTER_S,
+                       'BACKOFF_START_S': hl.BACKOFF_START_S, 'BACKOFF_CAP_S': hl.BACKOFF_CAP_S,
+                       'POST_TRIES': hl.POST_TRIES, 'FILL_CACHE_VERSION': hl.FILL_CACHE_VERSION},
+            'fill_cache': {'dir': cache_dir,
+                           'invalidation_rule': ('cache is reused only when version, wallet and '
+                                                 'since_ms all match exactly; a changed copy '
+                                                 'baseline_ms (or any wallet/version mismatch) '
+                                                 'invalidates and the whole window is re-fetched'),
+                           'pages_fetched_total': sum((v.get('pages') or 0) for v in lmeta.values()),
+                           'pages_reused_total': sum((v.get('pages_reused') or 0) for v in lmeta.values()),
+                           'rate_limited_wallets': sorted(k2 for k2, v in lmeta.items() if v.get('rate_limited'))},
             'follower_dex_report': dexrep, 'orders_total': len(proven),
             'orders_proven': sum(1 for o in proven if o.get('status') == 'order'),
             'orders_unknown_status': len(unk), 'unknown_order_detail': unk,

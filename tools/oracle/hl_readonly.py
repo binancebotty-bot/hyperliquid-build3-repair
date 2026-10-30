@@ -4,7 +4,7 @@
 Standard library only. No engine imports (GUT I26 / VERIFY-008). Every call here is a
 POST to an /info endpoint: no signing, no private key, no writes to the exchange.
 """
-import collections, json, time, urllib.error, urllib.request
+import collections, json, os, random, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal as D
 
@@ -13,22 +13,79 @@ TESTNET = 'https://api.hyperliquid-testnet.xyz/info'
 PAGE = 2000          # /info userFillsByTime hard page size
 MAX_PAGES = 40
 
+# Paced retry: honour Retry-After on 429, else exponential backoff with jitter.
+BACKOFF_START_S = 0.5
+BACKOFF_CAP_S = 30.0
+POST_TRIES = 8
+RETRY_AFTER_CAP_S = 120.0
+FILL_CACHE_VERSION = 1
 
-def post(url, payload, tries=5, timeout=30):
+
+def _jitter(x):
+    """+/-20% so a retry storm from several wallets does not stay in lockstep."""
+    return max(0.05, x * (0.8 + 0.4 * random.random()))
+
+
+def post(url, payload, tries=POST_TRIES, timeout=30, stats=None):
+    """POST /info with paced retry. Never signs, never writes.
+
+    HTTP 429 waits for `Retry-After` when the header is present, otherwise
+    exponential backoff from 0.5 s to a 30 s cap with jitter. Other transport
+    and 5xx failures take the same exponential path. `stats`, when supplied, is
+    filled in place with attempts / last_status / rate_limited / retry_after so
+    a caller can tell "rate limited hard" from "gone" instead of one opaque
+    string.
+    """
+    st = {'attempts': 0, 'last_status': None, 'rate_limited': False,
+          'retry_after': None, 'errors': []}
     last = None
-    for i in range(tries):
+    delay = BACKOFF_START_S
+    for i in range(max(1, tries)):
+        st['attempts'] += 1
         try:
             req = urllib.request.Request(url, data=json.dumps(payload).encode(),
                                          headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return json.loads(r.read().decode())
+                body = json.loads(r.read().decode())
+                st['last_status'] = 200
+                if stats is not None:
+                    stats.update(st)
+                return body
         except urllib.error.HTTPError as e:
-            last = 'HTTP %s %s' % (e.code, e.read().decode()[:100].replace('\n', ' '))
-            time.sleep(1.5 * (i + 1) if e.code == 429 else 0.5 * (i + 1))
+            st['last_status'] = e.code
+            detail = ''
+            try:
+                detail = e.read().decode()[:100].replace('\n', ' ')
+            except Exception:
+                pass
+            last = 'HTTP %s %s' % (e.code, detail)
+            st['errors'].append(last)
+            wait = None
+            if e.code == 429:
+                st['rate_limited'] = True
+                ra = None
+                try:
+                    ra = (e.headers or {}).get('Retry-After')
+                except Exception:
+                    ra = None
+                if ra:
+                    st['retry_after'] = ra
+                    try:
+                        wait = min(max(float(str(ra).strip()), 0.5), RETRY_AFTER_CAP_S)
+                    except ValueError:
+                        wait = None
+            if wait is None:
+                wait = _jitter(min(delay, BACKOFF_CAP_S))
+            delay = min(delay * 2.0, BACKOFF_CAP_S)
+            time.sleep(wait)
             continue
         except Exception as e:
             last = '%s: %s' % (type(e).__name__, str(e)[:120])
-        time.sleep(0.5 * (i + 1))
+            st['errors'].append(last)
+            time.sleep(_jitter(min(delay, BACKOFF_CAP_S)))
+            delay = min(delay * 2.0, BACKOFF_CAP_S)
+    if stats is not None:
+        stats.update(st)
     raise RuntimeError(last or 'transport error')
 
 
@@ -182,32 +239,111 @@ def price_map(url, extra_dex='xyz'):
     return out
 
 
-def leader_fills(wallet, baseline_ms, url=MAINNET):
+def _cache_path(wallet, since_ms, cache_dir):
+    return os.path.join(cache_dir, '%s_%d.json' % (wallet.lower(), int(since_ms)))
+
+
+def load_fill_cache(wallet, since_ms, cache_dir):
+    """Return (cache_dict|None, path). None when the key does not match exactly."""
+    p = _cache_path(wallet, since_ms, cache_dir)
+    try:
+        with open(p, encoding='utf-8') as fh:
+            d = json.load(fh)
+    except Exception:
+        return None, p
+    if (d.get('version') != FILL_CACHE_VERSION
+            or str(d.get('wallet', '')).lower() != wallet.lower()
+            or int(d.get('since_ms', -1)) != int(since_ms)):
+        return None, p
+    return d, p
+
+
+def save_fill_cache(path, d):
+    tmp = path + '.tmp'
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(tmp, 'w', encoding='utf-8') as fh:
+        json.dump(d, fh)
+    os.replace(tmp, path)
+
+
+def leader_fills(wallet, baseline_ms, url=MAINNET, stats=None, cache_dir=None,
+                 page_gap=0.35):
     """Forward pagination of mainnet fills strictly after the copy baseline.
 
     Serial with spacing on purpose: mainnet /info rate-limits parallel paging into
     HTTP 429 storms, and a 429 here would silently truncate a leader's history.
-    Returns (fills, pages, capped).
+    Each page is retried by `post` (Retry-After, else exponential backoff+jitter).
+
+    When `cache_dir` is given, every completed page is persisted keyed by
+    (wallet, since_ms, cursor) and a re-run resumes from the stored tail instead of
+    re-fetching the whole window.
+
+    Returns (fills, pages_fetched, capped). `pages_fetched` counts live requests only;
+    `stats` receives cache/pacing detail.
     """
-    cur, out, pages, capped = baseline_ms + 1, [], 0, False
-    while pages < MAX_PAGES:
+    st = {'pages_fetched': 0, 'pages_reused': 0, 'attempts': 0, 'last_status': None,
+          'rate_limited': False, 'cache': None}
+    cur, out, fetched, capped = int(baseline_ms) + 1, [], 0, False
+    cache = None
+    cpath = None
+    if cache_dir:
+        cache, cpath = load_fill_cache(wallet, baseline_ms, cache_dir)
+    if cache:
+        for pg in cache.get('pages') or []:
+            out.extend(pg.get('fills') or [])
+            st['pages_reused'] += 1
+        if (cache.get('pages') or []):
+            cur = int(cache['pages'][-1]['next_cursor'])
+        st['cache'] = cpath
+    if cache is not None and cache.get('complete'):
+        # stored window was fully walked; still poll once for the new tail below
+        pass
+    if cache is None:
+        cache = {'version': FILL_CACHE_VERSION, 'wallet': wallet, 'since_ms': int(baseline_ms),
+                 'pages': [], 'complete': False,
+                 'fetched_at_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+
+    while fetched < MAX_PAGES:
+        pst = {}
         pg = post(url, {'type': 'userFillsByTime', 'user': wallet,
-                        'startTime': cur, 'aggregateByTime': False})
-        pages += 1
+                        'startTime': cur, 'aggregateByTime': False}, stats=pst)
+        fetched += 1
+        st['pages_fetched'] += 1
+        st['attempts'] += pst.get('attempts') or 0
+        st['last_status'] = pst.get('last_status')
+        if pst.get('rate_limited'):
+            st['rate_limited'] = True
         if not pg:
+            cache['complete'] = True
             break
         out.extend(pg)
         if len(pg) < PAGE:
+            cache['pages'].append({'cursor': cur, 'next_cursor': int(pg[-1]['time']) + 1,
+                                   'fills': pg})
+            cache['complete'] = True
             break
         nxt = pg[-1]['time'] + 1
         if nxt <= cur:
             capped = True
             break
+        cache['pages'].append({'cursor': cur, 'next_cursor': nxt, 'fills': pg})
         cur = nxt
-        time.sleep(0.35)
+        if cpath:
+            save_fill_cache(cpath, cache)
+        time.sleep(page_gap)
     else:
         capped = True
-    return out, pages, capped
+    if capped:
+        cache['complete'] = False
+    cache['fetched_at_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    if cpath:
+        try:
+            save_fill_cache(cpath, cache)
+        except Exception:
+            pass
+    if stats is not None:
+        stats.update(st)
+    return out, fetched, capped
 
 
 def replay(fills):
