@@ -5715,12 +5715,15 @@ class SenderGateway:
         """Journal the refusal; if the write fails, that must be LOUD, not swallowed (Codex fix 4)."""
         try:
             self.audit.append_reconciliation(
-                "SEND_TERMINAL", "BLOCKED_AT_PLACE_ORDER",
+                "SEND_TERMINAL", ("SEND_BLOCKED_NO_SENDER_LEASE" if reason == "SEND_BLOCKED_NO_SENDER_LEASE"
+                                  else "BLOCKED_AT_PLACE_ORDER"),
                 leader_wallet=str(getattr(getattr(intent, "fill", None), "leader_wallet", "")),
                 leader_fill_id=str(getattr(getattr(intent, "fill", None), "leader_fill_id", "")),
                 intent_id=str(getattr(intent, "intent_id", "")),
                 coin=str(getattr(getattr(intent, "fill", None), "coin", "")),
-                action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER",
+                action="NO_EXCHANGE_CALL",
+                reject_category=("SEND_BLOCKED_NO_SENDER_LEASE" if reason == "SEND_BLOCKED_NO_SENDER_LEASE" else "BLOCKED_AT_PLACE_ORDER"),
+                terminal_state=("SEND_BLOCKED_NO_SENDER_LEASE" if reason == "SEND_BLOCKED_NO_SENDER_LEASE" else "BLOCKED_AT_PLACE_ORDER"),
                 engine_can_send="False",
                 notes=("blocked at the physical call: %s; path=%s; intent_id=%s"
                        % (reason, path or "-", str(getattr(intent, "intent_id", "-")))))
@@ -5742,6 +5745,23 @@ class SenderGateway:
             return why
         return ("CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
                 if abs(actual - size) > POSITION_EPSILON or ro != reduce_only else "")
+
+    def _wire_sender_lease(self) -> bool:
+        """I08/R3 C7-WO-1-R93: who may send. True when this host HOLDS the machine-wide lease.
+
+        An owner passes. A host that does not own it takes a FREE lease through the engine's own
+        acquire; while another process holds it, this host must never reach the wire."""
+        if (_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
+                and not _GLOBAL_INSTANCE_LOCK.closed):
+            return True
+        try:
+            acquire_global_instance_lock(None)
+        except SystemExit:
+            return False
+        except Exception:
+            return False
+        return bool(_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
+                    and not _GLOBAL_INSTANCE_LOCK.closed)
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
@@ -5768,26 +5788,36 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        _pending_id = ""
-        if pre_send is not None:  # synchronous write-ahead, before final close proof
-            try:
-                _pending_id = str(pre_send() or "")
-            except Exception as exc:
-                raise PendingSendWriteFailed(repr(exc)) from exc
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        # FINAL recheck, immediately before the physical call. The pacing slot wait and the
-        # write-ahead row can take seconds; a mode or wallet change during them must stop this
-        # order (Codex 6406031822: the early gate alone leaves that race open).
-        _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
-        if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
+        # C7-WO-1-R93: pacing slot wait -> lease check -> close proof -> pre_send (write-ahead) -> wire call.
+        # Lease = who may send. Close proof = whether this close is right. Neither subsumes the other.
+        _pending_id = ""
+        _is_close = (intent is not None and hasattr(intent, "reduce_only_intended")
+                     and self._reduce_only_for_intent(intent))
+        _late_block = ("" if self._wire_sender_lease() else "SEND_BLOCKED_NO_SENDER_LEASE")
+        if not _late_block:
+            _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+        if not _late_block and _is_close:
             _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        if pre_send is not None:  # write-ahead row after the lease check, immediately before the wire
+            try:
+                _pending_id = str(pre_send() or "")
+            except Exception as exc:
+                raise PendingSendWriteFailed(repr(exc)) from exc
+            # the fence holds at the physical call: a lease lost during pre_send must not send
+            if not _late_block and not (_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
+                                        and not _GLOBAL_INSTANCE_LOCK.closed):
+                _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
         if _late_block:
-            close_red = (intent is not None and self._reduce_only_for_intent(intent)) and _late_block.startswith(
-                ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
-            status = "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER"
+            # the lease wins the message when both would refuse
+            close_red = _is_close and (
+                _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
+                or _late_block.startswith(("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT")))
+            status = ("SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
+                      else "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER")
             _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
             if _aid and not update_send_attempt_row(_aid, {
                 "status": status, "terminal_state": status,
@@ -5795,6 +5825,7 @@ class SenderGateway:
                 "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
             }, durable=True):
                 raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
+            # a refused close is still OWED: RED row, rests at leader price, retried - never dropped
             if close_red and _late_block != "CLOSE_ALREADY_PROVEN_FLAT":
                 self._journal_authorised_close_refusal(intent, _late_block)
             elif not close_red:
@@ -5803,9 +5834,8 @@ class SenderGateway:
                     "exchange_called": False, "reject_category": status,
                     "terminal_state": status, "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
-        # Stamp the call time HERE, after the final recheck: the pacing slot wait and the write-ahead row
-        # can take seconds, and a refusal at the late gate must not leave a start stamp on the timing
-        # map the caller builds its row from (Codex 6406836199).
+        # Stamp the call time only after the refusal check and durable pending
+        # write, never for a known NO_EXCHANGE_CALL (Codex 6406836199).
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
@@ -16721,6 +16751,7 @@ _INSTANCE_LOCK = None
 
 
 _GLOBAL_INSTANCE_LOCK = None
+_GLOBAL_INSTANCE_LOCK_OWNED = False
 
 
 def _global_instance_lock_path() -> Path:
@@ -16738,15 +16769,23 @@ def _global_holder_path(lock_path: Path) -> Path:
     return lock_path.with_name(lock_path.name + ".holder.json")
 
 
+def release_global_instance_lock() -> None:
+    """I08/R3: revoke the one sender lease; closing its handle releases the OS lock."""
+    global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNED
+    _GLOBAL_INSTANCE_LOCK_OWNED = False
+    fh, _GLOBAL_INSTANCE_LOCK = _GLOBAL_INSTANCE_LOCK, None
+    if fh is not None:
+        fh.close()
+
+
 def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     """One running engine per MACHINE, in addition to one engine per state folder.
 
     A single machine-wide lock file is held by byte-range lock for the process lifetime, so it
     dies with the process and never goes stale. A second engine anywhere on the machine is
-    refused, and the refusal names the recorded holder. Guard only: no trading, sizing, sending
-    or gating logic reads this state.
+    refused, with holder metadata. I08/R3: the physical sender also checks this lease.
     """
-    global _GLOBAL_INSTANCE_LOCK
+    global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNED
     lock_path = _global_instance_lock_path()
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     fh = open(lock_path, "a+")
@@ -16788,6 +16827,7 @@ def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     except Exception:
         pass
     _GLOBAL_INSTANCE_LOCK = fh
+    _GLOBAL_INSTANCE_LOCK_OWNED = True
 
 
 def acquire_instance_lock(state_dir: Path) -> None:
