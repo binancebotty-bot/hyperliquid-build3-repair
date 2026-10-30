@@ -16445,8 +16445,7 @@ def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
 
     A single machine-wide lock file is held by byte-range lock for the process lifetime, so it
     dies with the process and never goes stale. A second engine anywhere on the machine is
-    refused, and the refusal names the recorded holder. Guard only: no trading, sizing, sending
-    or gating logic reads this state.
+    refused, with holder metadata. I08/R3: the physical sender also checks this lease.
     """
     global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNED
     lock_path = _global_instance_lock_path()
