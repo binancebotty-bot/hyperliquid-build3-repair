@@ -7251,8 +7251,10 @@ class SenderGateway:
                 _min_n = (lambda sz: abs(sz * limit_px) >= _mn)
             except Exception as exc:
                 log_error("standing_close_min_notional", exc)
-            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, None, ledger_may_lag=remainder is not None)
-            if _skip:  # nothing to leave standing (the target is reached or there is nothing left to close): say so
+            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, _sc_t, ledger_may_lag=remainder is not None)
+            if _skip:
+                if _sc_t.get("close_decision") != "SETTLED":
+                    self._journal_authorised_close_refusal(intent, _skip)
                 self.audit.append_reconciliation(
                     "EXIT_RECOVERY", "STANDING_CLOSE_NOT_PLACED", leader_wallet=intent.fill.leader_wallet,
                     leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
@@ -7967,9 +7969,12 @@ class SenderGateway:
         if not math.isfinite(owned) or not math.isfinite(led_net):
             return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_INVALID_LEDGER")
         ex_net = self._fresh_exchange_net(intent.fill.coin)
-        if ex_net is None or not math.isfinite(float(ex_net)):
+        try:
+            ex_net = float(ex_net) if ex_net is not None else float("nan")
+        except (TypeError, ValueError):
+            ex_net = float("nan")
+        if not math.isfinite(ex_net):
             return finish("HOLD", False, 0.0, "CLOSE_PROOF_HOLD_UNREADABLE_EXCHANGE")
-        ex_net = float(ex_net)
         if (os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
                 and is_valid_wallet(normalise_wallet(USER_WALLET))
                 and not self._close_proof_account_ok()):
@@ -8815,18 +8820,28 @@ class SenderGateway:
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
                 intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
             if close_skip:
-                note = f"{close_skip}; intent_id={intent.intent_id}; no order sent"
-                repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
-                if repair:
-                    note += "; " + repair
-                return False, "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", {
-                    "status": "CLOSE_ALREADY_AT_TARGET", "error": "", "exchange_response": {}, "oid": "",
-                    "exchange_called": False, "write_send_attempt": True, "notes": note, "reject_category": "",
-                    "terminal_state": "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "operator_action": "NO_SEND_CLOSE_AT_TARGET",
+                settled = timing.get("close_decision") == "SETTLED"
+                if not settled:
+                    self._journal_authorised_close_refusal(intent, close_skip)
+                status = ("SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET" if settled
+                          else "SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD")
+                return False, status, {
+                    "status": status, "error": close_skip, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_reconciliation": not settled,
+                    "notes": f"{close_skip}; close remains owed unless doubly flat; no exchange call",
+                    "reject_category": "" if settled else "CLOSE_PROOF_HOLD",
+                    "terminal_state": status, "operator_action": "NO_SEND_CLOSE_PROOF_UNRESOLVED",
                     "timing": timing}
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
                 wire_size = close_size_planned
+                # Gate B saw the leader size; validate the actual dust-uplifted
+                # physical size as well, not only the earlier proposed size.
+                _again_ok, _again_block = self._validate_final_wire_order(
+                    intent, resolved, sdk_coin, wire_size, limit_px, timing)
+                if not _again_ok:
+                    self._journal_authorised_close_refusal(intent, _again_block.get("status", "CLOSE_WIRE_INVALID"))
+                    return False, _again_block["status"], _again_block
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
         # T1a: the pending_send row (with the cloid) is written by _place_order synchronously, AFTER the slot/cooldown wait
