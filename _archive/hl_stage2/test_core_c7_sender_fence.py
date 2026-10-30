@@ -184,6 +184,7 @@ def build_gateway(core, refusals):
     gw._reserve_exchange_order_slot = lambda wait_for_cooldown=True: int(time.time() * 1000)
     gw._gate_refusal_row = lambda intent, path, reason: refusals.append(reason)
     gw._note_sender_key_rejection = lambda response: None
+    gw.audit = core.AuditLogWriter()
     return gw
 
 

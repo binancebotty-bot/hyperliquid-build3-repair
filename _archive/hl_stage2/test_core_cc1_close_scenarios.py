@@ -202,10 +202,24 @@ def w2():
     gw = make_gateway(ex, led, net)
     set_sleeve(led, B, -15.0)                                        # leader B short 15: exchange net = +10 - 15 = -5
     it = exit_intent(led, A, "SELL", 10.0, "w2-f", 10.0)
+    a_sleeve, b_sleeve, net_before = sleeve_of(led, A), sleeve_of(led, B), net[0]
     ok, status = gw.send_if_allowed(it)
+    # C7-WO-1-R99: production DOES distinguish close from entry (SenderGateway._reduce_only_for_intent),
+    # but the wire reduce_only flag is decided by whether the close fits the account NET, so here the
+    # close intent is sent WITHOUT reduce-only: 10 exceeds the account net 5, and as an ENTRY for leader
+    # B's sleeve it must fit entry sizing (B's remaining capacity = 15 - 5 = 10).
+    order = ex.calls[0] if len(ex.calls) == 1 else None
+    close_intent = c.SenderGateway._reduce_only_for_intent(it) is True
+    entry_sized = (order is not None and order["reduce_only"] is False
+                   and abs(order["size"]) > abs(net_before)                            # a reduce-only close above the net cannot exist
+                   and abs(order["size"]) <= abs(b_sleeve) - abs(net_before))          # entry fits B's sleeve capacity
+    close_within_sleeve = all(abs(call["size"]) <= abs(a_sleeve)
+                              for call in ex.calls if call["reduce_only"] is True)
     return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 10.0) < 1e-9
-            and ex.calls[0]["reduce_only"] is False and abs(net[0] + 15.0) < 1e-9), \
-        "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
+            and ex.calls[0]["reduce_only"] is False and abs(net[0] + 15.0) < 1e-9
+            and close_intent and entry_sized and close_within_sleeve), \
+        "ok=%r status=%r calls=%r close_intent=%r entry_sized=%r close_within_sleeve=%r sleeves=%r/%r net_before=%r" % (
+            ok, status, ex.calls, close_intent, entry_sized, close_within_sleeve, a_sleeve, b_sleeve, net_before)
 
 
 # ======================================================================================= W3 live sleeve / user residual

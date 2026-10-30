@@ -5736,6 +5736,10 @@ class SenderGateway:
             print("ALERT: the gate refused an order (%s) but could not journal it: %r"
                   % (reason, exc), file=sys.stderr)
 
+    def _sender_lease_owned(self) -> bool:
+        """C7-WO-1-R98 item 3: the ONE literal sender-lease test used at both fence points."""
+        return bool(_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None and not _GLOBAL_INSTANCE_LOCK.closed)
+
     def _final_close_proof(self, intent: Intent, size: float, reduce_only: bool,
                            timing: Optional[Dict[str, Any]]) -> str:
         """R1: reuse the ONE close decision after every wait, at the physical wire."""
@@ -5783,8 +5787,7 @@ class SenderGateway:
         # C7-WO-1-R95: LITERAL ownership test. A sender that is not already the
         # machine-wide lease holder must not reach the wire. No acquire-on-demand,
         # no fallback, no retry: an engine that does not know its own state does not send.
-        _lease_owned = bool(_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
-                            and not _GLOBAL_INSTANCE_LOCK.closed)
+        _lease_owned = self._sender_lease_owned()
         _late_block = ("" if _lease_owned else "SEND_BLOCKED_NO_SENDER_LEASE")
         if not _late_block:
             _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
@@ -5796,8 +5799,7 @@ class SenderGateway:
             except Exception as exc:
                 raise PendingSendWriteFailed(repr(exc)) from exc
             # the fence holds at the physical call: a lease lost during pre_send must not send
-            if not _late_block and not (_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
-                                        and not _GLOBAL_INSTANCE_LOCK.closed):
+            if not _late_block and not self._sender_lease_owned():
                 _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
         if _late_block:
             # the lease wins the message when both would refuse
