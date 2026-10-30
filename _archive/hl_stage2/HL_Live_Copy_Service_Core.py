@@ -5801,9 +5801,18 @@ class SenderGateway:
                 _pending_id = str(pre_send() or "")
             except Exception as exc:
                 raise PendingSendWriteFailed(repr(exc)) from exc
-            # the fence holds at the physical call: a lease lost during pre_send must not send
-            if not _late_block and not _sender_lease_owned():
+        # TOCTOU: the lease, the close proof and the mode were all proven BEFORE pre_send, and pre_send is exactly
+        # where that proof can go stale (it waits on the durable intent barrier and fsyncs a row). ONE final
+        # revalidation of all three runs here, immediately before the wire, over the SAME state - no new parallel
+        # state, no weakening of the checks above: a lease lost, a ledger net moved under a close, or a mode
+        # switched OFF must not send.
+        if not _late_block:
+            if not _sender_lease_owned():
                 _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
+            else:
+                _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
+            if not _late_block and _is_close:
+                _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         if _late_block:
             # the lease wins the message when both would refuse
             close_red = _is_close and (

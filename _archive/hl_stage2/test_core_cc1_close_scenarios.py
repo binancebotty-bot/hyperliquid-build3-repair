@@ -167,6 +167,15 @@ def recon_rows(fid):
         return [r for r in csv.DictReader(fh) if r.get("leader_fill_id") == fid]
 
 
+def send_rows(fid):
+    """Every send_attempts row for this intent, oldest first: the write-ahead pending_send rows and their finals."""
+    p = c.SEND_ATTEMPTS_CSV
+    if not p.exists():
+        return []
+    with p.open("r", newline="", encoding="utf-8-sig") as fh:
+        return [r for r in csv.DictReader(fh) if r.get("intent_id") == fid]
+
+
 def named_rows(fid):
     return [r for r in recon_rows(fid) if NAME in (r.get("terminal_state"), r.get("status"))]
 
@@ -601,6 +610,66 @@ def ceil_unknown_entry_sizing_is_a_loud_fault_and_the_close_still_sends():
                                                [(r.get("status"), r.get("terminal_state")) for r in faults])
 
 
+def toctou_pre_send_ledger_moves_gives_zero_calls_and_terminalises_the_row():
+    """TOCTOU: the close proof and the mode gate run BEFORE pre_send and are not rechecked after it. A pre_send
+    callback that MOVES THE LEDGER NET while the LEASE IS KEPT must give ZERO exchange calls and must
+    terminalise the pending_send row it wrote - never leave a pending row for an unsent order."""
+    led, ex, net, gw, it = _ceiling_fixture(9.0)
+    real = gw._place_order
+
+    def move_then_send(exchange, sdk_coin, is_buy, size, limit_px, tif, reduce_only, timing=None,
+                       started_key="", cloid=None, bypass_rate_limit_cooldown=False, pre_send=None,
+                       intent=None, path="", **kw):
+        def _move():
+            aid = pre_send()
+            set_sleeve(led, A, -6.0)   # the sleeve flipped under us after the proof; the lease is untouched
+            net[0] = -6.0
+            return aid
+        return real(exchange, sdk_coin, is_buy, size, limit_px, tif, reduce_only, timing, started_key,
+                    cloid=cloid, bypass_rate_limit_cooldown=bypass_rate_limit_cooldown,
+                    pre_send=_move, intent=intent, path=path, **kw)
+
+    gw._place_order = move_then_send
+    ok, status = gw.send_if_allowed(it)
+    rows = send_rows("ceil-9.0-f")
+    return (not ok and not ex.calls and len(rows) == 2
+            and rows[0].get("status") == "pending_send"
+            and rows[-1].get("status") == "CLOSE_PROOF_HOLD_AT_WIRE"), \
+        "ok=%r status=%r calls=%r rows=%r" % (ok, status, ex.calls,
+                                              [(r.get("status"), r.get("terminal_state")) for r in rows])
+
+
+def toctou_pre_send_mode_off_gives_zero_calls_and_terminalises_the_row():
+    """TOCTOU, mode half: pre_send flips the global send mode to OFF while the lease is KEPT. ZERO exchange
+    calls, and the pending_send row is terminalised (MASTER_REAL_ORDERS_OFF), not left pending."""
+    led, ex, net, gw, it = _ceiling_fixture(7.0)
+    real = gw._place_order
+    mode = ["ON"]
+
+    def off_then_send(exchange, sdk_coin, is_buy, size, limit_px, tif, reduce_only, timing=None,
+                      started_key="", cloid=None, bypass_rate_limit_cooldown=False, pre_send=None,
+                      intent=None, path="", **kw):
+        def _off():
+            aid = pre_send()
+            mode[0] = "OFF"
+            return aid
+        return real(exchange, sdk_coin, is_buy, size, limit_px, tif, reduce_only, timing, started_key,
+                    cloid=cloid, bypass_rate_limit_cooldown=bypass_rate_limit_cooldown,
+                    pre_send=_off, intent=intent, path=path, **kw)
+
+    gw.cfg.send_mode_now = lambda: mode[0]
+    gw._place_order = off_then_send
+    ok, status = gw.send_if_allowed(it)
+    rows = send_rows("ceil-7.0-f")
+    return (not ok and not ex.calls and len(rows) == 2
+            and rows[0].get("status") == "pending_send"
+            and rows[-1].get("status") == "BLOCKED_AT_PLACE_ORDER"
+            and rows[-1].get("terminal_state") == "BLOCKED_AT_PLACE_ORDER"
+            and "MASTER_REAL_ORDERS_OFF" in str(rows[-1].get("error") or "")), \
+        "ok=%r status=%r calls=%r rows=%r" % (ok, status, ex.calls,
+                                              [(r.get("status"), r.get("error")) for r in rows])
+
+
 def ceil_excess_above_the_cap_is_blocked_close_untouched():
     """(b)+(d) The excess is an ENTRY: when the global cap leaves no allowance the increase is blocked (no second
     wire call) and the close is unaffected. max_order_notional is NOT the gate: setting it tiny changes nothing."""
@@ -654,6 +723,10 @@ def main():
          ceil_unknown_entry_sizing_is_a_loud_fault_and_the_close_still_sends),
         ("CEILING_EXCESS_ABOVE_CAP_BLOCKED_CLOSE_UNTOUCHED",
          ceil_excess_above_the_cap_is_blocked_close_untouched),
+        ("TOCTOU_PRE_SEND_LEDGER_MOVES_ZERO_CALLS_ROW_TERMINALISED",
+         toctou_pre_send_ledger_moves_gives_zero_calls_and_terminalises_the_row),
+        ("TOCTOU_PRE_SEND_MODE_OFF_ZERO_CALLS_ROW_TERMINALISED",
+         toctou_pre_send_mode_off_gives_zero_calls_and_terminalises_the_row),
         *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
            (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]
