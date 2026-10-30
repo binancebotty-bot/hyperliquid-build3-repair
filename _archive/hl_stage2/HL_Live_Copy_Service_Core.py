@@ -20,6 +20,7 @@ It is safe to compile and run --self-test without network or orders.
 from __future__ import annotations
 
 import decimal
+import errno
 import argparse
 import atexit
 import concurrent.futures
@@ -5683,12 +5684,15 @@ class SenderGateway:
         """Journal the refusal; if the write fails, that must be LOUD, not swallowed (Codex fix 4)."""
         try:
             self.audit.append_reconciliation(
-                "SEND_TERMINAL", "BLOCKED_AT_PLACE_ORDER",
+                "SEND_TERMINAL", ("SEND_BLOCKED_NO_SENDER_LEASE" if reason == "SEND_BLOCKED_NO_SENDER_LEASE"
+                                  else "BLOCKED_AT_PLACE_ORDER"),
                 leader_wallet=str(getattr(getattr(intent, "fill", None), "leader_wallet", "")),
                 leader_fill_id=str(getattr(getattr(intent, "fill", None), "leader_fill_id", "")),
                 intent_id=str(getattr(intent, "intent_id", "")),
                 coin=str(getattr(getattr(intent, "fill", None), "coin", "")),
-                action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER",
+                action="NO_EXCHANGE_CALL",
+                reject_category=("SEND_BLOCKED_NO_SENDER_LEASE" if reason == "SEND_BLOCKED_NO_SENDER_LEASE" else "BLOCKED_AT_PLACE_ORDER"),
+                terminal_state=("SEND_BLOCKED_NO_SENDER_LEASE" if reason == "SEND_BLOCKED_NO_SENDER_LEASE" else "BLOCKED_AT_PLACE_ORDER"),
                 engine_can_send="False",
                 notes=("blocked at the physical call: %s; path=%s; intent_id=%s"
                        % (reason, path or "-", str(getattr(intent, "intent_id", "-")))))
@@ -5726,11 +5730,6 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        if pre_send is not None:  # the pending_send write-ahead row: after the slot/cooldown wait, synchronously, right before the call
-            try:
-                pre_send()
-            except Exception as exc:  # fail closed: no crash record means no order
-                raise PendingSendWriteFailed(repr(exc)) from exc
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
@@ -5738,24 +5737,22 @@ class SenderGateway:
         # FINAL recheck, immediately before the physical call. The pacing slot wait and the
         # write-ahead row can take seconds; a mode or wallet change during them must stop this
         # order (Codex 6406031822: the early gate alone leaves that race open).
-        # I08/R3: reassert the ONE machine-wide lease at the physical send boundary.
-        # Its live OS-locked file handle is the authority; a missing, closed or
-        # replaced lock file fails closed. No second lock or ownership gate.
-        _lease = _GLOBAL_INSTANCE_LOCK
-        try:
-            _lease_held = (_lease is not None and not _lease.closed
-                           and os.path.samestat(os.fstat(_lease.fileno()),
-                                                _global_instance_lock_path().stat()))
-        except (OSError, ValueError, AttributeError):
-            _lease_held = False
-        _late_block = ("SEND_BLOCKED_NO_SENDER_LEASE" if not _lease_held else
+        # I08/R3: the ONE existing machine-wide lease must still be owned by
+        # this process (not just an open handle) before any pending_send write.
+        _late_block = ("SEND_BLOCKED_NO_SENDER_LEASE" if not _global_sender_lease_held() else
                        self._master_gate_reason(intent, (path or "") + ":post_wait"))
         if _late_block:
             self._gate_refusal_row(intent, path, _late_block)
+            _reason = "SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE" else "BLOCKED_AT_PLACE_ORDER"
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
-                    "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
-                    "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
+                    "exchange_called": False, "reject_category": _reason,
+                    "terminal_state": _reason, "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
+        if pre_send is not None:  # record pending only after all NO_EXCHANGE_CALL refusals
+            try:
+                pre_send()
+            except Exception as exc:
+                raise PendingSendWriteFailed(repr(exc)) from exc
         # Stamp the call time HERE, after the final recheck: the pacing slot wait and the write-ahead row
         # can take seconds, and a refusal at the late gate must not leave a start stamp on the timing
         # map the caller builds its row from (Codex 6406836199).
@@ -16409,6 +16406,7 @@ _INSTANCE_LOCK = None
 
 
 _GLOBAL_INSTANCE_LOCK = None
+_GLOBAL_INSTANCE_LOCK_OWNER_PID = None
 
 
 def _global_instance_lock_path() -> Path:
@@ -16426,6 +16424,50 @@ def _global_holder_path(lock_path: Path) -> Path:
     return lock_path.with_name(lock_path.name + ".holder.json")
 
 
+def _global_sender_lease_held() -> bool:
+    """I08/R3: inspect the existing OS lease, not merely its open pathname.
+
+    A separate ephemeral descriptor must FAIL to acquire the same lock. If it
+    succeeds, the owner's handle was unlocked while still open. Nothing is
+    acquired or held by this probe after it returns. A fork cannot inherit
+    sender authority because the recorded owner PID must match.
+    """
+    fh = _GLOBAL_INSTANCE_LOCK
+    if fh is None or fh.closed or _GLOBAL_INSTANCE_LOCK_OWNER_PID != os.getpid():
+        return False
+    try:
+        path = _global_instance_lock_path()
+        if not os.path.samestat(os.fstat(fh.fileno()), path.stat()):
+            return False
+        # The holder sidecar is advisory, but a known different holder is a refusal.
+        try:
+            holder = json.loads(_global_holder_path(path).read_text(encoding="utf-8"))
+            if holder.get("pid") != os.getpid():
+                return False
+        except (OSError, ValueError, TypeError):
+            pass
+        with open(path, "a+") as probe:  # separate file description, NOT dup(fh)
+            probe.seek(0)
+            try:
+                if os.name == "nt":
+                    import msvcrt
+                    msvcrt.locking(probe.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(probe.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as exc:
+                return exc.errno in (errno.EAGAIN, errno.EACCES, errno.EWOULDBLOCK)
+            else:
+                if os.name == "nt":
+                    probe.seek(0)
+                    msvcrt.locking(probe.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(probe.fileno(), fcntl.LOCK_UN)
+                return False  # unlocked original: never send
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     """One running engine per MACHINE, in addition to one engine per state folder.
 
@@ -16434,7 +16476,7 @@ def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     refused, and the refusal names the recorded holder. Guard only: no trading, sizing, sending
     or gating logic reads this state.
     """
-    global _GLOBAL_INSTANCE_LOCK
+    global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNER_PID
     lock_path = _global_instance_lock_path()
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     fh = open(lock_path, "a+")
@@ -16476,6 +16518,7 @@ def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     except Exception:
         pass
     _GLOBAL_INSTANCE_LOCK = fh
+    _GLOBAL_INSTANCE_LOCK_OWNER_PID = os.getpid()
 
 
 def acquire_instance_lock(state_dir: Path) -> None:
