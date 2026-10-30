@@ -141,10 +141,14 @@ def make_gateway(ex, ledger, net, account=ACCOUNT, snapshot=True):
     return gw
 
 
-def exit_intent(ledger, wallet, side, size, fid, sleeve, source="POLL", ts=None):
+def exit_intent(ledger, wallet, side, size, fid, sleeve, source="POLL", ts=None, start=None):
     """A real, send-authorised EXIT intent built while the wallet sleeve holds ``sleeve`` (signed)."""
     set_sleeve(ledger, wallet, sleeve)
     fill = c.LeaderFill(fid, wallet, COIN, side, PX, size, ts if ts is not None else c.utc_now_ms(), source)
+    if start is not None:
+        # R81: the leader position BEFORE the fill. R81 fixtures declare it explicitly; the
+        # production ingest copies it from the exchange row into raw["startPosition"].
+        fill.raw["startPosition"] = str(start)
     it = c.IntentBuilder(c.ConfigManager(), ledger).build(fill)
     it.intent_id = fid
     it.decision = "EXIT_ALLOWED"
@@ -204,7 +208,7 @@ def w2():
 def w3a():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
     gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 1.0, "w3a-f", 2.0)
+    it = exit_intent(led, A, "SELL", 1.0, "w3a-f", 2.0, start=2.0)
     ok, status = gw.send_if_allowed(it)
     return (ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is True
             and abs(ex.calls[0]["size"] - it.copy_size) < 1e-9 and abs(net[0] - 1.0) < 1e-9), \
@@ -214,7 +218,7 @@ def w3a():
 def w3b_user_residual():
     led, ex, net = new_ledger(), FakeExchange(), [5.5]   # engine +0.5, a user-managed +5 on the same coin
     gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 0.5, "w3b-f", 0.5)
+    it = exit_intent(led, A, "SELL", 0.5, "w3b-f", 0.5, start=0.5)
     ok, status = gw.send_if_allowed(it)
     return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - it.copy_size) < 1e-9
             and ex.calls[0]["reduce_only"] is True and abs(net[0] - 5.0) < 1e-9), \
@@ -225,7 +229,7 @@ def w3b_user_residual():
 def w4a_whole_position():
     led, ex, net = new_ledger(), FakeExchange(), [0.05]
     gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 0.05, "w4a-f", 0.05)
+    it = exit_intent(led, A, "SELL", 0.05, "w4a-f", 0.05, start=0.05)
     ok, status = gw.send_if_allowed(it)
     return (ok and len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 0.05) < 1e-9
             and ex.calls[0]["reduce_only"] is True and abs(net[0]) < 1e-9), \
@@ -244,10 +248,10 @@ def w4b_submin_remainder_is_held_not_sent():
 def w4c_resolved_by_whole_position_close_when_account_would_go_flat():
     led, ex, net = new_ledger(), FakeExchange(), [5.05]
     gw = make_gateway(ex, led, net)
-    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4c-f1", 0.05))        # held / refused: sub-minimum with a residual
+    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4c-f1", 0.05, start=0.05))   # held / refused: sub-minimum with a residual
     net[0] = 0.05                                                              # the user residual is gone: engine's 0.05 is the whole position
     before = len(ex.calls)
-    ok, status = gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4c-f2", 0.05))
+    ok, status = gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4c-f2", 0.05, start=0.05))
     new = ex.calls[before:]
     return ok and len(new) == 1 and abs(new[0]["size"] - 0.05) < 1e-9 and new[0]["reduce_only"] is True, \
         "ok=%r status=%r new_calls=%r" % (ok, status, new)
@@ -259,7 +263,7 @@ def w4d_no_engine_dust_remains_when_exchange_is_flat():
     Assert the independent physical exchange end state rather than plan labels."""
     led, ex, net = new_ledger(), FakeExchange(), [0.105]
     gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 0.100, "w4d-f", 0.105)
+    it = exit_intent(led, A, "SELL", 0.100, "w4d-f", 0.105, start=0.1)
     ok, status = gw.send_if_allowed(it)
     exact_flat_send = (ok and len(ex.calls) == 1
                        and abs(ex.calls[0]["size"] - 0.105) < 1e-9
@@ -482,6 +486,43 @@ def bypass_door(n):
             os.environ["HL_LIVE_CLOSE_TO_TARGET"] = old
 
 
+
+
+def r81_share_of_roleader_position():
+    """R81 (CS-I1/I2): the close copies the SHARE of the leader position this fill closed.
+
+    Leader holds 1000 and closes 1 (0.1 pct). A 2.0 follower sleeve must close 0.002 - not 1.0
+    (leader units leaking into a follower-sized sleeve) and not 2.0 (the old full-sleeve exit)."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    it = exit_intent(led, A, "SELL", 1.0, "r81a-f", 2.0, start=1000.0)
+    return abs(it.copy_size - 0.002) < 1e-9, (
+        "copy_size=%r expected 0.002 (share 1/1000 of a 2.0 sleeve)" % it.copy_size)
+
+
+def r81_missing_start_is_full_sleeve():
+    """R81: startPosition absent => FULL sleeve (old behaviour). Over-close is the safe side and
+    a close is never dropped, so an unknown share must never shrink the close."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    it = exit_intent(led, A, "SELL", 1.0, "r81b-f", 2.0)
+    return abs(it.copy_size - 2.0) < 1e-9, (
+        "copy_size=%r expected 2.0 (no startPosition -> full sleeve)" % it.copy_size)
+
+
+def r81_whole_leader_close_is_full_sleeve():
+    """R81: the leader closes its entire 1.0 position (start 1.0, fill 1.0) => fraction 1 =>
+    exactly the full sleeve, no dust left behind."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    it = exit_intent(led, A, "SELL", 1.0, "r81c-f", 2.0, start=1.0)
+    return abs(it.copy_size - 2.0) < 1e-9, (
+        "copy_size=%r expected 2.0 (whole leader close)" % it.copy_size)
+
+
+def r81_half_leader_close_is_half_sleeve():
+    """R81: the leader closes half (start 2.0, fill 1.0) => half the sleeve."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    it = exit_intent(led, A, "SELL", 1.0, "r81d-f", 2.0, start=2.0)
+    return abs(it.copy_size - 1.0) < 1e-9, "copy_size=%r expected 1.0 (half of sleeve)" % it.copy_size
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -507,6 +548,10 @@ def main():
          ce1_stale_owned_does_not_eat_foreign),
         ("CE2_R1_I22_WRONG_MASTER_FOREIGN_5_NUMERIC_AND_OWED_RED",
          ce2_bad_master_does_not_eat_foreign),
+        ("R81_SHARE_OF_LEADER_POSITION_1000_CLOSES_1", r81_share_of_roleader_position),
+        ("R81_MISSING_START_POSITION_IS_FULL_SLEEVE", r81_missing_start_is_full_sleeve),
+        ("R81_WHOLE_LEADER_CLOSE_IS_FULL_SLEEVE", r81_whole_leader_close_is_full_sleeve),
+        ("R81_HALF_LEADER_CLOSE_IS_HALF_SLEEVE", r81_half_leader_close_is_half_sleeve),
         ("EVENT_LOSS_CS_I2_COIN_NET_EQUALITY_NOT_FILL_PROOF",
          missing_fill_equal_coin_net_is_not_proof),
         ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
