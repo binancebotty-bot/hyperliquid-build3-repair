@@ -302,7 +302,7 @@ def w6a_unreadable_exchange_never_claims_flat():
         "ok=%r status=%r sleeve=%r" % (ok, status, sl)
 
 
-def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
+def w6b_wrong_account_flat_read_requires_owed_hold():
     led, ex, net = new_ledger(), FakeExchange(), [0.0]
     gw = make_gateway(ex, led, net, account=OTHER_ACCOUNT, snapshot=False)
     gw._persisted_exchange_positions = lambda: ({"BTC": 2.0}, "")            # the engine's own account snapshot: still +2
@@ -390,8 +390,8 @@ def main():
         ("B_REAL_SEND_A_REDUCE_ONLY_CLOSE_REACHES_THE_SDK_EXCHANGE_CALLED_TRUE", b_real_send),
         ("W5_OLDER_TERMINAL_FILL_ID_DOES_NOT_BLOCK_A_FRESH_EXIT_ON_A_LIVE_SLEEVE", w5),
         ("W6A_UNREADABLE_EXCHANGE_NEVER_CLAIMS_FLAT", w6a_unreadable_exchange_never_claims_flat),
-        ("W6B_WRONG_ACCOUNT_FLAT_READ_NEVER_CLAIMS_FLAT_AND_THE_CLOSE_IS_SENT",
-         w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent),
+        ("W6B_WRONG_ACCOUNT_FLAT_READ_REQUIRES_OWED_HOLD", 
+         w6b_wrong_account_flat_read_requires_owed_hold),
         ("W7_HELD_DUST_ON_THE_SAME_FILL_ID_IS_NOT_CONSUMED", w7_held_same_fill_is_not_consumed),
         ("W8_ABSENT_KEY_IN_A_PARTIAL_LEDGER_IS_UNKNOWN_NO_FABRICATED_SLEEVE", w8_absent_key_in_a_partial_ledger_is_unknown),
         ("W9_TWO_SIMULTANEOUS_STALE_REPLAYS_PRODUCE_EXACTLY_ONE_NO_SEND", w9),
