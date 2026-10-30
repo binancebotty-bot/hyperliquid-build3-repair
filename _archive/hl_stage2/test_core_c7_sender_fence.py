@@ -228,6 +228,7 @@ def main():
     core.RECONCILIATION_CSV = ROOT / "isolated_reconciliation.csv"
     core.SEND_ATTEMPTS_CSV = ROOT / "isolated_send_attempts.csv"
     gw.audit = core.AuditLogWriter()
+    gw._gate_refusal_row = core.SenderGateway._gate_refusal_row.__get__(gw, core.SenderGateway)
 
     def write_pending(attempt_id):
         core.append_csv(core.SEND_ATTEMPTS_CSV, core.SEND_ATTEMPT_FIELDS, {
