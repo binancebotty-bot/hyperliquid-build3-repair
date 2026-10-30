@@ -20,7 +20,6 @@ It is safe to compile and run --self-test without network or orders.
 from __future__ import annotations
 
 import decimal
-import errno
 import argparse
 import atexit
 import concurrent.futures
@@ -2129,7 +2128,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
         return True
     finally:
         lock.release()
-def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
+def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None, *, durable: bool = False) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
     send path and could drop rows appended meanwhile). The newest row for an attempt_id is its current state; the
@@ -2144,7 +2143,7 @@ def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: 
     if base is None:
         return False
     base.update(updates)
-    append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base)
+    append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base, durable=durable)
     return True
 
 
@@ -5708,7 +5707,7 @@ class SenderGateway:
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
-                     pre_send: Optional[Callable[[], None]] = None,
+                     pre_send: Optional[Callable[[], str]] = None,
                      intent: Any = None, path: str = "") -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
@@ -5734,25 +5733,32 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        # FINAL refusal check after pacing, before pending_send is recorded: a
-        # known NO_EXCHANGE_CALL must not leave a phantom unresolved pending row.
-        # The existing mode/wallet recheck is kept here (Codex 6406031822).
-        # I08/R3: the ONE existing machine-wide lease must still be owned by
-        # this process (not just an open handle) before any pending_send write.
-        _late_block = ("SEND_BLOCKED_NO_SENDER_LEASE" if not _global_sender_lease_held() else
-                       self._master_gate_reason(intent, (path or "") + ":post_wait"))
+        # I08/R3: the ONE lease check is at the physical wire after pending_send.
+        _pending_id = ""
+        if pre_send is not None:
+            try:
+                _pending_id = pre_send() or ""
+            except Exception as exc:
+                raise PendingSendWriteFailed(repr(exc)) from exc
+        _late_block = ("SEND_BLOCKED_NO_SENDER_LEASE"
+                       if not (_GLOBAL_INSTANCE_LOCK_OWNED and _GLOBAL_INSTANCE_LOCK is not None
+                               and not _GLOBAL_INSTANCE_LOCK.closed)
+                       else self._master_gate_reason(intent, (path or "") + ":post_wait"))
         if _late_block:
+            _reason = ("SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
+                       else "BLOCKED_AT_PLACE_ORDER")
+            _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
+            if _aid and not update_send_attempt_row(_aid, {
+                "status": _reason, "terminal_state": _reason,
+                "reject_category": _reason, "operator_action": "NO_EXCHANGE_CALL",
+                "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
+            }, durable=True):
+                raise PendingSendWriteFailed("PENDING_SEND_NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
             self._gate_refusal_row(intent, path, _late_block)
-            _reason = "SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE" else "BLOCKED_AT_PLACE_ORDER"
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
                     "exchange_called": False, "reject_category": _reason,
                     "terminal_state": _reason, "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
-        if pre_send is not None:  # record pending only after all NO_EXCHANGE_CALL refusals
-            try:
-                pre_send()
-            except Exception as exc:
-                raise PendingSendWriteFailed(repr(exc)) from exc
         # Stamp the call time only after the refusal check and durable pending
         # write, never for a known NO_EXCHANGE_CALL (Codex 6406836199).
         if timing is not None and started_key:
@@ -6193,11 +6199,12 @@ class SenderGateway:
         key = f"{intent.intent_id}:{label}:{n}:{utc_now_ms()}"
         cloid, attempt_id = generate_cloid(key), generate_attempt_id(key)
 
-        def _pre() -> None:
+        def _pre() -> str:
             wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # never raises
             t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
-            self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
+            aid = self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
             t["pending_send_done_ms"] = utc_now_ms()
+            return aid
         return cloid, _pre
 
     @staticmethod
@@ -8643,10 +8650,11 @@ class SenderGateway:
         timing["send_cloid"] = cloid
 
         def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now else "REAL_IOC", _px=limit_px,
-                          _sz=wire_size, _ro=use_reduce_only) -> None:
+                          _sz=wire_size, _ro=use_reduce_only) -> str:
             wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # barrier: intent row on disk first; never raises
-            self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
+            aid = self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
             timing["pending_send_done_ms"] = utc_now_ms()
+            return aid
         accepted_result: Optional[Tuple[bool, str, Dict[str, Any]]] = None
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
@@ -16405,7 +16413,7 @@ _INSTANCE_LOCK = None
 
 
 _GLOBAL_INSTANCE_LOCK = None
-_GLOBAL_INSTANCE_LOCK_OWNER_PID = None
+_GLOBAL_INSTANCE_LOCK_OWNED = False
 
 
 def _global_instance_lock_path() -> Path:
@@ -16423,48 +16431,22 @@ def _global_holder_path(lock_path: Path) -> Path:
     return lock_path.with_name(lock_path.name + ".holder.json")
 
 
-def _global_sender_lease_held() -> bool:
-    """I08/R3: inspect the existing OS lease, not merely its open pathname.
-
-    A separate ephemeral descriptor must FAIL to acquire the same lock. If it
-    succeeds, the owner's handle was unlocked while still open. Nothing is
-    acquired or held by this probe after it returns. A fork cannot inherit
-    sender authority because the recorded owner PID must match.
-    """
-    fh = _GLOBAL_INSTANCE_LOCK
-    if fh is None or fh.closed or _GLOBAL_INSTANCE_LOCK_OWNER_PID != os.getpid():
-        return False
-    try:
-        path = _global_instance_lock_path()
-        if not os.path.samestat(os.fstat(fh.fileno()), path.stat()):
-            return False
-        # The holder sidecar is advisory, but a known different holder is a refusal.
+def release_global_instance_lock() -> None:
+    """I08/R3: the only in-process lease release; revoke authority before OS unlock."""
+    global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNED
+    _GLOBAL_INSTANCE_LOCK_OWNED = False
+    fh, _GLOBAL_INSTANCE_LOCK = _GLOBAL_INSTANCE_LOCK, None
+    if fh is not None and not fh.closed:
         try:
-            holder = json.loads(_global_holder_path(path).read_text(encoding="utf-8"))
-            if holder.get("pid") != os.getpid():
-                return False
-        except (OSError, ValueError, TypeError):
-            pass
-        with open(path, "a+") as probe:  # separate file description, NOT dup(fh)
-            probe.seek(0)
-            try:
-                if os.name == "nt":
-                    import msvcrt
-                    msvcrt.locking(probe.fileno(), msvcrt.LK_NBLCK, 1)
-                else:
-                    import fcntl
-                    fcntl.flock(probe.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError as exc:
-                return exc.errno in (errno.EAGAIN, errno.EACCES, errno.EWOULDBLOCK)
+            fh.seek(0)
+            if os.name == "nt":
+                import msvcrt
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
             else:
-                if os.name == "nt":
-                    probe.seek(0)
-                    msvcrt.locking(probe.fileno(), msvcrt.LK_UNLCK, 1)
-                else:
-                    fcntl.flock(probe.fileno(), fcntl.LOCK_UN)
-                return False  # unlocked original: never send
-    except (OSError, ValueError, AttributeError):
-        return False
+                import fcntl
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        finally:
+            fh.close()
 
 
 def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
@@ -16475,7 +16457,7 @@ def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     refused, and the refusal names the recorded holder. Guard only: no trading, sizing, sending
     or gating logic reads this state.
     """
-    global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNER_PID
+    global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNED
     lock_path = _global_instance_lock_path()
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     fh = open(lock_path, "a+")
@@ -16517,7 +16499,7 @@ def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
     except Exception:
         pass
     _GLOBAL_INSTANCE_LOCK = fh
-    _GLOBAL_INSTANCE_LOCK_OWNER_PID = os.getpid()
+    _GLOBAL_INSTANCE_LOCK_OWNED = True
 
 
 def acquire_instance_lock(state_dir: Path) -> None:
