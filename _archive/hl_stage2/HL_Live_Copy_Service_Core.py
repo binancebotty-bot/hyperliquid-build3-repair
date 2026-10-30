@@ -13394,8 +13394,14 @@ class LiveCopyCore:
         past_send = key in self._past_send_keys
         # A pre-build settings failure may have no Intent yet. Preserve an actual
         # ledger-classified close in the EXISTING owed-close journal before dedupe.
-        life, _ = self.ledger.classify_leader_side_for_wallet(fill.leader_wallet, fill.coin, fill.side)
-        if life in {"EXIT", "REDUCE"}:
+        wallet, coin = normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin)
+        owned_row = ((((self.ledger.data or {}).get("by_wallet") or {}).get(wallet) or {}).get(coin)
+                     if self.ledger is not None else None)
+        try:
+            owned = float(owned_row["signed_size"]) if isinstance(owned_row, dict) else float("nan")
+        except (KeyError, TypeError, ValueError):
+            owned = float("nan")
+        if math.isfinite(owned) and abs(owned) > POSITION_EPSILON and owned * ManualLedger.signed_delta(fill.side, 1.0) < 0:
             self.sender._open_close_escalation(fill, "PROCESS_EXCEPTION_" + type(exc).__name__)
         if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
