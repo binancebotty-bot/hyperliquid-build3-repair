@@ -7994,6 +7994,12 @@ class SenderGateway:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NONFINITE_NET")
         if not self._close_proof_account_ok():
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
+        try:
+            signer = normalise_wallet(str(self._follower_order_account_for_proof() or ""))
+        except Exception:
+            signer = ""
+        if not is_valid_wallet(signer) or signer != normalise_wallet(USER_WALLET):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
         tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(actual), abs(led)))
         if abs(owned) <= tol:
             if abs(led) <= tol:
@@ -8168,6 +8174,21 @@ class SenderGateway:
             atomic_write_json(CLOSE_ESCALATIONS_FILE, rows)
             self._close_escalations = rows
 
+    def _follower_order_account_for_proof(self) -> str:
+        """R1/CS-I3: the account the PHYSICAL order will actually sign for.
+
+        The reader (USER_WALLET) and the signer can differ. A fresh read of anything other
+        than the signing account can never authenticate a close (C7-WO-1-R77(b))."""
+        if HLAccount is not None:
+            key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+            if key:
+                try:
+                    return normalise_wallet(HLAccount.from_key(key).address)
+                except Exception:
+                    return ""
+        return normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+
+    @staticmethod
     @staticmethod
     def _close_proof_account_ok() -> bool:
         """A fresh read of the WRONG trading account never clears a close."""
