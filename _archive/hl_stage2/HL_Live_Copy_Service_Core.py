@@ -4043,8 +4043,8 @@ class ConfigManager:
             raise ValueError(f"INVALID_CONFIG_READ:{type(exc).__name__}:{exc}") from exc
         if not isinstance(cfg, dict):
             raise ValueError("INVALID_CONFIG_ROOT")
-        cfg.setdefault("wallets", {})
-        cfg.setdefault("global_controls", {})
+        if "wallets" not in cfg or "global_controls" not in cfg:
+            raise ValueError("INVALID_CONFIG_MISSING_SECTIONS")
         if not isinstance(cfg["wallets"], dict) or not isinstance(cfg["global_controls"], dict):
             raise ValueError("INVALID_CONFIG_SECTIONS")
         return cfg
@@ -4092,7 +4092,7 @@ class ConfigManager:
             for key, value in raw.items():
                 w = normalise_wallet(key)
                 if not is_valid_wallet(w):
-                    continue
+                    raise ValueError("INVALID_CONFIG_WALLET_ADDRESS")
                 if not isinstance(value, dict):
                     raise ValueError("INVALID_CONFIG_WALLET_RECORD")
                 out[w] = dict(value)
