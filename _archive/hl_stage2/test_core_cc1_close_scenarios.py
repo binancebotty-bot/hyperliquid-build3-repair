@@ -408,22 +408,32 @@ def _held_with_physical_proof(fid, ok, status, ex, physical, expected):
 
 
 def ce1_stale_owned_does_not_eat_foreign():
-    """CS-I2/I3, R1 - SPEC CHANGED per C7-WO-1-R77(a).
+    """CS-I2/I3, R1 - restored with a TRUTHFUL sleeve (CE1 3a).
 
-    Formerly this expected HOLD. The ledger sleeve and the fresh exchange net have the same
-    shape as W3B (led==owned, actual>led, same side, foreign>owned, requested==owned), so the
-    gateway cannot justify a hold: closes are sacred and a reduce-only close at most the sleeve
-    is always safe. Sleeve overstatement is an UPSTREAM ledger defect (ledger written only by
-    proven fills; reconciliation test), like EVENT_LOSS - not a reason to refuse a close here.
-    FLAGGED FOR REVIEWER2: this is a specification change, not a code fix."""
+    Ownership is engine +0.5, foreign +4.5, fresh exchange net +5.0. The sleeve carries the
+    PROVEN engine size (0.5), so the close proof can justify a reduce-only close of at most the
+    sleeve: the engine closes its own 0.5 and the foreign 4.5 is untouched. HOLD is NOT the
+    expectation here - a truthful sleeve is a case the proof can reason about, so closes stay
+    sacred. The overstated-sleeve case (ledger says 2.0 while proven is 0.5) needs a provenance
+    -proven owned figure the close proof does not yet have; it stays an OPEN RISK, not a
+    silently-relaxed expectation. A successful close opens no RED row, so the owed/RED half
+    cannot be witnessed here either - only its absence is asserted."""
     led, ex, net = new_ledger(), FakeExchange(), [5.0]
     gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 2.0, "ce1-f", 2.0)
+    # TRUE ownership: engine +0.5, foreign +4.5. The sleeve carries the PROVEN engine size.
+    it = exit_intent(led, A, "SELL", 2.0, "ce1-f", 0.5)
     ok, status = gw.send_if_allowed(it)
+    # A close that SUCCEEDS opens no escalation row, so the owed/RED witness can only exist on a
+    # HOLD. Asserting its ABSENCE here is the honest form; the owed/RED half needs the
+    # overstated-sleeve hook (3b) and stays an OPEN RISK, not a silently-relaxed expectation.
+    red = red_for("ce1-f")
     return (ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is True
-            and abs(ex.calls[0]["size"] - 2.0) < 1e-9
-            and abs(net[0] - 3.0) < 1e-9), (
-        "status=%r sdk=%r net=%r foreign_after_must_be_3.0" % (status, ex.calls, net[0]))
+            and abs(ex.calls[0]["size"] - 0.5) < 1e-9
+            and isinstance(net[0], (int, float)) and abs(net[0] - 4.5) < 1e-9
+            and abs(sleeve_of(led, A) - 0.5) < 1e-9
+            and red == []), (
+        "status=%r sdk=%r net=%r sleeve=%r owned=0.5 foreign=4.5 red=%r"
+        % (status, ex.calls, net[0], sleeve_of(led, A), red))
 
 
 def ce2_bad_master_does_not_eat_foreign():
@@ -808,7 +818,7 @@ def main():
         ("W9_TWO_SIMULTANEOUS_STALE_REPLAYS_PRODUCE_EXACTLY_ONE_NO_SEND", w9),
         ("RESTART_CONSUMED_EXIT_INTENT_AGAINST_FLAT_LEDGER_AND_FLAT_EXCHANGE_OPENS_NOTHING",
          restart_consumed_exit_never_opens_a_position),
-        ("CE1_CS_I2_I3_USER_RESIDUAL_4_5_NUMERIC_AND_OWED_RED",
+        ("CE1_CS_I2_I3_OWNED_HALF_CLOSES_HALF_FOREIGN_4_5_NUMERIC",
          ce1_stale_owned_does_not_eat_foreign),
         ("CE2_R1_I22_WRONG_MASTER_FOREIGN_5_NUMERIC_AND_OWED_RED",
          ce2_bad_master_does_not_eat_foreign),
