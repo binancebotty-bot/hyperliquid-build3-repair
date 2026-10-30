@@ -5243,7 +5243,11 @@ class IntentBuilder:
         if lifecycle == "EXIT":
             # EXIT must target the full wallet-owned sleeve regardless of fixed_notional.
             # fixed_notional / proportional sizing is an ENTRY/ADD concept only.
-            copy_size = round(abs(before), 8)
+            # C7-WO-1-R79/R78: an EXIT copies WHAT THE LEADER CLOSED. A partial leader
+            # reduction (fill.size < sleeve) must not be copied as a 100% close; a whole-sleeve
+            # exit and a dust close still target the full sleeve, and _close_wire_plan keeps the
+            # I23 sub-minimum round-up for the remaining dust.
+            copy_size = round(min(abs(before), abs(fill.size)), 8) if fill.size else round(abs(before), 8)
             copy_notional = copy_size * fill.price
         else:
             copy_notional = self._copy_notional(wallet, fill)
