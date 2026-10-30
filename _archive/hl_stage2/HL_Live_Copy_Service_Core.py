@@ -16432,21 +16432,12 @@ def _global_holder_path(lock_path: Path) -> Path:
 
 
 def release_global_instance_lock() -> None:
-    """I08/R3: the only in-process lease release; revoke authority before OS unlock."""
+    """I08/R3: revoke the one sender lease; closing its handle releases the OS lock."""
     global _GLOBAL_INSTANCE_LOCK, _GLOBAL_INSTANCE_LOCK_OWNED
     _GLOBAL_INSTANCE_LOCK_OWNED = False
     fh, _GLOBAL_INSTANCE_LOCK = _GLOBAL_INSTANCE_LOCK, None
-    if fh is not None and not fh.closed:
-        try:
-            fh.seek(0)
-            if os.name == "nt":
-                import msvcrt
-                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-        finally:
-            fh.close()
+    if fh is not None:
+        fh.close()
 
 
 def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
