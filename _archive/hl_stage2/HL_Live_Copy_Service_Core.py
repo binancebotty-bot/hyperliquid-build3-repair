@@ -5734,9 +5734,9 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        # FINAL recheck, immediately before the physical call. The pacing slot wait and the
-        # write-ahead row can take seconds; a mode or wallet change during them must stop this
-        # order (Codex 6406031822: the early gate alone leaves that race open).
+        # FINAL refusal check after pacing, before pending_send is recorded: a
+        # known NO_EXCHANGE_CALL must not leave a phantom unresolved pending row.
+        # The existing mode/wallet recheck is kept here (Codex 6406031822).
         # I08/R3: the ONE existing machine-wide lease must still be owned by
         # this process (not just an open handle) before any pending_send write.
         _late_block = ("SEND_BLOCKED_NO_SENDER_LEASE" if not _global_sender_lease_held() else
@@ -5753,9 +5753,8 @@ class SenderGateway:
                 pre_send()
             except Exception as exc:
                 raise PendingSendWriteFailed(repr(exc)) from exc
-        # Stamp the call time HERE, after the final recheck: the pacing slot wait and the write-ahead row
-        # can take seconds, and a refusal at the late gate must not leave a start stamp on the timing
-        # map the caller builds its row from (Codex 6406836199).
+        # Stamp the call time only after the refusal check and durable pending
+        # write, never for a known NO_EXCHANGE_CALL (Codex 6406836199).
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
