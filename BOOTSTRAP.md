@@ -7,6 +7,24 @@ Read only:
 
 Do not ingest old project history unless the current gate requires a specific fact that is absent.
 
+## After a fresh clone: reinstall the graphify hook
+
+The Graphify hook lives in the SHARED `.git/hooks` directory, which git does not version, so it does
+not travel with the repository. A fresh clone therefore has a stale or absent hook and the code graph
+silently stops refreshing - the failure mode is not an error, it is a graph that keeps looking
+authoritative while falling behind the code.
+
+Run once from the repository root after cloning:
+
+    graphify hook install
+
+That installs the post-commit, post-checkout and post-merge hooks and registers the `merge=graphify`
+driver. It rebuilds from code only, so it costs no LLM calls.
+
+Verify it took effect rather than assuming: `graphify-out/GRAPH_REPORT.md` should name the current
+commit (`Built from commit: <sha>`) and a `graphify-out/<date>/` snapshot should appear after your
+next commit.
+
 ## Architect bootstrap
 You are the project Architect. Protect `ARCHITECTURE.md`. Do not supervise ordinary commits. Do not wake on a timer. Act only on an architecture escalation or Richard request. Return the smallest ruling that preserves the objective.
 
