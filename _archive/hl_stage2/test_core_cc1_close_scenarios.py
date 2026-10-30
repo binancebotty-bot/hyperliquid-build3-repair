@@ -20,6 +20,7 @@ Prints RESULT::<NAME>_PASS|_FAIL per check and TOTAL=n FAILED=m; exits non-zero 
 import csv
 import os
 import sys
+import time
 import tempfile
 import threading
 from pathlib import Path
@@ -253,28 +254,22 @@ def w4c_resolved_by_whole_position_close_when_account_would_go_flat():
 
 
 def w4d_no_engine_dust_remains_when_exchange_is_flat():
-    led, ex, net = new_ledger(), FakeExchange(), [5.05]
+    """CS-I4/I23: a full EXIT of an owned 0.105 BTC sleeve (requested 0.100)
+    cannot leave 0.005 BTC/$0.50 inaccessible dust without an OPEN owed close.
+    Assert the independent physical exchange end state rather than plan labels."""
+    led, ex, net = new_ledger(), FakeExchange(), [0.105]
     gw = make_gateway(ex, led, net)
-    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4d-f1", 0.05))        # held
-    net[0] = 0.0                                                               # the asset is flat on the exchange
-    before = len(ex.calls)
-    gw.send_if_allowed(exit_intent(led, A, "SELL", 0.05, "w4d-f2", 0.05))
-    for nm in ("clear_close_escalations", "clear_trackb_escalations"):           # the periodic double-flat clear, either name
-        fn = getattr(gw, nm, None)
-        if callable(fn):
-            fn()
-    esc = c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) if hasattr(c, "CLOSE_ESCALATIONS_FILE") else {}
-    held = {}
-    for p in TMP.glob("*.json"):
-        if any(k in p.name.lower() for k in ("dust", "held", "remainder")):
-            held.update(c.load_json(p, {}) or {})
-    sl = sleeve_of(led, A)
-    return (sl is not None and abs(sl) < 1e-9 and not held and not [v for v in (esc or {}).values() if v.get("state") == "OPEN"]
-            and len(ex.calls) == before), \
-        "sleeve=%r held=%r esc=%r new_calls=%d" % (sl, held, esc, len(ex.calls) - before)
+    it = exit_intent(led, A, "SELL", 0.100, "w4d-f", 0.105)
+    ok, status = gw.send_if_allowed(it)
+    exact_flat_send = (ok and len(ex.calls) == 1
+                       and abs(ex.calls[0]["size"] - 0.105) < 1e-9
+                       and abs(net[0]) < 1e-9)
+    unresolved_holds = (not ok and not ex.calls and abs(net[0] - 0.105) < 1e-9
+                        and bool(red_for("w4d-f")))
+    return exact_flat_send or unresolved_holds, \
+        "status=%r sdk=%r exchange_after=%r red=%r" % (status, ex.calls, net[0], red_for("w4d-f"))
 
 
-# ======================================================================================= B_REAL_SEND shape
 # ======================================================================================= W5 older terminal id
 def w5():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
@@ -371,7 +366,117 @@ def restart_consumed_exit_never_opens_a_position():
         "first=%r/%r replay=%r/%r new_calls=%r" % (ok1, st1, ok2, st2, new)
 
 
+
+# ======================================================================================= CE1/CE2, event loss and physical-wire bypass matrix
+def _held_with_physical_proof(fid, ok, status, ex, physical, expected):
+    """R1/CS-I3: check durable OPEN and unchanged actual, never a local return alone."""
+    rows = recon_rows(fid)
+    return (not ok and not ex.calls and abs(physical[0] - expected) < 1e-9
+            and bool(red_for(fid)) and bool(rows)
+            and not str(status).startswith(("BLOCKED_OFF", "MASTER_REAL_ORDERS_OFF", "INTENT_NOT_SEND_ALLOWED")))
+
+
+def ce1_stale_owned_does_not_eat_foreign():
+    """CS-I2/I3, R1: independent actual engine +0.5, foreign +4.5;
+    ledger invents engine +2, requested SELL2. No certified replay => HOLD."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 2.0, "ce1-f", 2.0)
+    ok, status = gw.send_if_allowed(it)
+    return (_held_with_physical_proof("ce1-f", ok, status, ex, net, 5.0)
+            and abs(net[0] - 0.5 - 4.5) < 1e-9), \
+        "status=%r sdk=%r net=%r independent_foreign=4.5" % (status, ex.calls, net[0])
+
+
+def ce2_bad_master_does_not_eat_foreign():
+    """CS-I3/R1/I22: false matching persisted snapshot cannot authenticate
+    the SDK order account. Foreign +5, ledger +1; reader != signer."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    gw = make_gateway(ex, led, net, account=OTHER_ACCOUNT, snapshot=False)
+    gw._persisted_exchange_positions = lambda: ({"BTC": 1.0}, "")
+    it = exit_intent(led, A, "SELL", 1.0, "ce2-f", 1.0)
+    ok, status = gw.send_if_allowed(it)
+    return _held_with_physical_proof("ce2-f", ok, status, ex, net, 5.0), \
+        "status=%r sdk=%r net=%r" % (status, ex.calls, net[0])
+
+
+def missing_fill_equal_coin_net_is_not_proof():
+    """CS-I2/CH-9: net=ledger=+2 cannot certify A owns +2. Independent truth
+    (known to test oracle only): A +0.5, FOREIGN +1.5, one fill is missing from
+    persisted provenance. Missing trusted anchor/complete replay => HOLD RED."""
+    led, ex, net = new_ledger(), FakeExchange(), [2.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 2.0, "event-loss-f", 2.0)
+    ok, status = gw.send_if_allowed(it)
+    return (_held_with_physical_proof("event-loss-f", ok, status, ex, net, 2.0)
+            and abs(net[0] - 0.5 - 1.5) < 1e-9), \
+        "status=%r sdk=%r net=%r independent_foreign=1.5" % (status, ex.calls, net[0])
+
+
+def unresolved_owed_survives_restart():
+    """I05/I06/R1: same persistent ledger reloaded into a fresh gateway;
+    unreadable account keeps exactly the same OPEN owed obligation."""
+    led, ex, net = new_ledger(), FakeExchange(), [None]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "SELL", 1.0, "owed-restart-f", 1.0)
+    c.atomic_write_json(led.path, led.data)
+    ok, status = gw.send_if_allowed(it)
+    before = red_for("owed-restart-f")
+    led2 = c.ManualLedger(path=led.path)
+    gw2 = make_gateway(ex, led2, net)
+    ok2, status2 = gw2.send_if_allowed(it)
+    after = red_for("owed-restart-f")
+    return (not ok and not ok2 and not ex.calls and len(before) == 1
+            and len(after) == 1 and abs(sleeve_of(led2, A) - 1.0) < 1e-9), \
+        "first=%r/%r second=%r/%r red=%r sdk=%r" % (ok, status, ok2, status2, after, ex.calls)
+
+
+def bypass_door(n):
+    """CS-I1/I2/I3: seven early-return paths cannot waive the final exchange
+    ownership envelope. Inspect the real _close_wire_plan AND final-wire validator
+    with an independently known +0.5 owned maximum (requested SELL2).
+    This deliberately tests the final admissible physical order, NOT a return flag."""
+    led, ex, account = new_ledger(), FakeExchange(), [0.4]
+    gw = make_gateway(ex, led, account)
+    it = exit_intent(led, A, "SELL", 2.0, "door%d-f" % n, 0.5)
+    dec, timing, options = 3, {}, {}
+    old = os.environ.get("HL_LIVE_CLOSE_TO_TARGET")
+    try:
+        if n == 1:  # unknown precision
+            dec = None
+        elif n == 2:  # dust flag used to bypass safe sizing
+            timing["dust_close_below_min_notional"] = True
+        elif n == 3:  # ledger absent
+            gw.ledger = None
+        elif n == 4:  # config toggle disabled
+            os.environ["HL_LIVE_CLOSE_TO_TARGET"] = "0"
+        elif n == 5:  # exchange actual unreadable
+            gw._fresh_exchange_net = lambda coin: None
+        elif n == 6:  # lagged ledger + min-exception fallthrough
+            options["ledger_may_lag"] = True
+        elif n == 7:  # trim below min -> legacy full-size fallthrough
+            account[0] = -1.45
+        reduce_only, planned, skip = gw._close_wire_plan(
+            it, 2.0, dec, lambda size: abs(size * PX) >= MIN_USD,
+            timing, **options)
+        wire_ok = False
+        if not skip and planned > 0:
+            wire_ok, _block = gw._validate_final_wire_order(
+                it, dict(RESOLVED), COIN, planned, PX, dict(timing))
+        admitted = planned if wire_ok and not skip else 0.0
+        unknown = n in (1, 3, 5)
+        return (admitted <= 0.5 + 1e-9 and (not unknown or admitted == 0.0)), \
+            "door=%d ro=%r proposed=%r skip=%r wire_ok=%r admitted=%r owned=0.5" % (
+                n, reduce_only, planned, skip, wire_ok, admitted)
+    finally:
+        if old is None:
+            os.environ.pop("HL_LIVE_CLOSE_TO_TARGET", None)
+        else:
+            os.environ["HL_LIVE_CLOSE_TO_TARGET"] = old
+
+
 def main():
+    started = time.perf_counter()
     witnesses = [
         ("W1_STALE_REPLAY_ON_FLAT_SLEEVE_IS_A_NAMED_NO_SEND_WITH_ONE_DURABLE_ROW", w1),
         ("W2_NETTED_OPPOSITE_LEADER_REDUCTION_STILL_SENDS_GROSS_RISES", w2),
@@ -391,11 +496,21 @@ def main():
         ("W9_TWO_SIMULTANEOUS_STALE_REPLAYS_PRODUCE_EXACTLY_ONE_NO_SEND", w9),
         ("RESTART_CONSUMED_EXIT_INTENT_AGAINST_FLAT_LEDGER_AND_FLAT_EXCHANGE_OPENS_NOTHING",
          restart_consumed_exit_never_opens_a_position),
+        ("CE1_CS_I2_I3_USER_RESIDUAL_4_5_NUMERIC_AND_OWED_RED",
+         ce1_stale_owned_does_not_eat_foreign),
+        ("CE2_R1_I22_WRONG_MASTER_FOREIGN_5_NUMERIC_AND_OWED_RED",
+         ce2_bad_master_does_not_eat_foreign),
+        ("EVENT_LOSS_CS_I2_COIN_NET_EQUALITY_NOT_FILL_PROOF",
+         missing_fill_equal_coin_net_is_not_proof),
+        ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
+         unresolved_owed_survives_restart),
+        *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
+           (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]
     for nm, fn in witnesses:
         case(nm, fn)
     failed = [n for n, ok in RESULTS if not ok]
-    print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
+    print("TOTAL=%d FAILED=%d RUNTIME_SEC=%.3f" % (len(RESULTS), len(failed), time.perf_counter() - started))
     if failed:
         print("FAILED: " + ", ".join(failed))
     raise SystemExit(1 if failed else 0)
