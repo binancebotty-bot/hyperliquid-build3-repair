@@ -8252,6 +8252,42 @@ class SenderGateway:
             return ok, status
         if not intent.send_allowed:
             return _finish(False, "INTENT_NOT_SEND_ALLOWED")
+        # I05/I06: explicit FLAT sleeve + FLAT net is a consumed close, not an
+        # ownership fault. A HELD/ambiguous fill or an absent sleeve is UNKNOWN.
+        if authorised_close and self.ledger is not None:
+            with _CLOSE_ESCALATIONS_LOCK:
+                wallet, coin = normalise_wallet(intent.fill.leader_wallet), canonical_coin_key(intent.fill.coin)
+                row = (((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin))
+                if isinstance(row, dict) and "signed_size" in row:
+                    try:
+                        owned = float(row["signed_size"])
+                        led_net = float(self.ledger.coin_net(coin))
+                    except (ValueError, TypeError, KeyError):
+                        owned = led_net = float("nan")
+                    if math.isfinite(owned) and abs(owned) <= POSITION_EPSILON and math.isfinite(led_net):
+                        ex_net = self._fresh_exchange_net(intent.fill.coin)
+                        account_ok = (not os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip()
+                                      or not is_valid_wallet(normalise_wallet(USER_WALLET))
+                                      or self._close_proof_account_ok())
+                        if (ex_net is not None and math.isfinite(float(ex_net)) and account_ok
+                                and abs(float(ex_net)) <= POSITION_EPSILON
+                                and abs(led_net) <= POSITION_EPSILON):
+                            fid = str(intent.fill.leader_fill_id)
+                            history = [r for r in iter_csv_rows(RECONCILIATION_CSV)
+                                       if str(r.get("leader_fill_id") or "") == fid]
+                            unresolved = any(str(r.get("status") or "").startswith(("HELD_", "CLOSE_HELD",
+                                               "AUTHORISED_CLOSE_REFUSAL", "EXIT_RECOVERY"))
+                                             for r in history)
+                            if not unresolved:
+                                name = "SEND_NOT_ATTEMPTED_STALE_OR_CONSUMED_FLAT_SLEEVE"
+                                if not any(r.get("status") == name for r in history):
+                                    self.audit.append_reconciliation(
+                                        "SEND_TERMINAL", name,
+                                        leader_wallet=wallet, leader_fill_id=fid, intent_id=intent.intent_id,
+                                        coin=coin, action="NO_SEND_CONSUMED_FLAT_SLEEVE",
+                                        reject_category=name, terminal_state=name, engine_can_send="False",
+                                        notes="exact wallet sleeve and fresh exchange are both flat; no copy order")
+                                return False, name
         stale_reason = stale_snapshot_replay_reason(intent.fill)
         if stale_reason:
             return _finish(False, stale_reason)
