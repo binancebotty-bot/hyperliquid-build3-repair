@@ -262,7 +262,10 @@ def w4d_no_engine_dust_remains_when_exchange_is_flat():
         if any(k in p.name.lower() for k in ("dust", "held", "remainder")):
             held.update(c.load_json(p, {}) or {})
     sl = sleeve_of(led, A)
-    return (sl is not None and abs(sl) < 1e-9 and not held and not [v for v in (esc or {}).values() if v.get("state") == "OPEN"]
+    # R1: a flat exchange with a nonflat owned sleeve is an unresolved
+    # mismatch; never erase the ledger and call it settled.
+    return (sl is not None and abs(sl - 0.05) < 1e-9 and not held
+            and any(v.get("state") == "OPEN" for v in (esc or {}).values())
             and len(ex.calls) == before), \
         "sleeve=%r held=%r esc=%r new_calls=%d" % (sl, held, esc, len(ex.calls) - before)
 
@@ -306,8 +309,12 @@ def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
     it = exit_intent(led, A, "SELL", 2.0, "w6b-f", 2.0)
     ok, status = gw.send_if_allowed(it)
     sl = sleeve_of(led, A)
-    return status != NAME and sl is not None and abs(sl - 2.0) < 1e-9 and ok and len(ex.calls) == 1, \
-        "ok=%r status=%r sleeve=%r calls=%r" % (ok, status, sl, ex.calls)
+    # I22/R1: wrong-account flat cannot settle or send; keep owned
+    # sleeve and the durable OPEN owed-close obligation.
+    owed = c.load_json(c.CLOSE_ESCALATIONS_FILE, {})
+    return (not ok and status != NAME and sl is not None and abs(sl - 2.0) < 1e-9
+            and not ex.calls and any(v.get("state") == "OPEN" for v in owed.values())), \
+        "ok=%r status=%r sleeve=%r calls=%r owed=%r" % (ok, status, sl, ex.calls, owed)
 
 
 # ======================================================================================= W7 held / ambiguous is not consumed
