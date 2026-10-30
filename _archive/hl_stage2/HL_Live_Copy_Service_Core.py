@@ -3988,7 +3988,7 @@ class CycleSummary:
 class ConfigManager:
     def __init__(self, config_path: Optional[Path] = None):
         self.config_path = config_path or LIVE_CONFIG_FILE
-        self.config = self._load()
+        self._load()
 
     def master_switch_now(self) -> bool:
         """Read the master switch from disk; a failed settings read is a fault."""
@@ -5764,12 +5764,27 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        # FINAL recheck, immediately before the physical call. The pacing slot wait and the
-        # write-ahead row can take seconds; a mode or wallet change during them must stop this
-        # order (Codex 6406031822: the early gate alone leaves that race open).
-        _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
-        if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
-            _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        # A fault AFTER the durable pending row but BEFORE exchange.order is a proven
+        # no-call. Reuse the existing terminal updater; never leave this attempt PENDING.
+        try:
+            _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+            if intent is not None and self._reduce_only_for_intent(intent) and not _late_block:
+                _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        except Exception as exc:
+            _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
+            if _aid and not update_send_attempt_row(_aid, {
+                "status": "CONFIG_READ_FAULT_NO_EXCHANGE_CALL",
+                "terminal_state": "CONFIG_READ_FAULT_NO_EXCHANGE_CALL",
+                "reject_category": "CONFIG_READ_FAULT",
+                "operator_action": "NO_EXCHANGE_CALL",
+                "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+                "notes": "post-wait gate failed before exchange.order; no SDK call",
+            }, durable=True):
+                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid) from exc
+            log_error("physical_final_gate_fault_no_call", exc)
+            if intent is not None and self._reduce_only_for_intent(intent):
+                self._journal_authorised_close_refusal(intent, "CONFIG_READ_FAULT_NO_EXCHANGE_CALL")
+            raise
         if _late_block:
             close_red = (intent is not None and self._reduce_only_for_intent(intent)) and _late_block.startswith(
                 ("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT"))
@@ -8162,8 +8177,9 @@ class SenderGateway:
 
     def _open_close_escalation(self, intent: Intent, reason: str) -> None:
         """Persist red, independently of the reconciliation CSV and any send attempt."""
-        wallet = normalise_wallet(intent.fill.leader_wallet)
-        coin = canonical_coin_key(intent.fill.coin)
+        fill = getattr(intent, "fill", intent)  # pre-build faults still owe a real leader close
+        wallet = normalise_wallet(fill.leader_wallet)
+        coin = canonical_coin_key(fill.coin)
         key = wallet + "::" + coin
         now = utc_now_ms()
         with _CLOSE_ESCALATIONS_LOCK:
@@ -8175,7 +8191,8 @@ class SenderGateway:
             earlier = rows.get(key) if isinstance(rows.get(key), dict) else {}
             rows[key] = {
                 "state": "OPEN", "wallet": wallet, "coin": coin,
-                "intent_id": intent.intent_id, "leader_fill_id": intent.fill.leader_fill_id,
+                "intent_id": str(getattr(intent, "intent_id", "") or ""),
+                "leader_fill_id": fill.leader_fill_id,
                 "reason": str(reason or "UNSPECIFIED_CLOSE_FAILURE"),
                 "first_seen_ms": int(fnum(earlier.get("first_seen_ms"), now)),
                 "last_seen_ms": now,
@@ -13375,6 +13392,11 @@ class LiveCopyCore:
         max_sec = deferred_truth_max_seconds()
         within = max_sec == 0 or (max_sec > 0 and now - first <= int(max_sec * 1000))
         past_send = key in self._past_send_keys
+        # A pre-build settings failure may have no Intent yet. Preserve an actual
+        # ledger-classified close in the EXISTING owed-close journal before dedupe.
+        life, _ = self.ledger.classify_leader_side_for_wallet(fill.leader_wallet, fill.coin, fill.side)
+        if life in {"EXIT", "REDUCE"}:
+            self.sender._open_close_escalation(fill, "PROCESS_EXCEPTION_" + type(exc).__name__)
         if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
                 self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
@@ -13571,16 +13593,8 @@ class LiveCopyCore:
                 # on a thin coin may already have withdrawn its own resting limit - ACCEPTED: the withdrawn limit's fills
                 # are booked, nothing is lost, and moving the exclusion ahead of the withdrawal would restore a pre-build
                 # decision the reviews rejected.
-            try:
-                _status, _note = follower_entry_exclusion(
-                    fill.coin, True, (getattr(self.cfg, "config", {}) or {}).get("global_controls") or {},
-                    held_net=_held)
-            except Exception as _ex_exc:
-                _status, _note = "", ""
-                try:
-                    log_error("follower_entry_exclusion_failed", _ex_exc)
-                except Exception:
-                    pass
+            _status, _note = follower_entry_exclusion(
+                fill.coin, True, self.cfg.global_controls, held_net=_held)
             if _status:
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", _status,
@@ -13611,6 +13625,8 @@ class LiveCopyCore:
             sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
         except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
             log_error("send_if_allowed", exc)
+            if intent.send_allowed and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+                self.sender._journal_authorised_close_refusal(intent, "SEND_EXCEPTION_" + type(exc).__name__)
             try:
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "BLOCKED_SEND_EXCEPTION", leader_wallet=fill.leader_wallet,
@@ -14461,13 +14477,12 @@ class LiveCopyCore:
         # the exclusion's cache is filled by fetch_snapshot's batched metaAndAssetCtxs read: no call here, so the
         # cycle cannot be delayed by a warm-up, and nothing runs while a leader read is in flight
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
-        try:
-            self.cfg = ConfigManager()
-            self.wallets = self.cfg.stream_wallets()
-            self.intent_builder.cfg = self.cfg
-            self.sender.cfg = self.cfg
-        except Exception as exc:
-            log_error("hot_config_reload", exc)
+        fresh_cfg = ConfigManager()
+        fresh_wallets = fresh_cfg.stream_wallets()
+        self.cfg = fresh_cfg
+        self.wallets = fresh_wallets
+        self.intent_builder.cfg = fresh_cfg
+        self.sender.cfg = fresh_cfg
         wallet_modes = self.cfg.wallet_mode_counts()
         master_enabled = self.cfg.master_real_orders_enabled
         summary = CycleSummary(
