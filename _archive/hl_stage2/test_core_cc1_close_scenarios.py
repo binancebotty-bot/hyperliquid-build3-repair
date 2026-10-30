@@ -448,6 +448,53 @@ def ce2_bad_master_does_not_eat_foreign():
         "status=%r sdk=%r net=%r" % (status, ex.calls, net[0])
 
 
+def ce1b_refused_close_owes_a_red_and_leaves_the_foreign_residual_untouched():
+    """CC1-B-RULING-2114 item 3: a REFUSED close is OWED, and a refusal - unlike the CE1 SUCCESS - can witness
+    it. Engine sleeve +2.0, foreign residual +4.5, fresh exchange net +6.5. The close proof refuses because the
+    account the SDK would sign for is NOT the account the net was read from (an account mismatch), so nothing
+    reaches the wire. All four facts are asserted from durable state, never from the return value alone:
+      (a) REFUSED and RESTING: no wire call, and the intent still rests at the LEADER price, unmodified;
+      (b) a RED escalation row EXISTS for this fill - the owed obligation written by the refusal journal;
+      (c) the foreign units are UNTOUCHED: the exchange net is unchanged and the residual is still a number;
+      (d) the gateway holds a REAL audit writer, so _journal_authorised_close_refusal writes instead of
+          raising (ruling item 7: any gateway built with object.__new__ must supply `audit`).
+    The refusal reason is an EXISTING one - SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD from _close_wire_plan - not a
+    new reason and not a new policy."""
+    engine, foreign = 2.0, 4.5
+    led, ex, net = new_ledger(), FakeExchange(), [engine + foreign]
+    gw = make_gateway(ex, led, net, account=OTHER_ACCOUNT, snapshot=False)
+    gw._persisted_exchange_positions = lambda: ({"BTC": engine}, "")   # our own account: +2, never the +6.5 read
+    # (d) the writer is the PRODUCTION AuditLogWriter with both journal methods, not a stub that would raise.
+    real_audit = (isinstance(gw.audit, c.AuditLogWriter)
+                  and callable(getattr(gw.audit, "append_reconciliation", None))
+                  and callable(getattr(gw.audit, "has_fill_row", None)))
+    fid = "ce1b-f"
+    it = exit_intent(led, A, "SELL", engine, fid, engine)
+    ok, status = gw.send_if_allowed(it)
+    red = red_for(fid)
+    # (d) the refusal journal RAN: the RED JSON on disk carries this fill. _journal_authorised_close_refusal only
+    # adds the supplemental reconciliation row when the dispatcher has not already written a row for the fill
+    # (has_fill_row); the ownership-gate refusal above did, so the durable RED file is the witness here.
+    on_disk = c.load_json(c.CLOSE_ESCALATIONS_FILE, {})
+    persisted = [r for r in (on_disk.values() if isinstance(on_disk, dict) else ())
+                 if isinstance(r, dict) and r.get("leader_fill_id") == fid and r.get("state") == "OPEN"]
+    net_after = net[0]
+    residual = (net_after - engine) if isinstance(net_after, (int, float)) else None
+    return (not ok and not ex.calls                                        # (a) refused, nothing on the wire
+            and abs(float(it.fill.price) - PX) < 1e-9                       # (a) still resting at the LEADER price
+            and it.decision == "EXIT_ALLOWED"                               # (a) the obligation is not consumed
+            and len(red) == 1 and red[0].get("state") == "OPEN"             # (b) the owed RED row exists
+            and red[0].get("reason") == status
+            and len(persisted) == 1                                         # (d) the journal write persisted, no raise
+            and residual is not None and abs(residual - foreign) < 1e-9     # (c) foreign residual still a number
+            and abs(net_after - (engine + foreign)) < 1e-9                  # (c) the exchange net is unchanged
+            and real_audit), (
+        "ok=%r status=%r calls=%r leader_px=%r decision=%r red=%r persisted=%d net_after=%r foreign=%r "
+        "sleeve=%r real_audit=%r" % (ok, status, ex.calls, it.fill.price, it.decision,
+                                     [(r.get("state"), r.get("reason")) for r in red], len(persisted),
+                                     net_after, residual, sleeve_of(led, A), real_audit))
+
+
 def missing_fill_equal_coin_net_is_not_proof():
     """CS-I2/CH-9: net=ledger=+2 cannot certify A owns +2. Independent truth
     (known to test oracle only): A +0.5, FOREIGN +1.5, one fill is missing from
@@ -822,6 +869,8 @@ def main():
          ce1_stale_owned_does_not_eat_foreign),
         ("CE2_R1_I22_WRONG_MASTER_FOREIGN_5_NUMERIC_AND_OWED_RED",
          ce2_bad_master_does_not_eat_foreign),
+        ("CE1B_REFUSED_CLOSE_OWED_RED_FOREIGN_RESIDUAL_UNTOUCHED",
+         ce1b_refused_close_owes_a_red_and_leaves_the_foreign_residual_untouched),
         ("R81_SHARE_OF_LEADER_POSITION_1000_CLOSES_1", r81_share_of_roleader_position),
         ("R81_MISSING_START_POSITION_IS_FULL_SLEEVE", r81_missing_start_is_full_sleeve),
         ("R81_WHOLE_LEADER_CLOSE_IS_FULL_SLEEVE", r81_whole_leader_close_is_full_sleeve),
