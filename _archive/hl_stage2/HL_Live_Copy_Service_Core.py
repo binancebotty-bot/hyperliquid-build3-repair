@@ -4040,7 +4040,7 @@ class ConfigManager:
         try:
             cfg = json.loads(self.config_path.read_text(encoding="utf-8-sig"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-            raise ValueError("INVALID_CONFIG_READ") from exc
+            raise ValueError(f"INVALID_CONFIG_READ:{type(exc).__name__}:{exc}") from exc
         if not isinstance(cfg, dict):
             raise ValueError("INVALID_CONFIG_ROOT")
         cfg.setdefault("wallets", {})
