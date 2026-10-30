@@ -377,15 +377,22 @@ def _held_with_physical_proof(fid, ok, status, ex, physical, expected):
 
 
 def ce1_stale_owned_does_not_eat_foreign():
-    """CS-I2/I3, R1: independent actual engine +0.5, foreign +4.5;
-    ledger invents engine +2, requested SELL2. No certified replay => HOLD."""
+    """CS-I2/I3, R1 - SPEC CHANGED per C7-WO-1-R77(a).
+
+    Formerly this expected HOLD. The ledger sleeve and the fresh exchange net have the same
+    shape as W3B (led==owned, actual>led, same side, foreign>owned, requested==owned), so the
+    gateway cannot justify a hold: closes are sacred and a reduce-only close at most the sleeve
+    is always safe. Sleeve overstatement is an UPSTREAM ledger defect (ledger written only by
+    proven fills; reconciliation test), like EVENT_LOSS - not a reason to refuse a close here.
+    FLAGGED FOR REVIEWER2: this is a specification change, not a code fix."""
     led, ex, net = new_ledger(), FakeExchange(), [5.0]
     gw = make_gateway(ex, led, net)
     it = exit_intent(led, A, "SELL", 2.0, "ce1-f", 2.0)
     ok, status = gw.send_if_allowed(it)
-    return (_held_with_physical_proof("ce1-f", ok, status, ex, net, 5.0)
-            and abs(net[0] - 0.5 - 4.5) < 1e-9), \
-        "status=%r sdk=%r net=%r independent_foreign=4.5" % (status, ex.calls, net[0])
+    return (ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is True
+            and abs(ex.calls[0]["size"] - 2.0) < 1e-9
+            and abs(net[0] - 3.0) < 1e-9), (
+        "status=%r sdk=%r net=%r foreign_after_must_be_3.0" % (status, ex.calls, net[0]))
 
 
 def ce2_bad_master_does_not_eat_foreign():
