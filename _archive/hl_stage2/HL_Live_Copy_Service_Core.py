@@ -8384,16 +8384,26 @@ class SenderGateway:
             self._close_escalations = rows
 
     def _follower_order_account_for_proof(self) -> str:
-            """R1/CS-I3: the account the PHYSICAL order will actually sign for.
+        """R1/CS-I3: the account the PHYSICAL order will actually sign for.
 
-            The reader (USER_WALLET) and the signer can differ. A fresh read of anything other
-            than the signing account can never authenticate a close (C7-WO-1-R77(b))."""
-            account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
-            if is_valid_wallet(account):
-                return account
-            return ""
+        The reader (USER_WALLET) and the signer can differ. A fresh read of anything other
+        than the signing account can never authenticate a close (C7-WO-1-R77(b)).
 
-    @staticmethod
+        CS-I3 SIGNER (R1): the SDK is built with `account_address = env or None`, and with the
+        env UNSET `None` means the SDK signs AS THE KEY, i.e. the signer IS the order account.
+        This method must mirror that exactly (as `sender_key_check` and `_close_proof_account_ok`
+        already do), or a legitimate self-signed follower can never prove a close."""
+        account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip())
+        if is_valid_wallet(account):
+            return account
+        key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+        if key and HLAccount is not None:
+            try:
+                return normalise_wallet(HLAccount.from_key(key).address)
+            except Exception:
+                return ""
+        return ""
+
     @staticmethod
     def _close_proof_account_ok() -> bool:
         """A fresh read of the WRONG trading account never clears a close."""
