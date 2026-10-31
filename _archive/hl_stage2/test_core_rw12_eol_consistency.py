@@ -27,9 +27,11 @@ def main() -> None:
     try:
         diff = subprocess.run(["git", "diff", "-U0", BASE, "--", f], cwd=HERE, capture_output=True, check=True).stdout
     except Exception as exc:  # no git / no base commit: nothing to compare
-        print("SKIP: %r" % (exc,))
-        check("E1_EOL_CONSISTENCY_SKIPPED_NO_BASE", True)
-        sys.exit(0)
+        print("FAIL: base commit %s unreachable: %r" % (BASE, exc))
+        check("E1_EOL_CONSISTENCY_MISSING_BASE", False, repr(exc))
+        failed = [n for n, ok in RESULTS if not ok]
+        print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
+        sys.exit(1)
     added = set()
     for m in re.finditer(rb"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", diff, re.M):
         start, n = int(m.group(1)), int(m.group(2)) if m.group(2) is not None else 1
