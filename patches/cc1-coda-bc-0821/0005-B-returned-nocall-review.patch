@@ -1,0 +1,337 @@
+From ff378d12bdfe69c2129a68f54fa353c6cec826e0 Mon Sep 17 00:00:00 2001
+From: CC1-CODA (gpt6:primary-coder)
+Date: Sat, 31 Oct 2026 +0000
+Subject: [PATCH SERIES] B returned NO_CALL after real SDK call — source review 2
+
+CORRELATION: CC1-CODA-B2-LATE-NOCALL-90B961C-REVIEW-20261031-VERDICT
+SEND-BACK: hermes-gpt-control issue #9 comment 6546165609
+ENGINE: binancebotty-bot/hyperliquid-build3-repair
+BRANCH: gpt/coda-bc-patch-0821
+PARENT (previous review pack): 40b1eb2bc64071320794bb2ea856550b58cf237b
+LATEST SOURCE+TEST: ff378d12bdfe69c2129a68f54fa353c6cec826e0
+COMMITS:
+1. 4a50b50f8de726f602076373fffb42d8b318b93d
+2. 3f89a4cbfd3a0cc64a8ddbd6fc232ea85612f948
+3. ce6a4e17c9bd0f1ae51c859562768e20539e812e
+4. ff378d12bdfe69c2129a68f54fa353c6cec826e0
+GITHUB compare parent -> head (executable files only):
+ Core: +31/-3 NET +28
+ Existing B regression test: +87/-14 NET +73
+ Total executable: +118/-17 NET +101
+ No deleted Core authority or new duplicate send state; code size increased.
+ S3.1 deletion remains held. This nonproduction patch text is excluded from
+ Core/test NET arithmetic.
+
+Physical provenance: inspect every direct _send_real retry (netting, IOC
+ retry, missed-entry rest) for an explicit returned exchange_called=False
+ BEFORE parsing the response. Raise existing PreWireNoCallFault and leave
+ original physical 'response' untouched for the already-established B1
+ attempt-specific outer handler. First attempt stays physical, second did
+ NOT invoke SDK. No phantom pending or invented CLOID status.
+ Ancillary standing-close and 429 recovery callers now likewise distinguish
+ returned no-call before parsing and preserve owed/prior physical identity.
+ Existing _place_order remains the only physical exchange.order SDK writer.
+ Test fixtures inject a normal post-wait mode, proof or lease refusal on
+ SECOND leg after real rejected first SDK; test both close netting and
+ entry IOC/missed rest recovery. Assert original response/status/attempt/CLOID,
+ generated second CLOID distinct but absent from attempt journal when no
+ pre_send, zero second SDK, prior CSV pending/reject history and durable
+ owed close for true exits. Isolated fake exchange only; no keys.
+ 
+TESTS: BASE TOTAL/FAILED=NOT_RUN/NOT_RUN;
+       CANDIDATE TOTAL/FAILED=NOT_RUN/NOT_RUN.
+No local/testnet runner in repo-only lane, no execution or green certification.
+No live engine change, PR #8, swap, mainnet or release authorisation.
+---
+# COMMIT 1: 4a50b50f8de726f602076373fffb42d8b318b93d
+diff --git a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+--- a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
++++ b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+@@ -9228,6 +9228,11 @@ def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now
+                                                               timing, "ioc_retry")
+                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
+                                                            retry_px, "Ioc", False, cloid=_cl, pre_send=_pre, intent=intent, path="send_retry")
++                        if isinstance(retry_response, dict) and retry_response.get("exchange_called") is False:
++                            # Keep the original physical reply, not the retry's local no-call.
++                            raise PreWireNoCallFault(
++                                str(retry_response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER"),
++                                RuntimeError(str(retry_response.get("response") or "IOC retry refused prewire")))
+                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
+                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
+                         if retry_ok:
+@@ -9258,6 +9263,11 @@ def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now
+                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
+                                                       "Gtc", False, timing, "missed_entry_limit_started_ms",
+                                                       cloid=_cl, pre_send=_pre, intent=intent, path="send_rest")
++                    if isinstance(rest_response, dict) and rest_response.get("exchange_called") is False:
++                        # The initial IOC remains the sole physical attempt.
++                        raise PreWireNoCallFault(
++                            str(rest_response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER"),
++                            RuntimeError(str(rest_response.get("response") or "missed-entry rest refused prewire")))
+                     resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(rest_response)
+                     if resting_ok:
+                         accepted_result = (resting_ok, resting_status, {
+@@ -9290,9 +9300,15 @@ def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now
+                         self._supersede_attempt(timing, response, intent)
+                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
+                                                               timing, "netting_resend")
+-                        response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
+-                                                     "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
+-                                                     pre_send=_pre, intent=intent, path="send_after_rest")
++                        retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
++                                                           "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
++                                                           pre_send=_pre, intent=intent, path="send_after_rest")
++                        if isinstance(retry_response, dict) and retry_response.get("exchange_called") is False:
++                            # Preserve 'response' as the earlier real SDK reply, including its OID/CLOID.
++                            raise PreWireNoCallFault(
++                                str(retry_response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER"),
++                                RuntimeError(str(retry_response.get("response") or "netting retry refused prewire")))
++                        response = retry_response
+                         ok, status, oid, parsed_error = self._parse_hl_response(response)
+                         if ok:
+                             accepted_result = (ok, status, {
+# COMMIT 2: 3f89a4cbfd3a0cc64a8ddbd6fc232ea85612f948
+diff --git a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+--- a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
++++ b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+@@ -136,12 +136,20 @@ def sender_path_case(label, scenario):
+         "update_send_attempt_row", "send_attempt_rows",
+         "_sender_lease_owned", "wait_intent_durable")}
+     saved_secret = os.environ.get("HL_LIVE_HL_PRIVATE_KEY")
++    saved_env = {k: os.environ.get(k) for k in ("HL_LIVE_MISSED_ENTRY_RULE", "HL_LIVE_ENTRY_IOC_RETRY_BPS")}
++    old_follower_mid = c.follower_mid
++    entry = scenario.startswith("entry-")
++    if entry:
++        os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "1" if scenario == "entry-rest-returned-mode" else "0"
++        os.environ["HL_LIVE_ENTRY_IOC_RETRY_BPS"] = "20" if scenario == "entry-rest-returned-mode" else "100"
++        c.follower_mid = lambda *args, **kwargs: 100.0  # restored below; no market/network fetch
+     c.HLAccount = object()
+     c.HLExchange = object()
+     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "ISOLATED_FAKE_MARKER_NOT_A_KEY"
+     c.wait_intent_durable = lambda *a, **kw: None
+-    if scenario == "two-attempt":
+-        c.classify_reject_category = lambda *a: "REDUCE_ONLY_REJECTED"
++    if scenario in {"two-attempt", "netting-returned-mode", "netting-returned-proof",
++                    "netting-returned-lease"} or entry:
++        c.classify_reject_category = lambda *a: "IOC_NO_IMMEDIATE_MATCH" if entry else "REDUCE_ONLY_REJECTED"
+     if scenario in {"terminal-write-raised", "late-block-raised"}:
+         c.update_send_attempt_row = lambda *a, **kw: (_ for _ in ()).throw(OSError("isolated append/read failed"))
+     if scenario in {"terminal-write-false", "late-block-false"}:
+@@ -150,18 +158,20 @@ def sender_path_case(label, scenario):
+         c.send_attempt_rows = lambda: (_ for _ in ()).throw(OSError("isolated CSV read failed")
+                                      )
+     fill = SimpleNamespace(leader_wallet=WALLET, leader_fill_id="event-e2e-" + label,
+-                           coin="BTC", price=100.0, raw={})
++                           coin="BTC", price=100.0, raw={}, timestamp_ms=c.utc_now_ms())
+     intent = SimpleNamespace(fill=fill, intent_id="intent-e2e-" + label,
+-                             notes="lifecycle=EXIT", copy_side="SELL",
+-                             copy_size=0.08, copy_notional=8.0, reduce_only_intended=True,
+-                             wallet_position_before=0.08, coin_net_before=0.08,
++                             notes="lifecycle=ENTRY" if entry else "lifecycle=EXIT",
++                             copy_side="BUY" if entry else "SELL",
++                             copy_size=0.08, copy_notional=8.0, reduce_only_intended=not entry,
++                             wallet_position_before=0.0 if entry else 0.08,
++                             coin_net_before=0.0 if entry else 0.08,
+                              sleeve_id="sleeve-" + label, position_id="pos-" + label)
+     class FakeExchange:
+         def __init__(self):
+             self.calls = []
+         def order(self, *args, **kwargs):
+             self.calls.append((args, kwargs))
+-            return {"status": "err", "response": "REDUCE_ONLY_REJECTED"}
++            return {"status": "err", "response": "IOC_NO_IMMEDIATE_MATCH" if entry else "REDUCE_ONLY_REJECTED"}
+     spy = FakeExchange()
+     gw = object.__new__(c.SenderGateway)
+     gw.audit = c.AuditLogWriter()
+@@ -187,29 +197,48 @@ def order(self, *args, **kwargs):
+     gw._reduce_only_on_wire = lambda *a: False
+     gw._note_sender_key_rejection = lambda *a: None
+     gw._gate_refusal_row = lambda *a: None
+-    gw._parse_hl_response = lambda response: (False, "ORDER_REJECTED", "", "REDUCE_ONLY_REJECTED")
+-    checks, proofs = [], []
++    gw._parse_hl_response = lambda response: (
++        False, "ORDER_REJECTED", "",
++        "IOC_NO_IMMEDIATE_MATCH" if entry else "REDUCE_ONLY_REJECTED")
++    gw._symbol_reject_circuit_active = lambda *a: False
++    gw._already_resting_block = lambda *a: None
++    gw.resting_entry_for = lambda *a: None
++    gw._px_passive = lambda px, decimals, buy: round(px, decimals)
++    checks, proofs, leases = [], [], []
+     def master(*a):
+         checks.append(1)
+         if scenario == "post-wait-mode" and len(checks) == 2:
+             return "MASTER_REAL_ORDERS_OFF"
++        if scenario in {"netting-returned-mode", "entry-ioc-returned-mode",
++                        "entry-rest-returned-mode"} and len(checks) == 5:
++            return "MASTER_REAL_ORDERS_OFF"
+         if scenario == "two-attempt" and len(checks) == 6:
+             raise ValueError("INVALID_CONFIG_READ: isolated retry final guard")
+         if scenario not in {"two-attempt", "post-wait-mode", "post-wait-proof",
+-                            "post-wait-lease", "late-block-raised", "late-block-false"} and len(checks) == 3:
++                            "post-wait-lease", "late-block-raised", "late-block-false",
++                            "netting-returned-mode", "netting-returned-proof",
++                            "netting-returned-lease", "entry-ioc-returned-mode",
++                            "entry-rest-returned-mode"} and len(checks) == 3:
+             raise ValueError("INVALID_CONFIG_READ: isolated final guard")
+         return ""
+     def proof(*a):
+         proofs.append(1)
+         if scenario == "post-wait-proof" and len(proofs) == 1:
+             return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
++        if scenario == "netting-returned-proof" and len(proofs) == 3:
++            return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
+         if scenario in {"late-block-raised", "late-block-false"} and len(proofs) == 2:
+             return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
+         return ""
+     gw._master_gate_reason = master
+     gw._final_close_proof = proof
+     if scenario == "post-wait-lease":
+         c._sender_lease_owned = lambda: False
++    if scenario == "netting-returned-lease":
++        def still_owns_sender():
++            leases.append(1)
++            return len(leases) < 3
++        c._sender_lease_owned = still_owns_sender
+     timing = {"send_attempt_id": "attempt-e2e-" + label, "send_cloid": c.generate_cloid("e2e-" + label)}
+     try:
+         outcome = gw._send_real(intent, timing)
+@@ -226,6 +255,13 @@ def proof(*a):
+             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+         else:
+             os.environ["HL_LIVE_HL_PRIVATE_KEY"] = saved_secret
++        if entry:
++            c.follower_mid = old_follower_mid
++        for key, prior in saved_env.items():
++            if prior is None:
++                os.environ.pop(key, None)
++            else:
++                os.environ[key] = prior
+ 
+ def sender_e2e_witnesses():
+     scenarios = (
+@@ -236,17 +272,25 @@ def sender_e2e_witnesses():
+         ("late-raised", "late-block-raised"),
+         ("late-false", "late-block-false"),
+         ("prior-call", "two-attempt"),
++        ("net-mode", "netting-returned-mode"),
++        ("net-proof", "netting-returned-proof"),
++        ("net-lease", "netting-returned-lease"),
++        ("ioc-mode", "entry-ioc-returned-mode"),
++        ("rest-mode", "entry-rest-returned-mode"),
+         ("post-mode", "post-wait-mode"),
+         ("post-proof", "post-wait-proof"),
+         ("post-lease", "post-wait-lease"),
+     )
+     no_pending = {"post-wait-mode", "post-wait-proof", "post-wait-lease"}
++    prior_physical_no_call = {"netting-returned-mode", "netting-returned-proof",
++                              "netting-returned-lease", "entry-ioc-returned-mode",
++                              "entry-rest-returned-mode"}
+     durable_failure = {"terminal-write-raised", "terminal-write-false",
+                        "terminal-read-raised", "late-block-raised", "late-block-false"}
+     for label, scenario in scenarios:
+         try:
+             (ok, status, result), calls, first_id, last_id, first, last, owed = sender_path_case(label, scenario)
+-            if scenario == "two-attempt":
++            if scenario == "two-attempt" or scenario in prior_physical_no_call:
+                 expected_status = "ORDER_REJECTED"
+             elif scenario in no_pending:
+                 expected_status = "ORDER_REJECTED"
+@@ -261,14 +305,33 @@ def sender_e2e_witnesses():
+                 result.get("terminal_state", expected_status) == expected_status
+             )
+             check(label + "-PARENT_TRUTH",
+-                  not ok and bool(result.get("exchange_called")) == (scenario == "two-attempt")
++                  not ok and bool(result.get("exchange_called")) == (
++                      scenario == "two-attempt" or scenario in prior_physical_no_call)
+                   and status == expected_status and valid_terminal,
+                   (status, result))
+-            check(label + "-SDK_COUNT", len(calls) == (1 if scenario == "two-attempt" else 0), calls)
++            check(label + "-SDK_COUNT",
++                  len(calls) == (1 if scenario == "two-attempt" or scenario in prior_physical_no_call else 0), calls)
+             check(label + "-DURABLE_OPEN_OWED",
++                  not owed if scenario.startswith("entry-") else
+                   owed.get("state") == "OPEN" and owed.get("leader_fill_id") == "event-e2e-" + label
+                   and owed.get("intent_id") == "intent-e2e-" + label, owed)
+-            if scenario == "two-attempt":
++            if scenario in prior_physical_no_call:
++                event_rows = [r for r in c.send_attempt_rows()
++                              if r.get("intent_id") == "intent-e2e-" + label]
++                physical_response = result.get("exchange_response") or {}
++                check(label + "-FIRST_PHYSICAL_PRESERVED",
++                      first_id == last_id and bool(first.get("cloid"))
++                      and result.get("timing", {}).get("send_attempt_id") == first_id
++                      and result.get("timing", {}).get("send_cloid") == first.get("cloid")
++                      and result.get("exchange_called") is True
++                      and physical_response.get("response") ==
++                          ("IOC_NO_IMMEDIATE_MATCH" if scenario.startswith("entry-") else "REDUCE_ONLY_REJECTED")
++                      and first.get("status") == "ORDER_REJECTED"
++                      and len(event_rows) >= 2
++                      and {r.get("attempt_id") for r in event_rows} == {first_id}
++                      and event_rows[0].get("status") == "pending_send",
++                      (first, last, result, event_rows))
++            elif scenario == "two-attempt":
+                 check(label + "-TWO_DISTINCT_ATTEMPTS",
+                       first_id != last_id and first.get("cloid") and last.get("cloid")
+                       and first["cloid"] != last["cloid"]
+# COMMIT 3: ce6a4e17c9bd0f1ae51c859562768e20539e812e
+diff --git a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+--- a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
++++ b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+@@ -7429,6 +7429,11 @@ def _queue_exit_recovery_if_needed(
+                                                   limit_px, "Gtc", _ro, timing=_sc_t, cloid=_cl,
+                                                   bypass_rate_limit_cooldown=True,
+                                                   pre_send=_pre, intent=intent, path="exit_recovery")
++            if isinstance(recovery_response, dict) and recovery_response.get("exchange_called") is False:
++                # A refused recovery is not an existing resting order or an attempted wire.
++                self._journal_authorised_close_refusal(
++                    intent, str(recovery_response.get("terminal_state") or "EXIT_RECOVERY_NO_CALL"))
++                return
+             ok, status, oid, error = self._parse_hl_response(recovery_response)
+             self._recovery_intent_ids.add(intent.intent_id)
+             if ok and oid and status == "ORDER_RESTING":
+@@ -7905,6 +7910,13 @@ def _entry_add_rate_limit_recovery(
+             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
+                                                   tif, False, timing, "entry_add_rate_limit_recovery_started_ms",
+                                                   cloid=_cl, pre_send=_pre, intent=intent, path="rate_limit_recovery")
++            if isinstance(recovery_response, dict) and recovery_response.get("exchange_called") is False:
++                # Preserve prior invoked-attempt identity; the caller owns its original
++                # rejection/timeout reconciliation. A recovery local refusal is NOT SDK.
++                if timing.get("last_physical_attempt_id") and timing.get("last_physical_cloid"):
++                    timing["send_attempt_id"] = timing["last_physical_attempt_id"]
++                    timing["send_cloid"] = timing["last_physical_cloid"]
++                return None
+             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
+             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
+             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
+# COMMIT 4: ff378d12bdfe69c2129a68f54fa353c6cec826e0
+diff --git a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+--- a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
++++ b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+@@ -240,6 +240,12 @@ def still_owns_sender():
+             return len(leases) < 3
+         c._sender_lease_owned = still_owns_sender
+     timing = {"send_attempt_id": "attempt-e2e-" + label, "send_cloid": c.generate_cloid("e2e-" + label)}
++    original_recovery_hooks = gw._recovery_send_hooks
++    def capture_retry_cloid(*args, **kwargs):
++        retry_cloid, pending_hook = original_recovery_hooks(*args, **kwargs)
++        timing.setdefault("_test_retry_cloids", []).append(retry_cloid)
++        return retry_cloid, pending_hook
++    gw._recovery_send_hooks = capture_retry_cloid
+     try:
+         outcome = gw._send_real(intent, timing)
+         first_id = "attempt-e2e-" + label
+@@ -329,7 +335,11 @@ def sender_e2e_witnesses():
+                       and first.get("status") == "ORDER_REJECTED"
+                       and len(event_rows) >= 2
+                       and {r.get("attempt_id") for r in event_rows} == {first_id}
+-                      and event_rows[0].get("status") == "pending_send",
++                      and event_rows[0].get("status") == "pending_send"
++                      and len(result["timing"].get("_test_retry_cloids", [])) == 1
++                      and result["timing"]["_test_retry_cloids"][0] != first["cloid"]
++                      and result["timing"]["_test_retry_cloids"][0] not in
++                          {r.get("cloid") for r in event_rows},
+                       (first, last, result, event_rows))
+             elif scenario == "two-attempt":
+                 check(label + "-TWO_DISTINCT_ATTEMPTS",
+-- 
+END PATCH SERIES
