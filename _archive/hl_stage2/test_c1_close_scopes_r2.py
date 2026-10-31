@@ -139,11 +139,15 @@ def run_case(name, a, b, actual, mode, requested, expected_qty, expected_ro,
           "A=%r B=%r own_net=%r" %
           (f.sleeve_of(led, A), f.sleeve_of(led, B), led.coin_net(COIN)))
     if expected_user:
+        foreign_account = IndexedExchange(9999)
+        foreign_account.physical_net = [7.0]  # distinct account, never passed to gateway
         check(name + "_USER_AND_FOREIGN_UNTOUCHED",
               close_enough(net[0] - led.coin_net(COIN), expected_user)
-              and close_enough(7.0, 7.0),  # independent FOREIGN fixture unchanged; no SDK reference to it
-              "owned=%r exchange=%r user=%r foreign_account=+7.0 (untouched)" %
-              (led.coin_net(COIN), net[0], net[0] - led.coin_net(COIN)))
+              and foreign_account.calls == []
+              and close_enough(foreign_account.physical_net[0], 7.0),
+              "owned=%r exchange=%r user=%r foreign_calls=%r foreign_net=%r" %
+              (led.coin_net(COIN), net[0], net[0] - led.coin_net(COIN),
+               foreign_account.calls, foreign_account.physical_net[0]))
     if owed:
         rows = c.load_json(c.CLOSE_ESCALATIONS_FILE, {})
         outstanding = [
