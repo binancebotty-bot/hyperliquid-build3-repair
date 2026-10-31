@@ -5886,24 +5886,20 @@ class SenderGateway:
             log_error("final_wire_gate_fault_no_call", exc)
             raise PreWireNoCallFault(status, exc) from exc
         if _late_block:
-            # the lease wins the message when both would refuse
-            close_red = _is_close and (
-                _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
-                or _late_block.startswith(("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT")))
+            # A post-wait refusal without pre_send has NO pending attempt: timing's
+            # allocated send_attempt_id is NOT proof that the write-ahead row exists.
+            close_red = _is_close and _late_block != "CLOSE_ALREADY_PROVEN_FLAT"
             status = ("SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
-                      else "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER")
-            _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
-            if _aid and not update_send_attempt_row(_aid, {
-                "status": status, "terminal_state": status,
-                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
-                "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
-            }, durable=True):
-                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
-            # a refused close is still OWED: RED row, rests at leader price, retried - never dropped
-            if close_red and _late_block != "CLOSE_ALREADY_PROVEN_FLAT":
+                      else "CLOSE_PROOF_HOLD_AT_WIRE" if _late_block.startswith("CLOSE_PROOF_HOLD")
+                      else "BLOCKED_AT_PLACE_ORDER")
+            # Persist owed CLOSE before a risky terminal update. The proven-flat
+            # exception never fabricates debt, but unknown/master-OFF still owes.
+            if close_red:
                 self._journal_authorised_close_refusal(intent, _late_block)
-            elif not close_red:
+            else:
                 self._gate_refusal_row(intent, path, _late_block)
+            if _pending_id:
+                self._terminalise_pending_as_no_call(_pending_id, status, _late_block)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
                     "exchange_called": False, "reject_category": status,
                     "terminal_state": status, "operator_action": "NO_EXCHANGE_CALL",
