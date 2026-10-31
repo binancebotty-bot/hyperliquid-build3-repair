@@ -87,6 +87,7 @@ def make(name,a,b,net_value,mode="ON",script=None,side="SELL",qty=None):
     ex=Exchange(net,script)
     gw=f.make_gateway(ex,led,net)
     gw.cfg.send_mode_now=lambda:mode
+    gw.cfg.liq_parity_enabled=lambda:False  # explicit testnet config; not a production-gate bypass
     gw._standing_closes={}
     gw._close_escalations={}
     fid="g13-"+name
@@ -138,7 +139,9 @@ def g2_ce1b_resting_leader_price():
     standing=c.load_json(c.STANDING_CLOSES_FILE,{})
     rec=rows(c.RECONCILIATION_CSV,fid)
     check("G2_REFUSED_IOC_RESTS_AT_LEADER_PRICE",
-          len(calls)>=2 and calls[0]["tif"].lower()=="ioc" and calls[1]["tif"].lower()=="gtc"
+          len(calls)>=2
+          and calls[0]["tif"].get("limit",{}).get("tif","").lower()=="ioc"
+          and calls[1]["tif"].get("limit",{}).get("tif","").lower()=="gtc"
           and calls[1]["side"]=="SELL" and approx(calls[1]["size"],1)
           and approx(calls[1]["px"],it.fill.price),
           "stage=IOC_REJECT_TO_GTC status=%r calls=%r leader_px=%r"%(status,calls,it.fill.price))
@@ -235,7 +238,7 @@ def partial_close():
     red=open_red(fid,it.intent_id)
     rec=rows(c.RECONCILIATION_CSV,fid)
     check("P_PARTIAL_REMAINDER_RESTS_RED_AT_LEADER_PRICE",
-          len(calls)==2 and calls[1]["tif"].lower()=="gtc"
+          len(calls)==2 and calls[1]["tif"].get("limit",{}).get("tif","").lower()=="gtc"
           and approx(calls[1]["size"],0.4) and approx(calls[1]["px"],PX)
           and (bool(red) or any(x.get("status")=="EXIT_RECOVERY_QUEUED" for x in rec)),
           "stage=remainder calls=%r red=%r rec=%r"%(calls,red,rec))
