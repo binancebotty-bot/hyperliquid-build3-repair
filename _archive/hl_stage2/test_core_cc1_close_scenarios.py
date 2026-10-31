@@ -989,14 +989,17 @@ def d_origin_chain_ok(trace):
 
 
 class DCloseExchange(FakeExchange):
-    """Separate ack from an explicit later test-account userFills event."""
-    def __init__(self):
+    """Separate ack from a later test-account userFills event; distinct OID per case."""
+    def __init__(self, tag):
         super().__init__()
+        self.tag = tag
+        self.oid = 5000 + D_TAGS[tag]
         self.responses = []
         self.fills = []
 
     def order(self, *a, **k):
         response = super().order(*a, **k)
+        response["response"]["data"]["statuses"][0]["filled"]["oid"] = self.oid
         self.responses.append(response)
         return response
 
@@ -1141,9 +1144,10 @@ def d2_setdefault_zero_never_certifies_unknown_owned():
 
 def d3_hand_edit_disk_not_owned_proof():
     """Authentic +.50, foreign +4.50, disk is hand edited +2.50: clamp physical SELL .50."""
-    led, ex, net = new_ledger(), DCloseExchange(), [5.0]
+    led, ex, net = new_ledger(), DCloseExchange("d3"), [5.0]
     trace = d_seed_owned(led, D3, .50, "d3")
     assert d_origin_chain_ok(trace)
+    d_repair_fill(D3, 2.0, "d3")  # unbacked positive-size fake ledger CLOSE, expressly excluded
     it = exit_intent(led, D3, "SELL", 2.0, "d3-exit", 2.0, start=2.0)
     led.save(touched_sleeves=[(D3, COIN)])
     raw = c.load_json(led.path, {})
@@ -1180,7 +1184,7 @@ def d4_dust_uplift_cannot_borrow_foreign():
 
 def d5_dust_exact_whole_proven_position_can_close():
     """Only .06 proven, .30 stored, net .06 zero foreign: entire sub-$10 RO close."""
-    led, ex, net = new_ledger(), DCloseExchange(), [.06]
+    led, ex, net = new_ledger(), DCloseExchange("d5"), [.06]
     trace = d_seed_owned(led, D5, .06, "d5")
     assert d_origin_chain_ok(trace)
     it = exit_intent(led, D5, "SELL", .06, "d5-exit", .30, start=.06)
