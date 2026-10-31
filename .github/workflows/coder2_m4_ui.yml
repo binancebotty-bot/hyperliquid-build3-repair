@@ -10,6 +10,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install UI test dependency
         run: python3 -m pip install --disable-pip-version-check fastapi
       - name: Verify no Core edits and execute M4 tests
