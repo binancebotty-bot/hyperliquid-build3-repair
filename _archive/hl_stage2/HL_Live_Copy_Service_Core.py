@@ -8174,6 +8174,43 @@ class SenderGateway:
             log_error("fresh_exchange_net", exc)
             return None
 
+    @staticmethod
+    def _proven_owned_for_sleeve(wallet: Any, coin: Any) -> Optional[float]:
+        """Per-sleeve PROVEN OWNED from live_fills.csv: sum signed deltas for that
+        sleeve, EXCLUDING rows with source == CORE_LEDGER_REPAIR. Returns None when
+        no qualifying fill row exists (no proven value)."""
+        try:
+            w = normalise_wallet(wallet)
+            key = canonical_coin_key(coin)
+        except Exception:
+            return None
+        total = 0.0
+        found = False
+        try:
+            with FILE_LOCK:
+                for r in iter_csv_rows(LIVE_FILLS_CSV):
+                    try:
+                        if str(r.get("source") or "").strip() in {"CORE_LEDGER_REPAIR", "TEST"}:
+                            continue
+                        if normalise_wallet(r.get("leader_wallet") or "") != w:
+                            continue
+                        if canonical_coin_key(r.get("coin") or "") != key:
+                            continue
+                    except Exception:
+                        continue
+                    side = str(r.get("side") or "").strip().upper()
+                    sz = fnum(r.get("fill_size"), 0.0)
+                    if side == "BUY":
+                        total += sz
+                    elif side == "SELL":
+                        total -= sz
+                    else:
+                        continue
+                    found = True
+        except Exception:
+            return None
+        return float(total) if found else None
+
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
                          timing: Optional[Dict[str, Any]] = None, ledger_may_lag: bool = False) -> Tuple[bool, float, str]:
         """CS-I1..I4: the single SEND/HOLD/SETTLED owned close decision and clamp."""
@@ -8209,6 +8246,14 @@ class SenderGateway:
         if not is_valid_wallet(signer) or signer != normalise_wallet(USER_WALLET):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
         tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(actual), abs(led)))
+        # Per-sleeve proven owned from live_fills.csv (excludes CORE_LEDGER_REPAIR).
+        proven_owned = self._proven_owned_for_sleeve(wallet, coin)
+        if proven_owned is not None:
+            if abs(proven_owned - owned) > tol:
+                if abs(proven_owned) > abs(owned) + tol:
+                    return decide("HOLD", why="CLOSE_PROOF_HOLD_FILL_LEDGER_MISMATCH")
+                # clamp stored ownership to the proven amount
+                owned = (1.0 if owned >= 0 else -1.0) * min(abs(owned), abs(proven_owned))
         if abs(owned) <= tol:
             if abs(led) <= tol:
                 return decide("SETTLED", why="CLOSE_ALREADY_PROVEN_FLAT")
@@ -8227,6 +8272,11 @@ class SenderGateway:
         amount = min(requested, abs(owned))
         if (abs(owned) - amount > tol and callable(min_notional_ok)
                 and not min_notional_ok(abs(owned) - amount)):
+            # D4: the I23 uplift to the whole owned sleeve may only use OUR units. With a
+            # foreign residue on the sleeve (foreign = actual - led, beyond tolerance) the
+            # extra units are not ours to borrow: refuse the uplift and keep the owed close.
+            if abs(foreign) > tol:
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
             amount = abs(owned)  # I23: no abandoned sub-minimum owned dust
         amount = self._floor_wire_size(round(amount, 10), sz_dec)
         if amount <= tol:

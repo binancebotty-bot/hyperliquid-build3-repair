@@ -49,6 +49,9 @@ A = "0x" + "a" * 40                    # leader wallet A
 B = "0x" + "b" * 40                    # leader wallet B
 ACCOUNT = "0x" + "c" * 40              # the follower trading account (public address, not a secret)
 OTHER_ACCOUNT = "0x" + "d" * 40
+D3 = "0x" + "5" * 40
+D5 = "0x" + "7" * 40
+D_TAGS = {"d3": 1003, "d5": 1005}
 COIN, PX, MIN_USD = "BTC", 100.0, 10.0
 RESOLVED = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
             "sdk_order_compatible": True, "min_order_value_usd": MIN_USD, "min_size": 0.0, "status": "OK"}
@@ -933,6 +936,254 @@ def ceil_matched_close_then_the_excess_sends():
                                               [(r.get("terminal_state")) for r in owed])
 
 
+
+def d_csv_rows(path):
+    if not path.exists():
+        return []
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        return list(csv.DictReader(fh))
+def d_float(value):
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+def d_note_fields(row):
+    return dict(x.split("=", 1) for x in str(row.get("notes") or "").split(";")
+                if "=" in x and len(x.split("=", 1)) == 2)
+class DOriginExchange(FakeExchange):
+    """Test-only exchange-account oracle, NOT a second engine ledger.
+
+    Original SDK call -> authenticated test account orderStatus -> userFillsByTime event.
+    Both APIs derive from this same captured original fake exchange reply, not from
+    self-declared strings in a hand-written live_fills.csv row.
+    """
+    def __init__(self, tag):
+        super().__init__()
+        self.tag = tag
+        self.oid = D_TAGS[tag]
+        self.account = ACCOUNT
+        self.reply = None
+        self.fills = []
+
+    def order(self, *a, **k):
+        reply = super().order(*a, **k)
+        reply["response"]["data"]["statuses"][0]["filled"]["oid"] = self.oid
+        self.reply = reply
+        return reply
+
+    def account_order_status(self, account, oid):
+        return self.reply if account == self.account and str(oid) == str(self.oid) else None
+
+    def account_fills(self, account):
+        return [dict(x) for x in self.fills] if account == self.account else []
+def d_seed_owned(ledger, wallet, signed_size, tag):
+    """Produce real test-controlled original order/intent/status/account-fill lineage.
+
+    No injected ownership row: CopyFillMatcher must produce live_fills itself from
+    the test exchange's independently queryable account fill, then prove one
+    matching hash:tid, OID, CLOID, original leader/intent and wallet/coin.
+    """
+    assert signed_size > 0 and tag in D_TAGS
+    oid, cloid, origin_id = str(D_TAGS[tag]), "d-origin-cloid-" + tag, "d-origin-intent-" + tag
+    leader = c.LeaderFill("d-origin-leader-" + tag, wallet, COIN, "BUY", PX,
+                          signed_size, c.utc_now_ms(), "TESTNET_HISTORY")
+    intent = c.Intent(origin_id, leader, "BUY", signed_size, signed_size * PX, "LIVE", "fixed",
+                      "ENTRY_ALLOWED", "ENTRY", c.ManualLedger.sleeve_id(wallet, COIN),
+                      "", "FLAT", 0.0, 0.0, False, False, notes="lifecycle=ENTRY;source=EXCHANGE")
+    audit = c.AuditLogWriter()
+    c.append_csv(c.ORDER_INTENTS_CSV, c.ORDER_INTENT_FIELDS, {
+        "created_at_ms": c.utc_now_ms(), "intent_id": origin_id, "leader_fill_id": leader.leader_fill_id,
+        "leader_wallet": wallet, "coin": COIN, "leader_side": "BUY", "copy_side": "BUY",
+        "leader_price": PX, "leader_size": signed_size, "copy_size": signed_size,
+        "copy_notional": signed_size * PX, "decision": "ENTRY_ALLOWED",
+        "sleeve_id": intent.sleeve_id, "notes": "lifecycle=ENTRY;testnet_exchange_intent",
+    }, durable=True)
+    exchange = DOriginExchange(tag)
+    response = exchange.order(COIN, True, signed_size, PX, "Ioc", reduce_only=False, cloid=cloid)
+    assert exchange.account_order_status(ACCOUNT, oid) == response
+    assert exchange.calls[0]["size"] == signed_size and exchange.calls[0]["is_buy"]
+    assert exchange.calls[0]["cloid"] == cloid
+    audit.append_send_attempt({
+        "created_at_ms": c.utc_now_ms(), "attempt_id": "d-origin-attempt-" + tag,
+        "intent_id": origin_id, "leader_fill_id": leader.leader_fill_id, "leader_wallet": wallet,
+        "coin": COIN, "side": "BUY", "order_type": "REAL_IOC", "limit_price": PX,
+        "copy_size": signed_size, "copy_notional": signed_size * PX, "reduce_only_sent": "False",
+        "sleeve_id": intent.sleeve_id, "wallet_position_before": 0.0, "coin_net_before": 0.0,
+        "status": "ORDER_FILLED", "exchange_order_id": oid, "cloid": cloid,
+        "exchange_response": str(response), "terminal_state": "ORDER_FILLED",
+        "leader_fill_timestamp_ms": leader.timestamp_ms,
+    }, durable=True)
+    original = {
+        "coin": COIN, "side": "BUY", "size": signed_size, "px": PX,
+        "oid": oid, "hash": "0x" + format(D_TAGS[tag], "064x"),
+        "tid": D_TAGS[tag] * 10 + 1, "time": c.utc_now_ms(), "source": "copy_account_poll",
+        "user": ACCOUNT, "intent_id": origin_id, "cloid": cloid,
+    }
+    exchange.fills.append(original)
+    feed = exchange.account_fills(ACCOUNT)
+    assert len(feed) == 1 and feed[0] == original and not exchange.account_fills(OTHER_ACCOUNT)
+    assert c.CopyFillMatcher(ledger, audit).match_and_apply(feed[0], {origin_id: intent})
+    trace = {"exchange": exchange, "raw": original, "wallet": wallet, "oid": oid,
+             "cloid": cloid, "origin_id": origin_id, "leader_id": leader.leader_fill_id}
+    assert d_origin_chain_ok(trace)  # false/forged provenance never forms a valid positive fixture
+    return trace
+def d_origin_chain_ok(trace):
+    raw = trace["raw"]
+    origin_id, oid, cloid = trace["origin_id"], trace["oid"], trace["cloid"]
+    exchange = trace["exchange"]
+    fills = [r for r in d_csv_rows(c.LIVE_FILLS_CSV)
+             if r.get("copy_fill_id") == c.CopyFillMatcher.copy_fill_id(raw)]
+    intents = [r for r in d_csv_rows(c.ORDER_INTENTS_CSV) if r.get("intent_id") == origin_id]
+    sends = [r for r in d_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("intent_id") == origin_id]
+    statuses = exchange.account_order_status(ACCOUNT, oid)
+    feed = exchange.account_fills(ACCOUNT)
+    return (len(intents) == len(sends) == len(fills) == len(feed) == 1
+            and len(exchange.calls) == 1 and statuses == exchange.reply
+            and feed[0] == raw and feed[0]["user"] == ACCOUNT
+            and exchange.calls[0]["cloid"] == cloid
+            and intents[0].get("leader_wallet") == trace["wallet"]
+            and intents[0].get("coin") == COIN
+            and sends[0].get("exchange_order_id") == oid
+            and sends[0].get("cloid") == cloid and sends[0].get("status") == "ORDER_FILLED"
+            and sends[0].get("leader_fill_id") == trace["leader_id"]
+            and sends[0].get("copy_size") == str(raw["size"])
+            and fills[0].get("intent_id") == origin_id
+            and fills[0].get("leader_wallet") == trace["wallet"] and fills[0].get("coin") == COIN
+            and fills[0].get("exchange_order_id") == oid
+            and fills[0].get("exchange_hash") == raw["hash"]
+            and fills[0].get("source") == "copy_account_poll"
+            and abs(float(fills[0]["fill_size"]) - raw["size"]) < 1e-9
+            and fills[0].get("side") == "BUY" and fills[0].get("ledger_action") == "UPDATED")
+class DCloseExchange(FakeExchange):
+    """Separate ack from a later test-account userFills event; distinct OID per case."""
+    def __init__(self, tag):
+        super().__init__()
+        self.tag = tag
+        self.oid = 5000 + D_TAGS[tag]
+        self.responses = []
+        self.fills = []
+
+    def order(self, *a, **k):
+        response = super().order(*a, **k)
+        response["response"]["data"]["statuses"][0]["filled"]["oid"] = self.oid
+        self.responses.append(response)
+        return response
+
+    def account_order_status(self, account, oid):
+        return (self.responses[0] if account == ACCOUNT and self.responses and
+                str(self.responses[0]["response"]["data"]["statuses"][0]["filled"]["oid"]) == str(oid)
+                else None)
+
+    def account_fills(self, account):
+        return [dict(x) for x in self.fills] if account == ACCOUNT else []
+def d_repair_fill(wallet, size, tag):
+    """Synthetic history poison, deliberately with positive size but no exchange execution."""
+    result = {"wallet": wallet, "coin": COIN, "wallet_position_before": size,
+              "wallet_position_after": 0.0, "coin_net_after": 0.0}
+    c.AuditLogWriter().append_live_fill_repair_close(result, tag + " synthetic not fill proof")
+def d_close_row(fid, wallet, status, stored, proven, foreign, wire, owed):
+    """Exact numeric *durable* contract; values reside in named notes keys until a schema is added."""
+    rows = [r for r in recon_rows(fid) if r.get("event") == "CLOSE_PROOF"
+            and r.get("status") == status and r.get("terminal_state") == status
+            and r.get("leader_wallet") == wallet and r.get("coin") == COIN
+            and r.get("intent_id") == fid and r.get("leader_fill_id") == fid]
+    matching = []
+    for row in rows:
+        note = d_note_fields(row)
+        expected = {"stored_size": stored, "proved_size": proven, "foreign_size": foreign,
+                    "wire_size": wire, "owed_size": owed}
+        if not all(k in note and ((note[k].strip() == "UNKNOWN") if v is None
+                   else d_float(note[k]) is not None and abs(d_float(note[k]) - v) <= 1e-9)
+                   for k, v in expected.items()):
+            continue
+        if not row.get("action") or not row.get("reject_category"):
+            continue
+        matching.append(row)
+    return matching
+def d_owed_red(fid, wallet, amount):
+    rows = red_for(fid)
+    return (len(rows) == 1 and rows[0].get("intent_id") == fid
+            and rows[0].get("wallet") == wallet and rows[0].get("coin") == COIN
+            and rows[0].get("state") == "OPEN"
+            and d_float(rows[0].get("owed_size")) is not None
+            and abs(float(rows[0]["owed_size"]) - amount) < 1e-9)
+def d_owed_red_named(fid, wallet):
+    """Exactly one OPEN RED for this fill: the unresolved close-proof hold that keeps it owed."""
+    rows = red_for(fid)
+    return (len(rows) == 1 and rows[0].get("intent_id") == fid
+            and rows[0].get("wallet") == wallet and rows[0].get("coin") == COIN
+            and rows[0].get("state") == "OPEN"
+            and rows[0].get("reason") == "SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD")
+def d_not_settled(fid):
+    return not any(r.get("status") in ("SETTLED", "CLOSED") or
+                   r.get("terminal_state") in ("SETTLED", "CLOSED")
+                   for r in recon_rows(fid))
+def d_no_physical_send(fid, ex):
+    physical = [r for r in send_rows(fid) if r.get("exchange_order_id") or
+                str(r.get("status") or "").upper() in ("ORDER_FILLED", "ORDER_RESTING")]
+    return len(ex.calls) == 0 and not physical
+def d_one_physical_send(fid, wallet, ex, size, ro):
+    sends = [r for r in send_rows(fid) if r.get("exchange_order_id") and
+             str(r.get("status") or "").upper() in ("ORDER_FILLED", "ORDER_RESTING")]
+    return (len(ex.calls) == len(sends) == 1 and not ex.calls[0]["is_buy"]
+            and abs(ex.calls[0]["size"] - size) < 1e-9 and ex.calls[0]["reduce_only"] is ro
+            and sends[0].get("leader_wallet") == wallet and sends[0].get("coin") == COIN
+            and sends[0].get("side") == "SELL" and sends[0].get("intent_id") == fid
+            and sends[0].get("leader_fill_id") == fid
+            and sends[0].get("cloid") == ex.calls[0].get("cloid")
+            and sends[0].get("attempt_id") and sends[0].get("exchange_order_id")
+            and abs(float(sends[0]["copy_size"]) - size) < 1e-9
+            and str(sends[0].get("reduce_only_sent")).lower() == str(ro).lower())
+def d3_hand_edit_disk_not_owned_proof():
+    """Authentic +.50, foreign +4.50, disk is hand edited +2.50: clamp physical SELL .50."""
+    led, ex, net = new_ledger(), DCloseExchange("d3"), [5.0]
+    trace = d_seed_owned(led, D3, .50, "d3")
+    assert d_origin_chain_ok(trace)
+    d_repair_fill(D3, 2.0, "d3")  # unbacked positive-size fake ledger CLOSE, expressly excluded
+    it = exit_intent(led, D3, "SELL", 2.0, "d3-exit", 2.0, start=2.0)
+    led.save(touched_sleeves=[(D3, COIN)])
+    raw = c.load_json(led.path, {})
+    raw["by_wallet"][D3][COIN]["signed_size"] = 2.5
+    c.atomic_write_json(led.path, raw)
+    loaded = c.ManualLedger(path=led.path)
+    gw = make_gateway(ex, loaded, net)
+    ok, status = gw.send_if_allowed(it)
+    checks = (ok and d_one_physical_send("d3-exit", D3, ex, .5, True)
+              and abs(net[0] - 4.5) < 1e-9
+              and d_not_settled("d3-exit"))
+    return checks, "disk_override sdk=%r status=%r net=%r owed=%r" % (
+        ex.calls, status, net[0], red_for("d3-exit"))
+def d5_negative_foreign_sleeve_holds():
+    """NEGATIVE FOREIGN HOLD: sleeve .30 owned but the account holds .06.
+
+    foreign = actual - led = .06 - .30 = -.24, so the close is NOT provable against the
+    venue and the engine must HOLD: no physical send, net untouched, owned sleeve intact,
+    owed RED recorded, never settled, and the durable row names CLOSE_PROOF_HOLD_NET_MISMATCH.
+    """
+    led, ex, net = new_ledger(), DCloseExchange("d5"), [.06]
+    trace = d_seed_owned(led, D5, .06, "d5")
+    assert d_origin_chain_ok(trace)
+    it = exit_intent(led, D5, "SELL", .06, "d5-exit", .30, start=.06)
+    gw = make_gateway(ex, led, net)
+    ok, status = gw.send_if_allowed(it)
+    named = [r for r in recon_rows("d5-exit") if r.get("event") == "CLOSE_ESCALATION"]
+    checks = (ok is False
+              and status == "SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD"
+              and d_no_physical_send("d5-exit", ex)
+              and abs(float(net[0]) - .06) <= 1e-9
+              and sleeve_of(led, D5) is not None and abs(sleeve_of(led, D5) - .30) <= 1e-9
+              and d_owed_red_named("d5-exit", D5)
+              and bool([r for r in named
+                        if r.get("status") == "AUTHORISED_CLOSE_REFUSAL"
+                        and r.get("reject_category") == "CLOSE_PROOF_HOLD_NET_MISMATCH"])
+              and d_not_settled("d5-exit")
+              and gw.clear_close_escalations() == 0
+              and bool(red_for("d5-exit")))
+    return checks, "d5_foreign_hold sdk=%r status=%r net=%r sleeve=%r red=%r recon=%r" % (
+        ex.calls, status, net[0], sleeve_of(led, D5), red_for("d5-exit"),
+        [(r.get("event"), r.get("status"), r.get("reject_category")) for r in recon_rows("d5-exit")])
+
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -996,6 +1247,8 @@ def main():
          toctou_pre_send_mode_off_gives_zero_calls_and_terminalises_the_row),
         ("EARLY_RETURN_UNOWNED_LEASE_AT_ENTRY_NEVER_CALLS_PRE_SEND",
          early_return_unowned_lease_never_calls_pre_send),
+        ("D3_DISK_HAND_EDIT_PROVEN_HALF_CLAMP_PRESERVES_FOREIGN", d3_hand_edit_disk_not_owned_proof),
+        ("D5_FOREIGN_SLEEVE_NET_MISMATCH_HOLDS", d5_negative_foreign_sleeve_holds),
         *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
            (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]
