@@ -100,6 +100,25 @@ def main() -> None:
         core.dedupe.copy_account_baseline_set = True
         return core
 
+    def stop_copy_thread(core) -> None:
+        """Stop and join the core's copy-poll thread, then drain the async status writers.
+
+        Without this the thread started for the measurement keeps polling into every later phase: it rewrites
+        copy_poll_state.json and (through the ServiceStateWriter worker) clean_core_runtime_state.json, so a
+        before/after read taken in S1/P1 races a background write and the result depends on timing.
+        No Core change: this drives the same stop flag and bounded join that Core.stop() uses."""
+        ct = getattr(core, "_copy_thread", None)
+        core._hot_stop_event.set()
+        if ct is not None and ct.is_alive() and ct is not threading.current_thread():
+            ct.join(timeout=30)
+        core._copy_thread = None
+        # A state write queued by the last cycle runs on a status worker thread; it must land BEFORE the
+        # before/after reads, otherwise it is the "copy thread" that appears to change the runtime state.
+        # Core's own drain uses a 1 s shared deadline; here the join can afford to be generous.
+        for worker in list(c._STATUS_WRITE_WORKERS):
+            if not worker.join_until(time.monotonic() + 30):
+                raise RuntimeError(f"status writer {worker.name} did not drain before the assertions")
+
     def load_run(core, use_thread: bool, seconds: float = 8.0, rate: float = 20.0):
         """Fills land at `rate`/s; send workers hold the send lock 50 ms of every 60 ms; the main cycle takes 3 s."""
         stop = threading.Event()
@@ -177,26 +196,43 @@ def main() -> None:
                                                       "send_lock_hold_ms_max"} <= set(stats[-1]), str(stats[-1:]))
 
     # ---- D1: the copy thread owns a fill while the main cycle is stuck -----------------------------------------
-    gate = threading.Event()
-    blocked = threading.Event()
+    # The integrity rebuild and the state write both run on background writers now, so replacing
+    # write_live_integrity_status no longer blocks the CYCLE thread -- that is why this check was red with
+    # alive=False. Block a step the cycle thread itself performs (state_writer.submit) instead, so "the main
+    # cycle is stuck" is a fact and not a 60 s sleep. Every wait below is bounded.
+    stop_copy_thread(new)        # the M measurement's poll thread must not bleed into this phase
+    new._hot_stop_event.clear()  # stop_copy_thread sets it; this phase starts a fresh poll thread
+    new.start_copy_poll_thread(0.1)
+    cycle_at_state_write = threading.Event()
+    real_state_write = new.state_writer.write
 
-    def stuck_integrity(*a, **k):
-        blocked.set()
-        gate.wait(60)
-    c.write_live_integrity_status = stuck_integrity
+    def write_then_block(summary, dedupe, cfg=None):
+        cycle_at_state_write.set()
+        real_state_write(summary, dedupe, cfg)  # blocks on state_writer._worker._lock, held below
+    new.state_writer.write = write_then_block
+    cycle_block = new.state_writer._worker._lock
+    cycle_block.acquire()
     cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)
-    cyc.start()
-    blocked.wait(30)
-    oid1, side1 = engine_order()
-    land(oid1, side1)
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline and str(oid1) not in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}:
-        time.sleep(0.1)
-    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set() and cyc.is_alive()
-          and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
-    gate.set()
-    cyc.join(30)
-    c.write_live_integrity_status = heavy_integrity
+
+    def owned1():
+        return str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}
+    try:
+        cyc.start()
+        cycle_at_state_write.wait(10)  # bounded: the cycle reached its state write and is now stuck
+        oid1, side1 = engine_order()
+        land(oid1, side1)
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and not owned1():
+            time.sleep(0.05)
+        stuck = cyc.is_alive()
+        check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK",
+              cycle_at_state_write.is_set() and stuck and owned1())
+        print("D1DEBUG blocked=%s alive=%s owned=%s" % (cycle_at_state_write.is_set(), stuck, owned1()))
+    finally:
+        cycle_block.release()
+        cyc.join(30)
+        new.state_writer.write = real_state_write
+    stop_copy_thread(new)  # S1/P1 read the state files: no background writer may be alive for them
 
     # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
     under_lock = []
@@ -265,17 +301,29 @@ def main() -> None:
     new.stop()
 
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
-    before = c.load_json(c.COPY_POLL_STATE_FILE, {})
-    new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
+    # The copy-poll thread is stopped and joined above, and the read/modify/read runs under RUNTIME_STATE_LOCK,
+    # so no other writer can land between the two reads. write_startup is the SYNCHRONOUS writer: submit() would
+    # queue the write on a worker and it would land after the reads, racing them by construction.
+    with c.RUNTIME_STATE_LOCK:
+        before = c.load_json(c.COPY_POLL_STATE_FILE, {})
+        new.state_writer.write_startup(c.CycleSummary(), new.dedupe, new.cfg)
+        after = c.load_json(c.COPY_POLL_STATE_FILE, {})
+        rt_s1 = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     check("S1_CYCLE_STATE_WRITE_KEEPS_COPY_CURSOR_AND_LAG_RECORD",
-          c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
-          and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
-    # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
-    rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
+          after == before and rt_s1.get("last_copy_poll_ms") == before.get("last_copy_poll_ms"),
+          "copy_poll_state_same=%s runtime_last_copy_poll_ms=%r expected=%r"
+          % (after == before, rt_s1.get("last_copy_poll_ms"), before.get("last_copy_poll_ms")))
+    # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections.
+    # Compare CONTENT, not st_mtime_ns: atomic_write_json replaces the file, so mtime is not a content witness.
+    with c.RUNTIME_STATE_LOCK:
+        rt_before = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     oid2, side2 = engine_order()
     land(oid2, side2)
     st2 = new.copy_poll_once(hot=True)
-    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns == rt_mtime)
+    with c.RUNTIME_STATE_LOCK:
+        rt_after = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", rt_after == rt_before and isinstance(st2.get("at_ms"), int),
+          "runtime_state_changed=%s poll_at_ms=%r" % (rt_after != rt_before, st2.get("at_ms")))
     check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
           and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
           and all({"section", "n", "total_ms", "max_ms"} <= set(s) for s in st2["slowest_sections"]),
