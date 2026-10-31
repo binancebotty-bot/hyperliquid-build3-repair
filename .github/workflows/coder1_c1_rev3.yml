@@ -1,0 +1,50 @@
+name: Coder1 C1 REV3 offline close-scope evidence
+on:
+  push:
+    branches: [gpt/coder1-close-scopes-r2-20261031]
+permissions:
+  contents: read
+jobs:
+  offline-c1-close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Record exact environment and run the unchanged pinned-Core witness
+        shell: bash
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+          HL_LIVE_AUTO_SEND_ENABLED: "0"
+          HL_LIVE_POLL_ENABLED: "0"
+        run: |
+          mkdir -p evidence
+          {
+            echo "REPOSITORY=$GITHUB_REPOSITORY"
+            echo "HEAD_SHA=$(git rev-parse HEAD)"
+            echo "BASE_SHA=2a188facc73921bb46cea073c1028b7b38f5fb8e"
+            echo "TEST_FILE=_archive/hl_stage2/test_c1_close_scopes_r2.py"
+            python3 --version
+            uname -srm
+          } > evidence/environment.txt
+          git diff --exit-code 2a188facc73921bb46cea073c1028b7b38f5fb8e HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py >> evidence/environment.txt
+          set +e
+          (cd _archive/hl_stage2 && python3 -u test_c1_close_scopes_r2.py) > evidence/test-output.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > evidence/exit-code.txt
+          cat evidence/test-output.txt
+          printf 'TEST_EXIT_CODE=%s\n' "$rc"
+          (cd evidence && sha256sum environment.txt exit-code.txt test-output.txt > SHA256SUMS.txt)
+          cat evidence/SHA256SUMS.txt
+          exit "$rc"
+      - name: Upload immutable command and full output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c1-rev3-baseline-evidence
+          path: evidence/
+          if-no-files-found: warn
