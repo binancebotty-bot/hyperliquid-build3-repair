@@ -5473,6 +5473,10 @@ class PendingSendWriteFailed(RuntimeError):
     """The pending_send write-ahead row could not be written: the order was NOT sent."""
 
 
+class PendingSendTerminalWriteFailed(PendingSendWriteFailed):
+    """The original pending row exists, but its NO_CALL terminal update failed; never assert a terminal write."""
+
+
 class PreWireNoCallFault(RuntimeError):
     """The SDK was not invoked: keep a pre-wire error distinct from exchange errors."""
 
@@ -5778,13 +5782,19 @@ class SenderGateway:
                 if abs(actual - size) > POSITION_EPSILON or ro != reduce_only else "")
 
     def _terminalise_pending_as_no_call(self, attempt_id: str, status: str, reason: str) -> None:
-        """B/CS-I4: an existing pre_send attempt is definitely NO_CALL, never left pending."""
-        if attempt_id and not update_send_attempt_row(attempt_id, {
-            "status": status, "terminal_state": status,
-            "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
-            "error": reason[:300], "notes": "NO_EXCHANGE_CALL: " + reason[:300],
-        }, durable=True):
-            raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + attempt_id)
+        """Terminalise only this never-invoked leg; preserve its pending CLOID on I/O failure."""
+        if not attempt_id:
+            raise PendingSendTerminalWriteFailed("NO_CALL_TERMINAL_MISSING_ATTEMPT_ID")
+        try:
+            updated = update_send_attempt_row(attempt_id, {
+                "status": status, "terminal_state": status,
+                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
+                "error": reason[:300], "notes": "NO_EXCHANGE_CALL: " + reason[:300],
+            }, durable=True)
+        except Exception as exc:
+            raise PendingSendTerminalWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + attempt_id) from exc
+        if not updated:
+            raise PendingSendTerminalWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + attempt_id)
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
@@ -5869,10 +5879,11 @@ class SenderGateway:
                     _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
             status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
-            self._terminalise_pending_as_no_call(_pending_id, status, repr(exc))
-            log_error("final_wire_gate_fault_no_call", exc)
+            # Record the owed CLOSE before attempting a terminal write that may itself fail.
             if _is_close:
                 self._journal_authorised_close_refusal(intent, status)
+            self._terminalise_pending_as_no_call(_pending_id, status, repr(exc))
+            log_error("final_wire_gate_fault_no_call", exc)
             raise PreWireNoCallFault(status, exc) from exc
         if _late_block:
             # the lease wins the message when both would refuse
@@ -5907,6 +5918,9 @@ class SenderGateway:
             # and final mode checks; stays true across retries.
             if timing is not None:
                 timing["exchange_order_invoked"] = True
+                # This is the LAST genuinely invoked attempt; a later pre_send can replace send_attempt_id.
+                timing["last_physical_attempt_id"] = str(timing.get("send_attempt_id") or "")
+                timing["last_physical_cloid"] = str(timing.get("send_cloid") or cloid or "")
             response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         finally:
             _open_orders_send_end()
@@ -9323,23 +9337,63 @@ class SenderGateway:
                 **({"notes": netting_note} if netting_note else {}),
             }
         except Exception as exc:
-            if isinstance(exc, PreWireNoCallFault):
-                log_error("send_real_pre_wire_fault", exc.__cause__ or exc)
-                return False, exc.status, {
-                    "status": exc.status, "error": str(exc), "exchange_response": {}, "oid": "",
+            if isinstance(exc, (PreWireNoCallFault, PendingSendWriteFailed)):
+                log_error("send_real_pre_wire_or_audit_fault", exc.__cause__ or exc)
+                if timing.get("exchange_order_invoked", False):
+                    # The CURRENT leg has no call, but an earlier SDK call is real. Report its
+                    # own attempt/CLOID and response; never append the first outcome under the
+                    # second leg's pending/no-call attempt ID.
+                    physical_timing = dict(timing)
+                    physical_timing["send_attempt_id"] = str(timing.get("last_physical_attempt_id") or "")
+                    physical_timing["send_cloid"] = str(timing.get("last_physical_cloid") or "")
+                    if not physical_timing["send_attempt_id"] or not physical_timing["send_cloid"]:
+                        raise RuntimeError("PHYSICAL_ATTEMPT_IDENTITY_LOST") from exc
+                    if accepted_result is not None:
+                        previous_ok, previous_status, previous_data = accepted_result
+                        prior = dict(previous_data)
+                        prior["timing"] = physical_timing
+                        prior["notes"] = (str(prior.get("notes") or "") +
+                                          "; later leg NO_CALL: " + str(exc))[:600]
+                        return previous_ok, previous_status, prior
+                    try:
+                        previous_response = response
+                    except UnboundLocalError:
+                        previous_response = {}
+                    try:
+                        previous_ok, previous_status, previous_oid, previous_error = (
+                            self._parse_hl_response(previous_response) if previous_response else
+                            (False, "EXCHANGE_OUTCOME_UNKNOWN", "", "prior physical call not confirmed"))
+                    except Exception:
+                        previous_ok, previous_status, previous_oid, previous_error = (
+                            False, "EXCHANGE_OUTCOME_UNKNOWN", "", "prior physical reply not parseable")
+                    return previous_ok, previous_status, {
+                        "status": previous_status, "exchange_response": previous_response or {},
+                        "oid": previous_oid, "exchange_called": True,
+                        "error": previous_error or str(exc),
+                        "terminal_state": previous_status,
+                        "reject_category": (classify_reject_category(previous_error, previous_response)
+                                            if previous_status == "ORDER_REJECTED" else ""),
+                        "operator_action": "RECONCILE_PRIOR_PHYSICAL_ATTEMPT",
+                        "notes": "later attempt not invoked; original physical outcome retained: " + str(exc),
+                        "timing": physical_timing,
+                    }
+                if isinstance(exc, PreWireNoCallFault):
+                    return False, exc.status, {
+                        "status": exc.status, "error": str(exc), "exchange_response": {}, "oid": "",
+                        "exchange_called": False, "write_reconciliation": True,
+                        "notes": str(exc), "reject_category": "PRE_WIRE_FAULT",
+                        "terminal_state": exc.status, "operator_action": "NO_EXCHANGE_CALL",
+                        "timing": timing,
+                    }
+                terminal_failed = isinstance(exc, PendingSendTerminalWriteFailed)
+                status = ("PRE_WIRE_TERMINAL_WRITE_FAILED" if terminal_failed
+                          else "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED")
+                return False, status, {
+                    "status": status, "error": str(exc), "exchange_response": {}, "oid": "",
                     "exchange_called": False, "write_reconciliation": True,
-                    "notes": str(exc), "reject_category": "PRE_WIRE_FAULT",
-                    "terminal_state": exc.status, "operator_action": "NO_EXCHANGE_CALL",
-                    "timing": timing,
-                }
-            if isinstance(exc, PendingSendWriteFailed):  # fail closed: no crash record means no order (caller releases any exit reservation)
-                cause = exc.__cause__ or exc
-                log_error("begin_pending_send", cause)
-                return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
-                    "status": "AUDIT_WRITE_FAILED", "error": str(exc), "exchange_response": {}, "oid": "",
-                    "exchange_called": False, "write_reconciliation": True,
-                    "notes": f"pending_send row could not be written ({exc}); order not sent",
-                    "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
+                    "notes": ("pending attempt remains durable and UNRESOLVED; inspect original CLOID"
+                              if terminal_failed else "pending_send write-ahead failed; no exchange call"),
+                    "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": status,
                     "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
                 }
             timing["exchange_call_finished_ms"] = utc_now_ms()
