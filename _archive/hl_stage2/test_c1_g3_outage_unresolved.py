@@ -167,7 +167,10 @@ def main() -> None:
     def g3_terminal_ids():
         known = set()
         for row in c.read_csv_rows(c.SEND_ATTEMPTS_CSV):
-            if row.get("status") in {"ORDER_FILLED", "ORDER_RESTING", "ORDER_REJECTED"}:
+            if row.get("status") and row.get("status") not in {"pending_send", "PENDING_SEND"}:
+                # MOCK_ORDER_SENT is a terminal in this pinned offline replay,
+                # as are ORDER_FILLED/RESTING; do not invent 40 "unresolved" fills
+                # by excluding the actual emitted mock terminal status.
                 known.add(str(row.get("leader_fill_id") or ""))
         for row in c.read_csv_rows(c.RECONCILIATION_CSV):
             if row.get("terminal_state") and row.get("terminal_state") != "PENDING_SEND":
