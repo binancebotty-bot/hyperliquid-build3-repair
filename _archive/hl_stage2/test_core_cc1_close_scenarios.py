@@ -872,10 +872,11 @@ def ceil_global_close_only_blocks_the_excess_and_the_close_still_sends():
     _record_owned_close_fill(gw, ex, 10.0)
     gw.cfg.send_mode_now = lambda: "CLOSE"
     ok, status = gw.send_if_allowed(it)
-    close_calls = [x for x in ex.calls if x["reduce_only"] is True]
+    wire_calls = ex.calls
     entry_calls = [x for x in ex.calls if x["reduce_only"] is False]
     owed = _ceiling_owed_rows("ceil-gclo-f")
-    return (ok and len(close_calls) == 1 and abs(close_calls[0]["size"] - 10.0) < 1e-9
+    return (ok and len(wire_calls) == 1 and wire_calls[0]["reduce_only"] is True
+            and abs(wire_calls[0]["size"] - 10.0) < 1e-9
             and entry_calls == [] and len(owed) == 1
             and "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY" in str(owed[0].get("terminal_state") or "")), \
         "ok=%r status=%r calls=%r owed=%r" % (ok, status, ex.calls,

@@ -8357,12 +8357,18 @@ class SenderGateway:
                 except Exception as exc:
                     log_error("close_escalation_write_failed", exc)
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_GLOBAL_CLOSE_ONLY_NOT_OPPOSING")
+            _clamped = amount > abs(actual) + tol
             amount = min(amount, abs(actual))
             amount = self._floor_wire_size(round(amount, 10), sz_dec)
             if amount <= tol:
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
             delta = ManualLedger.signed_delta(intent.copy_side, amount)
             ro = True
+            if _clamped:
+                try:
+                    self._open_close_escalation(intent, "CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED")
+                except Exception as exc:
+                    log_error("close_escalation_write_failed", exc)
         else:
             ro = actual * delta < 0 and amount <= abs(actual) + tol  # from the REAL net, never forced
             if safe_foreign and not ro:  # foreign residue must never be crossed
@@ -8853,6 +8859,18 @@ class SenderGateway:
                 continue
             wallet, coin = str(row.get("wallet") or ""), str(row.get("coin") or "")
             if key != wallet + "::" + coin or not wallet or not coin:
+                continue
+            # GLOBAL close-only clamped remainder is OWED only while the switch is on.
+            if (str(row.get("reason") or "").startswith("CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED")
+                    and not self._global_close_only()):
+                with _CLOSE_ESCALATIONS_LOCK:
+                    latest = (json.loads(CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig"))
+                              if CLOSE_ESCALATIONS_FILE.exists() else {})
+                    if isinstance(latest, dict) and latest.get(key) == row:
+                        latest.pop(key, None)
+                        atomic_write_json(CLOSE_ESCALATIONS_FILE, latest)
+                        self._close_escalations = latest
+                        cleared += 1
                 continue
             # ManualLedger.sleeve() creates a missing FLAT row, so read exact
             # existing owned data instead: absent is UNKNOWN, not proof of flat.
