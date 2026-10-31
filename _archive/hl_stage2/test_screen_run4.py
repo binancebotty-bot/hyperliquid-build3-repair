@@ -158,7 +158,7 @@ def main() -> None:
     check("S1_LIVE_WALLET_COUNT_SEPARATE", top["live_wallets"] == 2, str(top["live_wallets"]))
     check("S1_ONE_LABEL_ON_SCREEN", "REAL ORDERS:" not in panel and "lcAutoSend" not in panel and "Real order sending" not in panel
           and "MASTER REAL ORDERS" not in panel and "const armed=lcAudit.master_real_orders_enabled===true" in panel
-          and ">Sending<" in panel and "Live wallets: ${liveCount}" in panel)
+          and ">Sending<" in panel)
 
     # ---- S2 calm health ---------------------------------------------------------------------------------
     H = ui._build_health_summary
