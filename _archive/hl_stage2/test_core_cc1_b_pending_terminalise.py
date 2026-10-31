@@ -136,12 +136,20 @@ def sender_path_case(label, scenario):
         "update_send_attempt_row", "send_attempt_rows",
         "_sender_lease_owned", "wait_intent_durable")}
     saved_secret = os.environ.get("HL_LIVE_HL_PRIVATE_KEY")
+    saved_env = {k: os.environ.get(k) for k in ("HL_LIVE_MISSED_ENTRY_RULE", "HL_LIVE_ENTRY_IOC_RETRY_BPS")}
+    old_follower_mid = c.follower_mid
+    entry = scenario.startswith("entry-")
+    if entry:
+        os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "1" if scenario == "entry-rest-returned-mode" else "0"
+        os.environ["HL_LIVE_ENTRY_IOC_RETRY_BPS"] = "20" if scenario == "entry-rest-returned-mode" else "100"
+        c.follower_mid = lambda *args, **kwargs: 100.0  # restored below; no market/network fetch
     c.HLAccount = object()
     c.HLExchange = object()
     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "ISOLATED_FAKE_MARKER_NOT_A_KEY"
     c.wait_intent_durable = lambda *a, **kw: None
-    if scenario == "two-attempt":
-        c.classify_reject_category = lambda *a: "REDUCE_ONLY_REJECTED"
+    if scenario in {"two-attempt", "netting-returned-mode", "netting-returned-proof",
+                    "netting-returned-lease"} or entry:
+        c.classify_reject_category = lambda *a: "IOC_NO_IMMEDIATE_MATCH" if entry else "REDUCE_ONLY_REJECTED"
     if scenario in {"terminal-write-raised", "late-block-raised"}:
         c.update_send_attempt_row = lambda *a, **kw: (_ for _ in ()).throw(OSError("isolated append/read failed"))
     if scenario in {"terminal-write-false", "late-block-false"}:
@@ -150,18 +158,20 @@ def sender_path_case(label, scenario):
         c.send_attempt_rows = lambda: (_ for _ in ()).throw(OSError("isolated CSV read failed")
                                      )
     fill = SimpleNamespace(leader_wallet=WALLET, leader_fill_id="event-e2e-" + label,
-                           coin="BTC", price=100.0, raw={})
+                           coin="BTC", price=100.0, raw={}, timestamp_ms=c.utc_now_ms())
     intent = SimpleNamespace(fill=fill, intent_id="intent-e2e-" + label,
-                             notes="lifecycle=EXIT", copy_side="SELL",
-                             copy_size=0.08, copy_notional=8.0, reduce_only_intended=True,
-                             wallet_position_before=0.08, coin_net_before=0.08,
+                             notes="lifecycle=ENTRY" if entry else "lifecycle=EXIT",
+                             copy_side="BUY" if entry else "SELL",
+                             copy_size=0.08, copy_notional=8.0, reduce_only_intended=not entry,
+                             wallet_position_before=0.0 if entry else 0.08,
+                             coin_net_before=0.0 if entry else 0.08,
                              sleeve_id="sleeve-" + label, position_id="pos-" + label)
     class FakeExchange:
         def __init__(self):
             self.calls = []
         def order(self, *args, **kwargs):
             self.calls.append((args, kwargs))
-            return {"status": "err", "response": "REDUCE_ONLY_REJECTED"}
+            return {"status": "err", "response": "IOC_NO_IMMEDIATE_MATCH" if entry else "REDUCE_ONLY_REJECTED"}
     spy = FakeExchange()
     gw = object.__new__(c.SenderGateway)
     gw.audit = c.AuditLogWriter()
@@ -187,21 +197,35 @@ def sender_path_case(label, scenario):
     gw._reduce_only_on_wire = lambda *a: False
     gw._note_sender_key_rejection = lambda *a: None
     gw._gate_refusal_row = lambda *a: None
-    gw._parse_hl_response = lambda response: (False, "ORDER_REJECTED", "", "REDUCE_ONLY_REJECTED")
-    checks, proofs = [], []
+    gw._parse_hl_response = lambda response: (
+        False, "ORDER_REJECTED", "",
+        "IOC_NO_IMMEDIATE_MATCH" if entry else "REDUCE_ONLY_REJECTED")
+    gw._symbol_reject_circuit_active = lambda *a: False
+    gw._already_resting_block = lambda *a: None
+    gw.resting_entry_for = lambda *a: None
+    gw._px_passive = lambda px, decimals, buy: round(px, decimals)
+    checks, proofs, leases = [], [], []
     def master(*a):
         checks.append(1)
         if scenario == "post-wait-mode" and len(checks) == 2:
             return "MASTER_REAL_ORDERS_OFF"
+        if scenario in {"netting-returned-mode", "entry-ioc-returned-mode",
+                        "entry-rest-returned-mode"} and len(checks) == 5:
+            return "MASTER_REAL_ORDERS_OFF"
         if scenario == "two-attempt" and len(checks) == 6:
             raise ValueError("INVALID_CONFIG_READ: isolated retry final guard")
         if scenario not in {"two-attempt", "post-wait-mode", "post-wait-proof",
-                            "post-wait-lease", "late-block-raised", "late-block-false"} and len(checks) == 3:
+                            "post-wait-lease", "late-block-raised", "late-block-false",
+                            "netting-returned-mode", "netting-returned-proof",
+                            "netting-returned-lease", "entry-ioc-returned-mode",
+                            "entry-rest-returned-mode"} and len(checks) == 3:
             raise ValueError("INVALID_CONFIG_READ: isolated final guard")
         return ""
     def proof(*a):
         proofs.append(1)
         if scenario == "post-wait-proof" and len(proofs) == 1:
+            return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
+        if scenario == "netting-returned-proof" and len(proofs) == 3:
             return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
         if scenario in {"late-block-raised", "late-block-false"} and len(proofs) == 2:
             return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
@@ -210,6 +234,11 @@ def sender_path_case(label, scenario):
     gw._final_close_proof = proof
     if scenario == "post-wait-lease":
         c._sender_lease_owned = lambda: False
+    if scenario == "netting-returned-lease":
+        def still_owns_sender():
+            leases.append(1)
+            return len(leases) < 3
+        c._sender_lease_owned = still_owns_sender
     timing = {"send_attempt_id": "attempt-e2e-" + label, "send_cloid": c.generate_cloid("e2e-" + label)}
     try:
         outcome = gw._send_real(intent, timing)
@@ -226,6 +255,13 @@ def sender_path_case(label, scenario):
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
         else:
             os.environ["HL_LIVE_HL_PRIVATE_KEY"] = saved_secret
+        if entry:
+            c.follower_mid = old_follower_mid
+        for key, prior in saved_env.items():
+            if prior is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = prior
 
 def sender_e2e_witnesses():
     scenarios = (
@@ -236,17 +272,25 @@ def sender_e2e_witnesses():
         ("late-raised", "late-block-raised"),
         ("late-false", "late-block-false"),
         ("prior-call", "two-attempt"),
+        ("net-mode", "netting-returned-mode"),
+        ("net-proof", "netting-returned-proof"),
+        ("net-lease", "netting-returned-lease"),
+        ("ioc-mode", "entry-ioc-returned-mode"),
+        ("rest-mode", "entry-rest-returned-mode"),
         ("post-mode", "post-wait-mode"),
         ("post-proof", "post-wait-proof"),
         ("post-lease", "post-wait-lease"),
     )
     no_pending = {"post-wait-mode", "post-wait-proof", "post-wait-lease"}
+    prior_physical_no_call = {"netting-returned-mode", "netting-returned-proof",
+                              "netting-returned-lease", "entry-ioc-returned-mode",
+                              "entry-rest-returned-mode"}
     durable_failure = {"terminal-write-raised", "terminal-write-false",
                        "terminal-read-raised", "late-block-raised", "late-block-false"}
     for label, scenario in scenarios:
         try:
             (ok, status, result), calls, first_id, last_id, first, last, owed = sender_path_case(label, scenario)
-            if scenario == "two-attempt":
+            if scenario == "two-attempt" or scenario in prior_physical_no_call:
                 expected_status = "ORDER_REJECTED"
             elif scenario in no_pending:
                 expected_status = "ORDER_REJECTED"
@@ -261,14 +305,33 @@ def sender_e2e_witnesses():
                 result.get("terminal_state", expected_status) == expected_status
             )
             check(label + "-PARENT_TRUTH",
-                  not ok and bool(result.get("exchange_called")) == (scenario == "two-attempt")
+                  not ok and bool(result.get("exchange_called")) == (
+                      scenario == "two-attempt" or scenario in prior_physical_no_call)
                   and status == expected_status and valid_terminal,
                   (status, result))
-            check(label + "-SDK_COUNT", len(calls) == (1 if scenario == "two-attempt" else 0), calls)
+            check(label + "-SDK_COUNT",
+                  len(calls) == (1 if scenario == "two-attempt" or scenario in prior_physical_no_call else 0), calls)
             check(label + "-DURABLE_OPEN_OWED",
+                  not owed if scenario.startswith("entry-") else
                   owed.get("state") == "OPEN" and owed.get("leader_fill_id") == "event-e2e-" + label
                   and owed.get("intent_id") == "intent-e2e-" + label, owed)
-            if scenario == "two-attempt":
+            if scenario in prior_physical_no_call:
+                event_rows = [r for r in c.send_attempt_rows()
+                              if r.get("intent_id") == "intent-e2e-" + label]
+                physical_response = result.get("exchange_response") or {}
+                check(label + "-FIRST_PHYSICAL_PRESERVED",
+                      first_id == last_id and bool(first.get("cloid"))
+                      and result.get("timing", {}).get("send_attempt_id") == first_id
+                      and result.get("timing", {}).get("send_cloid") == first.get("cloid")
+                      and result.get("exchange_called") is True
+                      and physical_response.get("response") ==
+                          ("IOC_NO_IMMEDIATE_MATCH" if scenario.startswith("entry-") else "REDUCE_ONLY_REJECTED")
+                      and first.get("status") == "ORDER_REJECTED"
+                      and len(event_rows) >= 2
+                      and {r.get("attempt_id") for r in event_rows} == {first_id}
+                      and event_rows[0].get("status") == "pending_send",
+                      (first, last, result, event_rows))
+            elif scenario == "two-attempt":
                 check(label + "-TWO_DISTINCT_ATTEMPTS",
                       first_id != last_id and first.get("cloid") and last.get("cloid")
                       and first["cloid"] != last["cloid"]
