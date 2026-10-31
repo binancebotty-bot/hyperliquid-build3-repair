@@ -5538,6 +5538,14 @@ class PendingSendWriteFailed(RuntimeError):
     """The pending_send write-ahead row could not be written: the order was NOT sent."""
 
 
+class PreWireNoCallFault(RuntimeError):
+    """The SDK was not invoked: keep a pre-wire error distinct from exchange errors."""
+
+    def __init__(self, status: str, cause: Exception):
+        super().__init__(f"{status}: {type(cause).__name__}: {cause}")
+        self.status = status
+
+
 class _MarginSymbolUnresolved(Exception):
     """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
 
@@ -5841,6 +5849,22 @@ class SenderGateway:
         return ("CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
                 if abs(actual - size) > POSITION_EPSILON or ro != reduce_only else "")
 
+    def _terminalise_pending_as_no_call(self, attempt_id: str, status: str, reason: str) -> None:
+        """B/CS-I4: an existing pre_send attempt is definitely NO_CALL, never left pending."""
+        if not attempt_id:
+            return
+        try:
+            ok = update_send_attempt_row(attempt_id, {
+                "status": status, "terminal_state": status,
+                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
+                "error": reason[:300], "notes": "NO_EXCHANGE_CALL: " + reason[:300],
+            }, durable=True)
+        except Exception as exc:
+            log_error("NO_CALL_TERMINAL_WRITE_FAILED", exc)
+            raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + attempt_id) from exc
+        if not ok:
+            raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + attempt_id)
+
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
@@ -5850,7 +5874,14 @@ class SenderGateway:
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
-        _blocked = self._master_gate_reason(intent, path, entry_leg=entry_leg)
+        try:
+            _blocked = self._master_gate_reason(intent, path, entry_leg=entry_leg)
+        except Exception as exc:
+            status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+            log_error("first_physical_gate_fault_no_call", exc)
+            if intent is not None and self._reduce_only_for_intent(intent):
+                self._journal_authorised_close_refusal(intent, status)
+            raise PreWireNoCallFault(status, exc) from exc
         if _blocked:
             self._gate_refusal_row(intent, path, _blocked)
             # The exchange was NOT called. Say so in the result so no row built from it can claim a call,
@@ -5882,10 +5913,17 @@ class SenderGateway:
         # no fallback, no retry: an engine that does not know its own state does not send.
         _lease_owned = _sender_lease_owned()
         _late_block = ("" if _lease_owned else "SEND_BLOCKED_NO_SENDER_LEASE")
-        if not _late_block:
-            _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
-        if not _late_block and _is_close:
-            _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        try:
+            if not _late_block:
+                _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+            if not _late_block and _is_close:
+                _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        except Exception as exc:
+            status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+            log_error("post_wait_gate_fault_no_call", exc)
+            if _is_close:
+                self._journal_authorised_close_refusal(intent, status)
+            raise PreWireNoCallFault(status, exc) from exc
         # CC1 close-r3 EARLY RETURN: when the lease, the mode or the close proof ALREADY failed above, this
         # send can never reach the wire, so the write-ahead hook is not invoked: no pending row is created for
         # an order that was never attempted. The durable terminalisation below stays for state that changes
@@ -5900,13 +5938,25 @@ class SenderGateway:
         # revalidation of all three runs here, immediately before the wire, over the SAME state - no new parallel
         # state, no weakening of the checks above: a lease lost, a ledger net moved under a close, or a mode
         # switched OFF must not send.
-        if not _late_block:
-            if not _sender_lease_owned():
-                _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
-            else:
-                _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
-            if not _late_block and _is_close:
-                _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        try:
+            if not _late_block:
+                if not _sender_lease_owned():
+                    _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
+                else:
+                    _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
+                if not _late_block and _is_close:
+                    _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+        except Exception as exc:
+            status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+            try:
+                self._terminalise_pending_as_no_call(_pending_id, status, repr(exc))
+            except PendingSendWriteFailed:
+                log_error("final_wire_gate_terminal_write_failed", exc)
+                raise
+            log_error("final_wire_gate_fault_no_call", exc)
+            if _is_close:
+                self._journal_authorised_close_refusal(intent, status)
+            raise PreWireNoCallFault(status, exc) from exc
         if _late_block:
             # the lease wins the message when both would refuse
             close_red = _is_close and (
@@ -5915,10 +5965,12 @@ class SenderGateway:
             status = ("SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
                       else "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER")
             _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
+            _invoked = bool((timing or {}).get("exchange_order_invoked", False))
+            _op = "NO_EXCHANGE_CALL" if not _invoked else "MANUAL_REVIEW_CHECK_OPEN_ORDERS"
             if _aid and not update_send_attempt_row(_aid, {
                 "status": status, "terminal_state": status,
-                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
-                "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
+                "reject_category": status, "operator_action": _op,
+                "error": _late_block, "notes": _op + ": " + _late_block,
             }, durable=True):
                 raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
             # a refused close is still OWED: RED row, rests at leader price, retried - never dropped
@@ -5926,10 +5978,12 @@ class SenderGateway:
                 self._journal_authorised_close_refusal(intent, _late_block)
             elif not close_red:
                 self._gate_refusal_row(intent, path, _late_block)
+            _invoked = bool((timing or {}).get("exchange_order_invoked", False))
+            _op = "NO_EXCHANGE_CALL" if not _invoked else "MANUAL_REVIEW_CHECK_OPEN_ORDERS"
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
-                    "exchange_called": False, "reject_category": status,
-                    "terminal_state": status, "operator_action": "NO_EXCHANGE_CALL",
-                    "notes": "late gate refusal, no exchange call: " + _late_block}
+                    "exchange_called": _invoked, "reject_category": status,
+                    "terminal_state": status, "operator_action": _op,
+                    "notes": ("late gate refusal, no exchange call: " if not _invoked else "late gate refusal after exchange call: ") + _late_block}
         # Stamp the call time only after the refusal check and durable pending
         # write, never for a known NO_EXCHANGE_CALL (Codex 6406836199).
         if timing is not None and started_key:
@@ -8772,10 +8826,10 @@ class SenderGateway:
         finally:
             # Definite no-call paths release their reservation; invoked orders,
             # including ambiguous exceptions, remain held until reconciled.
-            if reserved_exit and not timing.get("exchange_order_invoked", False):
+            if reserved_exit and not (True if timing is None else timing.get("exchange_order_invoked", False)):
                 self._clear_pending_exit(intent)
         if result.get("exchange_called"):
-            if reserved_exit and timing.get("exchange_order_invoked", False):
+            if reserved_exit and (True if timing is None else timing.get("exchange_order_invoked", False)):
                 with self._pending_exit_lock:
                     self._last_exit_attempt_ms[coin_key] = utc_now_ms()
             category = str(result.get("reject_category") or "")
@@ -9314,7 +9368,7 @@ class SenderGateway:
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
                                                               timing, "ioc_retry")
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
-                                                           retry_px, "Ioc", False, cloid=_cl, pre_send=_pre, intent=intent, path="send_retry")
+                                                                                   retry_px, "Ioc", False, cloid=_cl, pre_send=_pre, intent=intent, path="send_retry", timing=timing)
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
@@ -9378,8 +9432,8 @@ class SenderGateway:
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
                                                               timing, "netting_resend")
                         response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
-                                                     pre_send=_pre, intent=intent, path="send_after_rest")
+                                                                             "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                                             pre_send=_pre, intent=intent, path="send_after_rest", timing=timing)
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
                         if ok:
                             accepted_result = (ok, status, {
@@ -9420,9 +9474,35 @@ class SenderGateway:
                 **({"notes": netting_note} if netting_note else {}),
             }
         except Exception as exc:
+            if isinstance(exc, PreWireNoCallFault):
+                _invoked = bool((True if timing is None else (timing or {}).get("exchange_order_invoked", False)))
+                log_error("send_real_pre_wire_fault", exc.__cause__ or exc)
+                return False, exc.status, {
+                    "status": exc.status, "error": str(exc), "exchange_response": {}, "oid": "",
+                    "exchange_called": _invoked, "write_reconciliation": True,
+                    "notes": str(exc), "reject_category": "PRE_WIRE_FAULT",
+                    "terminal_state": exc.status,
+                    "operator_action": ("NO_EXCHANGE_CALL" if not _invoked else "MANUAL_REVIEW_CHECK_OPEN_ORDERS"),
+                    "timing": timing,
+                }
             if isinstance(exc, PendingSendWriteFailed):  # fail closed: no crash record means no order (caller releases any exit reservation)
                 cause = exc.__cause__ or exc
                 log_error("begin_pending_send", cause)
+                # D2: loud + durable - a RED reconciliation row naming the write failure (not silently absorbed).
+                try:
+                    self.audit.append_reconciliation(
+                        "AUDIT_WRITE_FAILED", "PENDING_SEND_WRITE_FAILED",
+                        leader_wallet=getattr(getattr(intent, "fill", None), "leader_wallet", None) or "",
+                        leader_fill_id=getattr(getattr(intent, "fill", None), "leader_fill_id", None) or "",
+                        intent_id=getattr(intent, "intent_id", ""),
+                        coin=getattr(getattr(intent, "fill", None), "coin", None) or "",
+                        action="CHECK_DISK_AND_AUDIT_FILES",
+                        reject_category="AUDIT_WRITE_FAILED",
+                        engine_can_send="False",
+                        notes=f"pending_send row could not be written ({exc}); order not sent",
+                    )
+                except Exception as _ae:
+                    log_error("audit_write_failed_red_row", _ae)
                 return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
                     "status": "AUDIT_WRITE_FAILED", "error": str(exc), "exchange_response": {}, "oid": "",
                     "exchange_called": False, "write_reconciliation": True,
@@ -9441,7 +9521,7 @@ class SenderGateway:
             error_text = repr(exc)
             reject_category = classify_reject_category(error_text, {})
             self._note_exchange_rate_limit(error_text)
-            if gtc_px > 0 and timing.get("exchange_order_invoked", False):
+            if gtc_px > 0 and (True if timing is None else timing.get("exchange_order_invoked", False)):
                 oid = ""
                 try:
                     oid = self.find_open_entry_order(intent.fill.coin, sdk_coin, intent.copy_side, gtc_px, wire_size)
@@ -9455,7 +9535,7 @@ class SenderGateway:
                           "not found in open orders; check open orders on the exchange")
                 return False, "EXCHANGE_ERROR", {
                     "exchange_response": {}, "oid": "", "limit_px": gtc_px, "wire_size": wire_size,
-                    "exchange_called": bool(timing.get("exchange_order_invoked", False)), "error": error_text, "timing": timing, "reject_category": reject_category,
+                    "exchange_called": bool((True if timing is None else timing.get("exchange_order_invoked", False))), "error": error_text, "timing": timing, "reject_category": reject_category,
                     "terminal_state": "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN", "operator_action": "MANUAL_REVIEW_CHECK_OPEN_ORDERS",
                     "reduce_only_sent": False, "notes": detail,
                 }
@@ -9497,7 +9577,7 @@ class SenderGateway:
             return False, "EXCHANGE_ERROR", {
                 "exchange_response": {}, "oid": "",
                 "limit_px": limit_px, "wire_size": wire_size,
-                "exchange_called": bool(timing.get("exchange_order_invoked", False)), "error": error_text, "timing": timing,
+                "exchange_called": bool((True if timing is None else timing.get("exchange_order_invoked", False))), "error": error_text, "timing": timing,
                 "reject_category": reject_category,
                 "reduce_only_sent": use_reduce_only,
             }
