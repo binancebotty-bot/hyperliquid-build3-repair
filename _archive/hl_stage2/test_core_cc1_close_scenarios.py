@@ -855,117 +855,376 @@ D2 = "0x" + "4" * 40
 D3 = "0x" + "5" * 40
 D4 = "0x" + "6" * 40
 D5 = "0x" + "7" * 40
+D6 = "0x" + "8" * 40
+D_TAGS = {"d1": 1001, "d3": 1003, "d4": 1004, "d5": 1005, "d6": 1006}
 
 
-def d_append_fill(wallet, size, fid, source="copy_account_poll", side="BUY"):
-    """Seed ONE independently matched exchange execution; synthetic repairs never count as owned."""
-    p = c.LIVE_FILLS_CSV
-    p.parent.mkdir(parents=True, exist_ok=True)
-    new = not p.exists() or p.stat().st_size == 0
-    with p.open("a", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=c.LIVE_FILL_FIELDS, extrasaction="ignore")
-        if new:
-            writer.writeheader()
-        writer.writerow({
-            "created_at_ms": c.utc_now_ms(), "copy_fill_id": fid, "intent_id": "source:" + fid,
-            "leader_wallet": wallet, "coin": COIN, "side": side, "fill_price": PX,
-            "fill_size": size, "fill_notional": size * PX, "source": source,
-            "exchange_hash": "exchange-hash:" + fid if source != "CORE_LEDGER_REPAIR" else "",
-            "exchange_order_id": "exchange-oid:" + fid if source != "CORE_LEDGER_REPAIR" else "",
-            "ledger_action": "UPDATED" if source != "CORE_LEDGER_REPAIR" else "CLOSED",
-        })
+def d_csv_rows(path):
+    if not path.exists():
+        return []
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        return list(csv.DictReader(fh))
 
 
-def d_expected_audit(fid, expected_status):
-    """Proposed exact contract audit: one named reconciliation, never only an in-memory return."""
+def d_float(value):
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def d_note_fields(row):
+    return dict(x.split("=", 1) for x in str(row.get("notes") or "").split(";")
+                if "=" in x and len(x.split("=", 1)) == 2)
+
+
+class DOriginExchange(FakeExchange):
+    """Test-only exchange-account oracle, NOT a second engine ledger.
+
+    Original SDK call -> authenticated test account orderStatus -> userFillsByTime event.
+    Both APIs derive from this same captured original fake exchange reply, not from
+    self-declared strings in a hand-written live_fills.csv row.
+    """
+    def __init__(self, tag):
+        super().__init__()
+        self.tag = tag
+        self.oid = D_TAGS[tag]
+        self.account = ACCOUNT
+        self.reply = None
+        self.fills = []
+
+    def order(self, *a, **k):
+        reply = super().order(*a, **k)
+        reply["response"]["data"]["statuses"][0]["filled"]["oid"] = self.oid
+        self.reply = reply
+        return reply
+
+    def account_order_status(self, account, oid):
+        return self.reply if account == self.account and str(oid) == str(self.oid) else None
+
+    def account_fills(self, account):
+        return [dict(x) for x in self.fills] if account == self.account else []
+
+
+def d_seed_owned(ledger, wallet, signed_size, tag):
+    """Produce real test-controlled original order/intent/status/account-fill lineage.
+
+    No injected ownership row: CopyFillMatcher must produce live_fills itself from
+    the test exchange's independently queryable account fill, then prove one
+    matching hash:tid, OID, CLOID, original leader/intent and wallet/coin.
+    """
+    assert signed_size > 0 and tag in D_TAGS
+    oid, cloid, origin_id = str(D_TAGS[tag]), "d-origin-cloid-" + tag, "d-origin-intent-" + tag
+    leader = c.LeaderFill("d-origin-leader-" + tag, wallet, COIN, "BUY", PX,
+                          signed_size, c.utc_now_ms(), "TESTNET_HISTORY")
+    intent = c.Intent(origin_id, leader, "BUY", signed_size, signed_size * PX, "LIVE", "fixed",
+                      "ENTRY_ALLOWED", "ENTRY", c.ManualLedger.sleeve_id(wallet, COIN),
+                      "", "FLAT", 0.0, 0.0, False, False, notes="lifecycle=ENTRY;source=EXCHANGE")
+    audit = c.AuditLogWriter()
+    c.append_csv(c.ORDER_INTENTS_CSV, c.ORDER_INTENT_FIELDS, {
+        "created_at_ms": c.utc_now_ms(), "intent_id": origin_id, "leader_fill_id": leader.leader_fill_id,
+        "leader_wallet": wallet, "coin": COIN, "leader_side": "BUY", "copy_side": "BUY",
+        "leader_price": PX, "leader_size": signed_size, "copy_size": signed_size,
+        "copy_notional": signed_size * PX, "decision": "ENTRY_ALLOWED",
+        "sleeve_id": intent.sleeve_id, "notes": "lifecycle=ENTRY;testnet_exchange_intent",
+    }, durable=True)
+    exchange = DOriginExchange(tag)
+    response = exchange.order(COIN, True, signed_size, PX, "Ioc", reduce_only=False, cloid=cloid)
+    assert exchange.account_order_status(ACCOUNT, oid) == response
+    assert exchange.calls[0]["size"] == signed_size and exchange.calls[0]["is_buy"]
+    assert exchange.calls[0]["cloid"] == cloid
+    audit.append_send_attempt({
+        "created_at_ms": c.utc_now_ms(), "attempt_id": "d-origin-attempt-" + tag,
+        "intent_id": origin_id, "leader_fill_id": leader.leader_fill_id, "leader_wallet": wallet,
+        "coin": COIN, "side": "BUY", "order_type": "REAL_IOC", "limit_price": PX,
+        "copy_size": signed_size, "copy_notional": signed_size * PX, "reduce_only_sent": "False",
+        "sleeve_id": intent.sleeve_id, "wallet_position_before": 0.0, "coin_net_before": 0.0,
+        "status": "ORDER_FILLED", "exchange_order_id": oid, "cloid": cloid,
+        "exchange_response": str(response), "terminal_state": "ORDER_FILLED",
+        "leader_fill_timestamp_ms": leader.timestamp_ms,
+    }, durable=True)
+    original = {
+        "coin": COIN, "side": "BUY", "size": signed_size, "px": PX,
+        "oid": oid, "hash": "0x" + format(D_TAGS[tag], "064x"),
+        "tid": D_TAGS[tag] * 10 + 1, "time": c.utc_now_ms(), "source": "copy_account_poll",
+        "user": ACCOUNT, "intent_id": origin_id, "cloid": cloid,
+    }
+    exchange.fills.append(original)
+    feed = exchange.account_fills(ACCOUNT)
+    assert len(feed) == 1 and feed[0] == original and not exchange.account_fills(OTHER_ACCOUNT)
+    assert c.CopyFillMatcher(ledger, audit).match_and_apply(feed[0], {origin_id: intent})
+    trace = {"exchange": exchange, "raw": original, "wallet": wallet, "oid": oid,
+             "cloid": cloid, "origin_id": origin_id, "leader_id": leader.leader_fill_id}
+    assert d_origin_chain_ok(trace)  # false/forged provenance never forms a valid positive fixture
+    return trace
+
+
+def d_origin_chain_ok(trace):
+    raw = trace["raw"]
+    origin_id, oid, cloid = trace["origin_id"], trace["oid"], trace["cloid"]
+    exchange = trace["exchange"]
+    fills = [r for r in d_csv_rows(c.LIVE_FILLS_CSV)
+             if r.get("copy_fill_id") == c.CopyFillMatcher.copy_fill_id(raw)]
+    intents = [r for r in d_csv_rows(c.ORDER_INTENTS_CSV) if r.get("intent_id") == origin_id]
+    sends = [r for r in d_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("intent_id") == origin_id]
+    statuses = exchange.account_order_status(ACCOUNT, oid)
+    feed = exchange.account_fills(ACCOUNT)
+    return (len(intents) == len(sends) == len(fills) == len(feed) == 1
+            and len(exchange.calls) == 1 and statuses == exchange.reply
+            and feed[0] == raw and feed[0]["user"] == ACCOUNT
+            and exchange.calls[0]["cloid"] == cloid
+            and intents[0].get("leader_wallet") == trace["wallet"]
+            and intents[0].get("coin") == COIN
+            and sends[0].get("exchange_order_id") == oid
+            and sends[0].get("cloid") == cloid and sends[0].get("status") == "ORDER_FILLED"
+            and sends[0].get("leader_fill_id") == trace["leader_id"]
+            and sends[0].get("copy_size") == str(raw["size"])
+            and fills[0].get("intent_id") == origin_id
+            and fills[0].get("leader_wallet") == trace["wallet"] and fills[0].get("coin") == COIN
+            and fills[0].get("exchange_order_id") == oid
+            and fills[0].get("exchange_hash") == raw["hash"]
+            and fills[0].get("source") == "copy_account_poll"
+            and abs(float(fills[0]["fill_size"]) - raw["size"]) < 1e-9
+            and fills[0].get("side") == "BUY" and fills[0].get("ledger_action") == "UPDATED")
+
+
+def d_repair_fill(wallet, size, tag):
+    """Synthetic history poison, deliberately with positive size but no exchange execution."""
+    result = {"wallet": wallet, "coin": COIN, "wallet_position_before": size,
+              "wallet_position_after": 0.0, "coin_net_after": 0.0}
+    c.AuditLogWriter().append_live_fill_repair_close(result, tag + " synthetic not fill proof")
+
+
+def d_close_row(fid, wallet, status, stored, proven, foreign, wire, owed):
+    """Exact numeric *durable* contract; values reside in named notes keys until a schema is added."""
     rows = [r for r in recon_rows(fid) if r.get("event") == "CLOSE_PROOF"
-            and r.get("status") == expected_status and r.get("leader_wallet")]
-    return rows
+            and r.get("status") == status and r.get("terminal_state") == status
+            and r.get("leader_wallet") == wallet and r.get("coin") == COIN
+            and r.get("intent_id") == fid and r.get("leader_fill_id") == fid]
+    matching = []
+    for row in rows:
+        note = d_note_fields(row)
+        expected = {"stored_size": stored, "proved_size": proven, "foreign_size": foreign,
+                    "wire_size": wire, "owed_size": owed}
+        if not all(k in note and ((note[k].strip() == "UNKNOWN") if v is None
+                   else d_float(note[k]) is not None and abs(d_float(note[k]) - v) <= 1e-9)
+                   for k, v in expected.items()):
+            continue
+        if not row.get("action") or not row.get("reject_category"):
+            continue
+        matching.append(row)
+    return matching
+
+
+def d_owed_red(fid, wallet, amount):
+    rows = red_for(fid)
+    return (len(rows) == 1 and rows[0].get("intent_id") == fid
+            and rows[0].get("wallet") == wallet and rows[0].get("coin") == COIN
+            and rows[0].get("state") == "OPEN"
+            and d_float(rows[0].get("owed_size")) is not None
+            and abs(float(rows[0]["owed_size"]) - amount) < 1e-9)
+
+
+def d_not_settled(fid):
+    return not any(r.get("status") in ("SETTLED", "CLOSED") or
+                   r.get("terminal_state") in ("SETTLED", "CLOSED")
+                   for r in recon_rows(fid))
+
+
+def d_no_physical_send(fid, ex):
+    physical = [r for r in send_rows(fid) if r.get("exchange_order_id") or
+                str(r.get("status") or "").upper() in ("ORDER_FILLED", "ORDER_RESTING")]
+    return len(ex.calls) == 0 and not physical
+
+
+def d_one_physical_send(fid, wallet, ex, size, ro):
+    sends = [r for r in send_rows(fid) if r.get("exchange_order_id") and
+             str(r.get("status") or "").upper() in ("ORDER_FILLED", "ORDER_RESTING")]
+    return (len(ex.calls) == len(sends) == 1 and not ex.calls[0]["is_buy"]
+            and abs(ex.calls[0]["size"] - size) < 1e-9 and ex.calls[0]["reduce_only"] is ro
+            and sends[0].get("leader_wallet") == wallet and sends[0].get("coin") == COIN
+            and sends[0].get("side") == "SELL" and sends[0].get("intent_id") == fid
+            and sends[0].get("leader_fill_id") == fid
+            and sends[0].get("cloid") == ex.calls[0].get("cloid")
+            and sends[0].get("attempt_id") and sends[0].get("exchange_order_id")
+            and abs(float(sends[0]["copy_size"]) - size) < 1e-9
+            and str(sends[0].get("reduce_only_sent")).lower() == str(ro).lower())
 
 
 def d1_repair_close_row_not_fill_proof():
-    """Repair writer: stale +2.00, genuine +.50, synthetic repair close 2.00, physical account +5.00."""
+    """Stale +2, authentic owned +.50, fake repair CLOSED2, fresh exchange +5."""
     led, ex, net = new_ledger(), FakeExchange(), [5.0]
-    d_append_fill(D1, .50, "d1-real-owned")
+    trace = d_seed_owned(led, D1, .50, "d1")
+    assert d_origin_chain_ok(trace)
+    set_sleeve(led, D1, 2.0)   # stale prior to unsafe close_sleeve_as_exchange_flat
     it = exit_intent(led, D1, "SELL", 2.0, "d1-exit", 2.0, start=2.0)
-    result = led.close_sleeve_as_exchange_flat(D1, COIN)  # staging fixture ONLY, not live repair entrypoint
-    c.AuditLogWriter().append_live_fill_repair_close(result, "D1 synthetic flat repair, not exchange execution")
+    result = led.close_sleeve_as_exchange_flat(D1, COIN)  # fixture-only, not live service
+    c.AuditLogWriter().append_live_fill_repair_close(result, "D1 repair-only synthetic CLOSED")
     gw = make_gateway(ex, led, net)
     ok, status = gw.send_if_allowed(it)
-    # The repair wrote signed_size=0 and CORE_LEDGER_REPAIR CLOSED 2, but neither proves a true close.
-    # The conflicting position must be reconciled without a new wire or falsely consumed obligation.
-    return (not ok and len(ex.calls) == 0 and abs(net[0] - 5.0) < 1e-9
-            and len(red_for("d1-exit")) == 1 and bool(d_expected_audit(
-                "d1-exit", "CLOSE_PROOF_HOLD_FILL_LEDGER_MISMATCH"))), \
-        "repair_source_excluded calls=%r status=%r red=%r" % (ex.calls, status, red_for("d1-exit"))
+    return (not ok and d_no_physical_send("d1-exit", ex) and abs(net[0] - 5.0) < 1e-9
+            and d_owed_red("d1-exit", D1, 2.0) and d_not_settled("d1-exit")
+            and bool(d_close_row("d1-exit", D1, "CLOSE_PROOF_HOLD_FILL_LEDGER_MISMATCH",
+                                 0.0, .5, 4.5, 0.0, 2.0))), \
+        "repair_source_excluded calls=%r status=%r owed=%r" % (ex.calls, status, red_for("d1-exit"))
 
 
 def d2_setdefault_zero_never_certifies_unknown_owned():
-    """Sentinel writer: missing wallet sleeve -> setdefault zero, foreign +5; no authentic owned fill."""
+    """Sentinel default zero never implies independently proved flat or copy ownership."""
     led, ex, net = new_ledger(), FakeExchange(), [5.0]
     it = exit_intent(led, D2, "SELL", 2.0, "d2-exit", 2.0, start=2.0)
     led.data["by_wallet"].pop(D2, None)
-    assert abs(float(led.sleeve(D2, COIN)["signed_size"])) < 1e-12  # creates a sentinel, NOT a fill
+    assert abs(float(led.sleeve(D2, COIN)["signed_size"])) < 1e-12
     led.save(touched_sleeves=[(D2, COIN)])
     gw = make_gateway(ex, led, net)
     ok, status = gw.send_if_allowed(it)
-    return (not ok and not ex.calls and net[0] == 5.0
-            and len(red_for("d2-exit")) == 1 and bool(d_expected_audit(
-                "d2-exit", "CLOSE_PROOF_HOLD_UNPROVEN_SLEEVE"))), \
-        "sentinel_unknown calls=%r status=%r red=%r" % (ex.calls, status, red_for("d2-exit"))
+    return (not ok and d_no_physical_send("d2-exit", ex) and net[0] == 5.0
+            and d_owed_red("d2-exit", D2, 2.0) and d_not_settled("d2-exit")
+            and bool(d_close_row("d2-exit", D2, "CLOSE_PROOF_HOLD_UNPROVEN_SLEEVE",
+                                 0.0, None, None, 0.0, 2.0))), \
+        "sentinel_unknown calls=%r status=%r owed=%r" % (ex.calls, status, red_for("d2-exit"))
 
 
 def d3_hand_edit_disk_not_owned_proof():
-    """Disk adoption: authentic A +.50, foreign +4.50, but hand-edited signed_size +2.50."""
+    """Authentic +.50, foreign +4.50, disk is hand edited +2.50: clamp physical SELL .50."""
     led, ex, net = new_ledger(), FakeExchange(), [5.0]
-    d_append_fill(D3, .50, "d3-real-owned")
-    d_append_fill(D3, 2.0, "d3-repair-only", source="CORE_LEDGER_REPAIR", side="LEDGER_REPAIR_CLOSE")
+    trace = d_seed_owned(led, D3, .50, "d3")
+    assert d_origin_chain_ok(trace)
     it = exit_intent(led, D3, "SELL", 2.0, "d3-exit", 2.0, start=2.0)
     led.save(touched_sleeves=[(D3, COIN)])
     raw = c.load_json(led.path, {})
     raw["by_wallet"][D3][COIN]["signed_size"] = 2.5
     c.atomic_write_json(led.path, raw)
-    loaded = c.ManualLedger(path=led.path)  # the disk-adoption path under test
+    loaded = c.ManualLedger(path=led.path)
     gw = make_gateway(ex, loaded, net)
     ok, status = gw.send_if_allowed(it)
-    # Positive proof exists: clamp CLOSE to .50, never SELL 2 / 2.5 into foreign.
-    # A successful SDK ack alone cannot claim that physical fill has settled the original ledger.
-    calls = ex.calls
-    return (ok and len(calls) == 1 and not calls[0]["is_buy"]
-            and abs(calls[0]["size"] - .50) < 1e-9 and calls[0]["reduce_only"] is True
-            and abs(net[0] - 4.5) < 1e-9
-            and bool(d_expected_audit("d3-exit", "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED"))), \
-        "disk_override sdk=%r status=%r exchange_net=%r (foreign MUST remain 4.5)" % (calls, status, net[0])
+    checks = (ok and d_one_physical_send("d3-exit", D3, ex, .5, True)
+              and abs(net[0] - 4.5) < 1e-9
+              and bool(d_close_row("d3-exit", D3, "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED",
+                                   2.5, .5, 4.5, .5, .5))
+              and d_owed_red("d3-exit", D3, .5) and d_not_settled("d3-exit"))
+    return checks, "disk_override sdk=%r status=%r net=%r owed=%r" % (
+        ex.calls, status, net[0], red_for("d3-exit"))
 
 
 def d4_dust_uplift_cannot_borrow_foreign():
-    """Real +.06; hand-edited +.30; foreign +.50: sub-$10 full leader exit NOT full-account."""
+    """Only .06 proven, .30 stored, foreign .50, net .56: $6 partial may not wire."""
     led, ex, net = new_ledger(), FakeExchange(), [.56]
-    d_append_fill(D4, .06, "d4-real-owned")
+    trace = d_seed_owned(led, D4, .06, "d4")
+    assert d_origin_chain_ok(trace)
     it = exit_intent(led, D4, "SELL", .06, "d4-exit", .30, start=.06)
     gw = make_gateway(ex, led, net)
     ok, status = gw.send_if_allowed(it)
-    # Dust uplift to .10, .30 or to the exchange .56 all illegally cross the true .06 bound;
-    # bounded .06 is only $6 and is not an exact whole-exchange +.56 close.
-    return (not ok and not ex.calls and abs(net[0] - .56) < 1e-9
-            and len(red_for("d4-exit")) == 1 and bool(d_expected_audit(
-                "d4-exit", "DUST_OWNERSHIP_VENUE_CONFLICT"))), \
+    return (not ok and d_no_physical_send("d4-exit", ex) and abs(net[0] - .56) < 1e-9
+            and d_owed_red("d4-exit", D4, .06) and d_not_settled("d4-exit")
+            and bool(d_close_row("d4-exit", D4, "DUST_OWNERSHIP_VENUE_CONFLICT",
+                                 .30, .06, .50, 0.0, .06))), \
         "dust_foreign sdk=%r status=%r net=%r red=%r" % (ex.calls, status, net[0], red_for("d4-exit"))
 
 
 def d5_dust_exact_whole_proven_position_can_close():
-    """Real +.06; persisted +.30; exchange precisely +.06, zero foreign: exempt RO .06."""
+    """Only .06 proven, .30 stored, net .06 zero foreign: entire sub-$10 RO close."""
     led, ex, net = new_ledger(), FakeExchange(), [.06]
-    d_append_fill(D5, .06, "d5-real-owned")
+    trace = d_seed_owned(led, D5, .06, "d5")
+    assert d_origin_chain_ok(trace)
     it = exit_intent(led, D5, "SELL", .06, "d5-exit", .30, start=.06)
     gw = make_gateway(ex, led, net)
     ok, status = gw.send_if_allowed(it)
-    calls = ex.calls
-    return (ok and len(calls) == 1 and not calls[0]["is_buy"]
-            and abs(calls[0]["size"] - .06) < 1e-9 and calls[0]["reduce_only"] is True
-            and abs(net[0]) < 1e-9
-            and bool(d_expected_audit("d5-exit", "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED"))), \
-        "dust_whole sdk=%r status=%r net=%r" % (calls, status, net[0])
+    checks = (ok and d_one_physical_send("d5-exit", D5, ex, .06, True)
+              and abs(net[0]) < 1e-9
+              and bool(d_close_row("d5-exit", D5, "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED",
+                                   .30, .06, 0.0, .06, .06))
+              and d_owed_red("d5-exit", D5, .06) and d_not_settled("d5-exit"))
+    return checks, "dust_whole sdk=%r status=%r net=%r owed=%r" % (
+        ex.calls, status, net[0], red_for("d5-exit"))
+
+
+def d6_corrupt_provenance_variant(mutant):
+    """Table-driven FAIL-CLOSED negative: one corrupted proof dimension per fresh case."""
+    # No genuine production fills or network calls; the test-only original order
+    # is a legitimate fake-account response, after which we corrupt ONE proof leg.
+    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    trace = d_seed_owned(led, D6, .5, "d6")
+    assert d_origin_chain_ok(trace)
+    it = exit_intent(led, D6, "SELL", 2.0, "d6-exit-" + mutant, 2.0, start=2.0)
+    original_rows = d_csv_rows(c.LIVE_FILLS_CSV)
+    rows = [dict(row) for row in original_rows]
+    if mutant in {"missing", "corrupt", "wallet", "coin", "duplicate", "forged_repair", "fake_nonrepair", "sign"}:
+        if mutant == "missing":
+            rows = [r for r in rows if r.get("intent_id") != trace["origin_id"]]
+        elif mutant == "corrupt":
+            rows = [r for r in rows if r.get("intent_id") != trace["origin_id"]]
+            c.LIVE_FILLS_CSV.write_text("BROKEN_CSV\x00\n", encoding="utf-8")
+        elif mutant == "wallet":
+            for row in rows:
+                if row.get("intent_id") == trace["origin_id"]:
+                    row["leader_wallet"] = D1
+        elif mutant == "coin":
+            for row in rows:
+                if row.get("intent_id") == trace["origin_id"]:
+                    row["coin"] = "ETH"
+        elif mutant == "duplicate":
+            rows += [dict(r) for r in rows if r.get("intent_id") == trace["origin_id"]]
+        elif mutant == "forged_repair":
+            for row in rows:
+                if row.get("intent_id") == trace["origin_id"]:
+                    row.update(source="CORE_LEDGER_REPAIR", fill_size="2.0",
+                               ledger_action="CLOSED", exchange_hash="", exchange_order_id="")
+        elif mutant == "fake_nonrepair":
+            for row in rows:
+                if row.get("intent_id") == trace["origin_id"]:
+                    row.update(exchange_hash="fake", exchange_order_id="99999",
+                               source="copy_account_poll", fill_size="2.0")
+        elif mutant == "sign":
+            for row in rows:
+                if row.get("intent_id") == trace["origin_id"]:
+                    row["side"] = "SELL"
+        if mutant != "corrupt":
+            with c.LIVE_FILLS_CSV.open("w", newline="", encoding="utf-8") as fh:
+                out = csv.DictWriter(fh, fieldnames=c.LIVE_FILL_FIELDS)
+                out.writeheader()
+                out.writerows(rows)
+    elif mutant in {"missing_anchor", "missing_oid", "unknown_net"}:
+        if mutant == "missing_anchor":
+            p = c.ORDER_INTENTS_CSV
+            with p.open("w", newline="", encoding="utf-8") as fh:
+                out = csv.DictWriter(fh, fieldnames=c.ORDER_INTENT_FIELDS)
+                out.writeheader()
+        elif mutant == "missing_oid":
+            p = c.SEND_ATTEMPTS_CSV
+            with p.open("w", newline="", encoding="utf-8") as fh:
+                out = csv.DictWriter(fh, fieldnames=c.SEND_ATTEMPT_FIELDS)
+                out.writeheader()
+        else:
+            net[0] = None
+    else:
+        raise AssertionError("UNKNOWN_D6_VARIANT " + mutant)
+    # A fake receipt or an OID string is never sufficient; real proof must be
+    # re-derived from complete original intent+send+account-fill and unique ids.
+    valid = d_origin_chain_ok(trace)
+    if valid:
+        return False, "negative mutation failed to invalidate the lineage"
+    gw = make_gateway(ex, led, net)
+    ok, status = gw.send_if_allowed(it)
+    return (not ok and d_no_physical_send(it.intent_id, ex)
+            and d_owed_red(it.intent_id, D6, 2.0)
+            and d_not_settled(it.intent_id)
+            and bool(d_close_row(it.intent_id, D6, "CLOSE_PROOF_HOLD_UNTRUSTED_FILL_PROVENANCE",
+                                 2.0, None, None, 0.0, 2.0))), \
+        "mutant=%s status=%r calls=%r owed=%r" % (mutant, status, ex.calls, red_for(it.intent_id))
+
+
+def d6_provenance_negative_suite():
+    failures = []
+    for mutant in ("missing", "corrupt", "wallet", "coin", "duplicate", "forged_repair",
+                   "fake_nonrepair", "sign", "missing_anchor", "missing_oid", "unknown_net"):
+        try:
+            ok, detail = d6_corrupt_provenance_variant(mutant)
+        except Exception as exc:
+            ok, detail = False, repr(exc)
+        if not ok:
+            failures.append("%s:%s" % (mutant, detail))
+    return not failures, "D6 mutant FAILS=%d %s" % (len(failures), "; ".join(failures)[:800])
 
 
 def main():
