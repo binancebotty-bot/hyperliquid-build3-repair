@@ -1271,10 +1271,6 @@ def classify_integrity_severity(terminal_state: str) -> str:
     return "GREEN"
 
 
-def send_terminal_state(status: str) -> str:
-    return classify_terminal_state(status, "", "UNKNOWN_LIFECYCLE", True)
-
-
 def stale_snapshot_replay_reason(fill: "LeaderFill", core_started_at_ms: int = PROCESS_STARTED_AT_MS) -> str:
     source = str(getattr(fill, "source", "") or "").upper()
     if not any(marker in source for marker in ("SNAPSHOT", "REPLAY", "REBUILD")):
