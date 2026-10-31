@@ -168,28 +168,36 @@ def g2_ce1b_resting_leader_price():
 
 def g4_429_reads_then_entry():
     root,led,net,ex,gw,it,fid=make("G4",0.0,0.0,0.0)
-    # Directly inject a read 429 at the query seam. No send-side pause is authorised.
+    # REAL LeaderFillIngestor.poll_hyperliquid_fills path; replace only HTTP response
+    # transport. The 429 is observed in the reader before the independent entry
+    # reaches the REAL SenderGateway.send_if_allowed path.
     poll=[]
     class Read429(Exception):
         status_code=429
-    def read_leader():
-        poll.append("START_READ")
-        raise Read429("429 Too Many Requests")
+    class RateLimitedHTTP:
+        def post(self,*args,**kwargs):
+            poll.append("HTTP_429")
+            raise Read429("429 Too Many Requests")
+    original_http=c.requests
+    c.requests=RateLimitedHTTP()
     try:
-        read_leader()
-    except Read429 as exc:
-        poll.append("READ_429")
-        is_429=(exc.status_code==429)
-    else:is_429=False
+        poll.append("START_READ")
+        read_fills,read_status=c.LeaderFillIngestor().poll_hyperliquid_fills(
+            A,c.utc_now_ms()-5000,c.utc_now_ms())
+    finally:
+        c.requests=original_http
+    is_429=(poll==["START_READ","HTTP_429"] and read_status=="POLL_NETWORK_ERROR"
+            and read_fills==[])
     fill=c.LeaderFill("g13-g4-entry",A,COIN,"BUY",PX,1.0,c.utc_now_ms(),"POLL")
     entry=c.Intent("g13-g4-entry",fill,"BUY",1.0,100.0,"ON","fixed",
         "ENTRY_ALLOWED","ENTRY",c.ManualLedger.sleeve_id(A,COIN),"","FLAT",
         0.0,0.0,False,False,c.utc_now_ms(),"lifecycle=ENTRY;")
     ok,status=gw.send_if_allowed(entry)
     check("G4_READ_429_NOT_AN_ENTRY_SEND_GATE",
-          is_429 and poll==["START_READ","READ_429"] and ok
+          is_429 and poll==["START_READ","HTTP_429"] and ok
           and len(ex.calls)==1 and ex.calls[0]["side"]=="BUY",
-          "sequence=%r status=%r wire=%r"%(poll,status,ex.calls))
+          "sequence=%r read_status=%r status=%r wire=%r"%
+          (poll,read_status,status,ex.calls))
     matched=apply(gw,led,entry,ex.seq,1.0,"g4") if ok and ex.calls else False
     check("G4_LATER_ENTRY_FILLED_AND_ROW",
           matched and approx(net[0],1.0) and approx(led.coin_net(COIN),1.0)
