@@ -1,0 +1,229 @@
+# CALLERS_GIANTS_7d865e5.md
+
+> Graph: commit 7d865e5; graphify-out built 2026-10-31T16:28:45Z (age ~minutes at post time). Produced via graphify (C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe -m graphify update .) plus AST cross-check.
+
+## run_self_test
+
+- `_archive/hl_stage2/convergence_shadow.py:150` [production] `def run_self_test() -> None:`
+- `_archive/hl_stage2/convergence_shadow.py:249` [production] `run_self_test()`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15208` [production] `def run_self_test() -> None:`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:17205` [production] `run_self_test()`
+
+## build_live_integrity_status
+
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:666` [test/harness] `integrity_before = c.build_live_integrity_status()`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:698` [test/harness] `integrity = c.build_live_integrity_status()`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:2851` [production] `def build_live_integrity_status() -> Dict[str, Any]:`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:3760` [production] `payload = build_live_integrity_status()`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15498` [production] `_manual_only_integ = build_live_integrity_status()`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16202` [production] `_esb_integ = build_live_integrity_status()`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16224` [production] `_own_integ = build_live_integrity_status()`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16272` [production] `_close_integ = build_live_integrity_status()`
+- `_archive/hl_stage2/test_core_disk_full.py:345` [test] `st = c.build_live_integrity_status()`
+- `_archive/hl_stage2/test_core_exclusion_not_active_red.py:79` [test] `counts = c.build_live_integrity_status().get("hard_copy_invariant", {}).get("counts", {})`
+- `_archive/hl_stage2/test_core_observability_part1.py:119` [test] `return c.build_live_integrity_status()["status"]`
+- `_archive/hl_stage2/test_core_observability_part1.py:171` [test] `st = c.build_live_integrity_status()`
+- `_archive/hl_stage2/test_core_observability_part1.py:177` [test] `st2 = c.build_live_integrity_status()`
+- `_archive/hl_stage2/test_core_observability_part1.py:186` [test] `c.build_live_integrity_status()["counts"]["open_late_fill_incidents"] == 0)`
+- `_archive/hl_stage2/test_core_observability_part1.py:243` [test] `st2 = c.build_live_integrity_status()`
+
+## _send_real
+
+- `certification/results/apply_verified_results.py:38` [test/harness] `B1 = ("Real testnet order attempted via engine _send_real (py3.11, HL_LIVE_ENV_FILE, "`
+- `certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_43731b4f.py:353` [test/harness] `ok, status, result = gw._send_real(intent, timing)`
+- `certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py:416` [test/harness] `ok, status, result = gw._send_real(intent, timing)`
+- `certification/results/ENV_MAP_harness.py:8` [test/harness] `- Proves the py3.11 SDK predicate that makes Core _send_real() stop returning SDK_UNAVAILABLE.`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:8771` [production] `ok, send_status, result = self._send_real(intent, timing)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:8849` [production] `def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16385` [production] `_ro_send_ok, _ro_send_status, _ro_send_result = _ro_gw._send_real(_ro_exit)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16392` [production] `_ro_gw._send_real(_ro_entry)`
+- `_archive/hl_stage2/test_core_audit_reduce_only_matches_wire.py:113` [test] `ok, status, result = gw._send_real(intent)`
+- `_archive/hl_stage2/test_core_c7c_fixup_standalone.py:144` [test] `body = source.split("    def send_if_allowed(", 1)[1].split("\n    def _send_real(", 1)[0]`
+- `_archive/hl_stage2/test_core_c7_close_must_send.py:282` [test] `ok, status, res = gw._send_real(it)`
+- `_archive/hl_stage2/test_core_intent_durable_barrier.py:129` [test] `box["r"] = g._send_real(intent)`
+- `_archive/hl_stage2/test_core_intent_outside_lock.py:172` [test] `gtc_ok, gtc_status, gtc_result = gw._send_real(gtc_intent, {"send_cloid": "safe-test-gtc-cloid",`
+- `_archive/hl_stage2/test_core_intent_write_behind.py:140` [test] `sender = threading.Thread(target=lambda: result.update(r=g._send_real(mk_intent("s1"))), daemon=True)`
+- `_archive/hl_stage2/test_core_intent_write_behind.py:198` [test] `box["r"] = gg._send_real(intent)`
+- `_archive/hl_stage2/test_core_liq_parity.py:19` [test] `These tests drive the engine's REAL paths: step 1 through SenderGateway._send_real (a FakeExchange records`
+- `_archive/hl_stage2/test_core_liq_parity.py:106` [test] `return g._send_real(intent)`
+- `_archive/hl_stage2/test_core_margin_mode_background.py:88` [test] `return g._send_real(intent)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:153` [test] `ok, status, res = gw._send_real(intent)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:513` [test] `ok, status, res = gw4._send_real(intent)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:521` [test] `ok, status, res = gw4._send_real(intent)`
+- `_archive/hl_stage2/test_core_network_and_global_controls.py:331` [test] `ok, status, res = gw._send_real(intent)`
+- `_archive/hl_stage2/test_core_retry_send_integrity.py:113` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:267` [test] `return g._send_real(intent)`
+- `_archive/hl_stage2/test_core_run4_fixes.py:115` [test] `return g._send_real(intent)`
+- `_archive/hl_stage2/test_core_rw12_mode_at_send.py:135` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw12_retry_cloid.py:134` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw12_retry_cloid.py:166` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw12_retry_cloid.py:199` [test] `ok, status, res = g._send_real(it, tm0)`
+- `_archive/hl_stage2/test_core_rw14_snapshot_failclosed.py:137` [test] `return g._send_real(mk_intent(iid, coin, kind))`
+- `_archive/hl_stage2/test_core_rw7b_review_fixes.py:139` [test] `ok, status, res = g._send_real(mk_intent("e1"))  # production path: send hook -> intent_seq_for -> wait_intent_durable`
+- `_archive/hl_stage2/test_core_rw7b_review_fixes.py:171` [test] `ok, status, res = gw(ex)._send_real(mk_intent("m3", A))  # production hook; m3 itself is on disk`
+- `_archive/hl_stage2/test_core_rw7b_review_fixes.py:201` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw7b_review_fixes.py:219` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw7b_review_fixes.py:259` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw7b_review_fixes.py:293` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw9_timeout_vs_429.py:135` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_rw9_timeout_vs_429.py:208` [test] `ok, status, res = g._send_real(it)`
+- `_archive/hl_stage2/test_core_sender_key.py:130` [test] `ok, status, res = gw._send_real(entry)`
+- `_archive/hl_stage2/test_core_trace_stamps.py:126` [test] `ok, status, result = gw._send_real(i)`
+- `_archive/hl_stage2/test_j2_local_rejects.py:170` [test] `ok, status, result = gw._send_real(intent)`
+- `_archive/hl_stage2/test_readiness1_ambiguous_timeout_no_blind_resend.py:137` [test] `ok, status, res = gw._send_real(intent)`
+- `_archive/hl_stage2/test_t1a_cloid_pending_row.py:132` [test] `ok, status, res = gw._send_real(intent)`
+
+## run_cycle
+
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:105` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:129` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:162` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:189` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:213` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:232` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:263` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:292` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:323` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/HEALTH_CORRECTION_harness_fefc2b04.py:350` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:270` [test/harness] `summary = core.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:282` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:292` [test/harness] `summary3 = core3.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:303` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:312` [test/harness] `summary5 = core5.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:320` [test/harness] `summary6 = core6.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:328` [test/harness] `summary7 = core7.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:542` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:544` [test/harness] `summary4b = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:714` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:812` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad.py:814` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:284` [test/harness] `summary = core.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:297` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:307` [test/harness] `summary3 = core3.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:317` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:325` [test/harness] `summary5 = core5.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:332` [test/harness] `summary6 = core6.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:341` [test/harness] `summary7 = core7.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:522` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:523` [test/harness] `summary4b = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:671` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:762` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v2.py:763` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:291` [test/harness] `summary = core.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:304` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:314` [test/harness] `summary3 = core3.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:324` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:332` [test/harness] `summary5 = core5.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:339` [test/harness] `summary6 = core6.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:348` [test/harness] `summary7 = core7.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:524` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:525` [test/harness] `summary4b = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:673` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:764` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v3.py:765` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:319` [test/harness] `summary = core.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:333` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:344` [test/harness] `summary3 = core3.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:355` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:364` [test/harness] `summary5 = core5.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:372` [test/harness] `summary6 = core6.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:382` [test/harness] `summary7 = core7.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:565` [test/harness] `summary4 = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:566` [test/harness] `summary4b = core4.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:733` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:828` [test/harness] `summary = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py:829` [test/harness] `summary2 = core2.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:165` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:187` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:213` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:238` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:262` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:285` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:312` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:353` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:386` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=True)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:406` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=True)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:439` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=True)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:474` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=True)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:521` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:581` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:605` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:629` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:669` [test/harness] `summary = core.run_cycle(use_source_csv=True, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:701` [test/harness] `summary = core.run_cycle(use_source_csv=True, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `certification/results/RHC_RESIDUAL_harness_2a269ad.py:720` [test/harness] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:14820` [production] `def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15299` [production] `summary = core.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15324` [production] `summary = core.run_cycle(use_source_csv=True, poll_live=False, reconcile_exchange=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15355` [production] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True, reconcile_exchange=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15363` [production] `summary = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True, reconcile_exchange=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15523` [production] `_sum_co1 = _core_co1.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15541` [production] `_sum_co2 = _core_co2.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15554` [production] `_core_t1.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15577` [production] `_sum_ws = _core_ws.run_cycle(use_source_csv=False, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15684` [production] `_sum_rs1 = _core_rs1.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15705` [production] `_sum_inv = _core_inv.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15731` [production] `_sum_rs2 = _core_rs2.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15759` [production] `_sum_rs3 = _core_rs3.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15829` [production] `_sum_sym = _core_sym.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:15852` [production] `_ach_rb = _ach_core_rb.run_cycle(use_source_csv=False, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16200` [production] `_esb_sum = _esb_core.run_cycle(use_source_csv=True, poll_live=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:16429` [production] `_core_g.run_cycle(use_source_csv=True, poll_live=False, poll_copy=False)`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:17363` [production] `summary = core.run_cycle(`
+- `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:17382` [production] `# Refresh the exclusion's volume cache BETWEEN cycles: never inside run_cycle (a stubbed-fail read`
+- `_archive/hl_stage2/test_core_catchup_window_rows.py:304` [test] `sm = core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_dex_scope_and_ui_truth.py:217` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_dex_scope_and_ui_truth.py:221` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_disk_full.py:374` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_disk_full.py:393` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_disk_full.py:437` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_disk_full.py:483` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_disk_full.py:567` [test] `_i = src.rindex("summary = core.run_cycle(")`
+- `_archive/hl_stage2/test_core_disk_full.py:570` [test] `"main()'s 'summary = core.run_cycle(...)' is not under an except: one failing cycle ends the process")`
+- `_archive/hl_stage2/test_core_engine_gaps.py:228` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_engine_gaps.py:234` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_fill_lag.py:125` [test] `core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False)`
+- `_archive/hl_stage2/test_core_fill_lag.py:127` [test] `core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True)`
+- `_archive/hl_stage2/test_core_fill_lag.py:151` [test] `core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True)`
+- `_archive/hl_stage2/test_core_fill_lag.py:187` [test] `cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)`
+- `_archive/hl_stage2/test_core_live_only_stream_cap.py:119` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:287` [test] `k.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:290` [test] `k.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:301` [test] `k.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:305` [test] `k.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:321` [test] `k2.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:353` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:385` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:400` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:425` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:436` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:440` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:488` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:622` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:635` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:667` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:675` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:684` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:685` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_missed_entry_rule.py:688` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_observability_part1.py:144` [test] `# O1B: the SAME row, written by the REAL writer in run_cycle (not by a hand-built notes string): the in-lane`
+- `_archive/hl_stage2/test_core_observability_part1.py:156` [test] `live.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_poll_overlap_scaling.py:95` [test] `summary = core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_poll_overlap_scaling.py:100` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_poll_overlap_scaling.py:109` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_poll_overlap_scaling.py:117` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_r1_cursor.py:113` [test] `first = core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_r1_cursor.py:118` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_r1_cursor.py:137` [test] `first_late = core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_r1_cursor.py:144` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:117` [test] `summary = core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:124` [test] `summary = core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:151` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:159` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:162` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:165` [test] `core.run_cycle(use_source_csv=False, poll_live=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:178` [test] `core.run_cycle(use_source_csv=False, poll_copy=True)`
+- `_archive/hl_stage2/test_core_run3_fixes.py:195` [test] `core.run_cycle(use_source_csv=False, poll_copy=True)`
+- `_archive/hl_stage2/test_core_sender_key.py:161` [test] `core.run_cycle(use_source_csv=False)`
+- `_archive/hl_stage2/test_core_sender_key.py:282` [test] `def run_cycle(self, **kwargs):`
+
