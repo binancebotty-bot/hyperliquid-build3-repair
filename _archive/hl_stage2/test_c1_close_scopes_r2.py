@@ -69,17 +69,37 @@ def fixture(name, a, b, physical, mode, qty, oid):
     ex = IndexedExchange(oid)
     net = [physical]
     gateway = f.make_gateway(ex, ledger, net)
+    # Account-address routing is the REAL SDK creation seam used by _send_real.
+    # Both clients exist before the send; misrouting will hit the foreign client.
+    foreign_ex = IndexedExchange(oid + 90000)
+    foreign_ex.physical_net = [7.0]
+    account_clients = {f.ACCOUNT.lower(): ex, f.OTHER_ACCOUNT.lower(): foreign_ex}
+    client_routes, truth_reads = [], []
+    def routed_client(_Account, _Exchange, _key, _base_url, account_address, _dexs):
+        account = str(account_address or "").lower()
+        client_routes.append(account)
+        if account not in account_clients:
+            raise ValueError("unknown account route " + account)
+        return account_clients[account]
+    def account_bound_net(_coin):
+        account = str(c.USER_WALLET or "").lower()
+        truth_reads.append(account)
+        if account not in account_clients:
+            raise ValueError("unknown truth account " + account)
+        return account_clients[account].physical_net[0]
+    gateway._get_exchange_client = routed_client
+    gateway._fresh_exchange_net = account_bound_net
     gateway.cfg.send_mode_now = lambda: mode
     gateway.cfg.wallet_mode = lambda wallet: "CLO" if wallet == A else "ON"
     fid = "c1-r2-" + name
     intent = f.exit_intent(ledger, A, "SELL", qty, fid, a)
     assert close_enough(ledger.coin_net(COIN), a + b), "fixture ledger inconsistent"
-    return root, ledger, gateway, ex, net, intent, fid
+    return root, ledger, gateway, ex, net, intent, fid, foreign_ex, client_routes, truth_reads
 
 
 def run_case(name, a, b, actual, mode, requested, expected_qty, expected_ro,
              expected_a, expected_net, oid, expected_user=0.0, owed=0.0):
-    root, led, gw, ex, net, intent, fid = fixture(
+    root, led, gw, ex, net, intent, fid, foreign_ex, client_routes, truth_reads = fixture(
         name, a, b, actual, mode, requested, oid)
     baseline_a, baseline_b = f.sleeve_of(led, A), f.sleeve_of(led, B)
     ok, status = gw.send_if_allowed(intent)
@@ -93,6 +113,12 @@ def run_case(name, a, b, actual, mode, requested, expected_qty, expected_ro,
     )
     check(name + "_PHYSICAL_WIRE", exact_wire,
           "ok=%r status=%r calls=%r" % (ok, status, calls))
+    check(name + "_ACCOUNT_ROUTE",
+          bool(client_routes) and all(route == f.ACCOUNT.lower() for route in client_routes)
+          and bool(truth_reads) and all(route == f.ACCOUNT.lower() for route in truth_reads)
+          and not foreign_ex.calls and close_enough(foreign_ex.physical_net[0], 7.0),
+          "client_routes=%r truth_reads=%r foreign_calls=%r foreign_net=%r" %
+          (client_routes, truth_reads, foreign_ex.calls, foreign_ex.physical_net[0]))
     check(name + "_EXCHANGE_NET", close_enough(net[0], expected_net + expected_user),
           "actual_exchange=%r expected=%r" % (net[0], expected_net + expected_user))
 
@@ -139,15 +165,13 @@ def run_case(name, a, b, actual, mode, requested, expected_qty, expected_ro,
           "A=%r B=%r own_net=%r" %
           (f.sleeve_of(led, A), f.sleeve_of(led, B), led.coin_net(COIN)))
     if expected_user:
-        foreign_account = IndexedExchange(9999)
-        foreign_account.physical_net = [7.0]  # distinct account, never passed to gateway
         check(name + "_USER_AND_FOREIGN_UNTOUCHED",
               close_enough(net[0] - led.coin_net(COIN), expected_user)
-              and foreign_account.calls == []
-              and close_enough(foreign_account.physical_net[0], 7.0),
+              and foreign_ex.calls == []
+              and close_enough(foreign_ex.physical_net[0], 7.0),
               "owned=%r exchange=%r user=%r foreign_calls=%r foreign_net=%r" %
               (led.coin_net(COIN), net[0], net[0] - led.coin_net(COIN),
-               foreign_account.calls, foreign_account.physical_net[0]))
+               foreign_ex.calls, foreign_ex.physical_net[0]))
     if owed:
         rows = c.load_json(c.CLOSE_ESCALATIONS_FILE, {})
         outstanding = [
@@ -158,8 +182,21 @@ def run_case(name, a, b, actual, mode, requested, expected_qty, expected_ro,
         ]
         check(name + "_DURABLE_OWED_REMAINDER",
               len(outstanding) == 1
+              and outstanding[0].get("intent_id") == intent.intent_id
+              and outstanding[0].get("leader_fill_id") == fid
               and close_enough(f.sleeve_of(led, A), owed),
               "owed=%r entries=%r" % (owed, outstanding))
+
+
+def negative_account_misroute():
+    """Inject wrong account at REAL SDK creation seam: the actual foreign fake gets the order."""
+    _root, _led, gw, ex, _net, intent, _fid, foreign, _routes, _reads = fixture(
+        "C_FOREIGN_MISROUTE", 0.5, 0.3, 5.3, "ON", 0.5, 2105)
+    gw._get_exchange_client = lambda *args: foreign  # wrong client despite follower account input
+    ok, status = gw.send_if_allowed(intent)
+    detected = bool(foreign.calls) and not ex.calls
+    check("C_FOREIGN_MISROUTE_NEGATIVE_DETECTED", detected,
+          "send=%r/%r foreign_calls=%r follower_calls=%r" % (ok, status, foreign.calls, ex.calls))
 
 
 def negative_oracle_controls():
@@ -197,6 +234,7 @@ def main():
     run_case("C_USER_RESIDUAL", a=0.5, b=0.3, actual=5.3, mode="ON",
              requested=0.5, expected_qty=0.5, expected_ro=True,
              expected_a=0.0, expected_net=0.3, oid=2104, expected_user=4.5)
+    negative_account_misroute()
     negative_oracle_controls()
     failures = [k for k, passed in REPORT if not passed]
     print("TOTAL=%d FAILED=%d" % (len(REPORT), len(failures)), flush=True)
