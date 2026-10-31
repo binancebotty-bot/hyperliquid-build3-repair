@@ -1,0 +1,402 @@
+From 90b961cdf007c69cbcee79004429b69882a7f62e Mon Sep 17 00:00:00 2001
+From: CC1-CODA (gpt6:primary-coder)
+Date: Sat, 31 Oct 2026 +0000
+Subject: [PATCH SERIES] B2 retry: ordinary late-block no-call and no phantom attempt
+
+REPLY-TO: CC1-CODA-B1B2-EE3F3C5-REVIEW-20261031-VERDICT
+REVIEW-SEND-BACK: hermes-gpt-control#9 comment 6546018739
+SOURCE: binancebotty-bot/hyperliquid-build3-repair
+BRANCH: gpt/coda-bc-patch-0821
+SERIES-PARENT: c76725ba7ebf2b2543e813a4867c39e091e84e60
+SOURCE-HEAD-BEFORE-PACKAGING: 90b961cdf007c69cbcee79004429b69882a7f62e
+COMMITS-IN-ORDER:
+1. 834847e04ab3873868268a9382b686df7af82d3e
+2. 069571616376b2636e7d474457d5f0911104bc55
+3. 90b961cdf007c69cbcee79004429b69882a7f62e
+GITHUB VERIFIED DIFF (series-parent -> source-head):
+  _archive/hl_stage2/HL_Live_Copy_Service_Core.py +11/-15 NET -4
+  _archive/hl_stage2/test_core_cc1_b_pending_terminalise.py +158/-31 NET +127
+  Other executable files +0/-0 NET 0
+  Total executable Core+test +169/-46 NET +123
+  This text patch pack is NONPRODUCTION and not counted as deleted code.
+DELETES: original late-block branch's direct update_send_attempt_row and
+         timing.send_attempt_id fallback; uses same typed no-call updater
+         already present in prewire exception path. Preserves pending writer,
+         sender lease, final proof and physical SDK boundary.
+NO TEST RESULTS: BASE TOTAL/FAILED=NOT_RUN/NOT_RUN;
+                 CANDIDATE TOTAL/FAILED=NOT_RUN/NOT_RUN.
+Safe testnet-only code candidate; no engine execution, live account, keys,
+merge, PR #8 certification, deployment, mainnet or runner assumed.
+Three separately applyable git-style diffs follow, in commit order.
+
+---
+# COMMIT 1 834847e04ab3873868268a9382b686df7af82d3e _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+diff --git a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+--- a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
++++ b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+@@ -5886,24 +5886,20 @@ def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float,
+             log_error("final_wire_gate_fault_no_call", exc)
+             raise PreWireNoCallFault(status, exc) from exc
+         if _late_block:
+-            # the lease wins the message when both would refuse
+-            close_red = _is_close and (
+-                _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
+-                or _late_block.startswith(("CLOSE_PROOF_HOLD", "CLOSE_ALREADY_PROVEN_FLAT")))
++            # A post-wait refusal without pre_send has NO pending attempt: timing's
++            # allocated send_attempt_id is NOT proof that the write-ahead row exists.
++            close_red = _is_close and _late_block != "CLOSE_ALREADY_PROVEN_FLAT"
+             status = ("SEND_BLOCKED_NO_SENDER_LEASE" if _late_block == "SEND_BLOCKED_NO_SENDER_LEASE"
+-                      else "CLOSE_PROOF_HOLD_AT_WIRE" if close_red else "BLOCKED_AT_PLACE_ORDER")
+-            _aid = str((timing or {}).get("send_attempt_id") or _pending_id or "")
+-            if _aid and not update_send_attempt_row(_aid, {
+-                "status": status, "terminal_state": status,
+-                "reject_category": status, "operator_action": "NO_EXCHANGE_CALL",
+-                "error": _late_block, "notes": "NO_EXCHANGE_CALL: " + _late_block,
+-            }, durable=True):
+-                raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + _aid)
+-            # a refused close is still OWED: RED row, rests at leader price, retried - never dropped
+-            if close_red and _late_block != "CLOSE_ALREADY_PROVEN_FLAT":
++                      else "CLOSE_PROOF_HOLD_AT_WIRE" if _late_block.startswith("CLOSE_PROOF_HOLD")
++                      else "BLOCKED_AT_PLACE_ORDER")
++            # Persist owed CLOSE before a risky terminal update. The proven-flat
++            # exception never fabricates debt, but unknown/master-OFF still owes.
++            if close_red:
+                 self._journal_authorised_close_refusal(intent, _late_block)
+-            elif not close_red:
++            else:
+                 self._gate_refusal_row(intent, path, _late_block)
++            if _pending_id:
++                self._terminalise_pending_as_no_call(_pending_id, status, _late_block)
+             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _late_block,
+                     "exchange_called": False, "reject_category": status,
+                     "terminal_state": status, "operator_action": "NO_EXCHANGE_CALL",
+# COMMIT 2 069571616376b2636e7d474457d5f0911104bc55 _archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+diff --git a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+--- a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
++++ b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+@@ -31,14 +31,27 @@ def check(name, ok, detail=""):
+     print("RESULT::%s_%s%s" % (name, "PASS" if ok else "FAIL",
+           " | " + str(detail)[:180] if not ok else ""), flush=True)
+ 
+-def latest(aid):
++def rows_for(aid):
++    if not c.SEND_ATTEMPTS_CSV.exists():
++        return []
+     c._close_audit_handle(c.SEND_ATTEMPTS_CSV)
+     with c.SEND_ATTEMPTS_CSV.open(newline="", encoding="utf-8-sig") as fh:
+-        rows = [r for r in csv.DictReader(fh) if r.get("attempt_id") == aid]
++        return [r for r in csv.DictReader(fh) if r.get("attempt_id") == aid]
++
++def latest(aid):
++    rows = rows_for(aid)
+     return rows[-1] if rows else {}
+ 
++def durable_owed(fid):
++    # Independent disk readback: a stubbed append or in-memory flag cannot pass.
++    rows = json.loads(c.CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig")) if c.CLOSE_ESCALATIONS_FILE.exists() else {}
++    return next((dict(r) for r in rows.values() if isinstance(r, dict)
++                 and r.get("leader_fill_id") == fid and r.get("state") == "OPEN"), {})
++
+ def fixture(label, defect, is_exit=True):
+     aid = "attempt-" + label
++    cloid = c.generate_cloid("cloid-" + label)
++    original_updater, original_rows, original_lease = c.update_send_attempt_row, c.send_attempt_rows, c._sender_lease_owned
+     fill = SimpleNamespace(leader_wallet=WALLET, leader_fill_id="event-" + label, coin="BTC")
+     intent = SimpleNamespace(fill=fill, intent_id="intent-" + label, copy_side="SELL",
+                              copy_size=0.08, reduce_only_intended=is_exit)
+@@ -62,11 +75,17 @@ def master(*args):
+             raise ValueError("INVALID_CONFIG_READ:JSONDecodeError")
+         if defect == "FIRST" and len(master_calls) == 1:
+             raise ValueError("INVALID_CONFIG_READ:JSONDecodeError")
++        if defect == "POST_WAIT_MODE" and len(master_calls) == 2:
++            return "MASTER_REAL_ORDERS_OFF"
+         return ""
+     def proof(*args, **kw):
+         proof_calls.append(1)
+         if defect == "NET" and len(proof_calls) == 2:
+             raise RuntimeError("fresh_exchange_net exploded")
++        if defect == "POST_WAIT_PROOF" and len(proof_calls) == 1:
++            return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
++        if defect.startswith("LATE_BLOCK_") and len(proof_calls) == 2:
++            return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
+         return ""
+     gw._master_gate_reason, gw._final_close_proof = master, proof
+     def pre_send():
+@@ -76,20 +95,36 @@ def pre_send():
+             "intent_id": intent.intent_id, "leader_wallet": WALLET,
+             "leader_fill_id": fill.leader_fill_id,
+             "status": "pending_send", "terminal_state": "PENDING_SEND",
++            "cloid": cloid,
+         }, durable=True)
++        if defect in {"LATE_BLOCK_RAISE", "LATE_EXCEPTION_RAISE"}:
++            c.update_send_attempt_row = lambda *a, **kw: (_ for _ in ()).throw(OSError("isolated terminal append fault"))
++        if defect in {"LATE_BLOCK_FALSE", "LATE_EXCEPTION_FALSE"}:
++            c.update_send_attempt_row = lambda *a, **kw: False
++        if defect == "LATE_EXCEPTION_READ":
++            c.send_attempt_rows = lambda: (_ for _ in ()).throw(OSError("isolated terminal read fault"))
++        if defect == "LATE_BLOCK_PARTIAL":
++            def partial_write_then_fault(*a, **kw):
++                original_updater(*a, **kw)
++                raise OSError("isolated after-append acknowledgement lost")
++            c.update_send_attempt_row = partial_write_then_fault
+         return aid
+-    fault = None
++    if defect == "POST_WAIT_LEASE":
++        c._sender_lease_owned = lambda: False
++    fault, response = None, None
+     try:
+-        gw._place_order(spy, "BTC", False, 0.08, 100.0, "Ioc", True,
+-                        timing={"send_attempt_id": aid}, intent=intent,
+-                        path="b-negative-" + label, pre_send=pre_send)
++        response = gw._place_order(spy, "BTC", False, 0.08, 100.0, "Ioc", True,
++                                   timing={"send_attempt_id": aid}, intent=intent,
++                                   cloid=cloid, path="b-negative-" + label, pre_send=pre_send)
+     except Exception as exc:
+         fault = exc
++    finally:
++        c.update_send_attempt_row = original_updater
++        c.send_attempt_rows = original_rows
++        c._sender_lease_owned = original_lease
+     pending = latest(aid) if hooks else {}
+-    open_rows = json.loads(c.CLOSE_ESCALATIONS_FILE.read_text()) if c.CLOSE_ESCALATIONS_FILE.exists() else {}
+-    owed = any(isinstance(r, dict) and r.get("leader_fill_id") == fill.leader_fill_id
+-              and r.get("state") == "OPEN" for r in open_rows.values())
+-    return spy.calls, hooks, fault, pending, owed
++    owed = durable_owed(fill.leader_fill_id)
++    return spy.calls, hooks, fault, pending, owed, response
+ 
+ 
+ def sender_path_case(label, scenario):
+@@ -98,16 +133,22 @@ def sender_path_case(label, scenario):
+     """
+     old = {k: getattr(c, k) for k in (
+         "HLAccount", "HLExchange", "classify_reject_category",
+-        "update_send_attempt_row", "wait_intent_durable")}
++        "update_send_attempt_row", "send_attempt_rows",
++        "_sender_lease_owned", "wait_intent_durable")}
+     saved_secret = os.environ.get("HL_LIVE_HL_PRIVATE_KEY")
+     c.HLAccount = object()
+     c.HLExchange = object()
+     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "ISOLATED_FAKE_MARKER_NOT_A_KEY"
+     c.wait_intent_durable = lambda *a, **kw: None
+     if scenario == "two-attempt":
+         c.classify_reject_category = lambda *a: "REDUCE_ONLY_REJECTED"
+-    if scenario == "terminal-write-raised":
++    if scenario in {"terminal-write-raised", "late-block-raised"}:
+         c.update_send_attempt_row = lambda *a, **kw: (_ for _ in ()).throw(OSError("isolated append/read failed"))
++    if scenario in {"terminal-write-false", "late-block-false"}:
++        c.update_send_attempt_row = lambda *a, **kw: False
++    if scenario == "terminal-read-raised":
++        c.send_attempt_rows = lambda: (_ for _ in ()).throw(OSError("isolated CSV read failed")
++                                     )
+     fill = SimpleNamespace(leader_wallet=WALLET, leader_fill_id="event-e2e-" + label,
+                            coin="BTC", price=100.0, raw={})
+     intent = SimpleNamespace(fill=fill, intent_id="intent-e2e-" + label,
+@@ -147,24 +188,36 @@ def order(self, *args, **kwargs):
+     gw._note_sender_key_rejection = lambda *a: None
+     gw._gate_refusal_row = lambda *a: None
+     gw._parse_hl_response = lambda response: (False, "ORDER_REJECTED", "", "REDUCE_ONLY_REJECTED")
+-    owed = []
+-    gw._journal_authorised_close_refusal = lambda i, reason: owed.append((i.intent_id, reason))
+-    checks = []
++    checks, proofs = [], []
+     def master(*a):
+         checks.append(1)
+-        at = 6 if scenario == "two-attempt" else 3
+-        if len(checks) == at:
++        if scenario == "post-wait-mode" and len(checks) == 2:
++            return "MASTER_REAL_ORDERS_OFF"
++        if scenario == "two-attempt" and len(checks) == 6:
++            raise ValueError("INVALID_CONFIG_READ: isolated retry final guard")
++        if scenario not in {"two-attempt", "post-wait-mode", "post-wait-proof",
++                            "post-wait-lease", "late-block-raised", "late-block-false"} and len(checks) == 3:
+             raise ValueError("INVALID_CONFIG_READ: isolated final guard")
+         return ""
++    def proof(*a):
++        proofs.append(1)
++        if scenario == "post-wait-proof" and len(proofs) == 1:
++            return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
++        if scenario in {"late-block-raised", "late-block-false"} and len(proofs) == 2:
++            return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
++        return ""
+     gw._master_gate_reason = master
+-    gw._final_close_proof = lambda *a: ""
++    gw._final_close_proof = proof
++    if scenario == "post-wait-lease":
++        c._sender_lease_owned = lambda: False
+     timing = {"send_attempt_id": "attempt-e2e-" + label, "send_cloid": c.generate_cloid("e2e-" + label)}
+     try:
+         outcome = gw._send_real(intent, timing)
+         first_id = "attempt-e2e-" + label
+         last_id = str(timing.get("send_attempt_id") or "")
+         first = latest(first_id)
+         last = latest(last_id) if last_id != first_id else first
++        owed = durable_owed(fill.leader_fill_id)
+         return outcome, list(spy.calls), first_id, last_id, first, last, owed
+     finally:
+         for key, val in old.items():
+@@ -175,37 +228,104 @@ def master(*a):
+             os.environ["HL_LIVE_HL_PRIVATE_KEY"] = saved_secret
+ 
+ def sender_e2e_witnesses():
+-    for label, scenario in (
++    scenarios = (
+         ("one-fault", "single"),
+         ("write-fault", "terminal-write-raised"),
++        ("write-false", "terminal-write-false"),
++        ("read-fault", "terminal-read-raised"),
++        ("late-raised", "late-block-raised"),
++        ("late-false", "late-block-false"),
+         ("prior-call", "two-attempt"),
+-    ):
++        ("post-mode", "post-wait-mode"),
++        ("post-proof", "post-wait-proof"),
++        ("post-lease", "post-wait-lease"),
++    )
++    no_pending = {"post-wait-mode", "post-wait-proof", "post-wait-lease"}
++    durable_failure = {"terminal-write-raised", "terminal-write-false",
++                       "terminal-read-raised", "late-block-raised", "late-block-false"}
++    for label, scenario in scenarios:
+         try:
+             (ok, status, result), calls, first_id, last_id, first, last, owed = sender_path_case(label, scenario)
++            if scenario == "two-attempt":
++                expected_status = "ORDER_REJECTED"
++            elif scenario in no_pending:
++                expected_status = "ORDER_REJECTED"
++            elif scenario in durable_failure:
++                expected_status = "PRE_WIRE_TERMINAL_WRITE_FAILED"
++            else:
++                expected_status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+             check(label + "-PARENT_TRUTH",
+-                  bool(result.get("exchange_called")) == (scenario == "two-attempt")
+-                  and ((status == "ORDER_REJECTED") if scenario == "two-attempt"
+-                       else status == ("PRE_WIRE_TERMINAL_WRITE_FAILED" if scenario == "terminal-write-raised"
+-                                      else "PRE_WIRE_FAULT_NO_EXCHANGE_CALL")),
++                  not ok and bool(result.get("exchange_called")) == (scenario == "two-attempt")
++                  and status == expected_status and result.get("terminal_state", expected_status) == expected_status,
+                   (status, result))
+             check(label + "-SDK_COUNT", len(calls) == (1 if scenario == "two-attempt" else 0), calls)
+-            check(label + "-OWED_RETAINED", bool(owed), owed)
++            check(label + "-DURABLE_OPEN_OWED",
++                  owed.get("state") == "OPEN" and owed.get("leader_fill_id") == "event-e2e-" + label
++                  and owed.get("intent_id") == "intent-e2e-" + label, owed)
+             if scenario == "two-attempt":
+                 check(label + "-TWO_DISTINCT_ATTEMPTS",
+                       first_id != last_id and first.get("cloid") and last.get("cloid")
+                       and first["cloid"] != last["cloid"]
+                       and first.get("status") == "ORDER_REJECTED"
+                       and last.get("terminal_state") == "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+                       and result["timing"]["send_attempt_id"] == first_id
+-                      and result["timing"]["send_cloid"] == first["cloid"], (first, last, result))
+-            elif scenario == "terminal-write-raised":
++                      and result["timing"]["send_cloid"] == first["cloid"]
++                      and len(rows_for(first_id)) >= 2 and rows_for(first_id)[0].get("status") == "pending_send",
++                      (first, last, result))
++            elif scenario in no_pending:
++                check(label + "-NO_PHANTOM_PENDING",
++                      not first and not last and not rows_for(first_id), (first, last))
++            elif scenario in durable_failure:
+                 check(label + "-ORIGINAL_PENDING_UNMODIFIED",
+                       first.get("status") == "pending_send" and first.get("cloid")
+-                      and first.get("terminal_state") == "PENDING_SEND", first)
++                      and first.get("terminal_state") == "PENDING_SEND"
++                      and len(rows_for(first_id)) == 1 and rows_for(first_id)[0]["status"] == "pending_send", first)
+             else:
+                 check(label + "-PENDING_DURABLY_TERMINALISED",
+                       first.get("terminal_state") == "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+-                      and first.get("status") != "pending_send", first)
++                      and first.get("status") != "pending_send"
++                      and len(rows_for(first_id)) >= 2
++                      and rows_for(first_id)[0]["status"] == "pending_send"
++                      and rows_for(first_id)[0]["cloid"] == first["cloid"], first)
++        except Exception as exc:
++            check(label + "-EXCEPTION", False, repr(exc))
++
++def late_gate_direct_witnesses():
++    for label, kind in (
++        ("post-mode-direct", "POST_WAIT_MODE"),
++        ("post-proof-direct", "POST_WAIT_PROOF"),
++        ("post-lease-direct", "POST_WAIT_LEASE"),
++        ("late-block-raised-direct", "LATE_BLOCK_RAISE"),
++        ("late-block-false-direct", "LATE_BLOCK_FALSE"),
++        ("late-block-partial-direct", "LATE_BLOCK_PARTIAL"),
++        ("late-exception-false-direct", "LATE_EXCEPTION_FALSE"),
++        ("late-exception-read-direct", "LATE_EXCEPTION_READ"),
++    ):
++        try:
++            calls, hooks, fault, row, owed, response = fixture(label, kind)
++            aid = "attempt-" + label
++            no_pending = kind.startswith("POST_WAIT")
++            terminal_failed = kind in {"LATE_BLOCK_RAISE", "LATE_BLOCK_FALSE",
++                                      "LATE_BLOCK_PARTIAL", "LATE_EXCEPTION_FALSE", "LATE_EXCEPTION_READ"}
++            check(label + "-NO_SDK", len(calls) == 0, calls)
++            check(label + "-DURABLE_OWED",
++                  owed.get("state") == "OPEN" and owed.get("leader_fill_id") == "event-" + label
++                  and owed.get("intent_id") == "intent-" + label, owed)
++            check(label + "-RESPONSE_TYPED",
++                  ((fault is None and isinstance(response, dict)
++                    and response.get("exchange_called") is False) if no_pending else
++                   isinstance(fault, c.PendingSendTerminalWriteFailed)), repr(fault or response))
++            if no_pending:
++                check(label + "-NO_PHANTOM",
++                      not hooks and not row and not rows_for(aid), row)
++            elif terminal_failed:
++                hist = rows_for(aid)
++                check(label + "-ORIGINAL_DURABLE_ROW",
++                      len(hooks) == 1 and len(hist) >= 1 and hist[0].get("status") == "pending_send"
++                      and hist[0].get("cloid") and all(h.get("cloid") == hist[0]["cloid"] for h in hist)
++                      and ((len(hist) == 2 and row.get("terminal_state") == "CLOSE_PROOF_HOLD_AT_WIRE")
++                           if kind == "LATE_BLOCK_PARTIAL" else len(hist) == 1 and row.get("status") == "pending_send"),
++                      hist)
+         except Exception as exc:
+             check(label + "-EXCEPTION", False, repr(exc))
+ 
+@@ -214,7 +334,7 @@ def main():
+                         ("net-after-pending", "NET"),
+                         ("config-first-gate", "FIRST")):
+         try:
+-            calls, hooks, fault, row, owed = fixture(label, kind)
++            calls, hooks, fault, row, owed, response = fixture(label, kind)
+             check(label + "-ZERO_SDK", not calls, calls)
+             check(label + "-TYPED_NO_CALL", isinstance(fault, c.PreWireNoCallFault), repr(fault))
+             if kind == "FIRST":
+@@ -227,6 +347,7 @@ def main():
+         except Exception as exc:
+             check(label + "-UNEXPECTED_EXCEPTION", False, repr(exc))
+     sender_e2e_witnesses()
++    late_gate_direct_witnesses()
+     print("TOTAL=%d FAILED=%d" % (len(RESULTS), sum(not x for x in RESULTS)))
+     return 1 if not all(RESULTS) else 0
+ 
+# COMMIT 3 90b961cdf007c69cbcee79004429b69882a7f62e _archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+diff --git a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+--- a/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
++++ b/_archive/hl_stage2/test_core_cc1_b_pending_terminalise.py
+@@ -80,7 +80,7 @@ def master(*args):
+         return ""
+     def proof(*args, **kw):
+         proof_calls.append(1)
+-        if defect == "NET" and len(proof_calls) == 2:
++        if defect in {"NET", "LATE_EXCEPTION_FALSE", "LATE_EXCEPTION_READ"} and len(proof_calls) == 2:
+             raise RuntimeError("fresh_exchange_net exploded")
+         if defect == "POST_WAIT_PROOF" and len(proof_calls) == 1:
+             return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
+@@ -254,9 +254,15 @@ def sender_e2e_witnesses():
+                 expected_status = "PRE_WIRE_TERMINAL_WRITE_FAILED"
+             else:
+                 expected_status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
++            valid_terminal = (
++                result.get("terminal_state") in {"BLOCKED_AT_PLACE_ORDER",
++                    "CLOSE_PROOF_HOLD_AT_WIRE", "SEND_BLOCKED_NO_SENDER_LEASE"}
++                if scenario in no_pending else
++                result.get("terminal_state", expected_status) == expected_status
++            )
+             check(label + "-PARENT_TRUTH",
+                   not ok and bool(result.get("exchange_called")) == (scenario == "two-attempt")
+-                  and status == expected_status and result.get("terminal_state", expected_status) == expected_status,
++                  and status == expected_status and valid_terminal,
+                   (status, result))
+             check(label + "-SDK_COUNT", len(calls) == (1 if scenario == "two-attempt" else 0), calls)
+             check(label + "-DURABLE_OPEN_OWED",
+-- 
+END PATCH SERIES
