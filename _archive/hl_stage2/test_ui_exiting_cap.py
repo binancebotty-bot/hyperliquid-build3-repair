@@ -59,6 +59,8 @@ with tempfile.TemporaryDirectory(prefix="ui_exiting_") as tmp:
     check("CORE_LEDGER_NONFLAT_EXPLICIT", lambda: U._core_wallet_nonflat(ledger(), W1) is True)
     check("CORE_LEDGER_FLAT_EXPLICIT", lambda: U._core_wallet_nonflat(ledger(False), W1) is False)
     check("UNKNOWN_LEDGER_FAILS_CLOSED", lambda: U._core_wallet_nonflat({}, W1) is None)
+    check("MISSING_WALLET_KEY_IS_UNKNOWN_NOT_FLAT", lambda:
+          U._core_wallet_nonflat({"schema": "manual_live_positions.v2", "by_wallet": {}}, W1) is None)
     check("INVALID_LEDGER_SIZE_FAILS_CLOSED", lambda:
           U._core_wallet_nonflat({"schema": "manual_live_positions.v2",
               "by_wallet": {W1: {"BTC": {"signed_size": "NaN"}}}}, W1) is None)
@@ -121,6 +123,38 @@ with tempfile.TemporaryDirectory(prefix="ui_exiting_") as tmp:
             result = U.finalise_exiting_wallets()
         return result.status_code == 200 and not saved
     check("FINALISE_POST_NO_PENDING_DOES_NOT_WRITE", no_pending_no_write)
+
+    def bad_mode_blocks_save():
+        path = Path(tmp) / "fault_live_config.json"
+        original = json.dumps({"wallets": {W1: {"mode": "BOGUS", "enabled": True}},
+                               "archived_wallets": {}, "global_controls": {}})
+        path.write_text(original)
+        with patch.object(U, "LIVE_COPY_CONFIG_FILE", path):
+            response = U.get_live_config()
+            read_fault = response.status_code == 409 and b"CONFIG_FAULT_UNKNOWN_WALLET_MODE" in response.body
+            save_fault = False
+            try:
+                U._save_live_copy_config(json.loads(original))
+            except ValueError:
+                save_fault = True
+            return read_fault and save_fault and path.read_text() == original
+    check("UNKNOWN_MODE_RED_FAULT_ZERO_FILE_OVERWRITE", bad_mode_blocks_save)
+
+    def bad_json_blocks_save():
+        path = Path(tmp) / "broken_live_config.json"
+        path.write_text("{not json")
+        with patch.object(U, "LIVE_COPY_CONFIG_FILE", path):
+            response = U.get_live_config()
+            return (response.status_code == 409 and
+                    b"CONFIG_FAULT_READ_" in response.body and path.read_text() == "{not json")
+    check("MALFORMED_CONFIG_FAULT_NOT_EMPTY_ROSTER", bad_json_blocks_save)
+
+    def no_unrelated_mode_repair():
+        raw = {"wallets": {W1: {"mode": "LIVE", "enabled": True}, W2: {"mode": "OFF", "enabled": False}}}
+        before = json.dumps(raw, sort_keys=True)
+        U.repair_live_config_consistency(raw)
+        return json.dumps(raw, sort_keys=True) == before
+    check("VALIDATE_WITHOUT_REWRITING_OTHER_WALLETS", no_unrelated_mode_repair)
 
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), RESULTS.count(False)))
 sys.exit(1 if False in RESULTS else 0)

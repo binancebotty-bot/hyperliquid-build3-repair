@@ -88,8 +88,7 @@ PNL_RUN_START_FILE = LIVE_COPY_AUDIT_DIR / "pnl_run_start.json"  # the screen's 
 PNL_FILLS_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_fills_cache.json"
 PNL_FUNDING_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_funding_cache.json"
 LIVE_COPY_RECONCILIATION_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"
-APPEND_ONLY_DIR = LIVE_COPY_AUDIT_DIR / "append_only"
-ERRORS_CSV = APPEND_ONLY_DIR / "errors.csv"  # where the engine writes its SYMBOL_NOT_LISTED refusals
+ERRORS_CSV = LIVE_COPY_RECONCILIATION_CSV.parent / "errors.csv"  # where the engine writes its SYMBOL_NOT_LISTED refusals
 ASSET_UNIVERSE_FILE = LIVE_COPY_AUDIT_DIR / "asset_universe_snapshot.json"  # what this network lists
 LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_intents.csv"
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
@@ -1020,21 +1019,26 @@ def _global_controls_for_ui(raw: Any) -> Dict[str, Any]:
 
 
 def _load_live_copy_config() -> Dict[str, Any]:
+    """CONFIG_FAULT is an error, never an empty followed-roster or OFF mode."""
     try:
-        if LIVE_COPY_CONFIG_FILE.exists():
-            cfg = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
-        else:
-            cfg = {}
-    except Exception:
-        cfg = {}
+        cfg = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("CONFIG_FAULT_READ_" + type(exc).__name__) from exc
     if not isinstance(cfg, dict):
-        cfg = {}
-    wallets = cfg.get("wallets")
-    archived = cfg.get("archived_wallets")
-    cfg["wallets"] = wallets if isinstance(wallets, dict) else {}
-    cfg["archived_wallets"] = archived if isinstance(archived, dict) else {}
-    gc = cfg.get("global_controls")
-    cfg["global_controls"] = _normalise_global_controls(gc if isinstance(gc, dict) else {})
+        raise ValueError("CONFIG_FAULT_ROOT_NOT_OBJECT")
+    if not isinstance(cfg.get("wallets"), dict):
+        raise ValueError("CONFIG_FAULT_WALLETS_NOT_OBJECT")
+    for wallet, raw in cfg["wallets"].items():
+        normalize_live_wallet_config(wallet, raw)
+    archived = cfg.get("archived_wallets", {})
+    if not isinstance(archived, dict):
+        raise ValueError("CONFIG_FAULT_ARCHIVED_NOT_OBJECT")
+    for wallet, raw in archived.items():
+        normalize_live_wallet_config(wallet, raw)
+    if "global_controls" in cfg and not isinstance(cfg["global_controls"], dict):
+        raise ValueError("CONFIG_FAULT_GLOBAL_CONTROLS_NOT_OBJECT")
+    cfg["archived_wallets"] = archived
+    cfg["global_controls"] = _normalise_global_controls(cfg.get("global_controls", {}))
     return cfg
 
 
@@ -1043,6 +1047,13 @@ def _atomic_write_json(path: Path, payload: Any) -> None:
 
 
 def _save_live_copy_config(config: Dict[str, Any]) -> None:
+    # No UI writer may turn an unknown stored wallet mode into a guessed OFF.
+    for section in ("wallets", "archived_wallets"):
+        rows = config.get(section, {})
+        if not isinstance(rows, dict):
+            raise ValueError("CONFIG_FAULT_" + section.upper())
+        for wallet, raw in rows.items():
+            normalize_live_wallet_config(wallet, raw)
     LIVE_COPY_AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     _atomic_write_json(LIVE_COPY_CONFIG_FILE, config)
 
@@ -1052,10 +1063,12 @@ def _normalise_wallet_address(wallet: Any) -> str:
 
 
 def normalize_live_wallet_config(wallet: Any, cfg: Any, repair: bool = False) -> Dict[str, Any]:
-    raw = cfg if isinstance(cfg, dict) else {}
-    mode = str(raw.get("mode", "OFF")).upper()
+    if not isinstance(cfg, dict):
+        raise ValueError("CONFIG_FAULT_WALLET_NOT_OBJECT")
+    raw = cfg
+    mode = str(raw.get("mode", "")).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
-        mode = "OFF"
+        raise ValueError("CONFIG_FAULT_UNKNOWN_WALLET_MODE")
     explicit_disabled = "enabled" in raw and parse_bool(raw.get("enabled")) is False
     if mode in {"LIVE", "CLO"}:
         if explicit_disabled and not repair:
@@ -1077,21 +1090,13 @@ def normalize_live_wallet_config(wallet: Any, cfg: Any, repair: bool = False) ->
 
 
 def repair_live_config_consistency(config: Dict[str, Any]) -> bool:
-    wallets = config.get("wallets", {}) if isinstance(config, dict) else {}
+    """Legacy call site: validate without rewriting unrelated wallet fields."""
+    wallets = config.get("wallets")
     if not isinstance(wallets, dict):
-        return False
-    changed = False
-    for wallet, cfg in wallets.items():
-        if not isinstance(cfg, dict):
-            continue
-        normal = normalize_live_wallet_config(wallet, cfg, repair=True)
-        if cfg.get("mode") != normal["mode"]:
-            cfg["mode"] = normal["mode"]
-            changed = True
-        if cfg.get("enabled") is not normal["enabled"]:
-            cfg["enabled"] = normal["enabled"]
-            changed = True
-    return changed
+        raise ValueError("CONFIG_FAULT_WALLETS_NOT_OBJECT")
+    for wallet, raw in wallets.items():
+        normalize_live_wallet_config(wallet, raw)
+    return False
 
 
 # Per-wallet settings the Core engine never reads (it sizes from real leader equity and applies the
@@ -1102,7 +1107,7 @@ ENGINE_IGNORED_WALLET_KEYS = ("leader_equity_base", "max_diff_pct", "daily_loss_
 
 def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     base = dict(existing or {})
-    mode_default = base.get("mode", "OFF") if existing is not None else "OFF"
+    mode_default = base.get("mode") if existing is not None else None
     mode = str(payload.get("mode", mode_default)).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
         raise ValueError("BAD_MODE")
@@ -1162,7 +1167,7 @@ def _core_wallet_nonflat(ledger: Dict[str, Any], wallet: str) -> Optional[bool]:
     by_wallet = ledger.get("by_wallet")
     if not isinstance(by_wallet, dict):
         return None
-    sleeves = next((v for k, v in by_wallet.items() if str(k).lower() == wallet.lower()), {})
+    sleeves = next((v for k, v in by_wallet.items() if str(k).lower() == wallet.lower()), None)
     if not isinstance(sleeves, dict):
         return None
     nonflat = False
@@ -1834,13 +1839,13 @@ def _symbol_not_listed_summary() -> Dict[str, Any]:
 
     partial_reads: List[str] = []  # every bounded tail and every skipped read error is named here, never silent
     try:
-        journals = sorted(APPEND_ONLY_DIR.glob("reconciliation*.csv"), key=lambda f: f.name)
+        journals = sorted(LIVE_COPY_RECONCILIATION_CSV.parent.glob("reconciliation*.csv"), key=lambda f: f.name)
     except OSError as exc:
         journals = []
         partial_reads.append("reconciliation journals: listing failed (%s)" % type(exc).__name__)
     if not journals:
         # no journal at all is not nothing-to-report: the counts cannot be known
-        partial_reads.append("reconciliation journals: none found (%s)" % APPEND_ONLY_DIR.name)
+        partial_reads.append("reconciliation journals: none found (%s)" % LIVE_COPY_RECONCILIATION_CSV.parent.name)
     if len(journals) > 2:
         partial_reads.append("reconciliation journals: newest 2 of %d read" % len(journals))
     journals = journals[-2:]
@@ -4572,20 +4577,6 @@ def load_live_config() -> Dict[str, Any]:
 
 def save_live_config(cfg: Dict[str, Any]) -> None:
     _save_live_copy_config(cfg)
-
-
-def enforce_live_wallet_limit(cfg: Dict[str, Any], max_live: int = 10) -> Dict[str, Any]:
-    wallets = cfg.get("wallets", {})
-    live = [w for w, v in wallets.items() if v.get("mode") == "LIVE"]
-
-    if len(live) <= max_live:
-        return cfg
-
-    for w in live[max_live:]:
-        wallets[w]["mode"] = "OFF"
-
-    cfg["wallets"] = wallets
-    return cfg
 
 
 def save_wallet_gate(gate: Dict[str, Any]) -> None:
@@ -7760,7 +7751,7 @@ let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStart
 let lcNotListed=null, lcNotListedAt=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function msg(t,bad){if(status){status.textContent=t||'';status.className='lc-status '+(bad?'lc-bad':'lc-ok');}}
-async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});return await r.json();}
+async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});const j=await r.json();if(!r.ok||j.ok===false)throw new Error(j.error||'CONFIG_FAULT');return j;}
 async function jpost(url,payload){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-requested-with':'fetch'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||j.ok===false)throw new Error(j.error||r.statusText);return j;}
 // intentional blank — helpers below
 function num(v,d){const n=parseFloat(v);return Number.isFinite(n)?n:d;}
@@ -8559,7 +8550,10 @@ def sort_column(column: str, request: Request, direction: str = ""):
 
 @app.get("/api/live-config")
 def get_live_config():
-    return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
+    try:
+        return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
+    except ValueError as exc:
+        return _live_config_error(str(exc), status_code=409)
 
 
 @app.post("/api/live-config/finalise-exiting")
