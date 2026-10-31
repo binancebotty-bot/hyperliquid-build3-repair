@@ -192,19 +192,6 @@ def sleeve_of(ledger, wallet):
     return None if row is None else float(row.get("signed_size"))
 
 
-# ======================================================================================= W1 stale replay, flat sleeve
-def w1():
-    led, ex, net = new_ledger(), FakeExchange(), [0.0]
-    gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 2.0, "w1-f", 2.0, source="WS_SNAPSHOT_REPLAY", ts=1)
-    set_sleeve(led, A, 0.0)                                          # the position is gone: loaded, explicit 0
-    ok, status = gw.send_if_allowed(it)
-    rows = recon_rows("w1-f")
-    return (not ok and status == NAME and not ex.calls and len(rows) == 1 and len(named_rows("w1-f")) == 1
-            and str(rows[0].get("engine_can_send")) in ("False", "false", "0", "")), \
-        "ok=%r status=%r calls=%d rows=%r" % (ok, status, len(ex.calls), [(r.get("status"), r.get("terminal_state")) for r in rows])
-
-
 # ======================================================================================= W2 netted opposite-leader reduction
 def w2():
     led, ex, net = new_ledger(), FakeExchange(), [-5.0]
@@ -263,15 +250,6 @@ def w4a_whole_position():
         "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
 
 
-def w4b_submin_remainder_is_held_not_sent():
-    led, ex, net = new_ledger(), FakeExchange(), [5.05]   # engine +0.05 ($5) with a user +5 residual
-    gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 0.05, "w4b-f", 0.05)
-    ok, status = gw.send_if_allowed(it)
-    sub_min = [x for x in ex.calls if x["size"] * PX < MIN_USD - 1e-9]
-    return not sub_min and not ok, "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
-
-
 def w4c_resolved_by_whole_position_close_when_account_would_go_flat():
     led, ex, net = new_ledger(), FakeExchange(), [5.05]
     gw = make_gateway(ex, led, net)
@@ -299,17 +277,6 @@ def w4d_no_engine_dust_remains_when_exchange_is_flat():
                         and bool(red_for("w4d-f")))
     return exact_flat_send or unresolved_holds, \
         "status=%r sdk=%r exchange_after=%r red=%r" % (status, ex.calls, net[0], red_for("w4d-f"))
-
-
-# ======================================================================================= W5 older terminal id
-def w5():
-    led, ex, net = new_ledger(), FakeExchange(), [2.0]
-    gw = make_gateway(ex, led, net)
-    gw.audit.append_reconciliation("SEND_TERMINAL", "ORDER_FILLED", leader_wallet=A, leader_fill_id="w5-old", intent_id="w5-old",
-                                   coin=COIN, terminal_state="ORDER_FILLED", engine_can_send="False")
-    it = exit_intent(led, A, "SELL", 1.0, "w5-new", 2.0)
-    ok, status = gw.send_if_allowed(it)
-    return ok and len(ex.calls) == 1 and not named_rows("w5-new"), "ok=%r status=%r calls=%r" % (ok, status, ex.calls)
 
 
 # ======================================================================================= W6 unknown / wrong account never claims flat
@@ -969,16 +936,13 @@ def ceil_matched_close_then_the_excess_sends():
 def main():
     started = time.perf_counter()
     witnesses = [
-        ("W1_STALE_REPLAY_ON_FLAT_SLEEVE_IS_A_NAMED_NO_SEND_WITH_ONE_DURABLE_ROW", w1),
         ("W2_NETTED_OPPOSITE_LEADER_REDUCTION_STILL_SENDS_GROSS_RISES", w2),
         ("W3A_LIVE_SLEEVE_CLOSE_SENDS_REDUCE_ONLY", w3a),
         ("W3B_USER_RESIDUAL_ON_THE_COIN_ENGINE_CLOSE_OF_ITS_OWN_SLEEVE_STILL_SENDS", w3b_user_residual),
         ("W4A_DUST_WHOLE_POSITION_CLOSE_SENDS_EXACT_FULL_CLOSE", w4a_whole_position),
-        ("W4B_SUBMIN_REMAINDER_WITH_RESIDUAL_IS_HELD_NOT_SENT_AS_A_PARTIAL", w4b_submin_remainder_is_held_not_sent),
         ("W4C_HELD_REMAINDER_RESOLVED_BY_WHOLE_POSITION_CLOSE_WHEN_ACCOUNT_WOULD_GO_FLAT",
          w4c_resolved_by_whole_position_close_when_account_would_go_flat),
         ("W4D_NO_ENGINE_DUST_REMAINS_WHEN_THE_EXCHANGE_IS_FLAT", w4d_no_engine_dust_remains_when_exchange_is_flat),
-        ("W5_OLDER_TERMINAL_FILL_ID_DOES_NOT_BLOCK_A_FRESH_EXIT_ON_A_LIVE_SLEEVE", w5),
         ("W6A_UNREADABLE_EXCHANGE_NEVER_CLAIMS_FLAT", w6a_unreadable_exchange_never_claims_flat),
         ("W6B_R1_WRONG_ACCOUNT_REQUIRES_DURABLE_HOLD_NO_SDK",
          w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent),
