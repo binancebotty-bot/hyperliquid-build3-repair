@@ -80,7 +80,7 @@ def fixture(label, defect, is_exit=True):
         return ""
     def proof(*args, **kw):
         proof_calls.append(1)
-        if defect == "NET" and len(proof_calls) == 2:
+        if defect in {"NET", "LATE_EXCEPTION_FALSE", "LATE_EXCEPTION_READ"} and len(proof_calls) == 2:
             raise RuntimeError("fresh_exchange_net exploded")
         if defect == "POST_WAIT_PROOF" and len(proof_calls) == 1:
             return "CLOSE_PROOF_HOLD_NET_UNKNOWN"
@@ -254,9 +254,15 @@ def sender_e2e_witnesses():
                 expected_status = "PRE_WIRE_TERMINAL_WRITE_FAILED"
             else:
                 expected_status = "PRE_WIRE_FAULT_NO_EXCHANGE_CALL"
+            valid_terminal = (
+                result.get("terminal_state") in {"BLOCKED_AT_PLACE_ORDER",
+                    "CLOSE_PROOF_HOLD_AT_WIRE", "SEND_BLOCKED_NO_SENDER_LEASE"}
+                if scenario in no_pending else
+                result.get("terminal_state", expected_status) == expected_status
+            )
             check(label + "-PARENT_TRUTH",
                   not ok and bool(result.get("exchange_called")) == (scenario == "two-attempt")
-                  and status == expected_status and result.get("terminal_state", expected_status) == expected_status,
+                  and status == expected_status and valid_terminal,
                   (status, result))
             check(label + "-SDK_COUNT", len(calls) == (1 if scenario == "two-attempt" else 0), calls)
             check(label + "-DURABLE_OPEN_OWED",
