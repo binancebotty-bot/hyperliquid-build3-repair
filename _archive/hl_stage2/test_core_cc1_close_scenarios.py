@@ -1139,12 +1139,12 @@ def d5_dust_exact_whole_proven_position_can_close():
         ex.calls, status, net[0], red_for("d5-exit"))
 
 
-def d6_corrupt_provenance_variant(mutant):
+def d6_corrupt_provenance_variant(mutant, tag):
     """Table-driven FAIL-CLOSED negative: one corrupted proof dimension per fresh case."""
     # No genuine production fills or network calls; the test-only original order
     # is a legitimate fake-account response, after which we corrupt ONE proof leg.
     led, ex, net = new_ledger(), FakeExchange(), [5.0]
-    trace = d_seed_owned(led, D6, .5, "d6")
+    trace = d_seed_owned(led, D6, .5, tag)
     assert d_origin_chain_ok(trace)
     it = exit_intent(led, D6, "SELL", 2.0, "d6-exit-" + mutant, 2.0, start=2.0)
     original_rows = d_csv_rows(c.LIVE_FILLS_CSV)
@@ -1202,7 +1202,7 @@ def d6_corrupt_provenance_variant(mutant):
     # A fake receipt or an OID string is never sufficient; real proof must be
     # re-derived from complete original intent+send+account-fill and unique ids.
     valid = d_origin_chain_ok(trace)
-    if valid:
+    if valid and mutant != "unknown_net":
         return False, "negative mutation failed to invalidate the lineage"
     gw = make_gateway(ex, led, net)
     ok, status = gw.send_if_allowed(it)
@@ -1216,12 +1216,28 @@ def d6_corrupt_provenance_variant(mutant):
 
 def d6_provenance_negative_suite():
     failures = []
-    for mutant in ("missing", "corrupt", "wallet", "coin", "duplicate", "forged_repair",
-                   "fake_nonrepair", "sign", "missing_anchor", "missing_oid", "unknown_net"):
+    mutants = ("missing", "corrupt", "wallet", "coin", "duplicate", "forged_repair",
+               "fake_nonrepair", "sign", "missing_anchor", "missing_oid", "unknown_net")
+    for i, mutant in enumerate(mutants):
+        # Exactly one corruption per variant. Restore existing append-only fixture bytes
+        # after checking that mutation, so a corrupt CSV cannot poison the next variant.
+        # Each origin has a distinct OID/hash/tid and thus a distinct claim marker.
+        tag = "d6-" + mutant
+        D_TAGS[tag] = 2001 + i
+        original = {p: (p.read_bytes() if p.exists() else None)
+                    for p in (c.LIVE_FILLS_CSV, c.ORDER_INTENTS_CSV, c.SEND_ATTEMPTS_CSV)}
         try:
-            ok, detail = d6_corrupt_provenance_variant(mutant)
+            ok, detail = d6_corrupt_provenance_variant(mutant, tag)
         except Exception as exc:
             ok, detail = False, repr(exc)
+        finally:
+            for p, data in original.items():
+                if data is None:
+                    if p.exists():
+                        p.unlink()
+                else:
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    p.write_bytes(data)
         if not ok:
             failures.append("%s:%s" % (mutant, detail))
     return not failures, "D6 mutant FAILS=%d %s" % (len(failures), "; ".join(failures)[:800])
@@ -1286,6 +1302,7 @@ def main():
         ("D3_DISK_HAND_EDIT_PROVEN_HALF_CLAMP_PRESERVES_FOREIGN", d3_hand_edit_disk_not_owned_proof),
         ("D4_DUST_UPLIFT_CANNOT_BORROW_FOREIGN", d4_dust_uplift_cannot_borrow_foreign),
         ("D5_WHOLE_ACCOUNT_DUST_CLAMPED_PROVEN_EXEMPTION", d5_dust_exact_whole_proven_position_can_close),
+        ("D6_FORGED_CORRUPT_DUPLICATE_CROSS_WALLET_PROVENANCE_HOLDS", d6_provenance_negative_suite),
         *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
            (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]
