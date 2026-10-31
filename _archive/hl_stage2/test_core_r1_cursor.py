@@ -149,6 +149,61 @@ def main():
     finally:
         c.already_closed_late_entries = old_late_classifier
 
+    # CC-1 EVENT_LOSS: real poll/cursor intake seam, not a fabricated EXIT
+    # injected directly into SenderGateway. This tests discovery + once-only
+    # dispatch of a unique delayed CLOSE; it does NOT certify exchange-owned
+    # provenance, an actual SDK SELL, matched account fill or CLOSE_OWED.
+    # RELEASE STOP: EVENT_LOSS_OWNED_HALF_PHYSICAL_0_5_AND_OWED remains
+    # RED / NOT_RUN until an independent real-matcher + SDK/CSV oracle exists.
+    for q in core._hot_queues:
+        held = []
+        while not q.empty():
+            held.append(q.get_nowait())
+        if held:
+            core._release_queued(held, q)
+    lost_at = c.utc_now_ms() - 4000
+    lost_close = c.LeaderFill(
+        "cc1-event-loss-recovered-close", A, "BTC", "SELL", 100.0, 0.5,
+        lost_at, "POLL", 0,
+        {"oid": "cc1-event-loss-oid", "dir": "Close Long", "startPosition": "0.5"})
+    check("EVENT_LOSS_CLOSE_UNSEEN_BEFORE_BACKFILL",
+          core.hot_backlog() == 0 and not core._already_handled(lost_close),
+          f"backlog={core.hot_backlog()}")
+    poll_seen = []
+    def recovered_close_poll(wallet, start_ms, end_ms=None):
+        poll_seen.append((wallet, start_ms, end_ms))
+        return ([lost_close] if wallet == A and start_ms <= lost_at <= end_ms else [], "POLL_OK")
+    core.ingestor.poll_hyperliquid_fills = recovered_close_poll
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {
+        A: lost_at - c.LEADER_POLL_OVERLAP_MS - 5000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    queued_close = []
+    for q in core._hot_queues:
+        with q.mutex:
+            queued_close.extend(f for f in q.queue
+                                if f.leader_fill_id == lost_close.leader_fill_id)
+    saved_close_cursor = c.load_json(
+        c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(A, 0)
+    check("EVENT_LOSS_UNSEEN_CLOSE_RECOVERED_FROM_ACTUAL_POLL_INTAKE",
+          len(queued_close) == 1 and len(poll_seen) == 1
+          and queued_close[0].side == "SELL"
+          and queued_close[0].raw.get("startPosition") == "0.5",
+          f"queued={len(queued_close)} polls={poll_seen}")
+    check("EVENT_LOSS_CLOSE_CURSOR_NOT_PAST_UNHANDLED_EVENT",
+          saved_close_cursor <= lost_at,
+          f"saved_cursor={saved_close_cursor} event={lost_at}")
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    queued_again = []
+    for q in core._hot_queues:
+        with q.mutex:
+            queued_again.extend(f for f in q.queue
+                                if f.leader_fill_id == lost_close.leader_fill_id)
+    check("EVENT_LOSS_SAME_RECOVERED_CLOSE_NOT_QUEUED_TWICE",
+          len(queued_again) == 1 and len(poll_seen) == 2,
+          f"queued={len(queued_again)} polls={poll_seen}")
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
