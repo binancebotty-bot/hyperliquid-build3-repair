@@ -240,6 +240,12 @@ def sender_path_case(label, scenario):
             return len(leases) < 3
         c._sender_lease_owned = still_owns_sender
     timing = {"send_attempt_id": "attempt-e2e-" + label, "send_cloid": c.generate_cloid("e2e-" + label)}
+    original_recovery_hooks = gw._recovery_send_hooks
+    def capture_retry_cloid(*args, **kwargs):
+        retry_cloid, pending_hook = original_recovery_hooks(*args, **kwargs)
+        timing.setdefault("_test_retry_cloids", []).append(retry_cloid)
+        return retry_cloid, pending_hook
+    gw._recovery_send_hooks = capture_retry_cloid
     try:
         outcome = gw._send_real(intent, timing)
         first_id = "attempt-e2e-" + label
@@ -329,7 +335,11 @@ def sender_e2e_witnesses():
                       and first.get("status") == "ORDER_REJECTED"
                       and len(event_rows) >= 2
                       and {r.get("attempt_id") for r in event_rows} == {first_id}
-                      and event_rows[0].get("status") == "pending_send",
+                      and event_rows[0].get("status") == "pending_send"
+                      and len(result["timing"].get("_test_retry_cloids", [])) == 1
+                      and result["timing"]["_test_retry_cloids"][0] != first["cloid"]
+                      and result["timing"]["_test_retry_cloids"][0] not in
+                          {r.get("cloid") for r in event_rows},
                       (first, last, result, event_rows))
             elif scenario == "two-attempt":
                 check(label + "-TWO_DISTINCT_ATTEMPTS",
