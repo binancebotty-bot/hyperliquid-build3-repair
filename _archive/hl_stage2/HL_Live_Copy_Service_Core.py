@@ -4953,6 +4953,9 @@ class IntentBuilder:
         self._coin_activity: Dict[str, int] = {}  # last allowed send per coin (ENG-016 settle window)
         self._coin_clean: Dict[str, bool] = {}
         self.resting_exposure: Optional[Callable[[], Dict[str, Any]]] = None  # the sender's resting entry limits
+        # CS-I1: per-sleeve close chain head (leader position the sleeve was opened against, the
+        # follower sleeve at that head, and the leader position the next event must start from).
+        self._exit_chain: Dict[str, Dict[str, float]] = {}
 
     def _resting(self) -> Dict[str, Any]:
         if self.resting_exposure is None:
@@ -5235,6 +5238,67 @@ class IntentBuilder:
         except Exception:
             return False
 
+    def _leader_position_before(self, fill: Any) -> Optional[float]:
+        """CS-I1: the LEADER position immediately BEFORE this fill, from startPosition, or None
+        when it is missing / unparseable. A non-finite or absurd magnitude is not usable evidence."""
+        try:
+            sp = float((getattr(fill, "raw", None) or {}).get("startPosition"))
+        except (TypeError, ValueError, AttributeError):
+            return None
+        if not math.isfinite(sp) or abs(sp) > 1e15:
+            return None
+        return sp
+
+    def _exit_chain_event_target(self, sleeve_key: str, wallet: str, coin: str, fill: Any) -> Optional[float]:
+        """CS-I1/I4: the follower close size owed by THIS event, sized against the leader's
+        EVENT-DERIVED chain head rather than the follower ledger's lagging sleeve.
+
+        The sleeve only moves when a copy close FILLS. Several leader close events can arrive
+        before the first one fills, so abs(before) grows across the chain. Instead we keep, per
+        sleeve, the follower size at the head of the chain and the leader position that head
+        corresponds to. An event whose startPosition is that leader position (same sign) measures
+        its share against the head and its close against the head's follower size:
+            close = abs(head_copy_sleeve) * min(1, |fill.size| / |head_leader_pos|)
+        A leader chain that has moved to a position we have not seen yet (new head) is anchored on
+        the current sleeve. Returns None when there is no usable event-derived anchor, so the
+        caller keeps the sleeve-based answer."""
+        before = self.ledger.wallet_coin_position(wallet, coin)
+        sp = self._leader_position_before(fill)
+        if sp is None or sp == 0 or fill.price <= 0:
+            return None
+        try:
+            side_delta = ManualLedger.signed_delta(getattr(fill, "side", ""), 1.0)
+        except (TypeError, ValueError, AttributeError):
+            return None
+        if side_delta == 0 or sp * side_delta > 0:  # not a close at all; the fraction decides
+            return None
+        head = self._exit_chain.get(sleeve_key)
+        matches = False
+        if head is not None and head["head_leader"] * sp > 0:
+            # an event belongs to the open chain when its startPosition is the head itself or the
+            # cursor the previous events advanced to (the leader sleeve only shrinks along a chain)
+            matches = (abs(sp - head["head_leader"]) <= 1e-9 * max(1.0, abs(head["head_leader"]))
+                       or abs(sp - head["cursor"]) <= 1e-9 * max(1.0, abs(head["cursor"])))
+        if matches:
+            head_leader, head_copy = head["head_leader"], head["copy_sleeve"]
+        else:
+            head_leader, head_copy = sp, before
+        try:
+            frac = abs(float(fill.size)) / abs(head_leader)
+        except (TypeError, ValueError, ZeroDivisionError):
+            return None
+        if not math.isfinite(frac):
+            return None
+        frac = max(0.0, min(1.0, frac))
+        target = abs(head_copy) * frac
+        cursor = (head["cursor"] if matches else abs(head_leader)) - abs(float(fill.size))
+        if cursor <= POSITION_EPSILON * max(1.0, abs(head_leader)):
+            self._exit_chain.pop(sleeve_key, None)  # leader is flat: the next open is a new head
+        else:
+            self._exit_chain[sleeve_key] = {"head_leader": head_leader, "copy_sleeve": head_copy,
+                                            "cursor": cursor}
+        return round(target, 8)
+
     @staticmethod
     def _leader_close_fraction(fill: Any) -> float:
         """R81 (CS-I1/I2): what SHARE of the leader position this fill closed, 0..1.
@@ -5289,9 +5353,14 @@ class IntentBuilder:
             # reduction (fill.size < sleeve) must not be copied as a 100% close; a whole-sleeve
             # exit and a dust close still target the full sleeve, and _close_wire_plan keeps the
             # I23 sub-minimum round-up for the remaining dust.
-            copy_size = round(abs(before) * self._leader_close_fraction(fill), 8)
+            _event_target = self._exit_chain_event_target(sleeve_id, wallet, coin, fill)
+            if _event_target is not None:
+                copy_size = min(round(abs(before) * self._leader_close_fraction(fill), 8), _event_target)
+            else:
+                copy_size = round(abs(before) * self._leader_close_fraction(fill), 8)
             copy_notional = copy_size * fill.price
         else:
+            self._exit_chain.pop(sleeve_id, None)  # an entry/add re-opens the chain: a new head
             copy_notional = self._copy_notional(wallet, fill)
             copy_size = round(copy_notional / fill.price, 8) if fill.price > 0 and copy_notional > 0 else 0.0
         intent_id = stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms])
