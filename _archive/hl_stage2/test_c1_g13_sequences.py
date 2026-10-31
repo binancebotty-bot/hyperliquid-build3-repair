@@ -229,27 +229,180 @@ def g5_wallet_cap():
           "stage=eleventh_clo active=%r live=%r stream=%r"%
           (len(ten_clo.active_wallets()),len(ten_clo.live_wallets()),len(ten_clo.stream_wallets())))
 
+def g5_real_startup_gate():
+    """Execute the EXACT c.main() wallet-limit guard with I/O prerequisites stubbed.
+    A sentinel replaces LiveCopyCore AFTER the real gate: 10 reaches it, 11
+    must refuse with the production SystemExit before any sender is constructed.
+    No network, private keys, process lock, or live core startup occurs.
+    """
+    import types
+    root=Path(tempfile.mkdtemp(prefix="g13_g5_main_"))
+    original={
+        "ConfigManager":c.ConfigManager,
+        "LiveCopyCore":c.LiveCopyCore,
+        "acquire_global_instance_lock":c.acquire_global_instance_lock,
+        "acquire_instance_lock":c.acquire_instance_lock,
+        "install_core_attribution_hooks":c.install_core_attribution_hooks,
+        "sender_key_check":c.sender_key_check,
+    }
+    x_claim=c._XNET.claim_network_stamp
+    x_refusal=c._XNET.stamp_state_refusal
+    prev_argv=sys.argv
+    prev_lock=os.environ.get("HL_LIVE_GLOBAL_LOCK_FILE")
+    class ReachedPostCapStartup(Exception):
+        pass
+    reached=[]
+    try:
+        c._XNET.claim_network_stamp=lambda *_a,**_k:None
+        c._XNET.stamp_state_refusal=lambda *_a,**_k:""
+        c.acquire_global_instance_lock=lambda *_a,**_k:None
+        c.acquire_instance_lock=lambda *_a,**_k:None
+        c.install_core_attribution_hooks=lambda *_a,**_k:None
+        c.sender_key_check=lambda:{"ok":True,"detail":"offline_no_key"}
+        def stop_before_engine(*args,**kwargs):
+            reached.append("CORE_CONSTRUCTION_REACHED")
+            raise ReachedPostCapStartup()
+        c.LiveCopyCore=stop_before_engine
+        for nlive,nclo,label in ((10,0,"TEN"),(11,0,"ELEVEN"),(10,1,"TEN_PLUS_CLO")):
+            wallets={}
+            for idx in range(nlive):
+                wallets["0x%040x"%(0xD000+idx)]={"enabled":True,"mode":"ON"}
+            for idx in range(nclo):
+                wallets["0x%040x"%(0xE000+idx)]={"enabled":True,"mode":"CLO"}
+            cfg=root/("main_config_%s.json"%label)
+            cfg.write_text(json.dumps({"wallets":wallets,"global_controls":{},
+                                       "auto_send_enabled":False}),encoding="utf-8")
+            # The ConfigManager itself and its cap calculation are NOT mocked;
+            # only its path is redirected to this synthetic configuration.
+            original_cfg=original["ConfigManager"]
+            c.ConfigManager=lambda *a, _cfg=cfg, **kw:original_cfg(_cfg)
+            sys.argv=["HL_Live_Copy_Service_Core.py","--once"]
+            reached.clear()
+            outcome=""
+            try:
+                c.main()
+                outcome="RETURNED"
+            except SystemExit as exc:
+                outcome="REFUSED:"+str(exc)
+            except ReachedPostCapStartup:
+                outcome="POST_CAP_STARTUP_REACHED"
+            expected=(outcome=="POST_CAP_STARTUP_REACHED" and reached==["CORE_CONSTRUCTION_REACHED"]
+                      if label!="ELEVEN" else
+                      outcome.startswith("REFUSED:TOO_MANY_ACTIVE_WALLETS:")
+                      and "11 wallets are LIVE" in outcome and not reached)
+            check("G5_REAL_STARTUP_GATE_"+label,expected,
+                  "phase=main_wallet_limit config=%s outcome=%s reached=%r"%
+                  (label,outcome,reached))
+    finally:
+        for name,value in original.items():
+            setattr(c,name,value)
+        c._XNET.claim_network_stamp=x_claim
+        c._XNET.stamp_state_refusal=x_refusal
+        sys.argv=prev_argv
+        if prev_lock is None:os.environ.pop("HL_LIVE_GLOBAL_LOCK_FILE",None)
+        else:os.environ["HL_LIVE_GLOBAL_LOCK_FILE"]=prev_lock
+
+
 def partial_close():
-    # IOC partly fills .6 of requested 1.0. Rest only the .4, at leader price.
+    """Safety-ordered IOC 0.6 -> pre-match HOLD/RED -> ledger proof -> real GTC
+    recovery trigger -> GTC fill -> dual-flat RED clear. No blind pre-match retry.
+    The test invokes the real recovery method AFTER proof; automatic scheduling
+    of this trigger by the copy-poll loop is NOT proved in this bounded unit.
+    """
     script=[fstatus(9201,0.6),resting(9202)]
     root,led,net,ex,gw,it,fid=make("PARTIAL",1.0,0.0,1.0,script=script,qty=1.0)
     ok,status=gw.send_if_allowed(it)
-    calls=list(ex.calls)
-    is_partial=ok and status=="ORDER_FILLED" and len(calls)>=1
-    applied=apply(gw,led,it,9201,0.6,"partial") if is_partial else False
+    first_calls=list(ex.calls)
+    attempt_rows=rows(c.SEND_ATTEMPTS_CSV,fid)
+    completed=[x for x in attempt_rows if x.get("status")=="ORDER_FILLED"
+               and x.get("exchange_order_id")=="9201"]
+    def stored_owed(row):
+        response=json.loads(row.get("exchange_response") or "{}")
+        filled=(response["response"]["data"]["statuses"][0]["filled"])
+        return float(row["copy_size"])-float(filled["totalSz"])
+    known_owed=stored_owed(completed[-1]) if completed else None
+    red0=open_red(fid,it.intent_id)
+    rec0=rows(c.RECONCILIATION_CSV,fid)
+    check("P_PREMATCH_NO_BLIND_SECOND_SEND",
+          ok and status=="ORDER_FILLED" and len(first_calls)==1
+          and first_calls[0]["side"]=="SELL"
+          and first_calls[0]["tif"].get("limit",{}).get("tif")=="Ioc"
+          and approx(first_calls[0]["size"],1.0)
+          and bool(red0)
+          and any(x.get("status")=="STANDING_CLOSE_NOT_PLACED"
+                  and "CLOSE_PROOF_HOLD_NO_CURRENT_LEDGER" in str(x.get("notes") or "")
+                  for x in rec0),
+          "phase=pre_match calls=%r red=%r recon=%r"%(first_calls,red0,rec0))
+    check("P_DURABLE_EVENT_CORRELATED_OWED_0_4",
+          approx(known_owed,0.4) and bool(completed)
+          and all(x.get("leader_fill_id")==fid and x.get("intent_id")==it.intent_id
+                  for x in completed)
+          and bool(red0),
+          "phase=durable_owed stored_order_qty=1 response_fill=0.6 derived_owed=%r red=%r"%
+          (known_owed,red0))
+    applied=apply(gw,led,it,9201,0.6,"partial") if ok else False
     fill=rows(c.LIVE_FILLS_CSV,fid)
-    check("P_PARTIAL_FILL_LEDGER_ONLY_MATCHED_QTY",
+    check("P_MATCH_PROVES_LEDGER_EXCHANGE_REMAINDER_0_4",
           applied and approx(net[0],0.4) and approx(led.coin_net(COIN),0.4)
           and approx(led.wallet_coin_position(A,COIN),0.4)
-          and any(approx(x["fill_size"],0.6) and approx(x["wallet_position_after"],0.4) for x in fill),
-          "stage=partial ok=%r ledger=%r exchange=%r rows=%r"%(ok,led.coin_net(COIN),net[0],fill))
-    red=open_red(fid,it.intent_id)
+          and any(approx(x["fill_size"],0.6)
+                  and approx(x["wallet_position_after"],0.4) for x in fill)
+          and len(ex.calls)==1,
+          "phase=post_match matched=%r ledger=%r exchange=%r calls=%r"%
+          (applied,led.coin_net(COIN),net[0],ex.calls))
+
+    # THE REAL recovery-placement method is invoked only after live fill ledger
+    # proof and account-net agree. The earlier ledger_may_lag=True safety hold is
+    # never disabled in the engine. Use leader PX rather than initial IOC PX.
+    fresh=gw._fresh_exchange_net(COIN)
+    ready=applied and approx(fresh,0.4) and approx(led.coin_net(COIN),fresh)
+    if ready:
+        gw._queue_exit_recovery_if_needed(
+            ex,COIN,it,it.fill.price,0.4,fstatus(9201,0.6),
+            "POST_MATCH_RECONCILED_LEDGER",remainder=None,sz_dec=3)
+    calls=list(ex.calls)
     rec=rows(c.RECONCILIATION_CSV,fid)
-    check("P_PARTIAL_REMAINDER_RESTS_RED_AT_LEADER_PRICE",
-          len(calls)==2 and calls[1]["tif"].get("limit",{}).get("tif","").lower()=="gtc"
-          and approx(calls[1]["size"],0.4) and approx(calls[1]["px"],PX)
-          and (bool(red) or any(x.get("status")=="EXIT_RECOVERY_QUEUED" for x in rec)),
-          "stage=remainder calls=%r red=%r rec=%r"%(calls,red,rec))
+    standing=c.load_json(c.STANDING_CLOSES_FILE,{})
+    all_attempts=rows(c.SEND_ATTEMPTS_CSV,fid)
+    expected_gtc=(len(calls)==2 and
+                  calls[1]["tif"].get("limit",{}).get("tif")=="Gtc"
+                  and calls[1]["side"]=="SELL"
+                  and approx(calls[1]["size"],0.4)
+                  and approx(calls[1]["px"],it.fill.price)
+                  and calls[1]["reduce_only"])
+    check("P_POSTPROOF_RECOVERY_GTC_AT_LEADER_PRICE",
+          ready and expected_gtc
+          and any(x.get("status")=="EXIT_RECOVERY_QUEUED"
+                  and x.get("exchange_order_id")=="9202"
+                  and x.get("intent_id")==it.intent_id for x in rec),
+          "phase=post_proof ready=%r calls=%r rec=%r"%(ready,calls,rec))
+    check("P_GTC_DURABLE_OID_AND_RED_UNTIL_FLAT",
+          bool(standing) and bool(open_red(fid,it.intent_id))
+          and any(x.get("status")=="ORDER_RESTING"
+                  and x.get("exchange_order_id")=="9202"
+                  and approx(x.get("copy_size"),0.4)
+                  and x.get("intent_id")==it.intent_id for x in all_attempts)
+          and gw.clear_close_escalations()==0,
+          "phase=resting standing=%r red=%r attempts=%r"%
+          (standing,open_red(fid,it.intent_id),
+           [(x.get("status"),x.get("copy_size"),x.get("exchange_order_id"))
+            for x in all_attempts]))
+    if expected_gtc:
+        net[0]-=0.4  # independently observed GTC venue fill
+        matched_rest=apply(gw,led,it,9202,0.4,"partialgtc")
+    else:
+        matched_rest=False
+    cleared=gw.clear_close_escalations()
+    final_rows=rows(c.LIVE_FILLS_CSV,fid)
+    check("P_GTC_FILL_DUAL_FLAT_CLEARS_RED",
+          matched_rest and cleared==1 and not open_red(fid,it.intent_id)
+          and approx(net[0],0) and approx(led.coin_net(COIN),0)
+          and approx(led.wallet_coin_position(A,COIN),0)
+          and any(approx(x.get("fill_size"),0.4) and x.get("ledger_action")=="CLOSED"
+                  for x in final_rows),
+          "phase=converged matcher=%r cleared=%r net=%r ledger=%r fills=%r"%
+          (matched_rest,cleared,net[0],led.coin_net(COIN),final_rows))
+
 
 def leader_flip():
     root,led,net,ex,gw,it,fid=make("FLIP",1.0,0.0,1.0,qty=1.0)
@@ -294,7 +447,7 @@ def dust_flat():
 
 def main():
     cases=[("G1",g1_close_tolerance),("G2",g2_ce1b_resting_leader_price),
-           ("G4",g4_429_reads_then_entry),("G5",g5_wallet_cap),
+           ("G4",g4_429_reads_then_entry),("G5",g5_wallet_cap),("G5_STARTUP",g5_real_startup_gate),
            ("PARTIAL",partial_close),("LEADER_FLIP",leader_flip),("DUST",dust_flat)]
     for label,fn in cases:
         try:fn()
