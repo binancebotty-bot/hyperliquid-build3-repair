@@ -1,0 +1,54 @@
+name: Coder1 G13 offline coverage evidence
+on:
+  push:
+    branches: [gpt/coder1-g13-gaps-20261031]
+permissions:
+  contents: read
+jobs:
+  offline-g13:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run G13 test-only evidence against unchanged Core
+        shell: bash
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+          HL_LIVE_AUTO_SEND_ENABLED: "0"
+          HL_LIVE_POLL_ENABLED: "0"
+          HL_E3_FILLS: "60"
+        run: |
+          mkdir -p evidence
+          {
+            echo "REPOSITORY=$GITHUB_REPOSITORY"
+            echo "HEAD_SHA=$(git rev-parse HEAD)"
+            echo "BASE_SHA=2a188facc73921bb46cea073c1028b7b38f5fb8e"
+            python3 --version
+            uname -srm
+            echo "HL_E3_FILLS=$HL_E3_FILLS"
+          } > evidence/environment.txt
+          git diff --exit-code 2a188facc73921bb46cea073c1028b7b38f5fb8e HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py >> evidence/environment.txt
+          set +e
+          (cd _archive/hl_stage2 && python3 -u test_c1_g13_sequences.py) > evidence/g13-sequences-output.txt 2>&1
+          rc1=$?
+          (cd _archive/hl_stage2 && python3 -u test_c1_g3_outage_unresolved.py) > evidence/g3-outage-output.txt 2>&1
+          rc3=$?
+          set -e
+          printf 'G13_EXIT=%s\nG3_EXIT=%s\n' "$rc1" "$rc3" > evidence/exit-codes.txt
+          cat evidence/g13-sequences-output.txt
+          cat evidence/g3-outage-output.txt
+          cat evidence/exit-codes.txt
+          (cd evidence && sha256sum environment.txt g13-sequences-output.txt g3-outage-output.txt exit-codes.txt > SHA256SUMS.txt)
+          cat evidence/SHA256SUMS.txt
+          if [ "$rc1" -ne 0 ] || [ "$rc3" -ne 0 ]; then exit 1; fi
+      - name: Publish complete immutable logs and hashes (including RED)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c1-g13-offline-evidence
+          path: evidence/
+          if-no-files-found: warn
