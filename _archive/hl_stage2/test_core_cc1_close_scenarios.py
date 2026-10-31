@@ -988,6 +988,60 @@ def d_origin_chain_ok(trace):
             and fills[0].get("side") == "BUY" and fills[0].get("ledger_action") == "UPDATED")
 
 
+class DCloseExchange(FakeExchange):
+    """Separate ack from an explicit later test-account userFills event."""
+    def __init__(self):
+        super().__init__()
+        self.responses = []
+        self.fills = []
+
+    def order(self, *a, **k):
+        response = super().order(*a, **k)
+        self.responses.append(response)
+        return response
+
+    def account_order_status(self, account, oid):
+        return (self.responses[0] if account == ACCOUNT and self.responses and
+                str(self.responses[0]["response"]["data"]["statuses"][0]["filled"]["oid"]) == str(oid)
+                else None)
+
+    def account_fills(self, account):
+        return [dict(x) for x in self.fills] if account == ACCOUNT else []
+
+
+def d_match_close_from_separate_account_feed(gw, ledger, ex, fid, wallet, size, tag):
+    """A filled SDK response must NOT settle. Only a later account-fill poll may."""
+    assert isinstance(ex, DCloseExchange) and len(ex.calls) == len(ex.responses) == 1
+    send = [r for r in send_rows(fid) if r.get("exchange_order_id")][0]
+    oid = send["exchange_order_id"]
+    assert ex.account_order_status(ACCOUNT, oid) == ex.responses[0]
+    assert ex.calls[0]["cloid"] == send.get("cloid")
+    assert not ex.account_fills(ACCOUNT)  # SDK response alone is not a user fill
+    assert d_not_settled(fid) and d_owed_red(fid, wallet, size)
+    assert not any(r.get("intent_id") == fid for r in d_csv_rows(c.LIVE_FILLS_CSV))
+    unique = 9000 + D_TAGS[tag]
+    account_fill = {
+        "user": ACCOUNT, "coin": COIN, "side": "SELL", "size": size, "px": PX, "oid": oid,
+        "hash": "0x" + format(unique, "064x"), "tid": unique * 10 + 1,
+        "time": c.utc_now_ms(), "source": "copy_account_poll",
+    }
+    ex.fills.append(account_fill)  # later independently delivered testnet account poll
+    feed = ex.account_fills(ACCOUNT)
+    assert len(feed) == 1 and feed[0] == account_fill and not ex.account_fills(OTHER_ACCOUNT)
+    matcher = c.CopyFillMatcher(ledger, c.AuditLogWriter())  # existing ONE ledger matcher
+    assert matcher.match_and_apply(feed[0], {})
+    matched_id = c.CopyFillMatcher.copy_fill_id(account_fill)
+    matched = [r for r in d_csv_rows(c.LIVE_FILLS_CSV)
+               if r.get("copy_fill_id") == matched_id and r.get("intent_id") == fid]
+    return (len(matched) == 1 and matched[0].get("exchange_hash") == account_fill["hash"]
+            and matched[0].get("exchange_order_id") == oid and matched[0].get("coin") == COIN
+            and matched[0].get("leader_wallet") == wallet
+            and matched[0].get("source") == "copy_account_poll"
+            and matched[0].get("side") == "SELL"
+            and abs(float(matched[0]["fill_size"]) - size) < 1e-9
+            and abs(float(ledger.wallet_coin_position(wallet, COIN))) <= c.POSITION_EPSILON)
+
+
 def d_repair_fill(wallet, size, tag):
     """Synthetic history poison, deliberately with positive size but no exchange execution."""
     result = {"wallet": wallet, "coin": COIN, "wallet_position_before": size,
@@ -1087,7 +1141,7 @@ def d2_setdefault_zero_never_certifies_unknown_owned():
 
 def d3_hand_edit_disk_not_owned_proof():
     """Authentic +.50, foreign +4.50, disk is hand edited +2.50: clamp physical SELL .50."""
-    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    led, ex, net = new_ledger(), DCloseExchange(), [5.0]
     trace = d_seed_owned(led, D3, .50, "d3")
     assert d_origin_chain_ok(trace)
     it = exit_intent(led, D3, "SELL", 2.0, "d3-exit", 2.0, start=2.0)
@@ -1102,7 +1156,9 @@ def d3_hand_edit_disk_not_owned_proof():
               and abs(net[0] - 4.5) < 1e-9
               and bool(d_close_row("d3-exit", D3, "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED",
                                    2.5, .5, 4.5, .5, .5))
-              and d_owed_red("d3-exit", D3, .5) and d_not_settled("d3-exit"))
+              and d_owed_red("d3-exit", D3, .5) and d_not_settled("d3-exit")
+              and d_match_close_from_separate_account_feed(gw, loaded, ex,
+                  "d3-exit", D3, .5, "d3"))
     return checks, "disk_override sdk=%r status=%r net=%r owed=%r" % (
         ex.calls, status, net[0], red_for("d3-exit"))
 
@@ -1124,7 +1180,7 @@ def d4_dust_uplift_cannot_borrow_foreign():
 
 def d5_dust_exact_whole_proven_position_can_close():
     """Only .06 proven, .30 stored, net .06 zero foreign: entire sub-$10 RO close."""
-    led, ex, net = new_ledger(), FakeExchange(), [.06]
+    led, ex, net = new_ledger(), DCloseExchange(), [.06]
     trace = d_seed_owned(led, D5, .06, "d5")
     assert d_origin_chain_ok(trace)
     it = exit_intent(led, D5, "SELL", .06, "d5-exit", .30, start=.06)
@@ -1134,7 +1190,11 @@ def d5_dust_exact_whole_proven_position_can_close():
               and abs(net[0]) < 1e-9
               and bool(d_close_row("d5-exit", D5, "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED",
                                    .30, .06, 0.0, .06, .06))
-              and d_owed_red("d5-exit", D5, .06) and d_not_settled("d5-exit"))
+              and d_owed_red("d5-exit", D5, .06) and d_not_settled("d5-exit")
+              and d_match_close_from_separate_account_feed(gw, led, ex,
+                  "d5-exit", D5, .06, "d5"))
+    # Clearing is legal only AFTER the separately matched follower fill and fresh-flat read.
+    checks = checks and gw.clear_close_escalations() == 1 and not red_for("d5-exit")
     return checks, "dust_whole sdk=%r status=%r net=%r owed=%r" % (
         ex.calls, status, net[0], red_for("d5-exit"))
 
