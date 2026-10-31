@@ -744,7 +744,7 @@ def leader_poll_start_ms(cursor_ms, now_ms, interval_ms, overlap_ms, retention_m
     return start
 POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "40"))
 LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
-MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
+MAX_WALLETS = 10  # controller ruling: hard cap of 10; env override HL_LIVE_WS_MAX_WALLETS deleted
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
@@ -3991,6 +3991,7 @@ class ConfigManager:
         self._switch_mtime = self._mtime()
         self.config = self._load()
         self._switch_on = True
+        self.exiting_only = False
 
     def _mtime(self) -> int:
         try:
@@ -4162,6 +4163,19 @@ class ConfigManager:
         """More LIVE wallets than the leader stream can follow - the one rule both gates share.
         CLO is followed by polling only, so it never counts against MAX_WALLETS."""
         return len(self.live_wallets()) > MAX_WALLETS
+
+    def stream_entry_allowed_wallets(self) -> set:
+        """The LIVE wallets that hold a leader-stream slot (the first MAX_WALLETS by fill rank).
+        Only these may take new entries; any LIVE wallet beyond the cap is entry-blocked."""
+        return set(self.stream_wallets())
+
+    def wallet_over_stream_cap(self, wallet) -> bool:
+        """True when this LIVE wallet is beyond the stream cap (no WS slot) and must not take entries."""
+        try:
+            w = str(wallet)
+        except Exception:
+            return False
+        return w in self.live_wallets() and w not in self.stream_entry_allowed_wallets()
 
     def stream_wallets(self) -> List[str]:
         """Wallets the leader stream follows: LIVE only, at most MAX_WALLETS. CLO and OFF never take
@@ -5224,6 +5238,10 @@ class IntentBuilder:
             lifecycle, _ = self.ledger.classify_leader_side_for_wallet(wallet, fill.coin, fill.side)
             if lifecycle in {"ENTRY", "ADD"}:
                 if entry_block_reason or self.cfg.wallet_mode(wallet) == "CLO":
+                    return True
+                if self.cfg.wallet_over_stream_cap(wallet):
+                    return True
+                if getattr(self.cfg, "exiting_only", False):
                     return True
                 if not self.cfg.is_symbol_allowed(fill.coin)[0]:
                     return True
@@ -8867,6 +8885,10 @@ class SenderGateway:
         now_ms = utc_now_ms()
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
             return _finish(False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY")  # CLOSE: reductions only, no entry or top-up
+        if lifecycle in {"ENTRY", "ADD"} and self.cfg.wallet_over_stream_cap(intent.fill.leader_wallet):
+            return _finish(False, "ENTRY_BLOCKED_TOO_MANY_ACTIVE_WALLETS")
+        if getattr(self.cfg, "exiting_only", False) and lifecycle in {"ENTRY", "ADD"}:
+            return _finish(False, "ENTRY_BLOCKED_EXITING_ONLY")
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
             return _finish(False, f"ENTRY_BLOCKED_{entry_block_reason}")
         if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
@@ -12877,6 +12899,7 @@ class LiveCopyCore:
         self.source_csv = source_csv or RAW_LEADER_FILLS_CSV
         self.intents_by_id: Dict[str, Intent] = {}
         self._entry_sends_blocked_reason: str = ""
+        self.exiting_only: bool = False
         self._held_read_cursor: Dict[str, int] = {}  # leader read position while the saved cursor is held (key stop)
         self._copy_ingest_lock = threading.RLock()  # copy-fill ownership from the cycle and from limit withdrawals
         self._copy_poll_lock = threading.Lock()  # one copy read at a time (cycle or copy thread)
@@ -15029,6 +15052,22 @@ class LiveCopyCore:
         self._poll_wallet_selection_signature = signature
         return selected
 
+    def _wallet_has_open_sleeve(self, wallet) -> bool:
+        try:
+            w = str(wallet)
+            byw = ((self.ledger.data.get("by_wallet") or {}).get(w) or {})
+            for coin, row in (byw or {}).items():
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    if abs(float(row.get("signed_size", 0))) > POSITION_EPSILON:
+                        return True
+                except (TypeError, ValueError):
+                    continue
+            return False
+        except Exception:
+            return False
+
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
 
         # the exclusion's cache is filled by fetch_snapshot's batched metaAndAssetCtxs read: no call here, so the
@@ -15094,9 +15133,11 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
-            # Gate 4: more LIVE wallets than the leader stream can follow (CLO rides polling; refused, never dropped)
-            if not _block and self.cfg.live_over_stream_cap():
-                _block = "TOO_MANY_ACTIVE_WALLETS"
+            # Gate 4: per-wallet stream cap (controller ruling CC1-B (a)): entries for wallets beyond the cap are
+            # blocked (ENTRY/ADD only); REDUCE/EXIT always allowed. The 10 in-cap wallets keep entering, so this is
+            # NOT a global entry block - over-cap detection lives in send_if_allowed / blocked_locally.
+            if not _block and self.cfg.live_over_stream_cap() and not self.stream_wallets():
+                _block = "TOO_MANY_ACTIVE_WALLETS"  # no legitimate wallet holds a slot: genuinely unsafe
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
                 _block = self._daily_loss_block()
@@ -15111,6 +15152,20 @@ class LiveCopyCore:
                 _block = ""
             self._entry_sends_blocked_reason = _block
             summary.entry_sends_blocked_reason = _block
+            # exiting-only mode (controller ruling CC1-B (b)): while an over-cap wallet holds an open sleeve,
+            # no new entries anywhere. Ends when over-cap wallets are flat or config no longer over cap.
+            try:
+                _over = self.cfg.live_over_stream_cap()
+                _over_wallets = [w for w in self.cfg.live_wallets() if w not in self.cfg.stream_entry_allowed_wallets()]
+                _has_open = any(self._wallet_has_open_sleeve(w) for w in _over_wallets)
+                if _over and _has_open:
+                    self.exiting_only = True
+                    self.cfg.exiting_only = True
+                elif not _over or not _has_open:
+                    self.exiting_only = False
+                    self.cfg.exiting_only = False
+            except Exception:
+                pass
             summary.sender_key_invalid = self.sender.sender_key_invalid
             # --- end entry safety gates ---
             try:
@@ -17477,12 +17532,20 @@ def main() -> None:
         if _key["ok"] is None:
             print(f"WARNING: {_key['detail']}; a rejection on the first order will stop all sending", file=sys.stderr)
         _cfg = ConfigManager()
-        if _cfg.live_over_stream_cap():
-            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_cfg.live_wallets())} wallets are LIVE but the leader stream "
-                             f"follows at most {MAX_WALLETS}; set the extra wallets to CLO (polled) or OFF")
+        _over_cap_startup = _cfg.live_over_stream_cap()
+        if _over_cap_startup and not _cfg.stream_entry_allowed_wallets():
+            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_cfg.live_wallets())} wallets are LIVE but no wallet holds a "
+                             f"leader-stream slot (cap {MAX_WALLETS}); genuinely unsafe config")
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
+        if _over_cap_startup:
+            _over_wallets = [w for w in _cfg.live_wallets() if w not in _cfg.stream_entry_allowed_wallets()]
+            if any(core._wallet_has_open_sleeve(w) for w in _over_wallets):
+                core.exiting_only = True
+                core.cfg.exiting_only = True
+                print("WARNING: TOO_MANY_ACTIVE_WALLETS: starting in EXITING-ONLY mode (over-cap wallet holds open sleeve)",
+                      file=sys.stderr)
         startup_enabled = core.cfg.master_real_orders_enabled
         startup_summary = CycleSummary(
             cycle="startup",

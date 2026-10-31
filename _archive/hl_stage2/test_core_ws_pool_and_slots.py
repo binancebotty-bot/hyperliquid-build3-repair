@@ -113,7 +113,6 @@ def main() -> None:
         "HL_LIVE_WS_ENABLED": "1",
         "HL_LIVE_WS_HEARTBEAT_SEC": "3600",
         "HL_LIVE_WS_SUBSCRIBE_GRACE_MS": "150",
-        "HL_LIVE_WS_MAX_WALLETS": "10",
         "HL_LIVE_HTTP_SESSION": "1",
     })
     os.environ.pop("HL_LIVE_WS_RANK_CSV", None)

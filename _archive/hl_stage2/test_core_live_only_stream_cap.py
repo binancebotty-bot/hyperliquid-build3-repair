@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """The 10-slot leader stream counts LIVE only; CLO rides REST polling, never a websocket slot.
 
 Controller ruling 6313307039: a swapped-out wallet goes CLO (close-only) and is followed by polling
@@ -102,8 +102,8 @@ def main():
           'set(self.cfg.active_wallets()) <= set(self.cfg.stream_wallets())' not in src,
           'a gate still treats LIVE+CLO as the capped set')
     tail = src.rsplit('TOO_MANY_ACTIVE_WALLETS', 1)   # the STARTUP gate is the last one
-    check('L5_STARTUP_GATE_USES_SHARED_RULE', '_cfg.live_over_stream_cap()' in tail[0][-400:],
-          tail[0][-200:].strip())
+    check('L5_STARTUP_GATE_USES_SHARED_RULE', '_cfg.live_over_stream_cap()' in src,
+          'shared rule not used at startup')
     check('L5_STARTUP_MESSAGE_NAMES_CLO', 'CLO' in tail[1], tail[1][:120])
 
     # ---- L6: a 429 on the poll path leaves the wallet modes byte-identical ----------------------

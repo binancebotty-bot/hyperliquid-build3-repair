@@ -268,9 +268,9 @@
   },
   {
    "id": "OD-14",
-   "decision": "10-wallet cap. The Core engine truncates the leader WS subscription list to `HL_LIVE_WS_MAX_WALLETS` (default 10, L145, L4537, L5757), so an 11th wallet would be silently unsubscribed rather than refused. Build 4 deleted its hard-coded count of 10. Needed: whether the cap stays and how an excess wallet is refused visibly",
-   "evidence": "Core; AUTHORITY_MAP \"What was deleted\"",
-   "owner": "Controller",
+   "decision": "10-wallet cap - RULED 2026-10-31 (Controller): the cap is a HARD 10. The Core env override HL_LIVE_WS_MAX_WALLETS was deleted and MAX_WALLETS is now the literal 10 (HL_Live_Copy_Service_Core.py L747), so no config, env file or doc can widen it. An 11th LIVE wallet is REFUSED, not silently unsubscribed: startup exits TOO_MANY_ACTIVE_WALLETS (L17344-17346) and cycle gate 4 blocks entries with the same reason (L14962-14963); CLO wallets ride REST polling (poll_wallets) and never take a WS slot.",
+   "evidence": "Core L747, L14962-14963, L17344-17346; certification/results/wallet_cap10_proof_2026-10-31/",
+   "owner": "Controller (RULED 2026-10-31)",
    "records_affected": "RISK-011",
    "matrix_records": [
     "RISK-011"
