@@ -23,3 +23,19 @@ jobs:
           git diff --exit-code f572684461e6574e4af219f04b4baf2e6544c778 HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
           cd _archive/hl_stage2
           python3 test_ui_exiting_cap.py
+      - name: Parse generated UI JavaScript using Node
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+        working-directory: _archive/hl_stage2
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          import HL_Copy_App_SSOT as ui
+          scripts = re.findall(r"<script[^>]*>(.*?)</script>", ui.render_live_copy_control_panel(), flags=re.S)
+          assert len(scripts) == 1, len(scripts)
+          Path("/tmp/m4_live_copy_ui.js").write_text(scripts[0], encoding="utf-8")
+          PY
+          node --check /tmp/m4_live_copy_ui.js
