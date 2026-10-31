@@ -18,10 +18,13 @@ class Ledger:
                      "by_coin_net": {"RESOLV": {"signed_size": net}}}
     def coin_net(self, k): return self.net
 
-def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON", owned=None):
+ESC = []
+def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON", owned=None, no_ledger=False):
+    ESC.clear()
     snap = ({"RESOLV": ex}, "") if readable else ({}, "exchange snapshot unavailable")
-    me = SimpleNamespace(ledger=Ledger(led, (size if owned is None else owned)), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
-    me._open_close_escalation = lambda intent, reason: None
+    me = SimpleNamespace(ledger=None if no_ledger else Ledger(led, (size if owned is None else owned)), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
+    me._open_close_escalation = lambda intent, reason: ESC.append(reason)
+    me._proven_owned_for_sleeve = lambda w, c: None if owned == "UNPROVABLE" else (size if owned is None else owned)
     me._close_proof_account_ok = lambda: True
     me._follower_order_account_for_proof = lambda *a, **k: c.USER_WALLET
     me._reduce_only_for_intent = lambda i: lifecycle_exit
@@ -63,7 +66,44 @@ check("UNREADABLE_FALLBACK_CLAMPED_BY_OWNED", plan("SELL", 10, 10, 10, readable=
 check("UNREADABLE_NO_OWNED_SLEEVE_HOLDS", plan("SELL", 10, 10, 10, readable=False, owned=0)[1] == 0.0 and plan("SELL", 10, 10, 10, readable=False, owned=0)[2] == "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
 check("ENTRY_IS_UNCHANGED", plan("BUY", 10, 0, 0, lifecycle_exit=False) == (False, 10, ""))
 check("SWITCH_OFF_FALLBACK_IS_REDUCE_ONLY", plan("SELL", 10, 10, 10, env="false") == (True, 10, ""))
-check("LEDGER_MAY_LAG_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 4, lag=True) == (True, 10, ""))
+# CC1-B-RULING-NETSAFE-2142: a lagging ledger is cured by FILLS, and the wire is capped by abs(net).
+check("LEDGER_MAY_LAG_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 10, lag=True) == (True, 10.0, ""))
+check("LEDGER_MAY_LAG_NEVER_EXCEEDS_THE_EXCHANGE_NET", plan("SELL", 10, 10, 4, lag=True) == (True, 4.0, ""))
+# (a) lag + fills prove ownership + net readable & opposing -> SEND ro, clamped, escalation row
+r = plan("SELL", 10, 10, 10, lag=True)
+check("NCL_LAG_OWNED_NET_OPPOSING_SENDS_REDUCE_ONLY", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY"], str((r, ESC)))
+r = plan("SELL", 10, 10, 3, lag=True)
+check("NCL_LAG_OWNED_NET_CAPS_TO_ABS_NET", r == (True, 3.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY"], str((r, ESC)))
+r = plan("SELL", 10, 10, 3, lag=True, owned=6)
+check("NCL_LAG_CAPS_TO_MIN_OF_REQUESTED_OWNED_NET", r == (True, 3.0, ""), str(r))
+r = plan("SELL", 10, 10, 10, lag=True, owned=5)
+check("NCL_LAG_CLAMPS_TO_PROVEN_OWNED", r == (True, 5.0, ""), str(r))
+r = plan("BUY", 10, -10, -10, lag=True, owned=-10)
+check("NCL_LAG_SHORT_SLEEVE_BUY_CLOSE", r == (True, 10.0, ""), str(r))
+# (b) lag + fills prove zero -> HOLD NO_OWNED_SLEEVE, zero wire, no escalation
+r = plan("SELL", 10, 10, 10, lag=True, owned=0)
+check("NCL_LAG_ZERO_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and ESC == [], str((r, ESC)))
+r = plan("SELL", 10, 10, 10, lag=True, owned="UNPROVABLE")
+check("NCL_LAG_UNPROVABLE_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and ESC == [], str((r, ESC)))
+# (c) no ledger object at all -> same policy as (a)
+r = plan("SELL", 10, 10, 10, no_ledger=True)
+check("NCL_NO_LEDGER_OBJECT_SENDS_REDUCE_ONLY", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY"], str((r, ESC)))
+r = plan("SELL", 10, 10, 4, no_ledger=True)
+check("NCL_NO_LEDGER_OBJECT_CAPS_TO_ABS_NET", r == (True, 4.0, ""), str(r))
+r = plan("SELL", 10, 10, 10, no_ledger=True, owned=0)
+check("NCL_NO_LEDGER_OBJECT_ZERO_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and ESC == [], str((r, ESC)))
+# unreadable net + proven owned -> rest reduce-only at owned, RED, retry next pass
+r = plan("SELL", 10, 10, 10, lag=True, readable=False)
+check("NCL_LAG_NET_UNREADABLE_RESTS_AT_OWNED_REDUCE_ONLY", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_UNREADABLE_RESTING"], str((r, ESC)))
+r = plan("SELL", 10, 10, 10, lag=True, readable=False, owned=5)
+check("NCL_LAG_NET_UNREADABLE_CLAMPS_TO_OWNED", r == (True, 5.0, ""), str(r))
+# FLIP: foreign trades left the net on the other side, or flat -> the close does not oppose it.
+r = plan("SELL", 10, 10, -3, lag=True)
+check("NCL_FLIP_NET_ACROSS_HOLDS_NO_WIRE", r == (False, 0.0, "CLOSE_PROOF_HOLD_NET_NOT_OPPOSING") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_NOT_OPPOSING"], str((r, ESC)))
+r = plan("SELL", 10, 10, 0.0, lag=True)
+check("NCL_NET_FLAT_HOLDS_NO_WIRE", r == (False, 0.0, "CLOSE_PROOF_HOLD_NET_NOT_OPPOSING"), str(r))
+r = plan("BUY", 10, -10, 3, lag=True, owned=-10)
+check("NCL_FLIP_SHORT_SLEEVE_NET_ACROSS_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NET_NOT_OPPOSING"), str(r))
 check("TRIM_BELOW_MIN_NOTIONAL_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (True, 10, ""))
 check("TRIM_WITHOUT_MIN_CHECK_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4) == (True, 10, ""))
 check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK) == (True, 10.0, ""))
