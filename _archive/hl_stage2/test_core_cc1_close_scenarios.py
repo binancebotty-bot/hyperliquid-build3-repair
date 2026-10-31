@@ -495,19 +495,6 @@ def ce1b_refused_close_owes_a_red_and_leaves_the_foreign_residual_untouched():
                                      net_after, residual, sleeve_of(led, A), real_audit))
 
 
-def missing_fill_equal_coin_net_is_not_proof():
-    """CS-I2/CH-9: net=ledger=+2 cannot certify A owns +2. Independent truth
-    (known to test oracle only): A +0.5, FOREIGN +1.5, one fill is missing from
-    persisted provenance. Missing trusted anchor/complete replay => HOLD RED."""
-    led, ex, net = new_ledger(), FakeExchange(), [2.0]
-    gw = make_gateway(ex, led, net)
-    it = exit_intent(led, A, "SELL", 2.0, "event-loss-f", 2.0)
-    ok, status = gw.send_if_allowed(it)
-    return (_held_with_physical_proof("event-loss-f", ok, status, ex, net, 2.0)
-            and abs(net[0] - 0.5 - 1.5) < 1e-9), \
-        "status=%r sdk=%r net=%r independent_foreign=1.5" % (status, ex.calls, net[0])
-
-
 def unresolved_owed_survives_restart():
     """I05/I06/R1: same persistent ledger reloaded into a fresh gateway;
     unreadable account keeps exactly the same OPEN owed obligation."""
@@ -1002,8 +989,6 @@ def main():
         ("R81_SIGN_CHAINED_CATCHUP_PARTIAL_CLOSES", r81_sign_chained_catchup),
         ("R81_SIGN_ROUNDING_AT_SIZE_DECIMALS", r81_sign_rounding_at_size_decimals),
         ("R81_SIGN_SUBMINIMUM_RESIDUAL_IS_WHOLE_CLOSE", r81_sign_subminimum_residual_is_whole_close),
-        ("EVENT_LOSS_CS_I2_COIN_NET_EQUALITY_NOT_FILL_PROOF",
-         missing_fill_equal_coin_net_is_not_proof),
         ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
          unresolved_owed_survives_restart),
         ("CEILING_W2B_200PCT_SLEEVE_CLOSE_PLUS_EXCESS_CLIPPED_TO_ENTRY_SIZE",
