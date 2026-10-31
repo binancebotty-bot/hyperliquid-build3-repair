@@ -47,9 +47,12 @@ class IndexedExchange(f.FakeExchange):
     def __init__(self, oid):
         super().__init__()
         self.oid = oid
+        self.physical_net = None
 
     def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
         super().order(coin, is_buy, size, px, tif, reduce_only=reduce_only, cloid=cloid)
+        if self.physical_net is not None:
+            self.physical_net[0] += float(size) * (1 if is_buy else -1)
         return f.filled(size, px, oid=self.oid)
 
 
@@ -68,6 +71,7 @@ def fixture(name, a, b, physical, mode, qty, oid):
     f.set_sleeve(ledger, B, b)
     ex = IndexedExchange(oid)
     net = [physical]
+    ex.physical_net = net
     gateway = f.make_gateway(ex, ledger, net)
     # Account-address routing is the REAL SDK creation seam used by _send_real.
     # Both clients exist before the send; misrouting will hit the foreign client.
