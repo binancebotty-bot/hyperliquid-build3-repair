@@ -13,23 +13,14 @@ class Ledger:
     def __init__(self, net): self.net = net
     def coin_net(self, k): return self.net
 
-def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON"):
-    snap = ({"RESOLV": ex}, "") if readable else ({}, "exchange snapshot unavailable")
+def plan(side, size, led, ex, mode="ON", dust=False, lifecycle_exit=True, sz_dec=2, min_ok=None, lag=False, gmode="ON"):
     me = SimpleNamespace(ledger=Ledger(led), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
     me._reduce_only_for_intent = lambda i: lifecycle_exit
-    me._persisted_exchange_positions = lambda: snap
-    me._fresh_exchange_net = lambda coin: (ex if readable else None)
+    me._fresh_exchange_net = lambda coin: ex
     me._floor_wire_size = lambda s, d: math.floor(s * 10 ** d + 1e-9) / 10 ** d
     intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet="0xabc", coin="RESOLV"), copy_side=side, copy_size=size)
     timing = {"dust_close_below_min_notional": "x"} if dust else {}
-    old = os.environ.get("HL_LIVE_CLOSE_TO_TARGET")
-    if env is not None: os.environ["HL_LIVE_CLOSE_TO_TARGET"] = env
-    try:
-        return c.SenderGateway._close_wire_plan(me, intent, size, sz_dec, min_ok, timing, lag)
-    finally:
-        if env is not None:
-            if old is None: os.environ.pop("HL_LIVE_CLOSE_TO_TARGET")
-            else: os.environ["HL_LIVE_CLOSE_TO_TARGET"] = old
+    return c.SenderGateway._close_wire_plan(me, intent, size, sz_dec, min_ok, timing, lag)
 
 OK = lambda s: True
 check("AGREEING_CLOSE_NOT_REDUCE_ONLY", plan("SELL", 10, 10, 10, min_ok=OK) == (True, 10.0, ""))
