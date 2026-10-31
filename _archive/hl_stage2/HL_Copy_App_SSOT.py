@@ -88,8 +88,7 @@ PNL_RUN_START_FILE = LIVE_COPY_AUDIT_DIR / "pnl_run_start.json"  # the screen's 
 PNL_FILLS_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_fills_cache.json"
 PNL_FUNDING_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_funding_cache.json"
 LIVE_COPY_RECONCILIATION_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"
-APPEND_ONLY_DIR = LIVE_COPY_AUDIT_DIR / "append_only"
-ERRORS_CSV = APPEND_ONLY_DIR / "errors.csv"  # where the engine writes its SYMBOL_NOT_LISTED refusals
+ERRORS_CSV = LIVE_COPY_RECONCILIATION_CSV.parent / "errors.csv"  # where the engine writes its SYMBOL_NOT_LISTED refusals
 ASSET_UNIVERSE_FILE = LIVE_COPY_AUDIT_DIR / "asset_universe_snapshot.json"  # what this network lists
 LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_intents.csv"
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
@@ -1020,21 +1019,26 @@ def _global_controls_for_ui(raw: Any) -> Dict[str, Any]:
 
 
 def _load_live_copy_config() -> Dict[str, Any]:
+    """CONFIG_FAULT is an error, never an empty followed-roster or OFF mode."""
     try:
-        if LIVE_COPY_CONFIG_FILE.exists():
-            cfg = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
-        else:
-            cfg = {}
-    except Exception:
-        cfg = {}
+        cfg = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("CONFIG_FAULT_READ_" + type(exc).__name__) from exc
     if not isinstance(cfg, dict):
-        cfg = {}
-    wallets = cfg.get("wallets")
-    archived = cfg.get("archived_wallets")
-    cfg["wallets"] = wallets if isinstance(wallets, dict) else {}
-    cfg["archived_wallets"] = archived if isinstance(archived, dict) else {}
-    gc = cfg.get("global_controls")
-    cfg["global_controls"] = _normalise_global_controls(gc if isinstance(gc, dict) else {})
+        raise ValueError("CONFIG_FAULT_ROOT_NOT_OBJECT")
+    if not isinstance(cfg.get("wallets"), dict):
+        raise ValueError("CONFIG_FAULT_WALLETS_NOT_OBJECT")
+    for wallet, raw in cfg["wallets"].items():
+        normalize_live_wallet_config(wallet, raw)
+    archived = cfg.get("archived_wallets", {})
+    if not isinstance(archived, dict):
+        raise ValueError("CONFIG_FAULT_ARCHIVED_NOT_OBJECT")
+    for wallet, raw in archived.items():
+        normalize_live_wallet_config(wallet, raw)
+    if "global_controls" in cfg and not isinstance(cfg["global_controls"], dict):
+        raise ValueError("CONFIG_FAULT_GLOBAL_CONTROLS_NOT_OBJECT")
+    cfg["archived_wallets"] = archived
+    cfg["global_controls"] = _normalise_global_controls(cfg.get("global_controls", {}))
     return cfg
 
 
@@ -1043,22 +1047,28 @@ def _atomic_write_json(path: Path, payload: Any) -> None:
 
 
 def _save_live_copy_config(config: Dict[str, Any]) -> None:
+    # No UI writer may turn an unknown stored wallet mode into a guessed OFF.
+    for section in ("wallets", "archived_wallets"):
+        rows = config.get(section, {})
+        if not isinstance(rows, dict):
+            raise ValueError("CONFIG_FAULT_" + section.upper())
+        for wallet, raw in rows.items():
+            normalize_live_wallet_config(wallet, raw)
     LIVE_COPY_AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     _atomic_write_json(LIVE_COPY_CONFIG_FILE, config)
 
 
 def _normalise_wallet_address(wallet: Any) -> str:
-    value = str(wallet or "").strip().lower()
-    if not value.startswith("0x") or len(value) != 42:
-        raise ValueError("BAD_WALLET")
-    return value
+    return normalise_wallet_for_purge(wallet)
 
 
 def normalize_live_wallet_config(wallet: Any, cfg: Any, repair: bool = False) -> Dict[str, Any]:
-    raw = cfg if isinstance(cfg, dict) else {}
-    mode = str(raw.get("mode", "OFF")).upper()
+    if not isinstance(cfg, dict):
+        raise ValueError("CONFIG_FAULT_WALLET_NOT_OBJECT")
+    raw = cfg
+    mode = str(raw.get("mode", "")).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
-        mode = "OFF"
+        raise ValueError("CONFIG_FAULT_UNKNOWN_WALLET_MODE")
     explicit_disabled = "enabled" in raw and parse_bool(raw.get("enabled")) is False
     if mode in {"LIVE", "CLO"}:
         if explicit_disabled and not repair:
@@ -1080,21 +1090,13 @@ def normalize_live_wallet_config(wallet: Any, cfg: Any, repair: bool = False) ->
 
 
 def repair_live_config_consistency(config: Dict[str, Any]) -> bool:
-    wallets = config.get("wallets", {}) if isinstance(config, dict) else {}
+    """Legacy call site: validate without rewriting unrelated wallet fields."""
+    wallets = config.get("wallets")
     if not isinstance(wallets, dict):
-        return False
-    changed = False
-    for wallet, cfg in wallets.items():
-        if not isinstance(cfg, dict):
-            continue
-        normal = normalize_live_wallet_config(wallet, cfg, repair=True)
-        if cfg.get("mode") != normal["mode"]:
-            cfg["mode"] = normal["mode"]
-            changed = True
-        if cfg.get("enabled") is not normal["enabled"]:
-            cfg["enabled"] = normal["enabled"]
-            changed = True
-    return changed
+        raise ValueError("CONFIG_FAULT_WALLETS_NOT_OBJECT")
+    for wallet, raw in wallets.items():
+        normalize_live_wallet_config(wallet, raw)
+    return False
 
 
 # Per-wallet settings the Core engine never reads (it sizes from real leader equity and applies the
@@ -1105,7 +1107,7 @@ ENGINE_IGNORED_WALLET_KEYS = ("leader_equity_base", "max_diff_pct", "daily_loss_
 
 def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     base = dict(existing or {})
-    mode_default = base.get("mode", "OFF") if existing is not None else "OFF"
+    mode_default = base.get("mode") if existing is not None else None
     mode = str(payload.get("mode", mode_default)).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
         raise ValueError("BAD_MODE")
@@ -1134,6 +1136,93 @@ def _active_live_copy_wallet_count(config: Dict[str, Any]) -> int:
     )
 
 
+def _core_control_state() -> Dict[str, Any]:
+    """Display only Core's single published service heartbeat; no UI count recomputation."""
+    state = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    state = state if isinstance(state, dict) else {}
+    modes = state.get("wallet_modes_active")
+    controls = state.get("effective_global_controls")
+    modes = modes if isinstance(modes, dict) else {}
+    controls = controls if isinstance(controls, dict) else {}
+
+    def count(value: Any) -> Optional[int]:
+        return value if type(value) is int and value >= 0 else None
+
+    cap = controls.get("max_total_live_exposure_usd")
+    cap = float(cap) if isinstance(cap, (int, float)) and not isinstance(cap, bool) and math.isfinite(float(cap)) and cap >= 0 else None
+    return {
+        "configured_live": count(modes.get("LIVE")),
+        "applied_live": count(state.get("active_wallets")),
+        "ws_cap": 10,
+        "global_exposure_cap_usd": cap,
+        "core_state_written_ms": state.get("last_state_write_ms"),
+    }
+
+
+def _core_wallet_nonflat(ledger: Dict[str, Any], wallet: str) -> Optional[bool]:
+    """Inspect Core's existing owned-sleeve ledger, without independent accounting."""
+    if not isinstance(ledger, dict) or not str(ledger.get("schema", "")).startswith(
+            ("manual_live_positions.v1", "manual_live_positions.v2")):
+        return None
+    by_wallet = ledger.get("by_wallet")
+    if not isinstance(by_wallet, dict):
+        return None
+    sleeves = next((v for k, v in by_wallet.items() if str(k).lower() == wallet.lower()), None)
+    if not isinstance(sleeves, dict):
+        return None
+    nonflat = False
+    for pos in sleeves.values():
+        if not isinstance(pos, dict) or "signed_size" not in pos:
+            return None
+        try:
+            size = float(pos["signed_size"])
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(size):
+            return None
+        nonflat |= (size != 0.0)
+    return nonflat
+
+
+def _finish_removing_wallet(config: Dict[str, Any], wallet: str, existing: Dict[str, Any], archive: bool) -> None:
+    """Fulfil a validated operator remove only after Core's ledger is flat."""
+    existing = _normalise_live_wallet_payload({"mode": "OFF", "enabled": False}, existing)
+    existing.pop("exit_requested", None)
+    existing.pop("exit_archive", None)
+    if archive:
+        existing["archived_at"] = utc_now_iso()
+        config["wallets"].pop(wallet, None)
+        config["archived_wallets"][wallet] = existing
+    else:
+        config["wallets"][wallet] = existing
+
+
+def _apply_remove_wallet_command(config: Dict[str, Any], wallet: str, ledger: Dict[str, Any],
+                                 archive: bool = True) -> bool:
+    """Operator remove is deferred in CLO while any Core-owned sleeve remains or is unreadable."""
+    wallets = config["wallets"]
+    if wallet not in wallets:
+        return False
+    existing = dict(wallets[wallet])
+    if _core_wallet_nonflat(ledger, wallet) is not False:
+        existing.update(mode="CLO", enabled=True, exit_requested=True, exit_archive=bool(archive))
+        wallets[wallet] = existing
+    else:
+        _finish_removing_wallet(config, wallet, existing, bool(archive))
+    return True
+
+
+def _finalise_exiting_wallets(config: Dict[str, Any], ledger: Dict[str, Any]) -> bool:
+    """Complete only previously authorised removals after the Core ledger proves flat."""
+    changed = False
+    for wallet, existing in list(config["wallets"].items()):
+        if isinstance(existing, dict) and existing.get("exit_requested") is True:
+            if _core_wallet_nonflat(ledger, wallet) is False:
+                _finish_removing_wallet(config, wallet, existing, bool(existing.get("exit_archive", True)))
+                changed = True
+    return changed
+
+
 def _live_copy_config_response(config: Dict[str, Any]) -> Dict[str, Any]:
     wallets = config.get("wallets", {}) if isinstance(config.get("wallets"), dict) else {}
     return {
@@ -1142,6 +1231,7 @@ def _live_copy_config_response(config: Dict[str, Any]) -> Dict[str, Any]:
         "wallet_count": len(wallets),
         "active_wallets": _active_live_copy_wallet_count(config),
         "max_wallets": 10,
+        "core_control_state": _core_control_state(),
     }
 
 
@@ -1749,13 +1839,13 @@ def _symbol_not_listed_summary() -> Dict[str, Any]:
 
     partial_reads: List[str] = []  # every bounded tail and every skipped read error is named here, never silent
     try:
-        journals = sorted(APPEND_ONLY_DIR.glob("reconciliation*.csv"), key=lambda f: f.name)
+        journals = sorted(LIVE_COPY_RECONCILIATION_CSV.parent.glob("reconciliation*.csv"), key=lambda f: f.name)
     except OSError as exc:
         journals = []
         partial_reads.append("reconciliation journals: listing failed (%s)" % type(exc).__name__)
     if not journals:
         # no journal at all is not nothing-to-report: the counts cannot be known
-        partial_reads.append("reconciliation journals: none found (%s)" % APPEND_ONLY_DIR.name)
+        partial_reads.append("reconciliation journals: none found (%s)" % LIVE_COPY_RECONCILIATION_CSV.parent.name)
     if len(journals) > 2:
         partial_reads.append("reconciliation journals: newest 2 of %d read" % len(journals))
     journals = journals[-2:]
@@ -4487,20 +4577,6 @@ def load_live_config() -> Dict[str, Any]:
 
 def save_live_config(cfg: Dict[str, Any]) -> None:
     _save_live_copy_config(cfg)
-
-
-def enforce_live_wallet_limit(cfg: Dict[str, Any], max_live: int = 10) -> Dict[str, Any]:
-    wallets = cfg.get("wallets", {})
-    live = [w for w, v in wallets.items() if v.get("mode") == "LIVE"]
-
-    if len(live) <= max_live:
-        return cfg
-
-    for w in live[max_live:]:
-        wallets[w]["mode"] = "OFF"
-
-    cfg["wallets"] = wallets
-    return cfg
 
 
 def save_wallet_gate(gate: Dict[str, Any]) -> None:
@@ -7670,12 +7746,12 @@ def render_live_copy_control_panel() -> str:
 (function(){
 const root=document.getElementById('liveCopyPanel'); if(!root) return;
 const status=root.querySelector('#lcStatus');
-let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
+let lcConfig={wallets:{},archived_wallets:{}}, lcCoreControl={}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
 let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStartMs=0, lcGraphEndMs=0;
 let lcNotListed=null, lcNotListedAt=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function msg(t,bad){if(status){status.textContent=t||'';status.className='lc-status '+(bad?'lc-bad':'lc-ok');}}
-async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});return await r.json();}
+async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});const j=await r.json();if(!r.ok||j.ok===false)throw new Error(j.error||'CONFIG_FAULT');return j;}
 async function jpost(url,payload){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-requested-with':'fetch'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||j.ok===false)throw new Error(j.error||r.statusText);return j;}
 // intentional blank — helpers below
 function num(v,d){const n=parseFloat(v);return Number.isFinite(n)?n:d;}
@@ -7955,12 +8031,14 @@ function renderTally(){
 function signCls(v){return v!=null?(v>0?'lc-pos':v<0?'lc-neg':''):''}
 function pnlLabel(st,label){const m={'LEDGER':'lc-grey','EXACT':'lc-grey','ESTIMATED_FROM_REAL_ORDER_FILLS':'lc-grey','OPEN_ONLY':'lc-grey','ACCOUNT_LEVEL_ONLY':'lc-grey','AMBIGUOUS_COIN_SHARED':'lc-grey','N/A':'lc-grey'}; const text=label||({'OPEN_ONLY':'Open PnL','ESTIMATED_FROM_REAL_ORDER_FILLS':'Real fills','ACCOUNT_LEVEL_ONLY':'Account-level only','AMBIGUOUS_COIN_SHARED':'Shared coin','N/A':'No PnL yet','EXACT':'Exact closed PnL'}[st]||st||'No PnL yet'); return `<span class="lc-pill ${m[st]||''}">${h(text)}</span>`;}
 function renderWallets(){
- const wrows=lcAudit.live_wallet_rows||[];
+ const visible=new Set(Object.keys(lcConfig.wallets||{}).map(w=>w.toLowerCase()));
+ const wrows=(lcAudit.live_wallet_rows||[]).filter(d=>visible.has(String(d.wallet||'').toLowerCase()));
  const rows=wrows.slice().sort((a,b)=>{const r=x=>(x.mode_label==='Live'?0:x.mode_label==='Close-only'?1:2);return r(a)-r(b)||String(a.wallet).localeCompare(String(b.wallet));}).map(d=>{
   const mode=String(d.mode||'OFF').toUpperCase();
   const hasHistory=(d.filled_count>0||d.exchange_rejected_count>0||d.local_blocked_count>0);
-  const ml=d.mode_label||(mode==='LIVE'?'Live':mode==='CLO'?'Close-only':'Off');
-  const typeLabel=`<span class="lc-pill ${ml==='Live'?'lc-green':'lc-grey'}">${h(ml)}</span>`;
+  const walletCfg=Object.entries(lcConfig.wallets||{}).find(([w])=>w.toLowerCase()===String(d.wallet||'').toLowerCase());
+  const ml=(walletCfg&&walletCfg[1]&&walletCfg[1].exit_requested===true)?'EXITING':(d.mode_label||(mode==='LIVE'?'Live':mode==='CLO'?'Close-only':'Off'));
+  const typeLabel=`<span class="lc-pill ${ml==='Live'?'lc-green':ml==='EXITING'?'lc-amber':'lc-grey'}">${h(ml)}</span>`;
   const histLabel=(hasHistory&&ml==='Off')?'<span class="lc-tag">has history</span>':'';
   const conflict=String(d.eligibility||'')==='CONFIG CONFLICT'?'<span class="lc-pill lc-amber">settings conflict</span>':'';
   const model=String(d.copy_mode||'')==='fixed'?'fixed':'prop';
@@ -8207,18 +8285,17 @@ function renderHealth(){
  root.querySelector('#lcHealthRows').innerHTML=rows||'<tr><td colspan="16">WS service not running or no wallet health file found.</td></tr>';
 }
 function render(){
- const wallets=lcConfig.wallets||{}, walletEntries=Object.values(wallets);
- const liveCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='LIVE').length;
- const cloCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='CLO').length;
- const offCount=walletEntries.filter(w=>w&&String(w.mode||'').toUpperCase()==='OFF').length;
- const mc=root.querySelector('#lcModeCounts');
- // wallet counts by mode; whether orders are SENT is the master switch, shown once in the banner
- if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">${liveCount} live</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">${cloCount} close-only</span> <span class="lc-pill lc-grey">${offCount} off</span>`;
+ const mc=root.querySelector('#lcModeCounts'), ctl=lcCoreControl||{};
+ const n=v=>Number.isInteger(v)&&v>=0?v:'—';
+ const cap=ctl.global_exposure_cap_usd;
+ const capText=cap==null?'unavailable':Number(cap)===0?'OFF':'$'+Number(cap).toLocaleString();
+ // Counts and global exposure cap come from Core's ONE published service state. CLO polling has no WS slot.
+ if(mc) mc.innerHTML=`<span class="lc-pill">configured LIVE: <b>${h(n(ctl.configured_live))}</b></span> <span class="lc-pill">applied LIVE: <b>${h(n(ctl.applied_live))} / ${h(ctl.ws_cap||10)}</b></span> <span class="lc-pill">Global cap: <b>${h(capText)}</b></span>`;
  const feed=feedLabel(lcAudit.live_top_status||{});
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderFreshness(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');let [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);if(Object.values(cfg.config?.wallets||{}).some(w=>w?.exit_requested===true)){const completed=await jpost('/api/live-config/finalise-exiting',{});if(completed.changed)cfg=await jget('/api/live-config');}lcConfig=cfg.config||{wallets:{}};lcCoreControl=cfg.core_control_state||{};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -8473,7 +8550,20 @@ def sort_column(column: str, request: Request, direction: str = ""):
 
 @app.get("/api/live-config")
 def get_live_config():
-    return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
+    try:
+        return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
+    except ValueError as exc:
+        return _live_config_error(str(exc), status_code=409)
+
+
+@app.post("/api/live-config/finalise-exiting")
+def finalise_exiting_wallets():
+    # Complete only the removal requested earlier by an operator; never a GET side effect.
+    config = _load_live_copy_config()
+    changed = _finalise_exiting_wallets(config, _load_manual_live_positions())
+    if changed:
+        _save_live_copy_config(config)
+    return JSONResponse({"ok": True, "changed": changed})
 
 
 @app.get("/live-copy", response_class=HTMLResponse)
@@ -8625,15 +8715,8 @@ async def remove_live_config_wallet(req: Request):
         config = _load_live_copy_config()
         wallets = config["wallets"]
         archived = config["archived_wallets"]
-        existing = wallets.pop(wallet, archived.get(wallet, {}))
-        if not isinstance(existing, dict):
-            existing = {}
-        existing = _normalise_live_wallet_payload({"mode": "OFF", "enabled": False}, existing)
-        if archive:
-            existing["archived_at"] = utc_now_iso()
-            archived[wallet] = existing
-        else:
-            wallets[wallet] = existing
+        if not _apply_remove_wallet_command(config, wallet, _load_manual_live_positions(), archive):
+            raise ValueError("WALLET_NOT_FOUND")
         repair_live_config_consistency(config)
         _save_live_copy_config(config)
         return JSONResponse(_live_copy_config_response(config))
