@@ -8130,6 +8130,12 @@ class SenderGateway:
         """
         return classify_send_lifecycle(intent) in {"REDUCE", "EXIT"} or bool(intent.reduce_only_intended)
 
+    def _global_close_only(self) -> bool:
+        try:
+            return str(self.cfg.send_mode_now() or "").upper() == "CLOSE"
+        except Exception:
+            return False
+
     def _reduce_only_on_wire(self, intent: Intent, size: float) -> bool:
         """CC1-B-CONSOLIDATED-2310 item 2: reduce_only is True ONLY when the order truly opposes the
         REAL exchange net AND wire_size <= abs(net). Never forced, never a fallback: an unreadable
@@ -8140,6 +8146,8 @@ class SenderGateway:
         sent WITHOUT reduce-only so the account moves to the new sum of the sleeves."""
         if not self._reduce_only_for_intent(intent):
             return False
+        if self._global_close_only():
+            return True
         if not bval(os.getenv("HL_LIVE_NETTING_AWARE_REDUCE_ONLY"), True):
             return False
         net = SenderGateway._finite_net_or_none(self._fresh_exchange_net(intent.fill.coin))
@@ -8340,9 +8348,25 @@ class SenderGateway:
         if amount <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
         delta = ManualLedger.signed_delta(intent.copy_side, amount)
-        ro = actual * delta < 0 and amount <= abs(actual) + tol  # from the REAL net, never forced
-        if safe_foreign and not ro:  # foreign residue must never be crossed
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
+        if self._global_close_only():
+            # GLOBAL close-only: position may only be REDUCED. Force reduce-only and
+            # cap the wire at the exchange net when it opposes; never send across.
+            if actual * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
+                try:
+                    self._open_close_escalation(intent, "CLOSE_PROOF_GLOBAL_CLOSE_ONLY_NOT_OPPOSING")
+                except Exception as exc:
+                    log_error("close_escalation_write_failed", exc)
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_GLOBAL_CLOSE_ONLY_NOT_OPPOSING")
+            amount = min(amount, abs(actual))
+            amount = self._floor_wire_size(round(amount, 10), sz_dec)
+            if amount <= tol:
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+            delta = ManualLedger.signed_delta(intent.copy_side, amount)
+            ro = True
+        else:
+            ro = actual * delta < 0 and amount <= abs(actual) + tol  # from the REAL net, never forced
+            if safe_foreign and not ro:  # foreign residue must never be crossed
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
         state["close_verified_sz_decimals"] = sz_dec
         return decide("SEND", amount, ro)
 
