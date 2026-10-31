@@ -5473,6 +5473,32 @@ class PendingSendWriteFailed(RuntimeError):
     """The pending_send write-ahead row could not be written: the order was NOT sent."""
 
 
+
+
+def _terminalise_pending_as_no_call(self, aid: str, reason: str) -> None:
+    """Terminalise a pending_send row as NO_CALL when the master gate or close proof
+    raises after the pending-send row has already been written.
+
+    The exchange was never called — that is a KNOWN outcome, not an ambiguous exchange
+    error.  The row is durableled with status NO_CALL_<REASON> so a crash preserves the
+    record.  If the durable write itself fails, raise PendingSendWriteFailed (an
+    ambiguous pending row is never acceptable).
+
+    Loud announcement: ALERT printed to stderr and log_error invoked.
+    """
+    status = f"NO_CALL_{reason}"
+    if not update_send_attempt_row(aid, {
+        "status": status,
+        "terminal_state": status,
+        "reject_category": status,
+        "operator_action": "NO_EXCHANGE_CALL",
+        "error": reason,
+        "notes": "NO_EXCHANGE_CALL: " + reason,
+    }, durable=True):
+        raise PendingSendWriteFailed("NO_CALL_TERMINAL_WRITE_FAILED:" + aid)
+    log_error("terminalise_pending_as_no_call", RuntimeError(f"Gate/close proof raised: {reason}"))
+    print(f"ALERT: gate/close proof raised ({reason}); pending row terminalised as {status}; exchange never called", file=sys.stderr)
+
 class _MarginSymbolUnresolved(Exception):
     """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
 
@@ -5831,6 +5857,35 @@ class SenderGateway:
             except Exception as exc:
                 raise PendingSendWriteFailed(repr(exc)) from exc
         # TOCTOU: the lease, the close proof and the mode were all proven BEFORE pre_send, and pre_send is exactly
+        # where that proof can go stale (it waits on the durable intent barrier and fsyncs a row). ONE final
+        # revalidation of all three runs here, immediately before the wire, over the SAME state - no new parallel
+        # state, no weakening of the checks above: a lease lost, a ledger net moved under a close, or a mode
+        # switched OFF must not send.
+        if not _late_block:
+            if not _sender_lease_owned():
+                _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
+            else:
+                try:
+                    _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
+                except Exception as exc:
+                    # Gate raised after pending-send row was written: the exchange was never called.
+                    # Terminalise the pending row as NO_CALL and refuse to send.
+                    self._terminalise_pending_as_no_call(
+                        str((timing or {}).get("send_attempt_id") or _pending_id or ""),
+                        type(exc).__name__,
+                    )
+                    _late_block = f"GATE_RAISE_AFTER_PENDING:{type(exc).__name__}"
+            if not _late_block and _is_close:
+                try:
+                    _late_block = self._final_close_proof(intent, size, reduce_only, timing)
+                except Exception as exc:
+                    # Close proof raised after pending-send row was written: the exchange was never called.
+                    # Terminalise the pending row as NO_CALL and refuse to send.
+                    self._terminalise_pending_as_no_call(
+                        str((timing or {}).get("send_attempt_id") or _pending_id or ""),
+                        type(exc).__name__,
+                    )
+                    _late_block = f"CLOSE_PROOF_RAISE_AFTER_PENDING:{type(exc).__name__}"
         # where that proof can go stale (it waits on the durable intent barrier and fsyncs a row). ONE final
         # revalidation of all three runs here, immediately before the wire, over the SAME state - no new parallel
         # state, no weakening of the checks above: a lease lost, a ledger net moved under a close, or a mode
