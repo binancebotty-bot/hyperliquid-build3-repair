@@ -50,6 +50,11 @@ B = "0x" + "b" * 40                    # leader wallet B
 ACCOUNT = "0x" + "c" * 40              # the follower trading account (public address, not a secret)
 OTHER_ACCOUNT = "0x" + "d" * 40
 COIN, PX, MIN_USD = "BTC", 100.0, 10.0
+OID_WALLET = "0x" + "f" * 40       # fill rows written only to feed the per-order owned-size index
+# fill-proof witnesses: each owns a wallet NO other witness ever writes a live_fills row for, so the
+# process-wide live_fills.csv (never truncated by the test) cannot prove one witness with another's rows.
+PROOF_W_REPAIR = "0x" + "e" * 40    # has real fills AND a CORE_LEDGER_REPAIR row
+PROOF_W_NOFILL = "0x" + "d1" * 20   # has NO live_fills rows at all -> the one ledger fallback
 RESOLVED = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
             "sdk_order_compatible": True, "min_order_value_usd": MIN_USD, "min_size": 0.0, "status": "OK"}
 
@@ -833,7 +838,9 @@ def _record_owned_close_fill(gw, ex, size, call_index=0):
     c.append_csv(c.LIVE_FILLS_CSV, c.LIVE_FILL_FIELDS, {
         "created_at": c.utc_now_iso(), "created_at_ms": c.utc_now_ms(),
         "copy_fill_id": "cf-ceil-%d" % call_index, "intent_id": "ceil-ext", "leader_fill_id": "ceil-ext",
-        "leader_wallet": A, "sleeve_id": "", "position_id": "", "coin": COIN, "side": "SELL",
+        # a NON-sleeve wallet: this row exists so the per-order owned-size index can match the close order id;
+        # it is not a fill of leader A's sleeve and must never enter A's fill-proven ownership.
+        "leader_wallet": OID_WALLET, "sleeve_id": "", "position_id": "", "coin": COIN, "side": "SELL",
         "fill_price": PX, "fill_size": size, "fill_notional": size * PX, "fee": 0, "source": "TEST",
         "exchange_hash": "h-ceil-%d" % call_index, "exchange_order_id": _ceil_close_oid(ex, call_index),
         "ledger_action": "UPDATED", "wallet_position_before": "", "wallet_position_after": "",
@@ -933,6 +940,60 @@ def ceil_matched_close_then_the_excess_sends():
                                               [(r.get("terminal_state")) for r in owed])
 
 
+
+def _fill_row(wallet, side, size, source, note=""):
+    """One live_fills.csv row of A/BTC. The SIGNED delta _proven_owned_for_sleeve sums is
+    ManualLedger.signed_delta(row["side"], row["fill_size"]). ``source`` is the row CATEGORY column:
+    AuditLogWriter.append_live_fill_repair_close stamps "CORE_LEDGER_REPAIR" for a bookkeeping repair
+    (side="LEDGER_REPAIR_CLOSE", fill_size=abs(wallet_position_before)), never a real exchange fill."""
+    c.append_csv(c.LIVE_FILLS_CSV, c.LIVE_FILL_FIELDS, {
+        "created_at": c.utc_now_iso(), "created_at_ms": c.utc_now_ms(),
+        "copy_fill_id": "cf-proof-%s-%d" % (source, c.utc_now_ms()), "intent_id": "", "leader_fill_id": "",
+        "leader_wallet": wallet, "sleeve_id": c.ManualLedger.sleeve_id(wallet, COIN), "position_id": "",
+        "coin": COIN, "side": side, "fill_price": PX, "fill_size": size, "fill_notional": size * PX,
+        "fee": 0, "source": source, "exchange_hash": "", "exchange_order_id": "", "ledger_action": "UPDATED",
+        "wallet_position_before": "", "wallet_position_after": "", "coin_net_after": "", "notes": note,
+    })
+
+
+def _proof_fixture(wallet, sleeve=2.0, net=2.0, fid="proof-f"):
+    """A gateway on an A/BTC sleeve whose LEDGER says ``sleeve`` and whose exchange net is ``net``, with an EMPTY
+    live_fills.csv so only rows this witness writes can prove ownership."""
+    led, ex, net_box = new_ledger(), FakeExchange(), [net]
+    gw = make_gateway(ex, led, net_box)
+    it = exit_intent(led, wallet, "SELL", abs(sleeve), fid, sleeve, start=sleeve)
+    return led, ex, net_box, gw, it
+
+
+def ledger_repair_rows_are_never_owned():
+    """THE DEFECT: ledger sleeve +2.0 is 0.5 REAL fills plus a 1.5 CORE_LEDGER_REPAIR row. The repair is
+    bookkeeping (no exchange fill), so the proof is +0.5 and the wire must be 0.5, never 2.0."""
+    led, ex, net, gw, it = _proof_fixture(PROOF_W_REPAIR, sleeve=2.0, net=2.0, fid="proof-repair-f")
+    _fill_row(PROOF_W_REPAIR, "BUY", 0.5, "POLL", "real leader fill")
+    _fill_row(PROOF_W_REPAIR, "LEDGER_REPAIR_CLOSE", 1.5, "CORE_LEDGER_REPAIR", "bookkeeping close, no exchange fill")
+    t = {}
+    ok, amount, why = gw._close_wire_plan(it, 2.0, 3, None, t)
+    proven, origin = gw._proven_owned_for_sleeve(PROOF_W_REPAIR, COIN)
+    return (ok and abs(amount - 0.5) < 1e-9
+            and t.get("close_proven_from") == "fills"
+            and abs(float(t.get("close_proven_owned")) - 0.5) < 1e-9
+            and abs(proven - 0.5) < 1e-9), \
+        "ok=%r amount=%r why=%r from=%r owned=%r helper=%r/%r ledger_sleeve=%r (want 0.5)" % (
+            ok, amount, why, t.get("close_proven_from"), t.get("close_proven_owned"), proven, origin, sleeve_of(led, A))
+
+
+def no_fill_rows_falls_back_to_the_ledger_sleeve_and_says_so():
+    """The ONE fallback: the sleeve has NO live_fills rows at all, so the ledger sleeve is used and the row
+    carries proven_from=ledger_sleeve_no_fills - the origin is visible, never silent."""
+    led, ex, net, gw, it = _proof_fixture(PROOF_W_NOFILL, sleeve=2.0, net=2.0, fid="proof-nofill-f")
+    t = {}
+    ok, amount, why = gw._close_wire_plan(it, 2.0, 3, None, t)
+    note = str(t.get("close_proven_note") or "")
+    return (ok and abs(amount - 2.0) < 1e-9
+            and t.get("close_proven_from") == "ledger_sleeve_no_fills"
+            and "proven_from=ledger_sleeve_no_fills" in note), \
+        "ok=%r amount=%r why=%r from=%r note=%r" % (ok, amount, why, t.get("close_proven_from"), note)
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -968,6 +1029,10 @@ def main():
         ("R81_SIGN_SUBMINIMUM_RESIDUAL_IS_WHOLE_CLOSE", r81_sign_subminimum_residual_is_whole_close),
         ("EVENT_LOSS_CS_I2_COIN_NET_EQUALITY_NOT_FILL_PROOF",
          missing_fill_equal_coin_net_is_not_proof),
+        ("PROOF_LEDGER_REPAIR_ROW_IS_NOT_OWNED_WIRE_IS_THE_REAL_FILL_ONLY",
+         ledger_repair_rows_are_never_owned),
+        ("PROOF_NO_FILLS_ROWS_FALLS_BACK_TO_THE_LEDGER_SLEEVE_AND_SAYS_SO",
+         no_fill_rows_falls_back_to_the_ledger_sleeve_and_says_so),
         ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
          unresolved_owed_survives_restart),
         ("CEILING_W2B_200PCT_SLEEVE_CLOSE_PLUS_EXCESS_CLIPPED_TO_ENTRY_SIZE",

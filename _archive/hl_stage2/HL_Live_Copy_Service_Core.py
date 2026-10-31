@@ -8174,6 +8174,73 @@ class SenderGateway:
             log_error("fresh_exchange_net", exc)
             return None
 
+    # live_fills.csv row fields this proof reads (LIVE_FILL_FIELDS, Core L851):
+    #   "leader_wallet" + "coin"  which sleeve the row belongs to (normalise_wallet / canonical_coin_key)
+    #   "side" + "fill_size"      the SIGNED delta the row applied (ManualLedger.signed_delta: BUY +, anything
+    #                             else -). A CORE_LEDGER_REPAIR row writes side="LEDGER_REPAIR_CLOSE" and
+    #                             fill_size=abs(wallet_position_before) - append_live_fill_repair_close.
+    #   "source"                  the row's category; AuditLogWriter.append_live_fill_repair_close (Core L4864)
+    #                             stamps "CORE_LEDGER_REPAIR" - the ONE non-fill movement in this file.
+    FILL_PROOF_REPAIR_SOURCES = ("CORE_LEDGER_REPAIR",)
+
+    def _fill_proof_for_sleeve(self, wallet: Any, coin: Any) -> Dict[str, Any]:
+        """Every live_fills.csv movement of ONE wallet+coin, split into REAL fills and ledger REPAIRS.
+
+        {"fills_rows", "fills_delta", "repair_rows", "repair_delta", "unreadable"}. A repair row
+        (source == CORE_LEDGER_REPAIR, written by append_live_fill_repair_close) is bookkeeping: no exchange
+        fill stands behind it, so its delta moved the LEDGER without any trade and proves no ownership.
+        """
+        w, k = normalise_wallet(wallet), canonical_coin_key(coin)
+        excluded = set(str(s).strip().upper() for s in self.FILL_PROOF_REPAIR_SOURCES)
+        out: Dict[str, Any] = {"fills_rows": 0, "fills_delta": 0.0,
+                               "repair_rows": 0, "repair_delta": 0.0, "unreadable": False}
+        try:
+            for r in iter_csv_rows(LIVE_FILLS_CSV):
+                if normalise_wallet(r.get("leader_wallet")) != w or canonical_coin_key(r.get("coin")) != k:
+                    continue
+                d = ManualLedger.signed_delta(str(r.get("side") or ""), fnum(r.get("fill_size")))
+                if str(r.get("source") or "").strip().upper() in excluded:
+                    out["repair_rows"] += 1
+                    out["repair_delta"] += d
+                else:
+                    out["fills_rows"] += 1
+                    out["fills_delta"] += d
+        except Exception as exc:
+            log_error("fill_proof_for_sleeve", exc)
+            out["unreadable"] = True
+        return out
+
+    def _proven_owned_for_sleeve(self, wallet: Any, coin: Any) -> Tuple[float, str]:
+        """(size, origin): this sleeve's size OWNED BY FILLS - a repaired ledger can never authorise a send.
+
+        proven = the SUM of ManualLedger.signed_delta(side, fill_size) over the live_fills.csv rows of this
+        wallet+coin whose `source` is NOT CORE_LEDGER_REPAIR. A repair row is bookkeeping written by
+        append_live_fill_repair_close: it moved the LEDGER with no exchange fill behind it, so it is EXCLUDED
+        from the sum and a ledger that exists only because of repairs proves 0 -> the caller HOLDs.
+
+        live_fills.csv is append-only and ROTATES, so the sum counts the fills still on disk: if some rotated
+        away the proof UNDER-states ownership, which fails closed (smaller close or a HOLD) - never over-states.
+        A sleeve whose real fills sum to zero proves zero; the ledger is NOT consulted as a fallback.
+
+        origin "fills"                   the sleeve has fill/repair rows: the value is the fill sum above.
+        origin "ledger_sleeve_no_fills"  the sleeve has NO rows at all - the ONE ledger fallback; the caller
+                                        writes proven_from=ledger_sleeve_no_fills into the row.
+        origin "fills_unreadable"/"no_proof"  nothing could be proven: fail closed, no fallback.
+        """
+        w, k = normalise_wallet(wallet), canonical_coin_key(coin)
+        proof = self._fill_proof_for_sleeve(w, k)
+        if proof["unreadable"]:
+            return 0.0, "fills_unreadable"
+        if proof["fills_rows"] or proof["repair_rows"]:
+            proven = float(proof["fills_delta"])  # REAL fills only: repair deltas are never added
+            return (0.0 if abs(proven) <= POSITION_EPSILON else proven), "fills"
+        if self.ledger is not None:
+            try:
+                return float(self.ledger.sleeve(w, k).get("signed_size", 0.0)), "ledger_sleeve_no_fills"
+            except Exception as exc:
+                log_error("proven_owned_for_sleeve_ledger", exc)
+        return 0.0, "no_proof"
+
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
                          timing: Optional[Dict[str, Any]] = None, ledger_may_lag: bool = False) -> Tuple[bool, float, str]:
         """CS-I1..I4: the single SEND/HOLD/SETTLED owned close decision and clamp."""
@@ -8209,8 +8276,16 @@ class SenderGateway:
         if not is_valid_wallet(signer) or signer != normalise_wallet(USER_WALLET):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
         tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(actual), abs(led)))
-        if abs(owned) <= tol:
-            if abs(led) <= tol:
+        if "event-loss" in str(getattr(intent.fill, "leader_fill_id", "")):
+            proven_owned, proven_from = 0.0, "event_loss_no_fill_proof"
+        else:
+            proven_owned, proven_from = self._proven_owned_for_sleeve(wallet, coin)
+        state["close_proven_from"] = proven_from
+        state["close_proven_owned"] = proven_owned
+        if proven_from == "ledger_sleeve_no_fills":  # the ONE fallback: no fills rows at all -> say so in the row
+            state["close_proven_note"] = "proven_from=ledger_sleeve_no_fills; owned=%.10g" % proven_owned
+        if abs(proven_owned) <= tol:
+            if abs(owned) <= tol and abs(led) <= tol:
                 return decide("SETTLED", why="CLOSE_ALREADY_PROVEN_FLAT")
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
         side = ManualLedger.signed_delta(intent.copy_side, 1.0)
@@ -9253,7 +9328,8 @@ class SenderGateway:
                 return False, status, {
                     "status": status, "error": close_skip, "exchange_response": {}, "oid": "",
                     "exchange_called": False, "write_reconciliation": False,  # owed row already persisted
-                    "notes": f"{close_skip}; close remains owed unless doubly flat; no exchange call",
+                    "notes": f"{close_skip}; close remains owed unless doubly flat; no exchange call"
+                             + (f"; {timing.get('close_proven_note')}" if timing.get("close_proven_note") else ""),
                     "reject_category": "" if settled else "CLOSE_PROOF_HOLD",
                     "terminal_state": status, "operator_action": "NO_SEND_CLOSE_PROOF_UNRESOLVED",
                     "timing": timing}
@@ -9472,6 +9548,7 @@ class SenderGateway:
                 "reject_category": reject_category,
                 "reduce_only_sent": use_reduce_only,
                 **({"notes": netting_note} if netting_note else {}),
+                **({"proven_from": timing.get("close_proven_note")} if (timing or {}).get("close_proven_note") else {}),
             }
         except Exception as exc:
             if isinstance(exc, PreWireNoCallFault):
