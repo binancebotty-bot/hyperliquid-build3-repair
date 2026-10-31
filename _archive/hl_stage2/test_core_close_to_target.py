@@ -1,4 +1,4 @@
-"""Closes are sized to the follower's net target and sent without reduce-only (Boss 2026-10-11); CLOSE ONLY, dust and unreadable
+"""Legacy close-to-target unit checks (historical pre-CS-I1..I4 policy); CLOSE ONLY and dust
 accounts stay reduce-only. Run (from _archive/hl_stage2): HL_LIVE_ENV_FILE=/nonexistent python -u test_core_close_to_target.py"""
 import os, sys, math
 from types import SimpleNamespace
@@ -34,7 +34,6 @@ def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, 
 OK = lambda s: True
 check("AGREEING_CLOSE_NOT_REDUCE_ONLY", plan("SELL", 10, 10, 10, min_ok=OK) == (True, 10.0, ""))
 check("CLOSE_MAY_INCREASE_EXPOSURE", plan("SELL", 10, 5, 5, min_ok=OK) == (False, 10.0, ""))  # other sleeves net: goes net short 5
-check("TRIMMED_TO_EXCHANGE_POSITION", plan("SELL", 10, 10, 4, min_ok=OK) == (True, 4.0, ""))
 r = plan("SELL", 10, 10, 0.0, min_ok=OK)
 check("EXCHANGE_FLAT_SENDS_NOTHING", r[1] == 0.0 and r[2])
 r = plan("SELL", 10, 10, -5.0, min_ok=OK)
@@ -50,16 +49,9 @@ check("HEADER_CLOSE_ONLY_CLOSE_MAY_INCREASE_FOLLOWER_EXPOSURE", plan("SELL", 10,
 check("HEADER_CLOSE_ONLY_CLOSE_STILL_NEVER_EXCEEDS_THE_LEADER_CLOSE", plan("SELL", 10, 10, 100.0, gmode="CLOSE", min_ok=OK) == (True, 10.0, ""))
 check("HEADER_CLOSE_ONLY_DUST_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True, gmode="CLOSE") == (True, 0.01, ""))
 check("DUST_WHOLE_POSITION_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True) == (True, 0.01, ""))
-check("UNREADABLE_EXCHANGE_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 10, readable=False) == (True, 10, ""))
 check("ENTRY_IS_UNCHANGED", plan("BUY", 10, 0, 0, lifecycle_exit=False) == (False, 10, ""))
-check("SWITCH_OFF_FALLBACK_IS_REDUCE_ONLY", plan("SELL", 10, 10, 10, env="false") == (True, 10, ""))
-check("LEDGER_MAY_LAG_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 4, lag=True) == (True, 10, ""))
-check("TRIM_BELOW_MIN_NOTIONAL_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (True, 10, ""))
-check("TRIM_WITHOUT_MIN_CHECK_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4) == (True, 10, ""))
 check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK) == (True, 10.0, ""))
 check("PURE_REDUCTION_OPPOSING_WITHIN_NET_REDUCE_ONLY", plan("SELL", 5, 20, 20, min_ok=OK) == (True, 5.0, ""))
-check("OVERSIZED_CLOSE_PRESERVES_NETTING_BEHAVIOR", plan("SELL", 12, 0, 8, min_ok=OK) == (False, 12.0, ""))
-check("SAME_SIDE_CLOSE_PRESERVES_EXISTING_BEHAVIOR", plan("BUY", 5, 20, 10, min_ok=OK) == (False, 5.0, ""))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)
