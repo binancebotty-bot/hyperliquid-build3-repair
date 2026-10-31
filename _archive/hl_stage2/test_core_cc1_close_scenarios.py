@@ -301,36 +301,25 @@ def w4d_no_engine_dust_remains_when_exchange_is_flat():
         "status=%r sdk=%r exchange_after=%r red=%r" % (status, ex.calls, net[0], red_for("w4d-f"))
 
 
-# CC-1 test_core_close_to_target.py retirement witness migration:
-#   historical SHORT_SLEEVE_BUY_CLOSE -> SHORT_OWNED_BUY_CLOSE_ACTUAL_WIRE;
-#   historical ENTRY_IS_UNCHANGED -> ENTRY_NONEXIT_PLANNER_IDENTITY.
-# Other legacy cases map to W1/W2/W3A/W4A/W4D/W6A/W8/W9/R81/CE1B
-# and CEILING_CLO/CEILING_GLOBAL_CLOSE_ONLY; exact cross-product mode/netting
-# and dust evidence must still be reviewed independently, not certified here.
-# EVENT_LOSS split: test_core_r1_cursor.py supplies a real poll/cursor
-# recovery-intake witness; PHYSICAL_ORACLE_GAP RED/NOT_RUN: a genuine matcher-
-# authored follower +0.5 BUY, foreign +1.5 (same signer net +2), late recovered
-# unique leader SELL .5 => one SDK SELL .5 RO, final foreign +1.5, no dup;
-# ACK alone is not fill, owed CLOSE remains until separately matched fill.
-# Missing provenance must HOLD/RED, never permit SELL 2. No such full-chain
-# witness is claimed executable or GREEN by this test-only revision.
+# Migrate the two unique valid legacy close_to_target controls to the
+# actual gateway with a signed wallet sleeve. Other legacy cases are mapped
+# to W1/W2/W3A/W4/W6A/W8/W9/R81 and CEILING_CLO/GLOBAL_CLOSE_ONLY.
+# EVENT_LOSS now has a real poll intake witness in test_core_r1_cursor.py,
+# but physical-close/real-follower-match oracle remains RED / NOT_RUN.
 
 
 def short_owned_buy_close_actual_wire():
-    """A genuine signed short-sleeve close, not a SimpleNamespace planner mock."""
     led, ex, net = new_ledger(), FakeExchange(), [-1.0]
     gw = make_gateway(ex, led, net)
     it = exit_intent(led, A, "BUY", 1.0, "short-owned-buy-close-f", -1.0, start=-1.0)
     ok, status = gw.send_if_allowed(it)
     return (ok and len(ex.calls) == 1 and ex.calls[0]["is_buy"] is True
             and ex.calls[0]["reduce_only"] is True
-            and abs(ex.calls[0]["size"] - 1.0) < 1e-9
-            and abs(net[0]) < 1e-9), (
-                "ok=%r status=%r calls=%r net=%r" % (ok, status, ex.calls, net[0]))
+            and abs(ex.calls[0]["size"] - 1.0) < 1e-9 and abs(net[0]) < 1e-9), (
+                "status=%r calls=%r net=%r" % (status, ex.calls, net[0]))
 
 
 def entry_nonexit_planner_identity():
-    """The close-only planning seam must not transform an actual leader ENTRY."""
     led, ex, net = new_ledger(), FakeExchange(), [0.0]
     gw = make_gateway(ex, led, net)
     fill = c.LeaderFill("entry-not-close-f", A, COIN, "BUY", PX, 1.0,
@@ -338,8 +327,9 @@ def entry_nonexit_planner_identity():
                         {"oid": "entry-not-close-oid", "dir": "Open Long", "startPosition": "0"})
     it = c.IntentBuilder(c.ConfigManager(), led).build(fill)
     ro, size, reason = gw._close_wire_plan(it, 1.0, RESOLVED["sz_decimals"])
-    return (not c.SenderGateway._reduce_only_for_intent(it) and ro is False
-            and abs(size - 1.0) < 1e-9 and reason == "" and not ex.calls), (
+    return (not c.SenderGateway._reduce_only_for_intent(it)
+            and ro is False and abs(size - 1.0) < 1e-9
+            and reason == "" and not ex.calls), (
                 "decision=%r ro=%r size=%r reason=%r" % (it.decision, ro, size, reason))
 
 
