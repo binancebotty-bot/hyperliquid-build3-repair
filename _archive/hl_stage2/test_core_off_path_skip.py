@@ -100,19 +100,32 @@ except Exception as exc:
 gw = types.SimpleNamespace(
     cfg=types.SimpleNamespace(send_mode_now=lambda: 'OFF', wallet_enabled=lambda w: True, wallet_mode=lambda w: 'LIVE'),
     sender_key_invalid=False, audit=Audit(), _gate_journal_failures=0)
+_early_intent = types.SimpleNamespace(
+    fill=types.SimpleNamespace(leader_wallet='0xabc', leader_fill_id='f-early', coin='BTC'),
+    intent_id='i-early')
 # the gate is a method: bind the real ones to the stub so this tests the engine, not a re-implementation
 gw._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw, intent, path)
 gw._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw, intent, path, reason)
 try:
-    res = C.SenderGateway._place_order(gw, None, 'BTC', True, 0.001, 100.0, 'Ioc', False, intent=types.SimpleNamespace())
+    res = C.SenderGateway._place_order(gw, None, 'BTC', True, 0.001, 100.0, 'Ioc', False, intent=_early_intent)
     check('GATE_REFUSAL_SAYS_THE_EXCHANGE_WAS_NOT_CALLED', res.get('exchange_called') is False, res)
     check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', res.get('reject_category') == 'BLOCKED_AT_PLACE_ORDER', res)
     timing = res.get('timing') or {}
     check('GATE_REFUSAL_HAS_NO_CALL_STAMP', 'exchange_call_started_ms' not in timing, timing)
+    # Check the emitted audit record, not the Core implementation's source spelling.
+    _e = gw.audit.rows
+    check('GATE_REFUSAL_DURABLE_NO_CALL_ROW',
+          len(_e) == 1 and _e[0][:2] == ('SEND_TERMINAL', 'BLOCKED_AT_PLACE_ORDER')
+          and all(_e[0][2].get(k) == v for k, v in {
+              'action': 'NO_EXCHANGE_CALL', 'reject_category': 'BLOCKED_AT_PLACE_ORDER',
+              'terminal_state': 'BLOCKED_AT_PLACE_ORDER', 'engine_can_send': 'False',
+              'leader_wallet': '0xabc', 'leader_fill_id': 'f-early', 'intent_id': 'i-early',
+              'coin': 'BTC'}.items()), _e)
 except Exception as exc:
     check('GATE_REFUSAL_SAYS_THE_EXCHANGE_WAS_NOT_CALLED', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
     check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', False, 'unreached')
     check('GATE_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
+    check('GATE_REFUSAL_DURABLE_NO_CALL_ROW', False, 'unreached')
 
 
 # ---- (b2) POST-WAIT refusal: the late gate runs AFTER the pacing slot and the write-ahead row, so a mode
@@ -136,7 +149,7 @@ gw2 = types.SimpleNamespace(
 gw2._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw2, intent, path)
 gw2._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw2, intent, path, reason)
 _post_timing = {}
-_post_intent = types.SimpleNamespace(fill=types.SimpleNamespace(leader_wallet='0xabc', coin='BTC'),
+_post_intent = types.SimpleNamespace(fill=types.SimpleNamespace(leader_wallet='0xabc', leader_fill_id='f-post', coin='BTC'),
                                      intent_id='i-post', notes='lifecycle=ENTRY',
                                      wallet_position_before=0, copy_side='BUY', copy_size=1)
 try:
@@ -148,9 +161,21 @@ try:
           'exchange_call_started_ms' not in (_post.get('timing') or {})
           and 'exchange_call_started_ms' not in _post_timing,
           'timing=%r' % (_post.get('timing'),))
+    _p = gw2.audit.rows
+    check('POST_WAIT_REFUSAL_DURABLE_NO_CALL_ROW',
+          len(_p) == 1 and _p[0][0] == 'SEND_TERMINAL'
+          and _p[0][1] in {'BLOCKED_AT_PLACE_ORDER', 'SEND_BLOCKED_NO_SENDER_LEASE'}
+          and _p[0][2].get('terminal_state') == _p[0][1]
+          and _p[0][2].get('reject_category') == _p[0][1]
+          and _p[0][2].get('action') == 'NO_EXCHANGE_CALL'
+          and _p[0][2].get('engine_can_send') == 'False'
+          and all(_p[0][2].get(k) == v for k, v in {
+              'leader_wallet': '0xabc', 'leader_fill_id': 'f-post',
+              'intent_id': 'i-post', 'coin': 'BTC'}.items()), _p)
 except Exception as exc:
     check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
     check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
+    check('POST_WAIT_REFUSAL_DURABLE_NO_CALL_ROW', False, 'unreached')
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
