@@ -7429,6 +7429,11 @@ class SenderGateway:
                                                   limit_px, "Gtc", _ro, timing=_sc_t, cloid=_cl,
                                                   bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre, intent=intent, path="exit_recovery")
+            if isinstance(recovery_response, dict) and recovery_response.get("exchange_called") is False:
+                # A refused recovery is not an existing resting order or an attempted wire.
+                self._journal_authorised_close_refusal(
+                    intent, str(recovery_response.get("terminal_state") or "EXIT_RECOVERY_NO_CALL"))
+                return
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -7905,6 +7910,13 @@ class SenderGateway:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
                                                   tif, False, timing, "entry_add_rate_limit_recovery_started_ms",
                                                   cloid=_cl, pre_send=_pre, intent=intent, path="rate_limit_recovery")
+            if isinstance(recovery_response, dict) and recovery_response.get("exchange_called") is False:
+                # Preserve prior invoked-attempt identity; the caller owns its original
+                # rejection/timeout reconciliation. A recovery local refusal is NOT SDK.
+                if timing.get("last_physical_attempt_id") and timing.get("last_physical_cloid"):
+                    timing["send_attempt_id"] = timing["last_physical_attempt_id"]
+                    timing["send_cloid"] = timing["last_physical_cloid"]
+                return None
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
