@@ -7398,7 +7398,7 @@ class SenderGateway:
             return
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
         wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
-        close_size = min(abs(wallet_pos), abs(wire_size), abs(intent.copy_size))
+        close_size = min(abs(intent.copy_size), abs(wallet_pos))
         if remainder is not None:  # the close part-filled: only what is left (the ledger has not seen the fill yet)
             close_size = min(close_size, abs(remainder))
         if close_size <= POSITION_EPSILON or wallet_pos * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
