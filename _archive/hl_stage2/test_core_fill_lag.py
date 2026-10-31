@@ -259,8 +259,58 @@ def main() -> None:
     # ---- W: hot window 20 s, full sweep once a minute --------------------------------------------------------
     hot = [s for s in stats if s.get("hot") and not s.get("sweep")]
     sweeps = [s for s in stats if s.get("sweep")]
-    check("W1_HOT_READ_GOES_BACK_ABOUT_20S", hot and max(s["window_ms"] for s in hot) <= c.COPY_POLL_HOT_OVERLAP_MS + 5000,
-          str([s["window_ms"] for s in hot][:5]))
+    # W1 asserts the LOOKBACK THE CODE DERIVES, not a ceiling on a wall-clock measurement. The old form was
+    #   max(s['window_ms'] for s in hot) <= COPY_POLL_HOT_OVERLAP_MS + 5000
+    # which went red on a loaded machine at [22350, 37210] vs 25000. window_ms is poll_end_ms - start_ms, i.e.
+    # (the overlap) + (how long after the previous read this one actually ran), so its size is scheduling delay,
+    # not a lookback error: 22350 = 20000 + 2.35 s, 37210 = 20000 + 17.2 s of thread starvation. Nothing the
+    # code computed was wrong, so no thread fix can make that ceiling green on a busy box. Replaced by an exact
+    # probe: pin the stored cursor to a known value, read, and require start_ms == cursor - overlap for the hot
+    # read and cursor - POLL_OVERLAP_MS for the sweep.
+    hot = [s for s in stats if s.get('hot') and not s.get('sweep')]
+    sweeps = [s for s in stats if s.get('sweep')]
+    probe_starts = []
+
+    class ProbeIngestor:
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            probe_starts.append(start_ms)
+            return [], 'COPY_ACCOUNT_POLLED'
+
+    real_ing_w = new.copy_ingestor
+    new.copy_ingestor = ProbeIngestor()
+    probe_cursor = c.utc_now_ms() - 60000  # a fixed, known cursor: the read start is this minus the overlap
+
+    def probe(force_sweep):
+        with c.RUNTIME_STATE_LOCK:
+            st = c.load_json(c.COPY_POLL_STATE_FILE, {})
+            st['last_copy_poll_ms'] = probe_cursor
+            c.atomic_write_json(c.COPY_POLL_STATE_FILE, st)
+        new._last_copy_sweep = 0.0 if force_sweep else time.monotonic()
+        probe_starts.clear()
+        new.copy_poll_once(hot=True)
+        last = (c.load_json(c.COPY_POLL_STATE_FILE, {}).get('copy_poll_stats') or [{}])[-1]
+        return (probe_starts[-1] if probe_starts else None), last
+
+    start_hot, st_hot = probe(False)
+    start_sweep, st_sweep = probe(True)
+    new._last_copy_sweep = time.monotonic()
+    new.copy_ingestor = real_ing_w
+    check('W1_HOT_READ_GOES_BACK_ABOUT_20S',
+          start_hot == probe_cursor - c.COPY_POLL_HOT_OVERLAP_MS
+          and start_sweep == probe_cursor - c.POLL_OVERLAP_MS
+          and st_hot.get('hot') is True and st_hot.get('sweep') is False
+          and st_sweep.get('sweep') is True
+          and c.COPY_POLL_HOT_OVERLAP_MS <= st_hot.get('window_ms', -1) < c.POLL_OVERLAP_MS,
+          'hot_start=%s want=%s sweep_start=%s want=%s hot_flags=%s sweep_flags=%s' % (
+              start_hot, probe_cursor - c.COPY_POLL_HOT_OVERLAP_MS, start_sweep,
+              probe_cursor - c.POLL_OVERLAP_MS, (st_hot.get('hot'), st_hot.get('sweep')),
+              (st_sweep.get('hot'), st_sweep.get('sweep'))))
+    # the M-run's own recorded hot windows: at least the 20 s lookback, never a full 5-minute sweep. A range,
+    # not a fixed ceiling -- load stretches the top without the lookback changing.
+    hot_wins = [s['window_ms'] for s in hot]
+    check('W1B_RECORDED_HOT_WINDOWS_STAY_UNDER_A_SWEEP',
+          bool(hot_wins) and all(c.COPY_POLL_HOT_OVERLAP_MS <= w < c.POLL_OVERLAP_MS for w in hot_wins),
+          str(hot_wins[:5]))
     check("W2_FIRST_READ_IS_A_FULL_SWEEP", sweeps and sweeps[0]["window_ms"] >= c.POLL_OVERLAP_MS, str(sweeps[:1]))
 
     # ---- W3: a page-capped read resumes at its newest fill, so the next hot read misses nothing ---------------
@@ -319,15 +369,46 @@ def main() -> None:
         rt_before = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     oid2, side2 = engine_order()
     land(oid2, side2)
-    st2 = new.copy_poll_once(hot=True)
+    # Snapshot the profiler counters at the instant prof_take() runs, so P2 can check the sample against the raw
+    # numbers instead of against its own idea of which section ought to be slowest.
+    raw_sections = []
+    real_prof_take = c.prof_take
+
+    def spy_prof_take(top: int = 8):
+        with c._PROF_LOCK:
+            raw_sections.append([(k, int(v[0]), float(v[1]), float(v[2])) for k, v in c._PROF.items()])
+        return real_prof_take(top)
+
+    c.prof_take = spy_prof_take
+    try:
+        st2 = new.copy_poll_once(hot=True)
+    finally:
+        c.prof_take = real_prof_take
     with c.RUNTIME_STATE_LOCK:
         rt_after = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", rt_after == rt_before and isinstance(st2.get("at_ms"), int),
           "runtime_state_changed=%s poll_at_ms=%r" % (rt_after != rt_before, st2.get("at_ms")))
-    check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
-          and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
-          and all({"section", "n", "total_ms", "max_ms"} <= set(s) for s in st2["slowest_sections"]),
-          str(st2.get("slowest_sections")))
+    # P2: the poll reports the sections it profiled -- a NON-EMPTY sample, every row reproducing its own counters.
+    # It deliberately does NOT assert WHICH section is slowest: prof_take ranks BY MEASURED max_ms, so on a loaded
+    # box "replace:copy_poll_state.json" (14 ms) and "copy_state_write" (14-30 ms) trade places run to run. That is
+    # load-dependent by construction -- no thread fix can make a measured ordering deterministic. What is asserted:
+    # the reported list is exactly the top-8 of the counters at take time (the ranking RULE, not its outcome), each
+    # row is the counter triple for that section (n >= 1, total_ms >= max_ms >= 0), and the two sections this poll
+    # must profile are present in the counters.
+    slow = st2.get("slowest_sections")
+    raw = raw_sections[-1] if raw_sections else []
+    raw_by = {k: (n, int(tot), int(mx)) for k, n, tot, mx in raw}
+    expected_order = [k for k, _n, _tot, _mx in sorted(raw, key=lambda r: -r[3])][:8]
+    check("P2_POLL_REPORTS_THE_SECTIONS_IT_PROFILED",
+          isinstance(slow, list) and len(slow) > 0
+          and all(isinstance(s, dict) and set(s) == {"section", "n", "total_ms", "max_ms"} for s in slow)
+          and [s["section"] for s in slow] == expected_order
+          and all(isinstance(s["n"], int) and isinstance(s["total_ms"], int) and isinstance(s["max_ms"], int)
+                  for s in slow)
+          and all(s["n"] >= 1 and 0 <= s["max_ms"] <= s["total_ms"] for s in slow)
+          and all(raw_by.get(s["section"]) == (s["n"], s["total_ms"], s["max_ms"]) for s in slow)
+          and "copy_state_write" in raw_by and "send_lock:copy_fill_apply" in raw_by,
+          "reported=%s expected=%s raw=%s" % (slow, expected_order, raw))
     # P3: parsing a big audit CSV does not hold the file lock (every append on the send path waits for it)
     held = []
     real_reader = c.csv.DictReader
