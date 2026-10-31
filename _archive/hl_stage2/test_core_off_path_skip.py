@@ -43,6 +43,20 @@ class Audit:
         self.rows.append(('SEND_ATTEMPT', row.get('status'), row))
 
 
+def emitted_refusal_row(rows, status, fill_id, intent_id):
+    # Method-level append_reconciliation spy only; disk spill/replay is tested separately
+    # by test_core_audit_append_never_drops.py, not certified by this mock.
+    if len(rows) != 1:
+        return False
+    event, state, fields = rows[0]
+    expected = dict(action='NO_EXCHANGE_CALL', reject_category=status,
+                    terminal_state=status, engine_can_send='False',
+                    leader_wallet='0xabc', leader_fill_id=fill_id,
+                    intent_id=intent_id, coin='BTC')
+    return event == 'SEND_TERMINAL' and state == status and all(
+        fields.get(key) == val for key, val in expected.items())
+
+
 class Boom(Exception):
     pass
 
@@ -100,21 +114,28 @@ except Exception as exc:
 gw = types.SimpleNamespace(
     cfg=types.SimpleNamespace(send_mode_now=lambda: 'OFF', wallet_enabled=lambda w: True, wallet_mode=lambda w: 'LIVE'),
     sender_key_invalid=False, audit=Audit(), _gate_journal_failures=0)
+_early_intent = types.SimpleNamespace(
+    fill=types.SimpleNamespace(leader_wallet='0xabc', leader_fill_id='f-early', coin='BTC'),
+    intent_id='i-early')
 # the gate is a method: bind the real ones to the stub so this tests the engine, not a re-implementation
-gw._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw, intent, path)
+gw._master_gate_reason = lambda intent, path='', **kw: C.SenderGateway._master_gate_reason(gw, intent, path, **kw)
 gw._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw, intent, path, reason)
 try:
-    res = C.SenderGateway._place_order(gw, None, 'BTC', True, 0.001, 100.0, 'Ioc', False, intent=types.SimpleNamespace())
+    res = C.SenderGateway._place_order(gw, None, 'BTC', True, 0.001, 100.0, 'Ioc', False, intent=_early_intent)
     check('GATE_REFUSAL_SAYS_THE_EXCHANGE_WAS_NOT_CALLED', res.get('exchange_called') is False, res)
     check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', res.get('reject_category') == 'BLOCKED_AT_PLACE_ORDER', res)
     timing = res.get('timing') or {}
     check('GATE_REFUSAL_HAS_NO_CALL_STAMP', 'exchange_call_started_ms' not in timing, timing)
+    check('GATE_REFUSAL_EMITTED_AUDIT_ROW',
+          emitted_refusal_row(gw.audit.rows, 'BLOCKED_AT_PLACE_ORDER', 'f-early', 'i-early'), gw.audit.rows)
 except Exception as exc:
     check('GATE_REFUSAL_SAYS_THE_EXCHANGE_WAS_NOT_CALLED', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
     check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', False, 'unreached')
     check('GATE_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
+    check('GATE_REFUSAL_EMITTED_AUDIT_ROW', False, 'unreached')
 
-# ---- the row the gate writes must not invite a call stamp either
+
+# ---- Retained pending demonstrated green behavioral replacement (legacy source-text assertion).
 check('GATE_ROW_IS_NO_EXCHANGE_CALL', 'action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER"' in SRC)
 
 # ---- (b2) POST-WAIT refusal: the late gate runs AFTER the pacing slot and the write-ahead row, so a mode
@@ -135,24 +156,40 @@ gw2 = types.SimpleNamespace(
     _reserve_exchange_order_slot=lambda **kw: C.utc_now_ms(),
     _open_orders_send_begin=lambda: None, _open_orders_send_end=lambda: None,
     _note_sender_key_rejection=lambda r: None)
-gw2._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw2, intent, path)
+gw2._master_gate_reason = lambda intent, path='', **kw: C.SenderGateway._master_gate_reason(gw2, intent, path, **kw)
 gw2._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw2, intent, path, reason)
 _post_timing = {}
-_post_intent = types.SimpleNamespace(fill=types.SimpleNamespace(leader_wallet='0xabc', coin='BTC'),
+_wire_calls = []
+_fake_exchange = types.SimpleNamespace(order=lambda *a, **k: (_wire_calls.append((a, k)), {'status': 'err'})[1])
+_post_intent = types.SimpleNamespace(fill=types.SimpleNamespace(leader_wallet='0xabc', leader_fill_id='f-post', coin='BTC'),
                                      intent_id='i-post', notes='lifecycle=ENTRY',
                                      wallet_position_before=0, copy_side='BUY', copy_size=1)
+# Override the lease only within this fake, no-wire test: otherwise an early
+# lease refusal can mask a broken post-wait OFF recheck.
+_real_lease_owned = C._sender_lease_owned
+C._sender_lease_owned = lambda: True
 try:
-    _post = C.SenderGateway._place_order(gw2, None, 'BTC', True, 0.001, 100.0, 'Ioc', False,
+    _post = C.SenderGateway._place_order(gw2, _fake_exchange, 'BTC', True, 0.001, 100.0, 'Ioc', False,
                                          timing=_post_timing, started_key='exchange_call_started_ms',
                                          intent=_post_intent, path='send_other')
-    check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', _post.get('exchange_called') is False, _post)
+    check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', _post.get('exchange_called') is False and not _wire_calls, _post)
+    check('POST_WAIT_OFF_MODE_RECHECKED',
+          _seq['n'] >= 2 and _post.get('reject_category') == 'BLOCKED_AT_PLACE_ORDER'
+          and 'MASTER_REAL_ORDERS_OFF' in str(_post.get('response')) and not _wire_calls,
+          'checks=%r response=%r wire_calls=%r' % (_seq['n'], _post.get('response'), _wire_calls))
     check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP',
           'exchange_call_started_ms' not in (_post.get('timing') or {})
           and 'exchange_call_started_ms' not in _post_timing,
           'timing=%r' % (_post.get('timing'),))
+    check('POST_WAIT_REFUSAL_EMITTED_AUDIT_ROW',
+          emitted_refusal_row(gw2.audit.rows, 'BLOCKED_AT_PLACE_ORDER', 'f-post', 'i-post'), gw2.audit.rows)
 except Exception as exc:
     check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
+    check('POST_WAIT_OFF_MODE_RECHECKED', False, 'unreached')
     check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
+    check('POST_WAIT_REFUSAL_EMITTED_AUDIT_ROW', False, 'unreached')
+finally:
+    C._sender_lease_owned = _real_lease_owned
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
