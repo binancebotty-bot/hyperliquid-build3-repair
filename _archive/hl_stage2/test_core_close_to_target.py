@@ -3,6 +3,7 @@ accounts stay reduce-only. Run (from _archive/hl_stage2): HL_LIVE_ENV_FILE=/none
 import os, sys, math
 from types import SimpleNamespace
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault("HL_USER_WALLET", "0x" + "c" * 40)
 import HL_Live_Copy_Service_Core as c
 
 R = []
@@ -10,12 +11,19 @@ def check(n, ok, d=""):
     R.append((n, bool(ok))); print(("PASS" if ok else "FAIL"), n, d); print("RESULT::%s_%s" % (n, "PASS" if ok else "FAIL"))
 
 class Ledger:
-    def __init__(self, net): self.net = net
+    def __init__(self, net, owned=None):
+        self.net = net
+        self.owned = net if owned is None else owned
+        self.data = {"by_wallet": {"0xabc": {"RESOLV": {"signed_size": (net if owned is None else owned), "coin": "RESOLV"}}},
+                     "by_coin_net": {"RESOLV": {"signed_size": net}}}
     def coin_net(self, k): return self.net
 
-def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON"):
+def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON", owned=None):
     snap = ({"RESOLV": ex}, "") if readable else ({}, "exchange snapshot unavailable")
-    me = SimpleNamespace(ledger=Ledger(led), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
+    me = SimpleNamespace(ledger=Ledger(led, (size if owned is None else owned)), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
+    me._open_close_escalation = lambda intent, reason: None
+    me._close_proof_account_ok = lambda: True
+    me._follower_order_account_for_proof = lambda *a, **k: c.USER_WALLET
     me._reduce_only_for_intent = lambda i: lifecycle_exit
     me._persisted_exchange_positions = lambda: snap
     me._fresh_exchange_net = lambda coin: (ex if readable else None)
@@ -51,6 +59,8 @@ check("HEADER_CLOSE_ONLY_CLOSE_STILL_NEVER_EXCEEDS_THE_LEADER_CLOSE", plan("SELL
 check("HEADER_CLOSE_ONLY_DUST_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True, gmode="CLOSE") == (True, 0.01, ""))
 check("DUST_WHOLE_POSITION_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True) == (True, 0.01, ""))
 check("UNREADABLE_EXCHANGE_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 10, readable=False) == (True, 10, ""))
+check("UNREADABLE_FALLBACK_CLAMPED_BY_OWNED", plan("SELL", 10, 10, 10, readable=False, owned=5) == (True, 5, ""))
+check("UNREADABLE_NO_OWNED_SLEEVE_HOLDS", plan("SELL", 10, 10, 10, readable=False, owned=0)[1] == 0.0 and plan("SELL", 10, 10, 10, readable=False, owned=0)[2] == "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
 check("ENTRY_IS_UNCHANGED", plan("BUY", 10, 0, 0, lifecycle_exit=False) == (False, 10, ""))
 check("SWITCH_OFF_FALLBACK_IS_REDUCE_ONLY", plan("SELL", 10, 10, 10, env="false") == (True, 10, ""))
 check("LEDGER_MAY_LAG_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 4, lag=True) == (True, 10, ""))

@@ -8193,12 +8193,27 @@ class SenderGateway:
         if not isinstance(row, dict) or "signed_size" not in row:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_SLEEVE")
         try:
-            owned, led = float(row["signed_size"]), float(self.ledger.coin_net(coin))
-            actual = self._fresh_exchange_net(intent.fill.coin)
-            actual, requested = float(actual), abs(float(size))
+            owned = float(row["signed_size"])
+            led = float(self.ledger.coin_net(coin))
         except (ValueError, TypeError, OverflowError):
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNREADABLE_NET")
-        if not all(map(math.isfinite, (owned, led, actual, requested))):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+        requested = abs(float(size))
+        actual_raw = self._fresh_exchange_net(intent.fill.coin)
+        actual_unreadable = False
+        try:
+            actual = float(actual_raw)
+        except (ValueError, TypeError, OverflowError):
+            actual = None
+            actual_unreadable = True
+        if actual is not None and not math.isfinite(actual):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NONFINITE_NET")
+        if not all(map(math.isfinite, (owned, led, requested))):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NONFINITE_NET")
+        if actual_unreadable:
+            # Fallback: exchange net unreadable, but a close is never blocked.
+            # Clamp by fill-proven owned only; reduce-only self-limits the wire.
+            actual = led
+        if not all(map(math.isfinite, (actual,))):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NONFINITE_NET")
         if not self._close_proof_account_ok():
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
@@ -8235,6 +8250,11 @@ class SenderGateway:
         ro = actual * delta < 0 and amount <= abs(actual) + tol
         if safe_foreign and not ro:  # foreign residue must never be crossed
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
+        if actual_unreadable:
+            try:
+                self._open_close_escalation(intent, "CLOSE_PROOF_UNREADABLE_NET_FALLBACK")
+            except Exception as exc:
+                log_error("close_escalation_write_failed", exc)
         state["close_verified_sz_decimals"] = sz_dec
         return decide("SEND", amount, ro)
 
