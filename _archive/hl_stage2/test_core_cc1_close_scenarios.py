@@ -301,6 +301,48 @@ def w4d_no_engine_dust_remains_when_exchange_is_flat():
         "status=%r sdk=%r exchange_after=%r red=%r" % (status, ex.calls, net[0], red_for("w4d-f"))
 
 
+# CC-1 test_core_close_to_target.py retirement witness migration:
+#   historical SHORT_SLEEVE_BUY_CLOSE -> SHORT_OWNED_BUY_CLOSE_ACTUAL_WIRE;
+#   historical ENTRY_IS_UNCHANGED -> ENTRY_NONEXIT_PLANNER_IDENTITY.
+# Other legacy cases map to W1/W2/W3A/W4A/W4D/W6A/W8/W9/R81/CE1B
+# and CEILING_CLO/CEILING_GLOBAL_CLOSE_ONLY; exact cross-product mode/netting
+# and dust evidence must still be reviewed independently, not certified here.
+# EVENT_LOSS split: test_core_r1_cursor.py supplies a real poll/cursor
+# recovery-intake witness; PHYSICAL_ORACLE_GAP RED/NOT_RUN: a genuine matcher-
+# authored follower +0.5 BUY, foreign +1.5 (same signer net +2), late recovered
+# unique leader SELL .5 => one SDK SELL .5 RO, final foreign +1.5, no dup;
+# ACK alone is not fill, owed CLOSE remains until separately matched fill.
+# Missing provenance must HOLD/RED, never permit SELL 2. No such full-chain
+# witness is claimed executable or GREEN by this test-only revision.
+
+
+def short_owned_buy_close_actual_wire():
+    """A genuine signed short-sleeve close, not a SimpleNamespace planner mock."""
+    led, ex, net = new_ledger(), FakeExchange(), [-1.0]
+    gw = make_gateway(ex, led, net)
+    it = exit_intent(led, A, "BUY", 1.0, "short-owned-buy-close-f", -1.0, start=-1.0)
+    ok, status = gw.send_if_allowed(it)
+    return (ok and len(ex.calls) == 1 and ex.calls[0]["is_buy"] is True
+            and ex.calls[0]["reduce_only"] is True
+            and abs(ex.calls[0]["size"] - 1.0) < 1e-9
+            and abs(net[0]) < 1e-9), (
+                "ok=%r status=%r calls=%r net=%r" % (ok, status, ex.calls, net[0]))
+
+
+def entry_nonexit_planner_identity():
+    """The close-only planning seam must not transform an actual leader ENTRY."""
+    led, ex, net = new_ledger(), FakeExchange(), [0.0]
+    gw = make_gateway(ex, led, net)
+    fill = c.LeaderFill("entry-not-close-f", A, COIN, "BUY", PX, 1.0,
+                        c.utc_now_ms(), "POLL", 0,
+                        {"oid": "entry-not-close-oid", "dir": "Open Long", "startPosition": "0"})
+    it = c.IntentBuilder(c.ConfigManager(), led).build(fill)
+    ro, size, reason = gw._close_wire_plan(it, 1.0, RESOLVED["sz_decimals"])
+    return (not c.SenderGateway._reduce_only_for_intent(it) and ro is False
+            and abs(size - 1.0) < 1e-9 and reason == "" and not ex.calls), (
+                "decision=%r ro=%r size=%r reason=%r" % (it.decision, ro, size, reason))
+
+
 # ======================================================================================= W5 older terminal id
 def w5():
     led, ex, net = new_ledger(), FakeExchange(), [2.0]
@@ -965,6 +1007,8 @@ def main():
         ("W4C_HELD_REMAINDER_RESOLVED_BY_WHOLE_POSITION_CLOSE_WHEN_ACCOUNT_WOULD_GO_FLAT",
          w4c_resolved_by_whole_position_close_when_account_would_go_flat),
         ("W4D_NO_ENGINE_DUST_REMAINS_WHEN_THE_EXCHANGE_IS_FLAT", w4d_no_engine_dust_remains_when_exchange_is_flat),
+        ("SHORT_OWNED_BUY_CLOSE_ACTUAL_WIRE", short_owned_buy_close_actual_wire),
+        ("ENTRY_NONEXIT_PLANNER_IDENTITY", entry_nonexit_planner_identity),
         ("W5_OLDER_TERMINAL_FILL_ID_DOES_NOT_BLOCK_A_FRESH_EXIT_ON_A_LIVE_SLEEVE", w5),
         ("W6A_UNREADABLE_EXCHANGE_NEVER_CLAIMS_FLAT", w6a_unreadable_exchange_never_claims_flat),
         ("W6B_R1_WRONG_ACCOUNT_REQUIRES_DURABLE_HOLD_NO_SDK",
