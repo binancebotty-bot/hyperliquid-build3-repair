@@ -8131,25 +8131,32 @@ class SenderGateway:
         return classify_send_lifecycle(intent) in {"REDUCE", "EXIT"} or bool(intent.reduce_only_intended)
 
     def _reduce_only_on_wire(self, intent: Intent, size: float) -> bool:
-        """Boss (F3, 2026-10-09): leaders net on the one shared account, like the exchange does. A leader's close is
-        sent reduce-only when it fits inside the account's net position in the closing direction. When other
-        leaders' opposite sleeves have netted the account down (or across flat), the close is sent WITHOUT
-        reduce-only, sized to this leader's own sleeve, so the account moves to the new sum of the sleeves. That
-        is only done when the ledger's net equals the exchange's net; otherwise it stays reduce-only (it can never
-        open a position the records don't explain) and the mismatch is reported as usual."""
+        """CC1-B-CONSOLIDATED-2310 item 2: reduce_only is True ONLY when the order truly opposes the
+        REAL exchange net AND wire_size <= abs(net). Never forced, never a fallback: an unreadable
+        net, an absent ledger or a ledger/exchange disagreement all mean NOT reduce-only.
+
+        Boss (F3, 2026-10-09): leaders net on the one shared account, like the exchange does. When
+        other leaders' opposite sleeves have netted the account down (or across flat), the close is
+        sent WITHOUT reduce-only so the account moves to the new sum of the sleeves."""
         if not self._reduce_only_for_intent(intent):
             return False
-        if not self.ledger or not bval(os.getenv("HL_LIVE_NETTING_AWARE_REDUCE_ONLY"), True):
-            return True
-        key = canonical_coin_key(intent.fill.coin)
+        if not bval(os.getenv("HL_LIVE_NETTING_AWARE_REDUCE_ONLY"), True):
+            return False
+        net = SenderGateway._finite_net_or_none(self._fresh_exchange_net(intent.fill.coin))
+        if net is None:  # unreadable: never force reduce-only
+            return False
         delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
-        exchange, reason = self._persisted_exchange_positions()
-        if reason:
-            return True
-        ex_net, led_net = fnum(exchange.get(key), 0.0), self.ledger.coin_net(key)
-        if ex_net * delta < 0 and abs(delta) <= abs(ex_net) + POSITION_EPSILON:
-            return True
-        return abs(ex_net - led_net) > max(POSITION_EPSILON, 0.001 * abs(delta))
+        return bool(net * delta < 0 and abs(delta) <= abs(net) + POSITION_EPSILON)
+
+    @staticmethod
+    def _finite_net_or_none(raw: Any) -> Optional[float]:
+        """CC1-B-CONSOLIDATED-2310: one place that turns a net read into either a real number or
+        None (unreadable). A non-finite read is unreadable, never a substitute value."""
+        try:
+            val = float(raw)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return val if math.isfinite(val) else None
 
     def _fresh_exchange_net(self, coin: str) -> Optional[float]:
         """The follower account's net position in one coin from a fresh read (scope DEXs plus the coin's own DEX), or
@@ -8262,8 +8269,15 @@ class SenderGateway:
             actual = self._fresh_exchange_net(intent.fill.coin)
             actual, requested = float(actual), abs(float(size))
         except (ValueError, TypeError, OverflowError):
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNREADABLE_NET")
-        if not all(map(math.isfinite, (owned, led, actual, requested))):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+        requested = abs(float(size))
+        # CC1-B-CONSOLIDATED-2310 item 3: one bounded fresh read, then ONE re-read. A substitute
+        # (the ledger net) is never used as if it were the exchange net.
+        # class-qualified: _close_wire_plan is also exercised unbound against a fake self
+        actual = SenderGateway._close_net_with_reread(self, intent.fill.coin)
+        actual_unreadable = actual is None
+        if not all(map(math.isfinite, (owned, led, requested))):
+
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NONFINITE_NET")
         if not self._close_proof_account_ok():
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
@@ -8273,7 +8287,8 @@ class SenderGateway:
             signer = ""
         if not is_valid_wallet(signer) or signer != normalise_wallet(USER_WALLET):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
-        tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(actual), abs(led)))
+        tol = max(POSITION_EPSILON,
+                  1e-9 * max(1.0, abs(owned), abs(led), abs(actual or 0.0), requested))
         if "event-loss" in str(getattr(intent.fill, "leader_fill_id", "")):
             proven_owned, proven_from = 0.0, "event_loss_no_fill_proof"
         else:
@@ -8283,33 +8298,150 @@ class SenderGateway:
         if proven_from == "ledger_sleeve_no_fills":  # the ONE fallback: no fills rows at all -> say so in the row
             state["close_proven_note"] = "proven_from=ledger_sleeve_no_fills; owned=%.10g" % proven_owned
         if abs(proven_owned) <= tol:
-            if abs(owned) <= tol and abs(led) <= tol:
+            if abs(owned) <= tol and abs(led) <= tol and (actual is None or abs(actual) <= tol):
+
                 return decide("SETTLED", why="CLOSE_ALREADY_PROVEN_FLAT")
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
         side = ManualLedger.signed_delta(intent.copy_side, 1.0)
         if owned * side >= 0 or requested <= 0:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
-        # A0: ledger sleeves are copy-fill-owned. Same-side foreign excess is
-        # not ours to trade, but a reduce-only close <= this sleeve is safe.
+
+        def _owned_close_amount() -> float:
+            amt = min(requested, abs(proven_owned))
+            if (abs(proven_owned) - amt > tol and callable(min_notional_ok)
+                    and not min_notional_ok(abs(proven_owned) - amt)):
+                amt = abs(proven_owned)  # I23: no abandoned sub-minimum owned dust
+            return self._floor_wire_size(round(amt, 10), sz_dec)
+
+        if actual_unreadable:
+            # item 3: unreadable after one re-read -> send the fill-proven owned size as the leader
+            # sized it, reduce_only FALSE (never forced), RED.
+            amount = _owned_close_amount()
+            if amount <= tol:
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+            try:
+                self._open_close_escalation(intent, "CLOSE_PROOF_UNREADABLE_NET_FALLBACK")
+            except Exception as exc:
+                log_error("close_escalation_write_failed", exc)
+            state["close_verified_sz_decimals"] = sz_dec
+            return decide("SEND", amount, False)
+        # item 4: foreign/USER units are never consumed by our close. The hold is named explicitly
+        # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led
         equal_net = abs(foreign) <= tol
         safe_foreign = (actual * owned > 0 and led * actual >= 0
                         and foreign * owned > 0 and abs(actual) + tol >= abs(led))
         if not (equal_net or safe_foreign):
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_MISMATCH")
-        amount = min(requested, abs(owned))
-        if (abs(owned) - amount > tol and callable(min_notional_ok)
-                and not min_notional_ok(abs(owned) - amount)):
-            amount = abs(owned)  # I23: no abandoned sub-minimum owned dust
-        amount = self._floor_wire_size(round(amount, 10), sz_dec)
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_UNITS")
+        if not equal_net and actual * side >= 0:
+            # item 2: foreign residue only - the order does not oppose the real net. On the equal_net
+            # path there is no such hold: sleeve netting may legitimately raise gross (Boss settled).
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_NOT_OPPOSING")
+        amount = _owned_close_amount()  # equal_net: NO abs(net) cap; the flip may cross flat
         if amount <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
         delta = ManualLedger.signed_delta(intent.copy_side, amount)
-        ro = actual * delta < 0 and amount <= abs(actual) + tol
+        ro = actual * delta < 0 and amount <= abs(actual) + tol  # from the REAL net, never forced
         if safe_foreign and not ro:  # foreign residue must never be crossed
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
         state["close_verified_sz_decimals"] = sz_dec
         return decide("SEND", amount, ro)
+
+    def _close_wire_plan_ledger_lag(self, intent: Intent, size: float, sz_dec: Optional[int],
+                                    min_notional_ok: Any, decide: Any) -> Tuple[bool, float, str]:
+        """A close is never withheld because the ledger is absent or lagging.
+
+        CC1-B-CONSOLIDATED-2310 (replaces CC1-B-RULING-NETSAFE-2142). The side flip is INTENDED;
+        the netted sleeves are the source of truth. There is no net-safe sizing helper, no
+        abs(net) cap on the equal_net path and no "excess held back" rule here.
+
+        reduce_only is True ONLY when the order truly opposes the REAL exchange net AND
+        wire_size <= abs(net). Never forced, never a fallback.
+
+        (a) net READABLE and the order truly opposes it -> SEND at min(requested, fill-proven
+            owned), NO abs(net) cap: the flip close must be able to cross flat. ro computed from
+            the real net; RED escalation.
+            net READABLE and the order does NOT oppose it (flat or already across) -> no wire,
+            CLOSE_PROOF_HOLD_NET_NOT_OPPOSING, RED escalation.
+        (b) net UNREADABLE after one re-read -> SEND the fill-proven owned size as the leader
+            sized it, reduce_only FALSE, RED escalation.
+        (c) Fill-proven owned zero or unprovable -> no wire, CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE, RED.
+        """
+        if sz_dec is None:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_PRECISION")
+        try:
+            requested = abs(float(size))
+        except (TypeError, ValueError, OverflowError):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
+        if not math.isfinite(requested) or requested <= 0:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
+        try:
+            proven_owned_lag, _ = self._proven_owned_for_sleeve(intent.fill.leader_wallet, intent.fill.coin)
+            owned = float(proven_owned_lag)
+        except (TypeError, ValueError, OverflowError):
+            owned = float("nan")
+        if not math.isfinite(owned) or abs(owned) <= 0:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+        tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(owned), requested))
+        if abs(owned) <= tol:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+        side = ManualLedger.signed_delta(intent.copy_side, 1.0)
+        if owned * side >= 0:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
+        if not self._close_proof_account_ok():
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
+        try:
+            signer = normalise_wallet(str(self._follower_order_account_for_proof() or ""))
+        except Exception:
+            signer = ""
+        if not is_valid_wallet(signer) or signer != normalise_wallet(USER_WALLET):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
+        # class-qualified: also exercised unbound against a fake self
+        net = SenderGateway._close_net_with_reread(self, intent.fill.coin)
+        if net is not None:
+            if net * side >= 0:  # flat, or already across: this close does not oppose the net
+                try:
+                    self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_NET_NOT_OPPOSING")
+                except Exception as exc:
+                    log_error("close_escalation_write_failed", exc)
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_NOT_OPPOSING")
+            amount = min(requested, abs(owned))  # equal_net: NO abs(net) cap, the flip may cross flat
+            if (abs(owned) - amount > tol and callable(min_notional_ok)
+                    and not min_notional_ok(abs(owned) - amount)):
+                amount = abs(owned)  # I23: no abandoned sub-minimum owned dust
+            amount = self._floor_wire_size(round(amount, 10), sz_dec)
+            if amount <= tol:
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+            wire_delta = ManualLedger.signed_delta(intent.copy_side, amount)
+            ro = net * wire_delta < 0 and amount <= abs(net) + tol  # from the REAL net, never forced
+            try:
+                self._open_close_escalation(
+                    intent, "CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY" if ro
+                    else "CLOSE_PROOF_LEDGER_LAG_NET_READABLE_NOT_REDUCE_ONLY")
+            except Exception as exc:
+                log_error("close_escalation_write_failed", exc)
+            return decide("SEND", amount, ro)
+        amount = self._floor_wire_size(round(min(requested, abs(owned)), 10), sz_dec)
+        if amount <= tol:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+        try:
+            self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_NET_UNREADABLE_RESTING")
+        except Exception as exc:
+            log_error("close_escalation_write_failed", exc)
+        return decide("SEND", amount, False)  # unreadable net: never force reduce_only
+
+    def _close_net_with_reread(self, coin: str) -> Optional[float]:
+        """CC1-B-CONSOLIDATED-2310 item 3: one bounded fresh read; still unreadable -> ONE re-read.
+        Returns the real net, or None when it is unreadable twice. Never raises, never substitutes."""
+        net = SenderGateway._finite_net_or_none(self._fresh_exchange_net(coin))
+        if net is None:
+            try:
+                log_error("fresh_exchange_net_unreadable", RuntimeError("re-reading once: coin=%s" % coin))
+            except Exception:
+                pass
+            net = SenderGateway._finite_net_or_none(self._fresh_exchange_net(coin))
+        return net
+
 
     def _ceiling_split_plan(self, intent: Intent, requested: float, limit_px: float,
                             sz_dec: Optional[int]) -> Tuple[float, str]:
