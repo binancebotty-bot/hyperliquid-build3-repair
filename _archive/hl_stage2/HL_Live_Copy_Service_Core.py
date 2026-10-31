@@ -9228,6 +9228,11 @@ class SenderGateway:
                                                               timing, "ioc_retry")
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
                                                            retry_px, "Ioc", False, cloid=_cl, pre_send=_pre, intent=intent, path="send_retry")
+                        if isinstance(retry_response, dict) and retry_response.get("exchange_called") is False:
+                            # Keep the original physical reply, not the retry's local no-call.
+                            raise PreWireNoCallFault(
+                                str(retry_response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER"),
+                                RuntimeError(str(retry_response.get("response") or "IOC retry refused prewire")))
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
@@ -9258,6 +9263,11 @@ class SenderGateway:
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
                                                       "Gtc", False, timing, "missed_entry_limit_started_ms",
                                                       cloid=_cl, pre_send=_pre, intent=intent, path="send_rest")
+                    if isinstance(rest_response, dict) and rest_response.get("exchange_called") is False:
+                        # The initial IOC remains the sole physical attempt.
+                        raise PreWireNoCallFault(
+                            str(rest_response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER"),
+                            RuntimeError(str(rest_response.get("response") or "missed-entry rest refused prewire")))
                     resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(rest_response)
                     if resting_ok:
                         accepted_result = (resting_ok, resting_status, {
@@ -9290,9 +9300,15 @@ class SenderGateway:
                         self._supersede_attempt(timing, response, intent)
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
                                                               timing, "netting_resend")
-                        response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
-                                                     pre_send=_pre, intent=intent, path="send_after_rest")
+                        retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
+                                                           "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                           pre_send=_pre, intent=intent, path="send_after_rest")
+                        if isinstance(retry_response, dict) and retry_response.get("exchange_called") is False:
+                            # Preserve 'response' as the earlier real SDK reply, including its OID/CLOID.
+                            raise PreWireNoCallFault(
+                                str(retry_response.get("terminal_state") or "BLOCKED_AT_PLACE_ORDER"),
+                                RuntimeError(str(retry_response.get("response") or "netting retry refused prewire")))
+                        response = retry_response
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
                         if ok:
                             accepted_result = (ok, status, {
