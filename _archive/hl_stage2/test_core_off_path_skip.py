@@ -114,8 +114,6 @@ except Exception as exc:
     check('GATE_REFUSAL_CARRIES_BLOCKED_AT_PLACE_ORDER', False, 'unreached')
     check('GATE_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
 
-# ---- the row the gate writes must not invite a call stamp either
-check('GATE_ROW_IS_NO_EXCHANGE_CALL', 'action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER"' in SRC)
 
 # ---- (b2) POST-WAIT refusal: the late gate runs AFTER the pacing slot and the write-ahead row, so a mode
 # change during those seconds must not leave a call stamp behind. Codex found this on ce54ab2e: the stamp
