@@ -844,6 +844,130 @@ def early_return_unowned_lease_never_calls_pre_send():
         "ok=%r status=%r sends=%r pre_send_calls=%d rows=%r" % (ok, status, ex.calls, len(attempts), rows)
 
 
+
+# ======================================================================================= CC1-INVO ITEM D: RED-FIRST overstated signed_size provenance
+# Testnet/offline temp dir and FakeExchange only. Never invoke HL_Live_Copy_Service.py live-state repair.
+# The contract these cases demand is NOT implemented by the reviewed 29dcb5f Core:
+# proof = unique exchange-backed live_fills.csv rows for exact wallet+coin, EXCLUDING source CORE_LEDGER_REPAIR.
+# A loaded/manual sleeve is a claim, not independent proof. No second ledger or alternate decision path.
+D1 = "0x" + "3" * 40
+D2 = "0x" + "4" * 40
+D3 = "0x" + "5" * 40
+D4 = "0x" + "6" * 40
+D5 = "0x" + "7" * 40
+
+
+def d_append_fill(wallet, size, fid, source="copy_account_poll", side="BUY"):
+    """Seed ONE independently matched exchange execution; synthetic repairs never count as owned."""
+    p = c.LIVE_FILLS_CSV
+    p.parent.mkdir(parents=True, exist_ok=True)
+    new = not p.exists() or p.stat().st_size == 0
+    with p.open("a", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=c.LIVE_FILL_FIELDS, extrasaction="ignore")
+        if new:
+            writer.writeheader()
+        writer.writerow({
+            "created_at_ms": c.utc_now_ms(), "copy_fill_id": fid, "intent_id": "source:" + fid,
+            "leader_wallet": wallet, "coin": COIN, "side": side, "fill_price": PX,
+            "fill_size": size, "fill_notional": size * PX, "source": source,
+            "exchange_hash": "exchange-hash:" + fid if source != "CORE_LEDGER_REPAIR" else "",
+            "exchange_order_id": "exchange-oid:" + fid if source != "CORE_LEDGER_REPAIR" else "",
+            "ledger_action": "UPDATED" if source != "CORE_LEDGER_REPAIR" else "CLOSED",
+        })
+
+
+def d_expected_audit(fid, expected_status):
+    """Proposed exact contract audit: one named reconciliation, never only an in-memory return."""
+    rows = [r for r in recon_rows(fid) if r.get("event") == "CLOSE_PROOF"
+            and r.get("status") == expected_status and r.get("leader_wallet")]
+    return rows
+
+
+def d1_repair_close_row_not_fill_proof():
+    """Repair writer: stale +2.00, genuine +.50, synthetic repair close 2.00, physical account +5.00."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    d_append_fill(D1, .50, "d1-real-owned")
+    it = exit_intent(led, D1, "SELL", 2.0, "d1-exit", 2.0, start=2.0)
+    result = led.close_sleeve_as_exchange_flat(D1, COIN)  # staging fixture ONLY, not live repair entrypoint
+    c.AuditLogWriter().append_live_fill_repair_close(result, "D1 synthetic flat repair, not exchange execution")
+    gw = make_gateway(ex, led, net)
+    ok, status = gw.send_if_allowed(it)
+    # The repair wrote signed_size=0 and CORE_LEDGER_REPAIR CLOSED 2, but neither proves a true close.
+    # The conflicting position must be reconciled without a new wire or falsely consumed obligation.
+    return (not ok and len(ex.calls) == 0 and abs(net[0] - 5.0) < 1e-9
+            and len(red_for("d1-exit")) == 1 and bool(d_expected_audit(
+                "d1-exit", "CLOSE_PROOF_HOLD_FILL_LEDGER_MISMATCH"))), \
+        "repair_source_excluded calls=%r status=%r red=%r" % (ex.calls, status, red_for("d1-exit"))
+
+
+def d2_setdefault_zero_never_certifies_unknown_owned():
+    """Sentinel writer: missing wallet sleeve -> setdefault zero, foreign +5; no authentic owned fill."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    it = exit_intent(led, D2, "SELL", 2.0, "d2-exit", 2.0, start=2.0)
+    led.data["by_wallet"].pop(D2, None)
+    assert abs(float(led.sleeve(D2, COIN)["signed_size"])) < 1e-12  # creates a sentinel, NOT a fill
+    led.save(touched_sleeves=[(D2, COIN)])
+    gw = make_gateway(ex, led, net)
+    ok, status = gw.send_if_allowed(it)
+    return (not ok and not ex.calls and net[0] == 5.0
+            and len(red_for("d2-exit")) == 1 and bool(d_expected_audit(
+                "d2-exit", "CLOSE_PROOF_HOLD_UNPROVEN_SLEEVE"))), \
+        "sentinel_unknown calls=%r status=%r red=%r" % (ex.calls, status, red_for("d2-exit"))
+
+
+def d3_hand_edit_disk_not_owned_proof():
+    """Disk adoption: authentic A +.50, foreign +4.50, but hand-edited signed_size +2.50."""
+    led, ex, net = new_ledger(), FakeExchange(), [5.0]
+    d_append_fill(D3, .50, "d3-real-owned")
+    d_append_fill(D3, 2.0, "d3-repair-only", source="CORE_LEDGER_REPAIR", side="LEDGER_REPAIR_CLOSE")
+    it = exit_intent(led, D3, "SELL", 2.0, "d3-exit", 2.0, start=2.0)
+    led.save(touched_sleeves=[(D3, COIN)])
+    raw = c.load_json(led.path, {})
+    raw["by_wallet"][D3][COIN]["signed_size"] = 2.5
+    c.atomic_write_json(led.path, raw)
+    loaded = c.ManualLedger(path=led.path)  # the disk-adoption path under test
+    gw = make_gateway(ex, loaded, net)
+    ok, status = gw.send_if_allowed(it)
+    # Positive proof exists: clamp CLOSE to .50, never SELL 2 / 2.5 into foreign.
+    # A successful SDK ack alone cannot claim that physical fill has settled the original ledger.
+    calls = ex.calls
+    return (ok and len(calls) == 1 and not calls[0]["is_buy"]
+            and abs(calls[0]["size"] - .50) < 1e-9 and calls[0]["reduce_only"] is True
+            and abs(net[0] - 4.5) < 1e-9
+            and bool(d_expected_audit("d3-exit", "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED"))), \
+        "disk_override sdk=%r status=%r exchange_net=%r (foreign MUST remain 4.5)" % (calls, status, net[0])
+
+
+def d4_dust_uplift_cannot_borrow_foreign():
+    """Real +.06; hand-edited +.30; foreign +.50: sub-$10 full leader exit NOT full-account."""
+    led, ex, net = new_ledger(), FakeExchange(), [.56]
+    d_append_fill(D4, .06, "d4-real-owned")
+    it = exit_intent(led, D4, "SELL", .06, "d4-exit", .30, start=.06)
+    gw = make_gateway(ex, led, net)
+    ok, status = gw.send_if_allowed(it)
+    # Dust uplift to .10, .30 or to the exchange .56 all illegally cross the true .06 bound;
+    # bounded .06 is only $6 and is not an exact whole-exchange +.56 close.
+    return (not ok and not ex.calls and abs(net[0] - .56) < 1e-9
+            and len(red_for("d4-exit")) == 1 and bool(d_expected_audit(
+                "d4-exit", "DUST_OWNERSHIP_VENUE_CONFLICT"))), \
+        "dust_foreign sdk=%r status=%r net=%r red=%r" % (ex.calls, status, net[0], red_for("d4-exit"))
+
+
+def d5_dust_exact_whole_proven_position_can_close():
+    """Real +.06; persisted +.30; exchange precisely +.06, zero foreign: exempt RO .06."""
+    led, ex, net = new_ledger(), FakeExchange(), [.06]
+    d_append_fill(D5, .06, "d5-real-owned")
+    it = exit_intent(led, D5, "SELL", .06, "d5-exit", .30, start=.06)
+    gw = make_gateway(ex, led, net)
+    ok, status = gw.send_if_allowed(it)
+    calls = ex.calls
+    return (ok and len(calls) == 1 and not calls[0]["is_buy"]
+            and abs(calls[0]["size"] - .06) < 1e-9 and calls[0]["reduce_only"] is True
+            and abs(net[0]) < 1e-9
+            and bool(d_expected_audit("d5-exit", "CLOSE_PROOF_CLAMPED_TO_FILL_OWNED"))), \
+        "dust_whole sdk=%r status=%r net=%r" % (calls, status, net[0])
+
+
 def main():
     started = time.perf_counter()
     witnesses = [
@@ -898,6 +1022,11 @@ def main():
          toctou_pre_send_mode_off_gives_zero_calls_and_terminalises_the_row),
         ("EARLY_RETURN_UNOWNED_LEASE_AT_ENTRY_NEVER_CALLS_PRE_SEND",
          early_return_unowned_lease_never_calls_pre_send),
+        ("D1_REPAIR_SYNTHETIC_NOT_FILL_PROOF_HOLD_RED", d1_repair_close_row_not_fill_proof),
+        ("D2_SETDEFAULT_SENTINEL_UNKNOWN_HOLD_RED", d2_setdefault_zero_never_certifies_unknown_owned),
+        ("D3_DISK_HAND_EDIT_PROVEN_HALF_CLAMP_PRESERVES_FOREIGN", d3_hand_edit_disk_not_owned_proof),
+        ("D4_DUST_UPLIFT_CANNOT_BORROW_FOREIGN", d4_dust_uplift_cannot_borrow_foreign),
+        ("D5_WHOLE_ACCOUNT_DUST_CLAMPED_PROVEN_EXEMPTION", d5_dust_exact_whole_proven_position_can_close),
         *[("DOOR_%d_CS_I1_I2_I3_FINAL_PHYSICAL_ENVELOPE" % k,
            (lambda k=k: bypass_door(k))) for k in range(1, 8)],
     ]
