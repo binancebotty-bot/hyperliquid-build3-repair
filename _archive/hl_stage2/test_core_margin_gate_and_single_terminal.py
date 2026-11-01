@@ -47,7 +47,8 @@ def entry_intent(coin='BTC'):
 def gateway_stub(**cooldowns):
     s = types.SimpleNamespace(
         cfg=types.SimpleNamespace(master_switch_now=lambda: True, send_mode_now=lambda: "ON",
-                                  marketable_bps=lambda: 20.0),
+                                  marketable_bps=lambda: 20.0, wallet_over_stream_cap=lambda w: False,
+                                  liq_parity_enabled=lambda: False, wallet_mode=lambda w: "ON", wallet_enabled=lambda w: True),
         sender_key_invalid=False,
         _market_halted_until_ms=cooldowns.get('halted', {}),
         _ioc_no_match_until_ms=cooldowns.get('ioc', {}),
@@ -57,6 +58,10 @@ def gateway_stub(**cooldowns):
         leader_reduced_since=lambda fill: False,
         _base_timing=lambda intent: {},
         _pre_send_ownership_gate=lambda intent: (True, {}))
+    # Only the physical exchange is stubbed; actual send_if_allowed performs cap,
+    # ownership, wallet-mode, cooldown and admission checks.
+    s._send_time_wallet_mode_block = lambda i, lc: C.SenderGateway._send_time_wallet_mode_block(s, i, lc)
+    s._send_real = lambda i, timing=None: (True, "ORDER_FILLED", {"exchange_called": False})
     return s
 
 
@@ -71,6 +76,16 @@ for label, kw in (('MARKET_HALTED', {'halted': {'btc': FAR}}),
         ok, status = None, '%s: %s' % (type(exc).__name__, str(exc)[:70])
     check('SEND_LANE_GATES_%s_BEFORE_ANY_ORDER' % label, ok is False,
           'send_if_allowed returned %r / %r - the doomed order would reach _place_order' % (ok, status))
+
+# Positive control on this same config/ownership fixture: with no cooldown,
+# the real admission chain reaches the synthetic send exactly once.
+try:
+    positive_ok, positive_status = C.SenderGateway.send_if_allowed(gateway_stub(), entry_intent())
+except Exception as exc:
+    positive_ok, positive_status = False, type(exc).__name__ + ": " + str(exc)[:140]
+check("NO_COOLDOWN_ENTRY_REACHES_SEND_POSITIVE",
+      positive_ok is True and positive_status == "ORDER_FILLED",
+      "positive=%r/%r" % (positive_ok, positive_status))
 
 # and the margin refusal must carry the same named status the remedy maps
 try:
