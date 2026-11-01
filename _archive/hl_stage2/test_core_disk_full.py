@@ -177,6 +177,10 @@ def main() -> None:
     os.environ.pop("HL_LIVE_MOCK_SEND", None)          # the real send path, with a fake exchange
     import requests
     import HL_Live_Copy_Service_Core as c
+    # Actual OS-backed isolated sender lease; no gate monkeypatch.
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -190,7 +194,7 @@ def main() -> None:
     def write_cfg():
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True,
                                                  "global_controls": {"min_notional": 1},
-                                                 "wallets": {LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed",
+                                                 "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed",
                                                                       "fixed_notional": 100}}})
 
     write_cfg()
@@ -209,6 +213,7 @@ def main() -> None:
     s._leader_state = lambda wallet, dex="": ({"assetPositions": [{"position": {"coin": "", "liquidationPx": "60"}}]}, "ok")
     s._follower_projected_liq_px = lambda intent, mark: (mark * 0.1, "test fact")
     s._ensure_margin_mode = lambda *a, **k: None
+    os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
 
     def intent(lifecycle="ENTRY", side="BUY", size=1.0, reduce_only=False, fid="j1"):
         fill = c.LeaderFill(fid, LEADER, "BTC", side, 100.0, size, c.utc_now_ms(), "TEST")
@@ -227,6 +232,15 @@ def main() -> None:
         return c.read_csv_rows(c.ORDER_INTENTS_CSV) if c.ORDER_INTENTS_CSV.exists() else []
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig", errors="replace")
+
+    # Positive same-gateway real-gate control: before a write fault,
+    # the fake exchange must actually see exactly one wire call.
+    positive_exchange = FakeExchange()
+    s._get_exchange_client = lambda *_a, **_k: positive_exchange
+    positive_ok, positive_status = s.send_if_allowed(intent(fid="positive"))
+    check("POSITIVE_SEND_REAL_LEASE_REACHES_FAKE_EXCHANGE",
+          positive_ok and len(positive_exchange.calls) == 1,
+          "status=%r calls=%r" % (positive_status, positive_exchange.calls))
 
     # ================= (a) order_intents append fails BEFORE any send =================
     # Judged at _run_plan, the production worker boundary that wraps _process_leader_fill.
