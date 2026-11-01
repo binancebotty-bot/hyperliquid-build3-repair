@@ -241,6 +241,26 @@ def main() -> None:
     check("POSITIVE_SEND_REAL_LEASE_REACHES_FAKE_EXCHANGE",
           positive_ok and len(positive_exchange.calls) == 1,
           "status=%r calls=%r" % (positive_status, positive_exchange.calls))
+    # GAP 1: the physical OID must be in the LATEST revision of the same
+    # send_attempt id/CLOID; a leftover durable pending row is not a terminal.
+    positive_intent = intent(fid="positive")
+    positive_rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
+                     if r.get("intent_id") == positive_intent.intent_id]
+    positive_groups = {}
+    for row in positive_rows:
+        positive_groups.setdefault((row.get("attempt_id"), row.get("cloid")), []).append(row)
+    positive_latest = next(iter(positive_groups.values()), [])
+    pos_cloid = c.generate_cloid(positive_intent.intent_id)
+    check("GAP_FINAL_ATTEMPT_LATEST_ROW_MATCHES_PHYSICAL_OID",
+          len(positive_exchange.calls) == 1 and len(positive_groups) == 1
+          and len(positive_latest) >= 2
+          and positive_latest[0].get("status") == "pending_send"
+          and all(key[0] and key[1] == pos_cloid for key in positive_groups)
+          and positive_latest[-1].get("status") == "ORDER_FILLED"
+          and positive_latest[-1].get("terminal_state") == "FILLED_AWAITING_COPY_POLL"
+          and positive_latest[-1].get("operator_action") == "WAIT_FOR_COPY_POLL"
+          and positive_latest[-1].get("exchange_order_id") == "900001",
+          "physical_calls=%r rows=%r" % (positive_exchange.calls, positive_rows))
 
     # ================= (a) order_intents append fails BEFORE any send =================
     # Judged at _run_plan, the production worker boundary that wraps _process_leader_fill.
@@ -261,6 +281,46 @@ def main() -> None:
     check("A3_LOUD_RECORD_OF_THE_FAILURE", ("ws_hot_send" in error_contexts() or "process_leader_fill" in error_contexts()
                                               or "intent_write_behind" in error_contexts()),
           "errors.csv contexts=%s" % error_contexts()[-3:])
+    # GAP 2: test append_csv's OWN failure site, distinct from the worker
+    # exception which the pre-existing A3 can satisfy without this hook.
+    gap_file = tmp / "gap_audit_site.csv"
+    gap_fields = ["event", "payload"]
+    c.ensure_csv_header(gap_file, gap_fields)
+    c._close_audit_handle(gap_file)
+    journal = c.AUDIT_WRITE_FAILURES_FILE
+    old_journal = journal.read_text(encoding="utf-8") if journal.exists() else ""
+    old_count = c.audit_write_failure_count()
+    direct_fault_notes = []
+    original_note_failure = c.note_audit_write_failure
+    def note_fault_site(path, exc):
+        if Path(path) == gap_file:
+            direct_fault_notes.append((type(exc).__name__, getattr(exc, "errno", None)))
+        return original_note_failure(path, exc)
+    c.note_audit_write_failure = note_fault_site
+    try:
+        with Inject(c, {gap_file.name}) as gap_injection:
+            # Fail ONLY the live append. A separate successful spill still
+            # emits a STRING fallback note, but cannot substitute for this
+            # site-specific OSError(ENOSPC) notification.
+            gap_injection._matches = lambda name: name == gap_file.name
+            gap_append = c.append_csv(gap_file, gap_fields, {"event": "FAULT", "payload": "injected"})
+    finally:
+        c.note_audit_write_failure = original_note_failure
+    new_journal = journal.read_text(encoding="utf-8") if journal.exists() else ""
+    gap_health = c.build_live_integrity_status().get("counts") or {}
+    check("GAP_AUDIT_APPEND_FAILURE_SITE_INVOKED",
+          gap_injection.hits > 0 and gap_append is False,
+          "injection_hits=%r live_append=%r" % (gap_injection.hits, gap_append))
+    check("GAP_AUDIT_APPEND_FAILURE_DURABLE_HEALTH_ATTRIBUTION",
+          gap_injection.hits > 0
+          and ("OSError", errno.ENOSPC) in direct_fault_notes
+          and len(new_journal) > len(old_journal)
+          and ("\t" + gap_file.name + "\tOSError(28,") in new_journal[len(old_journal):]
+          and c.audit_write_failure_count() > old_count
+          and int(gap_health.get("audit_write_failures") or 0) > old_count,
+          "hits=%d notices=%r journal_delta=%r counts_before=%d after=%r" %
+          (gap_injection.hits, direct_fault_notes, new_journal[len(old_journal):],
+           old_count, gap_health.get("audit_write_failures")))
     it_a2 = intent(fid="a2")
     core.intents_by_id[it_a2.intent_id] = it_a2
     before_rows = len(intent_rows())
@@ -326,6 +386,13 @@ def main() -> None:
     check("B3_FINAL_ROW_WRITE_FAILURE_STILL_SENDS_THE_ORDER_ONCE_AND_KEEPS_IT_NAMED",
           len(fake_b3.calls) == 1 and pending_ok,
           "sent=%d pending_row_with_cloid=%s" % (len(fake_b3.calls), pending_ok))
+    check("GAP_FAILED_FINAL_APPEND_RETAINS_ONLY_UNRESOLVED_PENDING_SENTINEL",
+          len(fake_b3.calls) == 1 and pending_ok
+          and len({(r.get("attempt_id"), r.get("cloid")) for r in rows_b3}) == 1
+          and all(r.get("exchange_order_id") in ("", None)
+                  and r.get("terminal_state") == "PENDING_SEND" for r in rows_b3)
+          and (c.build_live_integrity_status().get("counts") or {}).get("audit_write_failures", 0) > 0,
+          "rows=%r" % rows_b3)
     check("B3B_THE_PRODUCTION_SEND_CALLER_CONTAINS_THE_FINAL_ROW_FAILURE",
           bool(re.search(r"try:\s*\n\s*sent, send_status = self\.sender\.send_if_allowed\(", src)),
           "no handler around the per-fill send_if_allowed call")
@@ -367,6 +434,22 @@ def main() -> None:
     check("C3_THE_SENT_ORDER_IS_ENGINE_OWNED_AND_ITS_CLOID_IS_DETERMINISTIC",
           expect_cloid_c in cloids_c and c.generate_cloid(it_c.intent_id) == expect_cloid_c,
           "cloid=%s owned=%s" % (expect_cloid_c, expect_cloid_c in cloids_c))
+    # IOC physically refused with NO exchange OID. It is resolved only when
+    # the final append revises the matched pending attempt to ORDER_REJECTED.
+    c_rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
+              if r.get("intent_id") == it_c.intent_id]
+    c_groups = {}
+    for row in c_rows:
+        c_groups.setdefault((row.get("attempt_id"), row.get("cloid")), []).append(row)
+    c_latest = next(iter(c_groups.values()), [])
+    check("GAP_REJECTED_WIRE_LATEST_ATTEMPT_NOT_LEFT_PENDING",
+          len(fake_c.calls) == 1 and len(c_groups) == 1 and len(c_latest) >= 2
+          and c_latest[0].get("status") == "pending_send"
+          and c_latest[-1].get("status") == "ORDER_REJECTED"
+          and c_latest[-1].get("terminal_state") not in ("", "PENDING_SEND")
+          and c_latest[-1].get("cloid") == expect_cloid_c
+          and c_latest[-1].get("exchange_order_id") in ("", None),
+          "physical=%r revisions=%r" % (fake_c.calls, c_rows))
     st = c.build_live_integrity_status()
     counts = st.get("counts") or {}
     lost = {k: v for k, v in counts.items() if "audit_write" in k and v}
