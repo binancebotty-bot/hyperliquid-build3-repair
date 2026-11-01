@@ -288,6 +288,7 @@ def main() -> None:
     fake_b = FakeExchange()
     s._get_exchange_client = lambda *_a, **_k: fake_b
     raised_b, status_b = None, None
+    c._close_audit_handle(c.SEND_ATTEMPTS_CSV)  # reset cached writer before fault injection
     with Inject(c, {"send_attempts.csv"}):
         try:
             _sent, status_b = s.send_if_allowed(intent(fid="b"))
@@ -303,11 +304,21 @@ def main() -> None:
     s._get_exchange_client = lambda *_a, **_k: fake_b3
     it_b3 = intent(fid="b3")
     raised_b3, status_b3 = None, None
+    # Force the live pending row to close its cached file handle, so the
+    # second/final append opens anew and the real file-system fault fires.
+    c._close_audit_handle(c.SEND_ATTEMPTS_CSV)
+    original_begin = s._begin_pending_send
+    def _pending_then_close(*args, **kwargs):
+        pending_id = original_begin(*args, **kwargs)
+        c._close_audit_handle(c.SEND_ATTEMPTS_CSV)
+        return pending_id
+    s._begin_pending_send = _pending_then_close
     with Inject(c, {"send_attempts.csv"}, skip=1):   # 1st append ok (pending), 2nd fails (final row)
         try:
             _sent_b3, status_b3 = s.send_if_allowed(it_b3)
         except BaseException as exc:  # noqa: BLE001
             raised_b3 = exc
+    s._begin_pending_send = original_begin
     rows_b3 = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("intent_id") == it_b3.intent_id]
     expect_cloid = c.generate_cloid(it_b3.intent_id)
     pending_ok = len(rows_b3) == 1 and rows_b3[0].get("status") == "pending_send" and rows_b3[0].get("cloid") == expect_cloid
