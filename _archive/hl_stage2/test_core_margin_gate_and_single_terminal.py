@@ -60,6 +60,7 @@ def gateway_stub(**cooldowns):
         _pre_send_ownership_gate=lambda intent: (True, {}))
     # Only the physical exchange is stubbed; actual send_if_allowed performs cap,
     # ownership, wallet-mode, cooldown and admission checks.
+    s._reduce_only_for_intent = C.SenderGateway._reduce_only_for_intent
     s._send_time_wallet_mode_block = lambda i, lc: C.SenderGateway._send_time_wallet_mode_block(s, i, lc)
     s._send_real = lambda i, timing=None: (True, "ORDER_FILLED", {"exchange_called": False})
     return s
