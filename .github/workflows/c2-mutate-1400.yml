@@ -42,7 +42,9 @@ jobs:
           mkdir -p evidence/c2-mutate-1400
           python -m pip freeze > evidence/c2-mutate-1400/dependencies.txt
           test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = "c48fbc52e158baef17fb6d620b335e632652c73a"
-          test "$(git rev-parse "$PINNED_CORE_SHA:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = "c48fbc52e158baef17fb6d620b335e632652c73a"
+          test "$(git rev-parse "$PINNED_CORE_SHA:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
+          git show "$PINNED_CORE_SHA:_archive/hl_stage2/HL_Live_Copy_Service_Core.py" | git hash-object --stdin | grep -Fx "e470862a291bbf241e22d8011b757ed9c2b53d68"
+          echo "MUTATION_SOURCE_CORE=e470862a291bbf241e22d8011b757ed9c2b53d68;TRACKED_BRANCH_CORE=c48fbc52e158baef17fb6d620b335e632652c73a" | tee evidence/c2-mutate-1400/core-source.txt
           for short in append_truncate disk_full liq_parity margin_gate_and_single_terminal off_path_skip r1_cursor; do
             f="_archive/hl_stage2/test_core_"$short".py"
             expected=$(git rev-parse "$CODER_ONE_TEST_SHA:$f")
