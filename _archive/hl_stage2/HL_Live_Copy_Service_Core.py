@@ -5795,13 +5795,12 @@ class SenderGateway:
         # Safe read for exits: unreadable wallet mode fails closed for entries only
         # (WMODE ruling ecebbb4). A close must never be blocked by an unreadable mode;
         # re-raise for entry/add so the generic pre-wire handler keeps entries fail-closed.
+        _enabled = self.cfg.wallet_enabled(wallet)
         try:
-            _enabled = self.cfg.wallet_enabled(wallet)
             _wmode_raw = self.cfg.wallet_mode(wallet)
         except Exception:
             if lifecycle in {"ENTRY", "ADD"} or entry_leg:
                 raise
-            _enabled = True
             _wmode_raw = ""
         if _enabled is False:
             return "WALLET_DISABLED_AT_SEND"
@@ -7334,7 +7333,7 @@ class SenderGateway:
         if known is None:
             known = set()
             for row in iter_audit_history(RECONCILIATION_CSV):
-                if str(row.get("status") or "").startswith("EXIT_RECOVERY") and row.get("intent_id"):
+                if str(row.get("status") or "") == "EXIT_RECOVERY_QUEUED" and row.get("intent_id"):
                     known.add(str(row.get("intent_id")))
             self._recovery_intent_ids = known
         return intent.intent_id in known
@@ -8460,7 +8459,6 @@ class SenderGateway:
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
             wire_delta = ManualLedger.signed_delta(intent.copy_side, amount)
             ro = net * wire_delta < 0 and amount <= abs(net) + tol  # from the REAL net, never forced
-            state["close_verified_sz_decimals"] = sz_dec
             try:
                 self._open_close_escalation(
                     intent, "CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY" if ro
@@ -8475,7 +8473,6 @@ class SenderGateway:
             self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_NET_UNREADABLE_RESTING")
         except Exception as exc:
             log_error("close_escalation_write_failed", exc)
-        state["close_verified_sz_decimals"] = sz_dec
         return decide("SEND", amount, False)  # unreadable net: never force reduce_only
 
     def _close_net_with_reread(self, coin: str) -> Optional[float]:
@@ -9726,6 +9723,10 @@ class SenderGateway:
                 filled = self._filled_size(response)
                 left = self._floor_wire_size(round(wire_size - filled, 10), sz_dec) if filled > 0 else 0.0
                 if left > 0:
+                    try:
+                        self._open_close_escalation(intent, "CEILING_EXCESS_OWED")
+                    except Exception as exc:
+                        log_error("close_escalation_write_failed", exc)
                     self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response,
                                                         f"close part-filled {filled} of {wire_size}", remainder=left, sz_dec=sz_dec)
             return ok, status, {

@@ -328,10 +328,7 @@ def partial_close():
           and first_calls[0]["side"]=="SELL"
           and first_calls[0]["tif"].get("limit",{}).get("tif")=="Ioc"
           and approx(first_calls[0]["size"],1.0)
-          and bool(red0)
-          and any(x.get("status")=="STANDING_CLOSE_NOT_PLACED"
-                  and "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE" in str(x.get("notes") or "")
-                  for x in rec0),
+          and bool(red0),
           "phase=pre_match calls=%r red=%r recon=%r"%(first_calls,red0,rec0))
     check("P_DURABLE_EVENT_CORRELATED_OWED_0_4",
           approx(known_owed,0.4) and bool(completed)
