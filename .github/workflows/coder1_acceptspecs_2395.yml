@@ -1,0 +1,53 @@
+name: Coder1 acceptance specs fence offline RED witnesses
+on:
+  push:
+    branches: [gpt/coder1-acceptspecs-20261101]
+permissions:
+  contents: read
+jobs:
+  test-only-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run real pinned fence gates with synthetic SDK and preserve expected RED
+        shell: bash
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+          HL_LIVE_AUTO_SEND_ENABLED: "0"
+          HL_LIVE_POLL_ENABLED: "0"
+          HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS: "0"
+          HL_LIVE_UNEXPLAINED_WAIT_SEC: "0"
+          HL_LIVE_MISSED_ENTRY_RULE: "0"
+          HL_LIVE_TEST_LOCAL_BLOCK_SEND_ATTEMPT: "1"
+        run: |
+          mkdir -p evidence
+          {
+            echo "REPO=$GITHUB_REPOSITORY"
+            echo "HEAD_SHA=$(git rev-parse HEAD)"
+            echo "BASE_FENCE_SHA=efd2022f4b88ec9e0a2adf74da1130d01380232b"
+            python3 --version
+            uname -srm
+            git diff --exit-code efd2022f4b88ec9e0a2adf74da1130d01380232b HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          } > evidence/environment.txt 2>&1
+          set +e
+          (cd _archive/hl_stage2 && python3 -u test_c1_acceptspecs_2395.py) > evidence/acceptance-output.txt 2>&1
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > evidence/exit-code.txt
+          cat evidence/acceptance-output.txt
+          printf 'TEST_EXIT_CODE=%s\n' "$rc"
+          (cd evidence && sha256sum environment.txt acceptance-output.txt exit-code.txt > SHA256SUMS.txt)
+          cat evidence/SHA256SUMS.txt
+          exit "$rc"
+      - name: Upload exact output and digest even when baseline RED
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coder1-acceptspecs-2395-evidence
+          path: evidence/
+          if-no-files-found: warn
