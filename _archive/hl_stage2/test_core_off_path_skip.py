@@ -101,7 +101,8 @@ gw = types.SimpleNamespace(
     cfg=types.SimpleNamespace(send_mode_now=lambda: 'OFF', wallet_enabled=lambda w: True, wallet_mode=lambda w: 'LIVE'),
     sender_key_invalid=False, audit=Audit(), _gate_journal_failures=0)
 # the gate is a method: bind the real ones to the stub so this tests the engine, not a re-implementation
-gw._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw, intent, path)
+gw._reduce_only_for_intent = C.SenderGateway._reduce_only_for_intent
+gw._master_gate_reason = lambda intent, path='', **kw: C.SenderGateway._master_gate_reason(gw, intent, path, **kw)
 gw._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw, intent, path, reason)
 try:
     res = C.SenderGateway._place_order(gw, None, 'BTC', True, 0.001, 100.0, 'Ioc', False, intent=types.SimpleNamespace())
@@ -115,7 +116,12 @@ except Exception as exc:
     check('GATE_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
 
 # ---- the row the gate writes must not invite a call stamp either
-check('GATE_ROW_IS_NO_EXCHANGE_CALL', 'action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER"' in SRC)
+check('GATE_ROW_IS_NO_EXCHANGE_CALL',
+      any(kind == 'SEND_TERMINAL' and state == 'BLOCKED_AT_PLACE_ORDER'
+          and payload.get('action') == 'NO_EXCHANGE_CALL'
+          and payload.get('engine_can_send') == 'False'
+          for kind, state, payload in gw.audit.rows),
+      'actual audit rows=%r' % gw.audit.rows)
 
 # ---- (b2) POST-WAIT refusal: the late gate runs AFTER the pacing slot and the write-ahead row, so a mode
 # change during those seconds must not leave a call stamp behind. Codex found this on ce54ab2e: the stamp
@@ -135,7 +141,8 @@ gw2 = types.SimpleNamespace(
     _reserve_exchange_order_slot=lambda **kw: C.utc_now_ms(),
     _open_orders_send_begin=lambda: None, _open_orders_send_end=lambda: None,
     _note_sender_key_rejection=lambda r: None)
-gw2._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw2, intent, path)
+gw2._reduce_only_for_intent = C.SenderGateway._reduce_only_for_intent
+gw2._master_gate_reason = lambda intent, path='', **kw: C.SenderGateway._master_gate_reason(gw2, intent, path, **kw)
 gw2._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw2, intent, path, reason)
 _post_timing = {}
 _post_intent = types.SimpleNamespace(fill=types.SimpleNamespace(leader_wallet='0xabc', coin='BTC'),
@@ -145,7 +152,10 @@ try:
     _post = C.SenderGateway._place_order(gw2, None, 'BTC', True, 0.001, 100.0, 'Ioc', False,
                                          timing=_post_timing, started_key='exchange_call_started_ms',
                                          intent=_post_intent, path='send_other')
-    check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', _post.get('exchange_called') is False, _post)
+    check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE',
+          _post.get('exchange_called') is False and _seq['n'] >= 2
+          and _post.get('terminal_state') == 'BLOCKED_AT_PLACE_ORDER',
+          'mode_calls=%r result=%r' % (_seq['n'], _post))
     check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP',
           'exchange_call_started_ms' not in (_post.get('timing') or {})
           and 'exchange_call_started_ms' not in _post_timing,
