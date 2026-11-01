@@ -127,7 +127,8 @@ def main() -> None:
         pre_send=lambda: (_ for _ in ()).throw(AssertionError("unowned pre_send fired")))
     check("FIXTURE_UNOWNED_LEASE_NEVER_CALLS_OR_PENDS",
           not ex_negative.calls and refused.get("exchange_called") is False
-          and not pending_cloids("lease_negative"), str(refused))
+          and not pending_cloids("lease_negative")
+          and "NO_SENDER_LEASE" in str(refused), str(refused))
     c.acquire_global_instance_lock(tmp)
     check("FIXTURE_REACQUIRED_REAL_LEASE", c._sender_lease_owned())
 
@@ -161,12 +162,14 @@ def main() -> None:
     ex = Ex("s3", [RESTING])
     g = gw(ex)
     g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+    g.ledger._recompute_net(g.ledger.data)
     it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
         c.LeaderFill("f_s3", A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
     it.intent_id = "s3"
     g.audit.append_order_intent(it)
-    g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
-    check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1, str(ex.calls))
+    g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match", sz_dec=3)
+    check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1,
+          "calls=%r standing=%r" % (ex.calls, c.load_json(c.STANDING_CLOSES_FILE, {})))
     check("S3_STANDING_CLOSE_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s3", 1), str(ex.calls))
     check("S3_STANDING_CLOSE_STILL_REDUCE_ONLY", bool(ex.calls) and ex.calls[0]["ro"] is True)
 
