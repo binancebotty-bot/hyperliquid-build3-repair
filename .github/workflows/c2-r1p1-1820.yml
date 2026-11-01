@@ -66,8 +66,10 @@ jobs:
           set -uo pipefail
           export PYTHONPATH="$RUNNER_TEMP/c2-r1p1"
           cd "$RUNNER_TEMP/c2-r1p1"
+          set +e  # The suite is intentionally RED; preserve its exit code and evidence.
           python -u test_core_run4_fixes.py > "$GITHUB_WORKSPACE/evidence/c2-r1p1-1820/run4.log" 2>&1
           rc=$?
+          set -e
           cd "$GITHUB_WORKSPACE"
           printf 'PYTHON_EXIT=%s\n' "$rc" | tee evidence/c2-r1p1-1820/exit.txt
           grep '^RESULT::.*_FAIL' evidence/c2-r1p1-1820/run4.log | tee evidence/c2-r1p1-1820/failing-results.txt
