@@ -95,16 +95,24 @@ spilled = c.read_csv_rows(sp) if sp.exists() else []
 check("APPEND_FAILURE_SPILLS_ROW",
       len(spilled) == 1 and spilled[0]["a"] == "3", str(spilled))
 
-# next append writes a clean row
+# The production background flusher can replay the spill BEFORE this append.
+# In either schedule, every original row must remain complete and unique.
 c.append_csv(p, fields, {"a": "5", "b": "6"})
 rows = list(c.read_csv_rows(p))
-check("NEXT_APPEND_IS_A_CLEAN_ROW", [r["a"] for r in rows] == ["1", "5"], str(rows))
-
-# spilled row is replayed
+before_manual = [r["a"] for r in rows]
+check("NEXT_APPEND_IS_A_CLEAN_ROW",
+      all(r["a"] in {"1", "3", "5"} and r["b"] == {"1": "2", "3": "4", "5": "6"}[r["a"]] for r in rows)
+      and [r["a"] for r in rows].count("1") == 1
+      and [r["a"] for r in rows].count("5") == 1
+      and [r["a"] for r in rows].count("3") <= 1,
+      str(rows))
 replayed = c.replay_audit_fallback(p, fields)
 rows_after = list(c.read_csv_rows(p))
 check("SPILLED_ROW_REPLAYED",
-      replayed == 1 and [r["a"] for r in rows_after] == ["1", "5", "3"], f"replayed={replayed} rows={rows_after}")
+      replayed in (0, 1) and ([r["a"] for r in rows_after].count("3") == 1)
+      and sorted((r["a"], r["b"]) for r in rows_after) == [("1", "2"), ("3", "4"), ("5", "6")]
+      and (replayed == 1 or "3" in before_manual),
+      "manual=%r before=%r after=%r" % (replayed, before_manual, rows_after))
 check("SPILL_FILE_CLEARED", not sp.exists() or len(c.read_csv_rows(sp)) == 0, str(sp))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
