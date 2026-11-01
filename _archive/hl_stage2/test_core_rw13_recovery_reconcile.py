@@ -37,6 +37,10 @@ def main() -> None:
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000",
                        "HL_LIVE_RATE_LIMIT_COOLDOWN_MS": "0"})
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: real isolated sender lease missing"
 
     c.USER_WALLET = FOLLOWER
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100"}
@@ -85,6 +89,8 @@ def main() -> None:
         g._pre_send_ownership_gate = lambda it: (True, {})
         g.leader_reduced_since = lambda f: 0
         g._margin_mode_done = {"BTC"}
+        g._fetch_all_mids = lambda: {"BTC": 100.0}
+        g._fresh_exchange_net = lambda coin: g.ledger.coin_net(coin)
         g.cfg.master_switch_now = lambda: True
         return g
 
@@ -168,13 +174,22 @@ def main() -> None:
     def standing(label, exc):
         ex = Ex([exc])
         g = gw(ex)
-        g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+        sleeve = g.ledger.sleeve(A, "BTC")
+        sleeve.update({"direction": "LONG", "signed_size": 2.0, "avg_entry_px": 100.0,
+                       "position_id": "fixture-long", "opened_by_intent_id": "fixture-open"})
+        g.ledger._recompute_net(g.ledger.data)
+        g.ledger.save(touched_sleeves=[(A, "BTC")])
         it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
             c.LeaderFill("f_" + label, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
         it.intent_id = label
         g.audit.append_order_intent(it)
+        check(label.upper() + "_STANDING_OWNED_EXIT_FIXTURE",
+              it.reduce_only_intended and c.classify_send_lifecycle(it) == "EXIT"
+              and abs(g.ledger.coin_net("BTC") - 2.0) < 1e-9
+              and c.SenderGateway._close_proof_account_ok(),
+              "decision=%s reduce_only=%s net=%s" % (it.decision, it.reduce_only_intended, g.ledger.coin_net("BTC")))
         seen = spy(g)
-        g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
+        g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match", sz_dec=resolved["sz_decimals"])
         return g, it, ex, seen
 
     g, it, ex, seen = standing("a5", TimeoutError("Read timed out"))
