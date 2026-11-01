@@ -8256,7 +8256,7 @@ class SenderGateway:
             state["close_decision"] = kind
             return ro, amount, why
         if not self.ledger or ledger_may_lag:
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_CURRENT_LEDGER")
+            return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
         if sz_dec is None:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_PRECISION")
         coin = canonical_coin_key(intent.fill.coin)
@@ -8266,8 +8266,7 @@ class SenderGateway:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_SLEEVE")
         try:
             owned, led = float(row["signed_size"]), float(self.ledger.coin_net(coin))
-            actual = self._fresh_exchange_net(intent.fill.coin)
-            actual, requested = float(actual), abs(float(size))
+            requested = abs(float(size))
         except (ValueError, TypeError, OverflowError):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
         requested = abs(float(size))
