@@ -313,6 +313,31 @@ def main() -> None:
           and post_acceptance_alerts[0].get("terminal_state") == "ORDER_FILLED",
           str(post_acceptance_alerts))
 
+    # OFFGAP: the original ambiguity cases deliberately send only ON.
+    # This same-lease/same-gateway pair exercises the final shared gate
+    # directly, with a definitely-successful fake wire under ON as control.
+    offgap_fake = FakeExchange(fail_times=0)
+    offgap_gateway = gateway(offgap_fake)
+    offgap_intent = c.IntentBuilder(
+        c.ConfigManager(), c.ManualLedger(path=tmp / "offgap_readiness.json")).build(fill())
+    offgap_mode = ["ON"]
+    offgap_gateway.cfg.send_mode_now = lambda: offgap_mode[0]
+    offgap_on = offgap_gateway._place_order(
+        offgap_fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=offgap_intent, path="READINESS1_OFFGAP_PHYSICAL")
+    check("OFFGAP_READINESS1_REAL_LEASE_ON_CALLS_FAKE_WIRE_ONCE",
+          c._sender_lease_owned() and offgap_on.get("status") == "ok"
+          and len(offgap_fake.calls) == 1, str(offgap_fake.calls))
+    offgap_mode[0] = "OFF"
+    offgap_off = offgap_gateway._place_order(
+        offgap_fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=offgap_intent, path="READINESS1_OFFGAP_PHYSICAL")
+    check("OFFGAP_READINESS1_SHARED_MASTER_OFF_BLOCKS_PHYSICAL_WIRE",
+          c._sender_lease_owned() and len(offgap_fake.calls) == 1
+          and offgap_off.get("exchange_called") is False
+          and "MASTER_REAL_ORDERS_OFF" in str(offgap_off.get("response")),
+          "calls=%r off=%r" % (offgap_fake.calls, offgap_off))
+
     failed = [n for n, ok in RESULTS if not ok]
     for gw in gateways:
         gw.stop_ambiguous_send_rechecks()
