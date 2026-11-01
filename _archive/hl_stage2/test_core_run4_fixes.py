@@ -51,6 +51,9 @@ def main() -> None:
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
     import requests
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "run4-global.lock")
+    c.acquire_global_instance_lock(tmp)
+    check("FIXTURE_REAL_SENDER_LEASE", c._sender_lease_owned())
     os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
 
     def offline(*a, **k):
@@ -84,7 +87,7 @@ def main() -> None:
 
         def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
             return {"status": "ok"}
-        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
             if self.replies:
                 return self.replies.pop(0)
@@ -105,6 +108,12 @@ def main() -> None:
         g._validate_final_wire_order = lambda *a, **k: (True, {})
         g._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         g._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        g._close_proof_account_ok = lambda: True
+        g._follower_order_account_for_proof = lambda: FOLLOWER
+        # Staged testnet exchange source: keep Core close sizing/RO/hold real.
+        g._fresh_exchange_net = lambda coin: c.fnum(
+            (c.load_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {}) or {})
+            .get("positions_by_coin", {}).get(coin, {}).get("signed_size"), 0.0)
         return g
 
     def send_real(g, intent):
@@ -241,6 +250,22 @@ def main() -> None:
     fake = FakeExchange([NO_MATCH])
     g = gateway(fake, led)
     exit_it = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
+    # SAME fixture negative: a real lock released = no physical send.
+    c.release_global_instance_lock()
+    nolease = g._place_order(fake, "BTC", False, 2.0, 100.0, "Ioc", True,
+                            intent=exit_it, path="unowned_close_negative")
+    check("R1_UNOWNED_LEASE_NEVER_SENDS_CLOSE",
+          not fake.calls and nolease.get("exchange_called") is False,
+          str(nolease))
+    c.acquire_global_instance_lock(tmp)
+    # SAME fixture negative: account proof mismatch makes close HOLD, not send.
+    account_proof = g._close_proof_account_ok
+    g._close_proof_account_ok = lambda: False
+    negative_ro, negative_sz, negative_hold = g._close_wire_plan(exit_it, 2.0, 3)
+    check("R1_ACCOUNT_UNPROVED_CLOSE_STAYS_HOLD",
+          negative_hold == "CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH"
+          and negative_sz == 0.0, negative_hold)
+    g._close_proof_account_ok = account_proof
     ok, status, res = send_real(g, exit_it)
     gtc = [x for x in fake.calls if x["tif"] == "Gtc"]
     check("R1_UNFILLED_CLOSE_STANDS_AS_REDUCE_ONLY_LIMIT", len(gtc) == 1 and gtc[0]["reduce_only"] and gtc[0]["size"] == 2.0,
@@ -288,12 +313,12 @@ def main() -> None:
 
         def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
             return {"status": "ok"}
-        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
             if tif["limit"]["tif"] == "Gtc" and not self.replies:   # a fresh order id per standing close
                 self.calls.append({"px": px, "tif": "Gtc", "buy": is_buy, "size": size, "reduce_only": reduce_only})
                 next_oid[0] += 1
                 return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": next_oid[0]}}]}}}
-            return super().order(coin, is_buy, size, px, tif, reduce_only)
+            return super().order(coin, is_buy, size, px, tif, reduce_only, cloid=cloid)
 
         def cancel(self, coin, oid):
             self.cancels.append(oid)
@@ -328,7 +353,7 @@ def main() -> None:
     nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long"))
     ok, status, res = send_real(g, nxt)
     check("P3_NEXT_CLOSE_WITHDRAWS_THE_STANDING_ONE_FIRST",
-          fake.cancels == [int(standing[first.sleeve_id]["oid"])] and fake.calls and fake.calls[0]["tif"] == "Ioc"
+          fake.cancels == [int((standing.get(first.sleeve_id) or {}).get("oid") or -1)] and fake.calls and fake.calls[0]["tif"] == "Ioc"
           and abs(fake.calls[0]["size"] - 1.5) < 1e-9 and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
     # cancelled after it part-filled 0.5, a fill the ledger has not seen yet: the next close is 0.5 smaller
     led = ledger("p3b", a_btc=1.5)
