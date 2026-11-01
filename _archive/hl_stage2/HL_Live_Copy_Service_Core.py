@@ -9135,6 +9135,8 @@ class SenderGateway:
                 # Durable escalation: audit write failure must not be log-only.
                 note_audit_write_failure(RECONCILIATION_CSV, audit_exc)
             return _finish(False, status)
+        if wallet_mode_exc is not None and lifecycle in {"EXIT", "REDUCE"}:
+            log_error("send_time_wallet_mode_unreadable", wallet_mode_exc)
         if mode_block is not None:
             self._append_local_block_reconciliation(intent, mode_block[0], {
                 "terminal_state": mode_block[0], "reject_category": "WALLET_MODE_BLOCK",
