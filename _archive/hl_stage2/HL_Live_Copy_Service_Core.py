@@ -5712,6 +5712,20 @@ class SenderGateway:
                 log_error("remedy_ownership_block_row", exc)
             return dict(base, outcome=_st, exchange_called=False,
                         notes=f"no order: ownership gate refused the remedy ({_st})")
+        _res_key = "reservation:" + str(intent.fill.leader_fill_id)
+        _reserved_now = False
+        _rested = False
+        with self._resting_lock:
+            if self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is not None:
+                return dict(base, outcome="MISSED_ENTRY_ALREADY_RESTING",
+                            notes=f"named diff: {cause}; a limit for this leader, coin and side is already resting")
+            self._resting_entries[_res_key] = {
+                "oid": _res_key, "leader_wallet": normalise_wallet(intent.fill.leader_wallet),
+                "coin": intent.fill.coin, "side": intent.copy_side,
+                "leader_fill_id": intent.fill.leader_fill_id, "reserved": True,
+                "terminal_confirmed": False, "placed_ms": utc_now_ms(),
+            }
+            _reserved_now = True
         try:
             cloid, pre_send = self._recovery_send_hooks(intent, tif, order_type, px, size, False, timing, label)
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
@@ -5729,6 +5743,7 @@ class SenderGateway:
                 _final = "MISSED_ENTRY_LIMIT_RESTED"
             else:
                 _final = "MISSED_ENTRY_DIFF_LIMIT_REJECTED"
+            _rested = (status == "ORDER_RESTING" and bool(ok) and not bool(missed.get("take")))
             # Finalise the row this path opened. A failure here must be LOUD: a silent pass leaves
             # pending_send exactly as it was on 2026-10-25, when the journal could not see 1,549
             # orders it had placed.
@@ -5764,6 +5779,10 @@ class SenderGateway:
         except Exception as exc:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
                         notes=f"named diff: {cause}; no order ({type(exc).__name__}: {str(exc)[:200]})")
+        finally:
+            if _reserved_now and not _rested:
+                with self._resting_lock:
+                    self._resting_entries.pop(_res_key, None)
         take = bool(missed["take"])
         if not take and ok and status == "ORDER_RESTING":
             self._register_resting_entry(intent, sdk_coin, oid, px, size, f"entry refused ({cause})")
@@ -6753,6 +6772,7 @@ class SenderGateway:
             "cloid": generate_cloid(intent.intent_id),
         }
         with self._resting_lock:
+            self._resting_entries.pop("reservation:" + str(intent.fill.leader_fill_id), None)
             self._resting_entries[str(oid)] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if intent.copy_side == "BUY" else "BUY"), 0)
