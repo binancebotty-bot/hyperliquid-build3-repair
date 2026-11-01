@@ -1,0 +1,135 @@
+name: C2 REDB 0955 pinned offline four-file evidence
+on:
+  push:
+    branches:
+      - gpt/tests-b-redb-0955-20261101
+  pull_request:
+    branches:
+      - hermes/integration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  four-red-source-classification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      BASE_SHA: 6598efa7ffcac093aa7dbf847d993486c128a6d2
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+      HL_USER_WALLET: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/tests-b-redb-0955-20261101
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install isolated Python dependencies (before network lock)
+        run: |
+          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
+          python -m pip freeze > /tmp/c2-redb-dependencies.txt
+      - name: Pin Core and four exact tests to requested immutable source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          git rev-parse HEAD | tee evidence/branch-head.txt
+          git rev-parse "$BASE_SHA" | tee evidence/source-commit.txt
+          for f in \
+            _archive/hl_stage2/HL_Live_Copy_Service_Core.py \
+            _archive/hl_stage2/test_core_retry_send_integrity.py \
+            _archive/hl_stage2/test_core_run3_fixes.py \
+            _archive/hl_stage2/test_core_run4_fixes.py \
+            _archive/hl_stage2/test_core_trace_stamps.py
+          do
+            expected=$(git rev-parse "$BASE_SHA:$f")
+            actual=$(git hash-object "$f")
+            printf '%s expected=%s actual=%s\n' "$f" "$expected" "$actual" | tee -a evidence/blobs.txt
+            test "$expected" = "$actual" || exit 22
+          done
+          cp /tmp/c2-redb-dependencies.txt evidence/dependencies.txt
+      - name: Run four files with outbound sockets disabled; preserve every result
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/no_network
+          cat > evidence/no_network/sitecustomize.py <<'PY'
+          import socket
+          def _deny(*args, **kwargs):
+              raise RuntimeError("C2_REDB_OFFLINE_NETWORK_DENIED")
+          socket.socket.connect = _deny
+          socket.socket.connect_ex = _deny
+          socket.create_connection = _deny
+          PY
+          export PYTHONPATH="$PWD/evidence/no_network"
+          python - <<'PY'
+          import json, os, re, subprocess, sys, time
+          from pathlib import Path
+          d = Path("_archive/hl_stage2")
+          out = Path("evidence")
+          expected = {
+              "test_core_retry_send_integrity.py": 8,
+              "test_core_run3_fixes.py": 16,
+              "test_core_run4_fixes.py": 6,
+              "test_core_trace_stamps.py": 2,
+          }
+          report = []
+          for fn, expected_red in expected.items():
+              start = time.monotonic()
+              try:
+                  p = subprocess.run(
+                      [sys.executable, "-u", fn],
+                      cwd=d, env=os.environ.copy(), capture_output=True,
+                      text=True, errors="replace", timeout=120
+                  )
+                  code, raw = p.returncode, p.stdout + "\n=== STDERR ===\n" + p.stderr
+                  timeout = False
+              except subprocess.TimeoutExpired as e:
+                  code = 124
+                  raw = str(e.stdout or b"") + "\n=== TIMEOUT ===\n" + str(e.stderr or b"")
+                  timeout = True
+              (out / (fn + ".log")).write_text(raw, encoding="utf-8")
+              cases = []
+              for ln in raw.splitlines():
+                  m = re.search(r"RESULT::([^\s]+)_(PASS|FAIL)(?:\s*\|\s*(.*))?$", ln)
+                  if m:
+                      cases.append({"name": m.group(1), "result": m.group(2), "observed_detail": m.group(3) or "", "raw": ln})
+              totals = re.findall(r"TOTAL=(\d+)\s+FAILED=(\S+)", raw)
+              item = {
+                  "file": fn, "returncode": code, "timeout": timeout,
+                  "expected_baseline_failures": expected_red,
+                  "result_lines": len(cases),
+                  "failed_case_count": sum(x["result"] == "FAIL" for x in cases),
+                  "printed_total_failed": totals[-1] if totals else None,
+                  "cases": cases,
+                  "traceback_lines": [x for x in raw.splitlines() if any(k in x for k in ("Traceback", "Error:", "Exception:", "C2_REDB_OFFLINE_NETWORK_DENIED"))],
+                  "duration_seconds": round(time.monotonic() - start, 2)
+              }
+              report.append(item)
+              print(json.dumps({k: v for k, v in item.items() if k != "cases"}, sort_keys=True), flush=True)
+              for x in cases:
+                  if x["result"] == "FAIL":
+                      print(x["raw"], flush=True)
+          (out / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+          with (out / "cases.tsv").open("w", encoding="utf-8") as f:
+              f.write("file\tcase\tverdict\tobserved_detail\n")
+              for item in report:
+                  for x in item["cases"]:
+                      f.write("\t".join([item["file"], x["name"], x["result"], x["observed_detail"].replace("\t", " ")]) + "\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c2-redb-0955-raw-logs
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30
