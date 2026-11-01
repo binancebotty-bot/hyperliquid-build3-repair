@@ -79,10 +79,10 @@ jobs:
           s=s.replace('"c2-mutate-off-1550"','"c1-offgap-1710"')
           s=s.replace('shutil.copy2(STAGE/file,work/file)',
           '''if label=="before":
-              (work/file).write_bytes(subprocess.check_output(
-                  ["git","show",REPAIRS+":_archive/hl_stage2/"+file],cwd=ROOT))
-          else:
-              shutil.copy2(STAGE/file,work/file)''')
+                      (work/file).write_bytes(subprocess.check_output(
+                          ["git","show",REPAIRS+":_archive/hl_stage2/"+file],cwd=ROOT))
+                  else:
+                      shutil.copy2(STAGE/file,work/file)''')
           s=s.replace('"baseline":[],"mutations":[]}', '"before":[],"baseline":[],"mutations":[]}')
           s=s.replace('for file in FILES:\n    b=execute(file,SOURCE,"baseline",probe=True)',
           '''for file in FILES:
