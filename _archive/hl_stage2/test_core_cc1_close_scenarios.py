@@ -531,7 +531,7 @@ def bypass_door(n):
             wire_ok, _block = gw._validate_final_wire_order(
                 it, dict(RESOLVED), COIN, planned, PX, dict(timing))
         admitted = planned if wire_ok and not skip else 0.0
-        unknown = n in (1, 3, 5)
+        unknown = n in (1, 3)  # 5 (unreadable net) now SENDs owned under the law
         return (admitted <= 0.5 + 1e-9 and (not unknown or admitted == 0.0)), \
             "door=%d ro=%r proposed=%r skip=%r wire_ok=%r admitted=%r owned=0.5" % (
                 n, reduce_only, planned, skip, wire_ok, admitted)
