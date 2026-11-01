@@ -30,6 +30,19 @@ def read(p):
     with Path(p).open(newline="",encoding="utf-8-sig") as handle:
         return list(csv.DictReader(handle))
 
+def latest_attempt_rows():
+    """Resolve append-only revisions by exact attempt_id, NEVER count old pending as current."""
+    latest={}
+    for row in read(c.SEND_ATTEMPTS_CSV):
+        if row.get("attempt_id"):
+            latest[row["attempt_id"]]=row
+    return latest
+
+def attempt_is_resolved(row):
+    return bool(row) and row.get("status") not in (
+        "pending_send","PENDING_SEND","ORDER_UNKNOWN","") and row.get("terminal_state") not in (
+        "PENDING_SEND","SEND_OUTCOME_UNKNOWN_HOLD","SEND_OUTCOME_UNKNOWN_MANUAL_ALERT","")
+
 def bind_paths(root):
     root=Path(root)
     for key,filename in [
@@ -126,11 +139,23 @@ def restart_case(landed):
           chk and all(x.get("engine_can_send","")!="True" for x in alerts),
           "pending_cloid=%s alert=%r"%(pend[0]["cloid"],alerts))
     if alerts:exact_row("RESTART_"+landed,alerts[-1])
-    # Actual persisted state just after restart (before explicitly authorised
-    # reconciliation) is HOLD: no second send and no auto-ledger fill.
+    # Startup officially APPENDS ORDER_UNKNOWN against the SAME attempt id.
+    # Historical pending_send remains as immutable evidence; latest-by-id is
+    # unresolved until original cloid proof, and MUST be terminalised later.
+    at_start=latest_attempt_rows().get(pend[0]["attempt_id"])
+    check("R_"+landed+"_STARTUP_LATEST_ATTEMPT_IS_UNKNOWN_HELD",
+          at_start is not None and at_start.get("status")=="ORDER_UNKNOWN"
+          and at_start.get("terminal_state")=="SEND_OUTCOME_UNKNOWN_MANUAL_ALERT"
+          and at_start.get("cloid")==pend[0]["cloid"]
+          and not read(c.LIVE_FILLS_CSV),
+          "latest=%r"%(at_start and {k:at_start.get(k) for k in
+                    ("attempt_id","status","terminal_state","cloid")},))
     check("R_"+landed+"_NO_BLIND_RETRY_ON_RESTART",
-          not read(c.LIVE_FILLS_CSV) and len(relevant)==1,
-          "send_rows=%r live_rows=%r"%(relevant,read(c.LIVE_FILLS_CSV)))
+          not read(c.LIVE_FILLS_CSV) and len([x for x in read(c.SEND_ATTEMPTS_CSV)
+                            if x.get("status")=="pending_send" and x.get("attempt_id")==pend[0]["attempt_id"]])==1,
+          "append_history=%r live_rows=%r"%
+          ([(x.get("attempt_id"),x.get("status")) for x in read(c.SEND_ATTEMPTS_CSV)],
+           read(c.LIVE_FILLS_CSV)))
     net=[venue["net"]]
     ex=t.Exchange(net)
     gw=t.f.make_gateway(ex,ledger_before,net)
@@ -173,7 +198,19 @@ def restart_case(landed):
         # User/agent performs read-only cloid+fill lookup above; attach only its
         # proven returned OID to the original durable intent.
         if outcome is not None and outcome[0] is True:
+            # This calls production append-only final send writer, retaining
+            # the ORIGINAL attempt id from the same send timing.
             gw._append_real_attempt(original_intent,outcome[1],outcome[2])
+        last=latest_attempt_rows().get(pend[0]["attempt_id"])
+        check("R_LANDED_ORIGINAL_ATTEMPT_TERMINALISED_SAME_ID",
+              attempt_is_resolved(last)
+              and last.get("status")=="ORDER_FILLED"
+              and last.get("terminal_state")=="FILLED_AMBIGUOUS_SEND"
+              and last.get("exchange_order_id")==str(venue["oid"])
+              and last.get("cloid")==cloid,
+              "history=%r"%([(x.get("attempt_id"),x.get("status"),
+                             x.get("terminal_state"),x.get("exchange_order_id"))
+                             for x in read(c.SEND_ATTEMPTS_CSV)],))
         copy=copied
         matcher=c.CopyFillMatcher(ledger_before,c.AuditLogWriter())
         applied=matcher.match_and_apply(copy,{original_intent.intent_id:original_intent})
@@ -203,6 +240,36 @@ def restart_case(landed):
               and not ex.calls,
               "proof=%r recompute=%r calls=%r"%(outcome,cancel,ex.calls))
         for x in cancel:exact_row("CANCELLED_RECOMPUTE",x)
+        # The Core deferred CLOID recheck loop uses EXACTLY
+        # update_send_attempt_row to append a terminal revision on a proven
+        # cancelled order. The synchronous restart proof path in this bounded
+        # test must do the same; merely writing a reconciliation alert leaves
+        # the original attempt UNKNOWN forever, even if later GTC fills.
+        closed=False
+        if outcome is not None and outcome[1]=="ORDER_CANCELLED":
+            src=latest_attempt_rows().get(pend[0]["attempt_id"])
+            closed=c.update_send_attempt_row(pend[0]["attempt_id"], {
+                "status":"ORDER_CANCELLED",
+                "exchange_order_id":outcome[2].get("oid",""),
+                "exchange_response":json.dumps(outcome[2].get("exchange_response",{})),
+                "terminal_state":outcome[2].get("terminal_state",""),
+                "operator_action":outcome[2].get("operator_action",""),
+                "notes":outcome[2].get("notes",""),
+            },base_row=src,durable=True)
+        final_original=latest_attempt_rows().get(pend[0]["attempt_id"])
+        check("R_NOT_LANDED_ORIGINAL_PENDING_TERMINALISED_SAME_ID",
+              closed and attempt_is_resolved(final_original)
+              and final_original.get("status")=="ORDER_CANCELLED"
+              and final_original.get("terminal_state")=="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY"
+              and final_original.get("operator_action")=="WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE"
+              and final_original.get("cloid")==cloid
+              and len([x for x in latest_attempt_rows().values()
+                       if x.get("attempt_id")==pend[0]["attempt_id"]])==1,
+              "latest=%r history=%r"%
+              (final_original and {k:final_original.get(k) for k in
+                 ("attempt_id","status","terminal_state","cloid","operator_action")},
+               [(x.get("attempt_id"),x.get("status"),x.get("terminal_state"))
+                for x in read(c.SEND_ATTEMPTS_CSV)]))
         check("R_NOT_LANDED_OWED_VISIBLE_NO_ABANDONMENT",
               t.approx(ledger_before.coin_net(COIN),1) and t.approx(net[0],1)
               and bool(alerts) and not ex.calls,
@@ -252,6 +319,28 @@ def restart_case(landed):
                       and x.get("ledger_action")=="CLOSED" for x in read(c.LIVE_FILLS_CSV)),
               "matched=%r venue=%r ledger=%r wires=%r"%
               (match,net[0],ledger_before.coin_net(COIN),calls))
+        # Recovery GTC's physical result can leave its own ORDER_RESTING row
+        # until the existing real journal sweep matches the durable copy fill.
+        # Assert BOTH original cancelled and second OID filled (latest per
+        # attempt), no unknown/pending row masked by an unrelated later fill.
+        sweep=c.close_orphan_attempt_rows(only_oid="7777",apply=True)
+        latest=latest_attempt_rows()
+        original=latest.get(pend[0]["attempt_id"])
+        gtcs=[(aid,row) for aid,row in latest.items()
+              if row.get("exchange_order_id")=="7777"]
+        check("R_NOT_LANDED_BOTH_ATTEMPT_IDS_TERMINAL_AFTER_SWEEP",
+              attempt_is_resolved(original)
+              and original.get("status")=="ORDER_CANCELLED"
+              and bool(gtcs)
+              and any(row.get("status")=="ORDER_FILLED" and
+                      row.get("terminal_state")=="MATCHED_BY_EXCHANGE_ORDER_ID"
+                      for _,row in gtcs)
+              and all(attempt_is_resolved(row) for row in latest.values())
+              and all(aid!=pend[0]["attempt_id"] for aid,_ in gtcs),
+              "sweep=%r original=%r gtc_latest=%r all_latest=%r"%
+              (sweep,original and (original.get("status"),original.get("terminal_state")),
+               [(aid,row.get("status"),row.get("terminal_state")) for aid,row in gtcs],
+               [(aid,row.get("status"),row.get("terminal_state")) for aid,row in latest.items()]))
     # Restarts are bounded operator/agent proof-and-recovery exercises. This
     # file does NOT claim automatic startup scheduling, real exchange or signer.
 
@@ -281,11 +370,69 @@ def stale_case(label,owned_b,actual,expected_send,expected_ro=None):
     else:
         reconc=t.rows(c.RECONCILIATION_CSV,fid)
         red=t.open_red(fid,it.intent_id)
-        check("S_"+label+"_DISAGREE_HOLD_ZERO_WIRE",
-              not ok and not calls and t.approx(net[0],actual)
-              and t.approx(t.f.sleeve_of(led,A),before)
-              and bool(red) and bool(reconc),
-              "status=%r calls=%r red=%r rows=%r"%(status,calls,red,reconc))
+        def expected_stage(status_value,rows,red_rows):
+            if label=="DEFICIT_UNSEEN_FILL":
+                matching=[x for x in rows
+                          if x.get("event")=="CLOSE_ESCALATION"
+                          and x.get("status")=="AUTHORISED_CLOSE_REFUSAL"
+                          and x.get("reject_category")=="CLOSE_PROOF_HOLD_NET_MISMATCH"
+                          and x.get("action")=="RECONCILE_OWED_CLOSE_BEFORE_RETRY"
+                          and x.get("engine_can_send")=="False"
+                          and x.get("intent_id")==it.intent_id
+                          and x.get("leader_fill_id")==fid]
+                return (status_value=="SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD"
+                        and bool(matching) and bool(red_rows)
+                        and all(x.get("state")=="OPEN" for x in red_rows))
+            if label=="OPPOSITE_SIGN":
+                matching=[x for x in rows
+                          if x.get("event")=="OWNERSHIP_GATE"
+                          and x.get("status")=="OWNERSHIP_GATE_SIGN_CONFLICT"
+                          and x.get("terminal_state")=="OWNERSHIP_GATE_SIGN_CONFLICT"
+                          and x.get("action")=="NO_SEND_OWNERSHIP_RECONCILIATION_REQUIRED"
+                          and x.get("reject_category")=="OWNERSHIP_CONTRACT_BLOCK"
+                          and x.get("engine_can_send")=="False"
+                          and t.approx(x.get("manual_net"),1.5)
+                          and t.approx(x.get("exchange_net"),-0.5)
+                          and x.get("intent_id")==it.intent_id]
+                return (status_value=="OWNERSHIP_GATE_SIGN_CONFLICT"
+                        and bool(matching) and bool(red_rows)
+                        and all(x.get("state")=="OPEN" for x in red_rows))
+            raise AssertionError("unexpected expected_stage label "+label)
+        stage_ok=expected_stage(status,reconc,red)
+        check("S_"+label+"_EXACT_NAMED_REASON",
+              stage_ok and not ok and not calls
+              and t.approx(net[0],actual)
+              and t.approx(t.f.sleeve_of(led,A),before),
+              "status=%r named=%r red=%r"%
+              (status,[(x.get("event"),x.get("status"),x.get("reject_category"),
+                        x.get("action"),x.get("manual_net"),x.get("exchange_net"))
+                        for x in reconc],red))
+        # Executed negative test-seam control: unrelated MASTER_OFF refusal
+        # must NEVER be accepted as a proof of the requested drift gate.
+        wrong_root,wrong_led,wrong_net,wrong_ex,wrong_gw,wrong_it,wrong_fid=t.make(
+            "DRIFT_WRONG_REASON_"+label,1.0,owned_b,actual,qty=1)
+        wrong_gw.cfg.master_switch_now=lambda:False
+        wrong_ok,wrong_status=wrong_gw.send_if_allowed(wrong_it)
+        wrong_recon=t.rows(c.RECONCILIATION_CSV,wrong_fid)
+        wrong_red=t.open_red(wrong_fid,wrong_it.intent_id)
+        check("S_"+label+"_WRONG_REASON_NEGATIVE_DETECTED",
+              not wrong_ok and not wrong_ex.calls
+              and wrong_status=="MASTER_REAL_ORDERS_OFF"
+              and not expected_stage(wrong_status,wrong_recon,wrong_red),
+              "injected_wrong_reason=%r rows=%r"%
+              (wrong_status,[(x.get("event"),x.get("status"),x.get("reject_category"))
+                             for x in wrong_recon]))
+        # The negative fixture switched module-level CSV paths, so restore
+        # initial data paths for further evidence and row print.
+        t.make("RESTORE_"+label,1.0,owned_b,actual,qty=1)
+        for key,name in (
+            ("SEND_ATTEMPTS_CSV","send_attempts.csv"),
+            ("LIVE_FILLS_CSV","live_fills.csv"),
+            ("RECONCILIATION_CSV","reconciliation.csv"),
+            ("ORDER_INTENTS_CSV","order_intents.csv"),
+            ("CLOSE_ESCALATIONS_FILE","close_escalations.json"),
+            ("STANDING_CLOSES_FILE","standing_closes.json")):
+            setattr(c,key,root/name)
         for row in reconc:
             if row.get("status") in ("AUTHORISED_CLOSE_REFUSAL", "OWNERSHIP_GATE_SIGN_CONFLICT",
                                     "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"):
