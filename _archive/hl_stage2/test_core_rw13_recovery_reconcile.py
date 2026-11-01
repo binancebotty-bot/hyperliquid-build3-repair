@@ -202,6 +202,33 @@ def main() -> None:
     g, it, ex, seen = standing("a6", E429("too many requests"))
     check("A6_STANDING_CLOSE_DEFINITE_429_NO_RECONCILE", seen == [] and len(ex.calls) == 1, "seen=%s" % seen)
 
+    # OFFGAP: the recovery cases above are all ON and cannot prove the
+    # physical shared global-OFF gate. Keep the genuine isolated sender
+    # lease, re-use one real SenderGateway, and switch only the config
+    # reader while driving the real _place_order with an entry intent.
+    offgap_reply = {"status": "ok", "response": {"type": "order", "data": {
+        "statuses": [{"filled": {"totalSz": "1", "avgPx": "100", "oid": 991}}]}}}
+    offgap_ex = Ex([offgap_reply, offgap_reply])
+    offgap_gw = gw(offgap_ex)
+    offgap_intent = mk_intent("offgap")
+    offgap_mode = ["ON"]
+    offgap_gw.cfg.send_mode_now = lambda: offgap_mode[0]
+    offgap_on = offgap_gw._place_order(
+        offgap_ex, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=offgap_intent, path="RW13_OFFGAP_PHYSICAL")
+    check("OFFGAP_RW13_REAL_LEASE_ON_CALLS_FAKE_WIRE_ONCE",
+          c._sender_lease_owned() and offgap_on.get("status") == "ok"
+          and len(offgap_ex.calls) == 1, str(offgap_ex.calls))
+    offgap_mode[0] = "OFF"
+    offgap_off = offgap_gw._place_order(
+        offgap_ex, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=offgap_intent, path="RW13_OFFGAP_PHYSICAL")
+    check("OFFGAP_RW13_SHARED_MASTER_OFF_BLOCKS_PHYSICAL_WIRE",
+          c._sender_lease_owned() and len(offgap_ex.calls) == 1
+          and offgap_off.get("exchange_called") is False
+          and "MASTER_REAL_ORDERS_OFF" in str(offgap_off.get("response")),
+          "calls=%r off=%r" % (offgap_ex.calls, offgap_off))
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
