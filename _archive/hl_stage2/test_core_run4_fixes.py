@@ -331,7 +331,7 @@ def main() -> None:
                                 exchange_order_id=oid_r1,
                                 terminal_state="EXIT_RECOVERY_ACTIVE")
         good, _ = fold_recovery(rows + [pretend_terminal], wire_r1, oid_r1, exit_it.intent_id)
-        dropped, _ = fold_recovery(rows + [pretend_terminal] if False else rows,
+        dropped, _ = fold_recovery(rows,
                                    wire_r1, oid_r1, exit_it.intent_id)
         check("R1_FOLD_VERIFIER_REJECTS_DROPPED_TERMINAL_MUTANT",
               good and not dropped, "constructed_terminal=%s orphaned=%s" % (good, dropped))
@@ -351,17 +351,103 @@ def main() -> None:
     body = src.split("def _exit_recovery_exists", 1)[1].split("\n    def ", 1)[0]
     check("R3_RECOVERY_CHECK_KEPT_IN_MEMORY", "_recovery_intent_ids" in body and body.count("iter_audit_history") == 1 and "read_csv_rows" not in body)
 
-    led = ledger("p1", a_btc=2.0)
+    # P1 is a distinct owned sleeve; R2's A/B history cannot be mistaken
+    # for P1 proof. Seed a genuine owned prior BUY fill in live_fills.
+    P1W = "0x" + "d" * 40
+    config(wallets=(A, B, P1W), send=True, marketable_bps=20)
+    led = c.ManualLedger(path=tmp / "p1.json")
+    led.sleeve(P1W, "BTC")["signed_size"] = 2.0
+    led._recompute_net(led.data)
+    c.AuditLogWriter().append_live_fill({
+        "copy_fill_id": "seed_p1_owned_buy", "leader_wallet": P1W,
+        "coin": "BTC", "side": "BUY", "fill_size": 2.0,
+        "source": "copy_account_poll", "exchange_order_id": "seed_p1_open"})
     snapshot(2.0)
     part = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
         {"filled": {"totalSz": "0.5", "avgPx": "100", "oid": 31}}]}}}
     fake = FakeExchange([part])
     g = gateway(fake, led)
-    exit_it = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
-    ok, status, res = send_real(g, exit_it)
-    check("P1_PART_FILLED_CLOSE_LEAVES_THE_REST_AS_A_REDUCE_ONLY_CLOSE",
-          ok and len(fake.calls) == 2 and fake.calls[1]["tif"] == "Gtc" and fake.calls[1]["reduce_only"]
-          and abs(fake.calls[1]["size"] - 1.5) < 1e-9 and not fake.calls[1]["buy"], str(fake.calls))
+    exit_it = c.IntentBuilder(c.ConfigManager(), led).build(
+        fill("SELL", size=2.0, wallet=P1W, d="Close Long"))
+    ok, status = send_authorised(g, exit_it)
+    p1gtc_before = [x for x in fake.calls if x["tif"] == "Gtc"]
+    key = P1W + "::BTC"
+    def owed_visible(red, gtcs, size):
+        return (size > 0
+                and ((red.get(key) or {}).get("state") == "OPEN"
+                     or bool(gtcs)))
+    red_before = c.load_json(c.CLOSE_ESCALATIONS_FILE, {})
+    check("P1_PARTIAL_IOC_NEVER_CLEARED_AS_FLAT",
+          ok and status == "ORDER_FILLED" and len([x for x in fake.calls if x["tif"] == "Ioc"]) == 1
+          and abs(led.sleeve(P1W, "BTC")["signed_size"] - 2.0) < 1e-9
+          and owed_visible(red_before, p1gtc_before, 2.0),
+          "status=%s red=%s calls=%s" % (status, red_before.get(key), fake.calls))
+    # Mutation: dropping BOTH the owed RED and the resting recovery while
+    # a sleeve remains nonflat MUST NOT be accepted as settled.
+    check("P1_MUTANT_DROPPED_OWED_REMAINDER_REJECTED",
+          owed_visible(red_before, p1gtc_before, 2.0)
+          and not owed_visible({}, [], 2.0), str(red_before.get(key)))
+    p1_owned = c.CopyFillMatcher(led, c.AuditLogWriter()).match_and_apply(
+        {"coin": "BTC", "side": "A", "px": "100", "sz": "0.5",
+         "oid": 31, "hash": "0xp1_ioc", "tid": 311,
+         "time": c.utc_now_ms(), "dir": "Close Long"}, {})
+    snapshot(1.5)  # fresh follower net after the *matched* IOC fill.
+    remains = abs(led.sleeve(P1W, "BTC")["signed_size"] - 1.5) < 1e-9
+    check("P1_POST_MATCH_LEDGER_AND_EXCHANGE_NET_BOTH_SHOW_OWED_1P5",
+          p1_owned and remains and abs(g._fresh_exchange_net("BTC") - 1.5) < 1e-9,
+          "owned=%s ledger=%s net=%s" %
+          (p1_owned, led.sleeve(P1W, "BTC"), g._fresh_exchange_net("BTC")))
+    cleared_early = g.clear_close_escalations()
+    after_early = c.load_json(c.CLOSE_ESCALATIONS_FILE, {})
+    check("P1_NONFLAT_DUAL_PROOF_MUST_NOT_CLEAR_RED",
+          cleared_early == 0 and owed_visible(after_early, p1gtc_before, 1.5),
+          "cleared=%s red=%s" % (cleared_early, after_early.get(key)))
+    # Repeat the REAL Core recovery entrypoint only if the accepted IOC
+    # didn't already place the resting close. This is a bounded explicit
+    # post-proof trigger, NOT claimed proof of an automatic scheduler wake.
+    if not p1gtc_before:
+        g._queue_exit_recovery_if_needed(fake, "BTC", exit_it, 100.0, 1.5,
+                                         part, "post-match owed 1.5", sz_dec=3)
+    p1gtcs = [x for x in fake.calls if x["tif"] == "Gtc"]
+    p1_standing = c.load_json(c.STANDING_CLOSES_FILE, {}).get(exit_it.sleeve_id, {})
+    p1_expected = (len(p1gtcs) == 1 and not p1gtcs[0]["buy"]
+                   and p1gtcs[0]["reduce_only"] is True
+                   and abs(p1gtcs[0]["size"] - 1.5) < 1e-9
+                   and str(p1_standing.get("oid") or ""))
+    check("P1_POST_PROOF_SINGLE_BOUNDED_GTC_OR_PRECISE_HOLD",
+          bool(p1_expected) or
+          (not p1gtcs and (after_early.get(key) or {}).get("state") == "OPEN"
+           and any(str(r.get("status") or "") == "STANDING_CLOSE_NOT_PLACED"
+                   and r.get("intent_id") == exit_it.intent_id
+                   for r in c.read_csv_rows(c.RECONCILIATION_CSV))),
+          "gtcs=%s standing=%s red=%s" %
+          (p1gtcs, p1_standing, c.load_json(c.CLOSE_ESCALATIONS_FILE, {}).get(key)))
+    if p1_expected:
+        oid_p1 = str(p1_standing["oid"])
+        all_p1 = c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
+        folded, folded_details = fold_recovery(all_p1, p1gtcs[0], oid_p1, exit_it.intent_id)
+        check("P1_GTC_ATTEMPT_AND_MATCHER_LIFECYCLE", folded,
+              str(folded_details))
+        owned_last = c.CopyFillMatcher(led, c.AuditLogWriter()).match_and_apply(
+            {"coin": "BTC", "side": "A", "px": "100", "sz": "1.5",
+             "oid": int(oid_p1), "hash": "0xp1_gtc", "tid": 312,
+             "time": c.utc_now_ms(), "dir": "Close Long"}, {})
+        snapshot(0.0)
+        cleared_final = g.clear_close_escalations()
+        check("P1_DUAL_FLAT_PROOF_CLEARS_ESCALATION_ONLY_AFTER_FILLS",
+              owned_last and abs(led.sleeve(P1W, "BTC")["signed_size"]) < 1e-9
+              and g._fresh_exchange_net("BTC") == 0.0
+              and cleared_final >= 1
+              and not (c.load_json(c.CLOSE_ESCALATIONS_FILE, {}) or {}).get(key),
+              "matched=%s cleared=%s owned=%s" %
+              (owned_last, cleared_final, led.sleeve(P1W, "BTC")))
+    else:
+        check("P1_GTC_ATTEMPT_AND_MATCHER_LIFECYCLE", False,
+              "no proven bounded GTC; red remains")
+        check("P1_DUAL_FLAT_PROOF_CLEARS_ESCALATION_ONLY_AFTER_FILLS", False,
+              "no GTC fill/dual-flat proof; must remain owed")
+    # Restore the original A/B test configuration without altering engine.
+    config(send=True, marketable_bps=20)
     fake = FakeExchange()
     led = ledger("p2", a_btc=2.0)
     g = gateway(fake, led)
