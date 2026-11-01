@@ -88,7 +88,7 @@ MUTANTS = {
 "test_core_missed_entry_rule.py": [
  ("invert_missed_entry_tolerance",
   '"take": adverse_bps <= max(0.0, tolerance_bps) + 1e-9',
-  '"take": adverse_bps >= max(0.0, tolerance_bps) + 1e-9  # MUTANT: inverted tolerance',
+  '"take": adverse_bps >= max(0.0, tolerance_bps) + 1e-9',
   "M1_SAME_PRICE_TAKEN"),
  ("ignore_cross_network_relative_price",
   "desired = leader_px if market_px == follower_px else follower_px * leader_px / market_px  # exact on one network",
