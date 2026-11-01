@@ -139,13 +139,26 @@ def main() -> None:
         led = c.ManualLedger(path=tmp / f"l{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
+            led._recompute_net(led.data)
+            led.save(touched_sleeves=[(LEADER, "BTC")])
+            c.append_csv(c.LIVE_FILLS_CSV, c.LIVE_FILL_FIELDS,
+                         {"leader_wallet": LEADER, "coin": "BTC", "side": "BUY",
+                          "fill_size": str(sleeve), "source": "EXCHANGE_FILL"})
+            c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE,
+                                {"positions_by_coin": {"BTC": sleeve}})
         intent = c.IntentBuilder(c.ConfigManager(), led).build(f or fill(side))
         # earlier scenarios' limits count as filled: one resting entry per wallet/coin/side (run 4) is tested in M9
         reg = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}) or {}
         c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {k: {**v, "open_size": 0.0} for k, v in reg.items()})
         fake = FakeExchange(replies)
         gw = gateway(fake)
+        if sleeve:
+            gw.ledger = led  # actual owned sleeve, not an ownership-gate bypass
+            gw._fresh_exchange_net = lambda _coin: sleeve  # deterministic follower net read
         set_mids(follower, leader)
+        old_account = os.environ.get("HL_LIVE_HL_ACCOUNT_ADDRESS")
+        if sleeve:
+            os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object
@@ -154,6 +167,10 @@ def main() -> None:
         finally:
             c.HLAccount, c.HLExchange = saved
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+            if old_account is None:
+                os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
+            else:
+                os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = old_account
         return ok, status, res, fake, gw, intent
 
     # ---- M2: one network ---------------------------------------------------------------------------
@@ -198,7 +215,7 @@ def main() -> None:
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
         check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
-        check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
+        check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), f"{status} {str(res)[:180]} calls={fake.calls}")
     finally:
         c.LEADER_NETWORK = saved_leader
 
