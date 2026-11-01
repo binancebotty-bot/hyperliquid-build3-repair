@@ -42,6 +42,9 @@ class PartialThenFull:
     def __init__(self, f):
         self.f = f
 
+    def __getattr__(self, name):
+        return getattr(self.f, name)
+
     def __enter__(self):
         self.f.__enter__()
         return self
@@ -58,11 +61,18 @@ class PartialThenFull:
         self.f.flush()
 
 
+injected = []
+
 def fake_open(self, *a, **k):
     f = real_open(self, *a, **k)
-    return PartialThenFull(f) if self == p and a and a[0] == "a" else f
+    if self == p and a and a[0] == "a":
+        injected.append(str(self))
+        return PartialThenFull(f)
+    return f
 
 
+# append_csv caches the first handle. Reopen at the fault boundary.
+c._close_audit_handle(p)
 Path.open = fake_open
 raised = False
 ret = None
@@ -73,6 +83,8 @@ except OSError:
 finally:
     Path.open = real_open
 
+check("INJECTED_APPEND_FAILURE_ACTUALLY_FIRED", len(injected) == 1,
+      "fault must be exercised, not bypassed by the cached audit handle: %r" % injected)
 check("APPEND_FAILURE_NO_RAISE", not raised, "append_csv should never raise -- it spills")
 check("APPEND_FAILURE_RETURNS_FALSE", ret is False, f"ret={ret!r}")
 check("APPEND_FAILURE_LEAVES_NO_HALF_ROW", p.read_bytes() == good, repr(p.read_bytes()[-20:]))
