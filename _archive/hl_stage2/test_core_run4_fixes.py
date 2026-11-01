@@ -273,7 +273,9 @@ def main() -> None:
     rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
     check("R1_RECOVERY_ORDER_WRITTEN_TO_SEND_ATTEMPTS_WITH_ITS_ORDER_ID",
           len(rows) == 1 and rows[0]["status"] == "ORDER_RESTING" and rows[0]["exchange_order_id"] == "4244"
-          and rows[0]["intent_id"] == exit_it.intent_id and rows[0]["reduce_only_sent"] == "True", str(rows)[:300])
+          and rows[0]["intent_id"] == exit_it.intent_id and rows[0]["reduce_only_sent"] == "True",
+          str([(r.get("order_type"), r.get("status"), r.get("exchange_order_id"),
+                r.get("reduce_only_sent"), r.get("intent_id")) for r in rows]))
     matcher = c.CopyFillMatcher(led, c.AuditLogWriter())
     now = c.utc_now_ms()
     owned = matcher.match_and_apply({"coin": "BTC", "side": "A", "px": "100", "sz": "2.0", "oid": 4244, "hash": "0xr1",
@@ -371,9 +373,11 @@ def main() -> None:
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     fake.calls.clear()
-    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
-    check("P3_UNREADABLE_STATUS_ASSUMES_THE_STANDING_CLOSE_FILLED", fake.calls and abs(fake.calls[0]["size"] - 0.5) < 1e-9,
-          str(fake.calls))
+    unclear_ok, unclear_status, unclear_result = send_real(
+        g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    check("P3_UNREADABLE_STANDING_STATUS_NEVER_ASSUMES_FILLED_OR_BLIND_RESENDS",
+          not fake.calls and not unclear_ok and unclear_status != "ORDER_FILLED",
+          f"{unclear_status} {fake.calls}")
     c.OPEN_ORDERS_FETCHER = order_status
     status_of.update(orig=1.5, left=0.0)
     # the standing close filled before the next close: the ledger (brought up to date) decides what is left
@@ -412,8 +416,11 @@ def main() -> None:
     g = gateway(fake, led)
     time.sleep(0.02)
     config(send=False, marketable_bps=20)   # switched off while the close was being sent
-    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
-    check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
+    p7_ok, p7_status, p7_result = send_real(
+        g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    check("P7_MASTER_OFF_BEFORE_SEND_PLACES_NEITHER_IOC_NOR_GTC",
+          not fake.calls and not p7_ok and p7_result.get("exchange_called") is False,
+          f"{p7_status} {fake.calls}")
 
     # ---- U: pending-exit guard is not "unclassified" ------------------------------------------------------------
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
@@ -484,7 +491,8 @@ def main() -> None:
     core.stop()
 
     # ---- O: one resting entry limit per leader, coin and side ---------------------------------------------------
-    config(marketable_bps=20)
+    # P7 explicitly switched OFF; re-arm this isolated fake sender for O.
+    config(send=True, marketable_bps=20)
     saved_leader = c.LEADER_NETWORK
     c.LEADER_NETWORK = c.FOLLOWER_NETWORK
     try:
