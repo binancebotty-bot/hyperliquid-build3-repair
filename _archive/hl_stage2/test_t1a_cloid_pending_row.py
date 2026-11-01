@@ -34,6 +34,9 @@ def main() -> None:
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: real isolated sender lease missing"
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -109,7 +112,7 @@ def main() -> None:
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
         return gw
 
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True, "global_controls": {"marketable_bps": 20},
                                              "wallets": {LEADER: {"enabled": True, "mode": "ON",
                                                                   "copy_mode": "fixed", "fixed_notional": 1000}}})
     seq = [0]
@@ -185,6 +188,32 @@ def main() -> None:
     ok3, status3, res3, intent3 = send(fake3, follower=100.0)
     check("A13_PENDING_WRITE_FAILURE_SENDS_NOTHING", (not ok3) and not fake3.calls
           and "AUDIT_WRITE_FAILED" in str(status3), f"{ok3} {status3} {fake3.calls}")
+
+    # OFFGAP: pair an actually permitted entry with an OFF refusal on the
+    # SAME real-leased gateway, intent and fake physical exchange. Direct
+    # _place_order reaches the sole shared wire gate even when the higher
+    # send_if_allowed dispatch would pre-reject an OFF intent.
+    offgap_fake = FakeExchange()
+    offgap_gw = gateway(offgap_fake)
+    offgap_intent = c.IntentBuilder(
+        c.ConfigManager(), c.ManualLedger(path=tmp / "offgap_t1a.json")).build(fill())
+    offgap_mode = ["ON"]
+    offgap_gw.cfg.send_mode_now = lambda: offgap_mode[0]
+    offgap_on = offgap_gw._place_order(
+        offgap_fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=offgap_intent, path="T1A_OFFGAP_PHYSICAL")
+    check("OFFGAP_T1A_REAL_LEASE_ON_CALLS_FAKE_WIRE_ONCE",
+          c._sender_lease_owned() and offgap_on.get("status") == "ok"
+          and len(offgap_fake.calls) == 1, str(offgap_fake.calls))
+    offgap_mode[0] = "OFF"
+    offgap_off = offgap_gw._place_order(
+        offgap_fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=offgap_intent, path="T1A_OFFGAP_PHYSICAL")
+    check("OFFGAP_T1A_SHARED_MASTER_OFF_BLOCKS_PHYSICAL_WIRE",
+          c._sender_lease_owned() and len(offgap_fake.calls) == 1
+          and offgap_off.get("exchange_called") is False
+          and "MASTER_REAL_ORDERS_OFF" in str(offgap_off.get("response")),
+          "calls=%r off=%r" % (offgap_fake.calls, offgap_off))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
