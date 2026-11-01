@@ -35,6 +35,7 @@ jobs:
         id: run
         shell: bash
         run: |
+          set +e
           set -u
           mkdir -p evidence/coder1_reda_0955
           printf 'SOURCE_SHA=6598efa7ffcac093aa7dbf847d993486c128a6d2\nWORKFLOW_SHA=%s\n' "$(git rev-parse HEAD)" > evidence/coder1_reda_0955/environment.txt
