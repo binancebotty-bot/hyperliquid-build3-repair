@@ -39,7 +39,7 @@ TEST_BLOBS = {
     "test_core_run4_fixes.py": "a4d2d24d8f9866d407da0a8446f8dc4f80f3a363",
     "test_core_retry_send_integrity.py": "773094250e61dd88db78c1605c6463d4d5a8b82e",
     "test_core_trace_stamps.py": "1a57cf6a7f0448551ac41158233fa367c3be7ec2",
-    "test_core_missed_entry_rule.py": "e714d8c3033c7a6eb0ba07c98a1d9bebcda00000",
+    "test_core_missed_entry_rule.py": "4b9671127fd1e7a37cc5879e1e7f670de74347f8",
     "test_core_master_gate.py": "bdefdca2a2e16ffd8068bc98d76807e696fe7dca",
 }
 # Each mutation is ONE source-site replacement with exactly one occurrence,
