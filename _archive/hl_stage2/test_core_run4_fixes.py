@@ -278,7 +278,8 @@ def main() -> None:
           and rows[1]["exchange_order_id"] == "4244"
           and all(r["intent_id"] == exit_it.intent_id and r["reduce_only_sent"] == "True" for r in rows),
           str([(r.get("order_type"), r.get("status"), r.get("exchange_order_id"),
-                r.get("reduce_only_sent"), r.get("intent_id")) for r in rows]))
+                r.get("reduce_only_sent"), r.get("intent_id"), r.get("attempt_id"),
+                r.get("cloid")) for r in rows]))
     matcher = c.CopyFillMatcher(led, c.AuditLogWriter())
     now = c.utc_now_ms()
     owned = matcher.match_and_apply({"coin": "BTC", "side": "A", "px": "100", "sz": "2.0", "oid": 4244, "hash": "0xr1",
@@ -355,8 +356,15 @@ def main() -> None:
     check("P3_STANDING_CLOSE_REMEMBERED_BY_SLEEVE", first.sleeve_id in standing and standing[first.sleeve_id]["size"] == 2.0,
           str(standing))
     status_of.update(orig=2.0, left=1.5)  # GTC partially filled 0.5
-    led.sleeve(A, "BTC")["signed_size"] = 1.5   # copy poll owned the GTC's 0.5 fill
-    led._recompute_net(led.data)
+    # Copy-poll's ownership proof is a REAL matched fill row, not a silently
+    # patched signed_size: standing-cancel reads _owned_fill_size(oid).
+    p3_owned = c.CopyFillMatcher(led, c.AuditLogWriter()).match_and_apply(
+        {"coin": "BTC", "side": "A", "px": "100", "sz": "0.5",
+         "oid": int(standing[first.sleeve_id]["oid"]), "hash": "0xp3",
+         "tid": 333, "time": c.utc_now_ms(), "dir": "Close Long"}, {})
+    check("P3_GTC_PART_FILL_OWNED_BEFORE_NEXT_CLOSE",
+          p3_owned and abs(led.sleeve(A, "BTC")["signed_size"] - 1.5) < 1e-9,
+          str(led.sleeve(A, "BTC")))
     snapshot(1.5)
     fake.calls.clear()
     nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long"))
@@ -481,6 +489,9 @@ def main() -> None:
         "3": {"oid": "3", "leader_wallet": A, "coin": "BTC", "side": "BUY", "limit_px": 100.0, "size": 1.0, "placed_ms": 1}}
     c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1, "coin": "BTC", "side": "B", "sz": "0.5", "limitPx": "100"},
                                       {"oid": 2, "coin": "ETH", "side": "A", "sz": "1.0", "limitPx": "50"}]
+    # Earlier recovery/order tests populated the periodic open-orders cache.
+    # This fixture replaces the *source*, so invalidate that old snapshot.
+    c.invalidate_open_orders_cache()
     still = g.refresh_resting_open_sizes()
     exp = g.resting_entry_exposure()
     check("C5_OPEN_SIZE_READ_FROM_THE_EXCHANGE_FILLED_ONES_DROP_OUT",
