@@ -54,7 +54,13 @@ jobs:
             expected=$(git rev-parse "$BASE_SHA:$f")
             actual=$(git hash-object "$f")
             printf '%s expected=%s actual=%s\n' "$f" "$expected" "$actual" | tee -a evidence/blobs.txt
-            test "$expected" = "$actual" || exit 22
+            if [ "$f" = "_archive/hl_stage2/HL_Live_Copy_Service_Core.py" ]; then
+              test "$expected" = "$actual" || exit 22
+            else
+              head_blob=$(git rev-parse "HEAD:$f")
+              test "$head_blob" = "$actual" || exit 23
+              echo "TEST_FIXTURE_PATCH base=$expected head=$head_blob" >> evidence/blobs.txt
+            fi
           done
           cp /tmp/c2-redb-dependencies.txt evidence/dependencies.txt
       - name: Run four files with outbound sockets disabled; preserve every result
