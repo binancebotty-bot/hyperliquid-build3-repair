@@ -41,7 +41,7 @@ def entry_intent(coin='BTC'):
                                  price=100.0, size=1.0)
     return types.SimpleNamespace(fill=fill, intent_id='i-'+coin, reason='', notes='lifecycle=ENTRY',
                                  copy_side='BUY', copy_size=1.0, decision='SEND_ALLOWED', cap_detail=None,
-                                 send_allowed=True, wallet_mode='LIVE')
+                                 send_allowed=True, wallet_mode='ON', reduce_only_intended=False)
 
 
 def gateway_stub(**cooldowns):
