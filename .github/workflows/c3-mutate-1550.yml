@@ -1,0 +1,73 @@
+name: C3 MUTATE 1550 disposable source sensitivity
+on:
+  push:
+    branches: [gpt/c3-mutate-1550-20261101]
+  pull_request:
+    branches: [hermes/integration]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  six-test-twelve-single-site-mutants:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PINNED_CORE_SHA: 0a99d215c99b794717ce5b34f46cc299dae09106
+      C2_REPAIRED_SHA: 366a12a53209d68e6867910f8fa8051e761905d0
+      C3_REPAIRED_SHA: 86c33120f149df16558c37dcc9ab739726c64e9e
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: '0'
+      HL_LIVE_POLL_ENABLED: '0'
+      HL_LIVE_SCOPE_SWEEP_THREAD: '0'
+      HL_LIVE_HL_PRIVATE_KEY: ''
+      HL_USER_WALLET: ''
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/c3-mutate-1550-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline test runtime dependencies (before socket lock)
+        run: |
+          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
+      - name: Pin historical Core and both repaired test source refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/c3-mutate-1550
+          git fetch --no-tags origin '+refs/heads/gpt/tests-b-redbfix-1218-20261101:refs/remotes/origin/gpt/tests-b-redbfix-1218-20261101' '+refs/heads/gpt/c3-redcfix-1218-20261101:refs/remotes/origin/gpt/c3-redcfix-1218-20261101'
+          test "$(git rev-parse "$PINNED_CORE_SHA:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = 'e470862a291bbf241e22d8011b757ed9c2b53d68'
+          test "$(git rev-parse HEAD:_archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = 'e470862a291bbf241e22d8011b757ed9c2b53d68'
+          git cat-file -e "$C2_REPAIRED_SHA^{commit}"
+          git cat-file -e "$C3_REPAIRED_SHA^{commit}"
+          git diff --exit-code "$PINNED_CORE_SHA" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/test_core_run3_fixes.py _archive/hl_stage2/test_core_run4_fixes.py _archive/hl_stage2/test_core_retry_send_integrity.py _archive/hl_stage2/test_core_trace_stamps.py _archive/hl_stage2/test_core_missed_entry_rule.py _archive/hl_stage2/test_core_master_gate.py
+          printf 'PINNED_CORE=%s\nC2_TESTS=%s\nC3_TESTS=%s\nTRACKED_HEAD=%s\n' "$PINNED_CORE_SHA" "$C2_REPAIRED_SHA" "$C3_REPAIRED_SHA" "$(git rev-parse HEAD)" | tee evidence/c3-mutate-1550/provenance.txt
+          git status --short > evidence/c3-mutate-1550/git-status-before.txt
+          python -m pip freeze > evidence/c3-mutate-1550/dependencies.txt
+      - name: Six clean baselines and twelve single-site scratch mutants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u .github/scripts/c3_mutate_1550.py | tee evidence/c3-mutate-1550/runner.log
+      - name: Verify tracked Core and tests remain untouched
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/test_core_run3_fixes.py _archive/hl_stage2/test_core_run4_fixes.py _archive/hl_stage2/test_core_retry_send_integrity.py _archive/hl_stage2/test_core_trace_stamps.py _archive/hl_stage2/test_core_missed_entry_rule.py _archive/hl_stage2/test_core_master_gate.py
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          echo TRACKED_CORE_AND_TESTS_UNMODIFIED=PASS | tee evidence/c3-mutate-1550/source-unchanged.txt
+          find evidence/c3-mutate-1550 -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > evidence/c3-mutate-1550/SHA256SUMS.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c3-mutate-1550-full-evidence
+          path: evidence/c3-mutate-1550
+          if-no-files-found: warn
+          retention-days: 30
