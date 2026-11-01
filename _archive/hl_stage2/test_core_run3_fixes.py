@@ -47,6 +47,10 @@ def main() -> None:
         os.environ.pop(k, None)
     import requests
     import HL_Live_Copy_Service_Core as c
+    # The real OS singleton lock; never monkeypatch _sender_lease_owned.
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "run3-global.lock")
+    c.acquire_global_instance_lock(tmp)
+    check("FIXTURE_REAL_SENDER_LEASE", c._sender_lease_owned())
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -62,8 +66,8 @@ def main() -> None:
         c._FOLLOWER_MIDS.update(px={}, ms=0)
         c._LEADER_MIDS.update(px={}, ms=0)
 
-    def config(wallets=(A, B), **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
+    def config(wallets=(A, B), send=False, **gc):
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send, "global_controls": gc, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000} for w in wallets}})
 
     seq = [0]
@@ -207,6 +211,7 @@ def main() -> None:
     core.stop()
 
     # ---- S1: exchange calls overlap, the pacing slot does not ---------------------------------------------
+    config(send=True)
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "50"
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     began = []
@@ -218,7 +223,14 @@ def main() -> None:
             began.append(time.time())
             time.sleep(0.4)
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"filled": {"totalSz": "1", "avgPx": "1", "oid": 1}}]}}}
-    ths = [threading.Thread(target=gw._place_order, args=(SlowExchange(), "BTC", True, 1.0, 100.0, "Ioc", False)) for _ in range(4)]
+    pace_ledger = c.ManualLedger(path=tmp / "pace.json")
+    ths = []
+    for _ in range(4):
+        pace_intent = c.IntentBuilder(c.ConfigManager(), pace_ledger).build(fill("BUY"))
+        ths.append(threading.Thread(
+            target=gw._place_order,
+            args=(SlowExchange(), "BTC", True, 1.0, 100.0, "Ioc", False),
+            kwargs={"intent": pace_intent, "path": "pacing_fixture"}))
     t0 = time.time()
     for t in ths:
         t.start()
@@ -226,8 +238,8 @@ def main() -> None:
         t.join()
     took = time.time() - t0
     gaps = [b - a for a, b in zip(sorted(began), sorted(began)[1:])]
-    check("S1_FOUR_ORDERS_IN_FLIGHT_TOGETHER", took < 1.0, f"{took:.2f}s")
-    check("S1_STARTS_STILL_PACED", all(g >= 0.045 for g in gaps), str(gaps))
+    check("S1_FOUR_ORDERS_IN_FLIGHT_TOGETHER", len(began) == 4 and took < 1.0, f"wire_calls={len(began)} took={took:.2f}s")
+    check("S1_STARTS_STILL_PACED", len(began) == 4 and all(g >= 0.045 for g in gaps), str(gaps))
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
 
     # ---- harness: fake exchange through _send_real ---------------------------------------------------------
@@ -237,7 +249,7 @@ def main() -> None:
 
         def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
             return {"status": "ok"}
-        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
             if self.replies:
                 return self.replies.pop(0)
@@ -257,6 +269,12 @@ def main() -> None:
         g._validate_final_wire_order = lambda *a, **k: (True, {})
         g._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         g._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        g._close_proof_account_ok = lambda: True
+        g._follower_order_account_for_proof = lambda: FOLLOWER
+        # Finite, source-shaped fake exchange net. Keep true RO/close-plan code.
+        g._fresh_exchange_net = lambda coin: c.fnum(
+            (c.load_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {}) or {})
+            .get("positions_by_coin", {}).get(coin, {}).get("signed_size"), 0.0)
         return g
 
     def send_real(g, intent):
@@ -270,7 +288,7 @@ def main() -> None:
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
 
     # ---- S2: stale entries ------------------------------------------------------------------------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)
     set_mid(100.1)   # 10 bps worse than the leader: inside tolerance
     led = c.ManualLedger(path=tmp / "s2.json")
     fresh = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY"))
@@ -290,7 +308,7 @@ def main() -> None:
     check("S2_BEYOND_TOLERANCE_RESTS_AT_LEADER_PRICE", fake.calls and fake.calls[0]["tif"] == "Gtc"
           and fake.calls[0]["px"] == 100.0 and status == "ORDER_RESTING", f"{status} {fake.calls}")
     check("S2_NO_STALE_CUTOFF_SETTING", not hasattr(c.ConfigManager, "stale_entry_sec"))
-    config()
+    config(send=True)
     set_mid(100.0)
 
     # ---- N: leaders net like the exchange ---------------------------------------------------------------------
@@ -331,6 +349,12 @@ def main() -> None:
     g = gateway(FakeExchange(), led)
     check("N5_PARTIAL_CLOSE_INSIDE_THE_NET_REDUCE_ONLY", g._reduce_only_on_wire(exit_intent(led, A, "SELL", 1.0), 1.0) is True)
     check("N5_PARTIAL_CLOSE_PAST_THE_NET_NOT_REDUCE_ONLY", g._reduce_only_on_wire(exit_intent(led, A, "SELL", 2.0), 2.0) is False)
+    # Negative on SAME fixture: unreadable physical net never permits RO.
+    net_reader = g._fresh_exchange_net
+    g._fresh_exchange_net = lambda coin: None
+    check("N5_UNREADABLE_EXCHANGE_NET_NEVER_FORCES_REDUCE_ONLY",
+          g._reduce_only_on_wire(exit_intent(led, A, "SELL", 1.0), 1.0) is False)
+    g._fresh_exchange_net = net_reader
     led = ledger(a=1.0, b=-1.0)
     snapshot(0.0)
     g = gateway(FakeExchange(), led)
@@ -415,7 +439,9 @@ def main() -> None:
     c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = "mainnet", False
     fake = FakeExchange()
     try:
-        gateway(fake)._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False)
+        full_intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "g1.json")).build(fill("BUY"))
+        gateway(fake)._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+                                   intent=full_intent, path="unconfirmed_mainnet")
         refused = False
     except RuntimeError as exc:
         refused = "MAINNET_FOLLOWER_NOT_CONFIRMED" in str(exc)
