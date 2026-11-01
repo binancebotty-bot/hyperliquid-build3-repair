@@ -304,15 +304,18 @@ def main() -> None:
         last = revisions[-1]
         index = [r for r in own if str(r.get("exchange_order_id") or "") == str(oid)
                  and r.get("status") == "ORDER_RESTING"]
-        ok = (p["cloid"] == wire["cloid"]
-              and last.get("cloid") == p["cloid"]
+        def raw_cloid(v):
+            return str(v.to_raw() if hasattr(v, "to_raw") else v).lower()
+        ok = (raw_cloid(p["cloid"]) == raw_cloid(wire.get("cloid"))
+              and raw_cloid(last.get("cloid")) == raw_cloid(p["cloid"])
               and last.get("status") in {"ORDER_RESTING", "FILLED_AWAITING_COPY_POLL"}
               and str(last.get("exchange_order_id") or "") == str(oid)
               and bool(index))
         return ok, {"cloid": p["cloid"], "attempt_id": p["attempt_id"],
                     "folded_status": last.get("status"),
                     "folded_oid": last.get("exchange_order_id"),
-                    "matcher_rows": len(index)}
+                    "matcher_rows": len(index),
+                    "wire_cloid": str(wire.get("cloid"))}
 
     rows = c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
     resting = c.load_json(c.STANDING_CLOSES_FILE, {}).get(exit_it.sleeve_id, {})
@@ -448,6 +451,7 @@ def main() -> None:
               "no GTC fill/dual-flat proof; must remain owed")
     # Restore the original A/B test configuration without altering engine.
     config(send=True, marketable_bps=20)
+    snapshot(2.0)  # P1's independently proven flat net must not leak into P2.
     fake = FakeExchange()
     led = ledger("p2", a_btc=2.0)
     g = gateway(fake, led)
