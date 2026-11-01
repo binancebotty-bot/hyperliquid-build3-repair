@@ -39,6 +39,10 @@ def main() -> None:
                        "HL_LIVE_AMBIGUOUS_SEND_RECHECK_INTERVAL_SEC": "0.01"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: real isolated sender lease missing"
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -79,12 +83,14 @@ def main() -> None:
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        # Inject a fresh venue truth snapshot; for exits it must match owned ledger net.
+        gw._fresh_exchange_net = lambda coin: ledger.coin_net(coin) if ledger is not None else 0.0
         gateways.append(gw)
         if on_gateway:
             on_gateway(gw, intent)
         return gw
 
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True, "global_controls": {"marketable_bps": 20},
                                              "wallets": {LEADER: {"enabled": True, "mode": "ON",
                                                                   "copy_mode": "fixed", "fixed_notional": 1000}}})
     seq = [0]
