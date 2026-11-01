@@ -208,8 +208,52 @@ def restart_case(landed):
               and bool(alerts) and not ex.calls,
               "owed=1 open_ledger=%r external=%r actionable=%r"%
               (ledger_before.coin_net(COIN),net[0],bool(alerts)))
-    # Operator intervention is explicitly still needed to resolve the PENDING
-    # row's id; this unit does not claim automatic crash recovery.
+        # The ORIGINAL cloid has been independently proven CANCELLED. Only NOW
+        # can a convergence unit re-read owned+venue truth and re-enter the real
+        # GTC recovery sender. This deliberately invokes the production method
+        # after proof; automatic scheduling of the callback by a live Core is
+        # NOT verified here and cannot be inferred from this bounded witness.
+        ready=t.approx(gw._fresh_exchange_net(COIN),1) and t.approx(ledger_before.coin_net(COIN),1)
+        ex.script=[t.resting(7777)]
+        if ready:
+            gw._queue_exit_recovery_if_needed(
+                ex,COIN,original_intent,original_intent.fill.price,1.0,{},
+                "post-restart cancelled-cloid verified; current truth",sz_dec=3)
+        calls=list(ex.calls)
+        recovery_rows=[x for x in read(c.RECONCILIATION_CSV)
+                       if x.get("status")=="EXIT_RECOVERY_QUEUED"
+                       and x.get("leader_fill_id")==fid]
+        open_orders=read(c.SEND_ATTEMPTS_CSV)
+        check("R_NOT_LANDED_SAFE_POSTPROOF_RECOVERY_WIRE",
+              ready and len(calls)==1
+              and calls[0]["side"]=="SELL"
+              and t.approx(calls[0]["size"],1.0)
+              and t.approx(calls[0]["px"],original_intent.fill.price)
+              and calls[0]["reduce_only"]
+              and calls[0]["tif"].get("limit",{}).get("tif")=="Gtc"
+              and any(x.get("exchange_order_id")=="7777" for x in recovery_rows)
+              and any(x.get("status")=="ORDER_RESTING"
+                      and x.get("exchange_order_id")=="7777" for x in open_orders),
+              "ready=%r wire=%r recovery=%r"%
+              (ready,calls,recovery_rows))
+        if calls:
+            net[0]-=1.0  # independently observed venue fill, not SDK resend
+            matcher=c.CopyFillMatcher(ledger_before,c.AuditLogWriter())
+            match=matcher.match_and_apply({
+                "coin":COIN,"side":"SELL","sz":1.0,"px":100.0,
+                "oid":"7777","hash":"restartnotlandedfilled","tid":"7777",
+                "time":c.utc_now_ms()},
+                {original_intent.intent_id:original_intent})
+        else:match=False
+        check("R_NOT_LANDED_RECOVERY_OID_FILL_CONVERGES",
+              match and t.approx(net[0],0) and t.approx(ledger_before.coin_net(COIN),0)
+              and len(calls)==1
+              and any(x.get("exchange_order_id")=="7777"
+                      and x.get("ledger_action")=="CLOSED" for x in read(c.LIVE_FILLS_CSV)),
+              "matched=%r venue=%r ledger=%r wires=%r"%
+              (match,net[0],ledger_before.coin_net(COIN),calls))
+    # Restarts are bounded operator/agent proof-and-recovery exercises. This
+    # file does NOT claim automatic startup scheduling, real exchange or signer.
 
 def stale_case(label,owned_b,actual,expected_send,expected_ro=None):
     root,led,net,ex,gw,it,fid=t.make("DRIFT_"+label,1.0,owned_b,actual,qty=1)
