@@ -290,12 +290,22 @@ def main() -> None:
     journal = c.AUDIT_WRITE_FAILURES_FILE
     old_journal = journal.read_text(encoding="utf-8") if journal.exists() else ""
     old_count = c.audit_write_failure_count()
-    with Inject(c, {gap_file.name}) as gap_injection:
-        # Fail ONLY the live append. The spill-journal is a distinct durable
-        # file and must stay writable or this tests a whole-disk catastrophe
-        # rather than the specific append_csv notification site.
-        gap_injection._matches = lambda name: name == gap_file.name
-        gap_append = c.append_csv(gap_file, gap_fields, {"event": "FAULT", "payload": "injected"})
+    direct_fault_notes = []
+    original_note_failure = c.note_audit_write_failure
+    def note_fault_site(path, exc):
+        if Path(path) == gap_file:
+            direct_fault_notes.append((type(exc).__name__, getattr(exc, "errno", None)))
+        return original_note_failure(path, exc)
+    c.note_audit_write_failure = note_fault_site
+    try:
+        with Inject(c, {gap_file.name}) as gap_injection:
+            # Fail ONLY the live append. A separate successful spill still
+            # emits a STRING fallback note, but cannot substitute for this
+            # site-specific OSError(ENOSPC) notification.
+            gap_injection._matches = lambda name: name == gap_file.name
+            gap_append = c.append_csv(gap_file, gap_fields, {"event": "FAULT", "payload": "injected"})
+    finally:
+        c.note_audit_write_failure = original_note_failure
     new_journal = journal.read_text(encoding="utf-8") if journal.exists() else ""
     gap_health = c.build_live_integrity_status().get("counts") or {}
     check("GAP_AUDIT_APPEND_FAILURE_SITE_INVOKED",
@@ -303,13 +313,14 @@ def main() -> None:
           "injection_hits=%r live_append=%r" % (gap_injection.hits, gap_append))
     check("GAP_AUDIT_APPEND_FAILURE_DURABLE_HEALTH_ATTRIBUTION",
           gap_injection.hits > 0
+          and ("OSError", errno.ENOSPC) in direct_fault_notes
           and len(new_journal) > len(old_journal)
-          and ("\t" + gap_file.name + "\t") in new_journal[len(old_journal):]
+          and ("\t" + gap_file.name + "\tOSError(28,") in new_journal[len(old_journal):]
           and c.audit_write_failure_count() > old_count
           and int(gap_health.get("audit_write_failures") or 0) > old_count,
-          "hits=%d journal_delta=%r counts_before=%d after=%r" %
-          (gap_injection.hits, new_journal[len(old_journal):], old_count,
-           gap_health.get("audit_write_failures")))
+          "hits=%d notices=%r journal_delta=%r counts_before=%d after=%r" %
+          (gap_injection.hits, direct_fault_notes, new_journal[len(old_journal):],
+           old_count, gap_health.get("audit_write_failures")))
     it_a2 = intent(fid="a2")
     core.intents_by_id[it_a2.intent_id] = it_a2
     before_rows = len(intent_rows())
