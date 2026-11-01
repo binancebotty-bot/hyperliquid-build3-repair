@@ -5807,15 +5807,18 @@ class SenderGateway:
         if self.sender_key_invalid:
             return "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
         lifecycle = classify_send_lifecycle(intent)
-        # Safe read for exits: unreadable wallet mode fails closed for entries only
-        # (WMODE ruling ecebbb4). A close must never be blocked by an unreadable mode;
-        # re-raise for entry/add so the generic pre-wire handler keeps entries fail-closed.
-        _enabled = self.cfg.wallet_enabled(wallet)
+        # CC1-B-WALLETREAD-RULING-0850: wallet_enabled and wallet_mode are the SAME kind of read.
+        # Unreadable wallet state blocks ENTRIES, never closes. EXITS: both exception-safe
+        # (treated as enabled, exit SENDS, named RED/log line). ENTRIES: both re-raise.
         try:
+            _enabled = self.cfg.wallet_enabled(wallet)
             _wmode_raw = self.cfg.wallet_mode(wallet)
         except Exception:
             if lifecycle in {"ENTRY", "ADD"} or entry_leg:
                 raise
+            log_error("master_gate_wallet_read_unreadable",
+                      f"intent_id={getattr(intent,'intent_id',None)} wallet={wallet}: treating as enabled")
+            _enabled = True
             _wmode_raw = ""
         if _enabled is False:
             return "WALLET_DISABLED_AT_SEND"
@@ -7211,14 +7214,8 @@ class SenderGateway:
         if audit_reason:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_AUDIT_PROOF", audit_reason)
         exchange, exchange_reason = self._persisted_exchange_positions()
-        # EXITS ONLY: a missing/unreadable persisted exchange snapshot is NOT
-        # disqualifying. The close still goes out at the fill-proven owned size
-        # (CC1-B-GATE-OWNERSHIP-RULING). ENTRIES stay fail-closed (WMODE-style).
-        _is_exit = (lifecycle in {"REDUCE", "EXIT"} or bool(getattr(intent, "reduce_only_intended", False)))
-        if exchange_reason and not _is_exit:
+        if exchange_reason:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF", exchange_reason)
-        if exchange_reason and _is_exit:
-            exchange = {}  # unreadable -> no exchange net; guards below treat as 0
         exchange_net = fnum(exchange.get(coin_key), 0.0)
         manual_net = self.ledger.coin_net(coin_key) if self.ledger else 0.0
         sleeves = self._manual_sleeves_for_coin(coin_key)
@@ -8805,6 +8802,8 @@ class SenderGateway:
             enabled = self.cfg.wallet_enabled(wallet)
             mode = self.cfg.wallet_mode(wallet)
         except Exception as exc:
+            if lifecycle in {"ENTRY", "ADD"}:
+                raise
             log_error("send_time_wallet_mode_unreadable", f"intent_id={intent.intent_id} wallet={wallet}: {exc!r}; using the intent-time decision")
             return None
         if not enabled:
