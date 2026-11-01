@@ -1,0 +1,74 @@
+name: C2 MUTATE OFF 1550 shared gate offline
+on:
+  push:
+    branches:
+      - gpt/tests-b-mutate-off-1550-20261101
+  pull_request:
+    branches:
+      - hermes/integration
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shared-off-and-case-mutations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    env:
+      PINNED_SOURCE: 0a99d215c99b794717ce5b34f46cc299dae09106
+      REPAIRED_TESTS: b4e63820d14fd99ac2e147fe90b98767054eb362
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+      HL_USER_WALLET: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/tests-b-mutate-off-1550-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install sandbox-only dependencies before socket block
+        run: |
+          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
+      - name: Verify exact historical Core and four repaired test blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/c2-mutate-off-1550
+          test "$(git rev-parse "$PINNED_SOURCE:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          git show "$PINNED_SOURCE:_archive/hl_stage2/HL_Live_Copy_Service_Core.py" | git hash-object --stdin | grep -Fx e470862a291bbf241e22d8011b757ed9c2b53d68
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = c48fbc52e158baef17fb6d620b335e632652c73a
+          for file in test_t1a_cloid_pending_row.py test_readiness1_ambiguous_timeout_no_blind_resend.py test_core_rw13_recovery_reconcile.py test_core_off_path_skip.py; do
+            f="_archive/hl_stage2/$file"
+            expected=$(git rev-parse "$REPAIRED_TESTS:$f")
+            actual=$(git hash-object "$f")
+            printf '%s %s %s\n' "$f" "$expected" "$actual" | tee -a evidence/c2-mutate-off-1550/blobs.txt
+            test "$expected" = "$actual"
+          done
+          python -m pip freeze > evidence/c2-mutate-off-1550/dependencies.txt
+      - name: Execute original four baselines, shared OFF and eight additional disposable mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u .github/scripts/c2_mutate_off_1550.py | tee evidence/c2-mutate-off-1550/runner.log
+      - name: Prove source and test files tracked unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          git diff --exit-code -- _archive/hl_stage2/test_t1a_cloid_pending_row.py _archive/hl_stage2/test_readiness1_ambiguous_timeout_no_blind_resend.py _archive/hl_stage2/test_core_rw13_recovery_reconcile.py _archive/hl_stage2/test_core_off_path_skip.py
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = c48fbc52e158baef17fb6d620b335e632652c73a
+          echo TRACKED_CORE_AND_TESTS_UNCHANGED=PASS | tee evidence/c2-mutate-off-1550/unchanged.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c2-mutate-off-1550-logs
+          path: evidence/c2-mutate-off-1550
+          if-no-files-found: error
+          retention-days: 30
