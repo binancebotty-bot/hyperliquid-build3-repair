@@ -174,7 +174,11 @@ def main() -> None:
     def standing(label, exc):
         ex = Ex([exc])
         g = gw(ex)
-        g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+        sleeve = g.ledger.sleeve(A, "BTC")
+        sleeve.update({"direction": "LONG", "signed_size": 2.0, "avg_entry_px": 100.0,
+                       "position_id": "fixture-long", "opened_by_intent_id": "fixture-open"})
+        g.ledger._recompute_net(g.ledger.data)
+        g.ledger.save(touched_sleeves=[(A, "BTC")])
         it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
             c.LeaderFill("f_" + label, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
         it.intent_id = label
