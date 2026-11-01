@@ -98,8 +98,13 @@ gate_line = next(n.lineno for n in ast.walk(place_order)
                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
                  and n.func.attr == '_master_gate_reason')
 stmts = [n for n in place_order.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
-first_stmt_line = stmts[0].lineno if stmts else lo
-check('THE_GATE_IS_THE_FIRST_THING_PLACE_ORDER_DOES', gate_line == first_stmt_line, (gate_line, first_stmt_line))
+first_stmt = (stmts[0].body[0] if stmts and isinstance(stmts[0], ast.Try) and stmts[0].body else stmts[0] if stmts else None)
+first_stmt_line = first_stmt.lineno if first_stmt is not None else lo
+check('THE_GATE_IS_THE_FIRST_THING_PLACE_ORDER_DOES',
+      isinstance(first_stmt, ast.Assign) and gate_line == first_stmt_line
+      and any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+              and n.func.attr == '_master_gate_reason' for n in ast.walk(first_stmt)),
+      (gate_line, first_stmt_line))
 
 
 class RecExchange:
