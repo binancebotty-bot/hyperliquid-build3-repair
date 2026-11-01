@@ -35,7 +35,7 @@ jobs:
           python-version: "3.11"
       - name: Install isolated Python dependencies (before network lock)
         run: |
-          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python psutil
+          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
           python -m pip freeze > /tmp/c2-redb-dependencies.txt
       - name: Pin Core and four exact tests to requested immutable source
         shell: bash
