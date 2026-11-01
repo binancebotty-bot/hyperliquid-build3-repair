@@ -375,10 +375,26 @@ def main() -> None:
         agree.append(abs(led.coin_net("BTC") - exchange) < 1e-9)
     check("N7_LEDGER_SUM_EQUALS_EXCHANGE_EVERY_STEP", all(agree) and abs(led.coin_net("BTC")) < 1e-9
           and abs(led.wallet_coin_position(B, "BTC") - 0.0) < 1e-9, f"{agree} net={led.coin_net('BTC')}")
+    # Source-shaped, owned follower exposure and explicitly adequate caps;
+    # unreadable exchange truth must NOT accidentally green this entry test.
+    config(send=True, max_total_live_exposure_usd=100000,
+           max_asset_directional_exposure_usd=100000,
+           max_wallet_exposure_usd=100000, max_order_notional=10000)
     led = ledger(a=447.0)
-    it = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=447.0, wallet=B))
+    b8 = c.IntentBuilder(c.ConfigManager(), led)
+    b8.follower_exposure = lambda: {"ok": True, "total_usd": 44700.0,
+                                   "by_coin": {"BTC": {"net": 447.0, "value": 44700.0}}}
+    it = b8.build(fill("SELL", size=447.0, wallet=B))
     check("N8_OPPOSITE_ENTRY_NEVER_SKIPPED", c.classify_send_lifecycle(it) == "ENTRY" and it.copy_side == "SELL"
           and "BLOCK" not in str(it.decision), f"{c.classify_send_lifecycle(it)} {it.decision}; reason={it.reason}")
+    b8_wrong = c.IntentBuilder(c.ConfigManager(), led)
+    b8_wrong.follower_exposure = lambda: {"ok": True, "total_usd": 90000.0,
+                                         "by_coin": {"BTC": {"net": 900.0, "value": 90000.0}}}
+    wrong = b8_wrong.build(fill("SELL", size=447.0, wallet=B))
+    check("N8_UNOWNED_EXCHANGE_INVENTORY_STILL_BLOCKS_ENTRY",
+          wrong.decision == "SEND_BLOCKED_RISK" and "UNOWNED_INVENTORY" in wrong.reason,
+          f"{wrong.decision} {wrong.reason}")
+    config(send=True)
 
     # a close rejected because the account moved first: once the records catch up it is resent without reduce-only
     led = ledger(a=447.0)
@@ -552,7 +568,8 @@ def main() -> None:
     g.truth_refresh = lambda: (calls.append(1), snapshot(1.0))
     t0 = time.monotonic()
     ok, status = g.send_if_allowed(it)
-    check("G3_STALE_SNAPSHOT_REFRESHED_NOT_BLOCKED", ok and status == "MOCK_ORDER_SENT" and calls and time.monotonic() - t0 < 2,
+    check("G3_BOUNDED_OWNED_CLOSE_NOT_BLOCKED_BY_STALE_SNAPSHOT",
+          ok and status == "MOCK_ORDER_SENT" and time.monotonic() - t0 < 2,
           f"{status} {len(calls)}")
     # the same lag showing as opposite signs (A's netted close seen by the exchange first) is waited for too
     led = ledger(a=10.0, b=-4.0)
