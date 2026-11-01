@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: gpt/c3-redcfix-1218-20261101
           fetch-depth: 0
           persist-credentials: false
       - name: Pinned source and production files unchanged
