@@ -5591,8 +5591,6 @@ class SenderGateway:
         self._ioc_no_match_until_ms: Dict[str, int] = {}
         self._margin_reject_until_ms: Dict[str, int] = {}
         self._liq_parity_until_ms: Dict[str, int] = {}
-        # shortcut: windows reset on restart; persist only if restart-spanning controls are required.
-        self._last_exit_attempt_ms: Dict[str, int] = {}
         # Pending-exit guard: prevents a burst of leader close fills from each
         # firing a full-sleeve close before the first close is reflected by
         # copy-poll/reconciliation. Keyed by sleeve_id -> {ts_ms, intended_size,
@@ -8904,9 +8902,6 @@ class SenderGateway:
             if reserved_exit and not (True if timing is None else timing.get("exchange_order_invoked", False)):
                 self._clear_pending_exit(intent)
         if result.get("exchange_called"):
-            if reserved_exit and (True if timing is None else timing.get("exchange_order_invoked", False)):
-                with self._pending_exit_lock:
-                    self._last_exit_attempt_ms[coin_key] = utc_now_ms()
             category = str(result.get("reject_category") or "")
             if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
                 until = utc_now_ms() + 600000
