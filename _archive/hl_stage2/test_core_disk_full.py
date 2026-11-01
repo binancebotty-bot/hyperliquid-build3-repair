@@ -257,7 +257,8 @@ def main() -> None:
           and positive_latest[0].get("status") == "pending_send"
           and all(key[0] and key[1] == pos_cloid for key in positive_groups)
           and positive_latest[-1].get("status") == "ORDER_FILLED"
-          and positive_latest[-1].get("terminal_state") == "ORDER_FILLED"
+          and positive_latest[-1].get("terminal_state") == "FILLED_AWAITING_COPY_POLL"
+          and positive_latest[-1].get("operator_action") == "WAIT_FOR_COPY_POLL"
           and positive_latest[-1].get("exchange_order_id") == "900001",
           "physical_calls=%r rows=%r" % (positive_exchange.calls, positive_rows))
 
@@ -290,6 +291,10 @@ def main() -> None:
     old_journal = journal.read_text(encoding="utf-8") if journal.exists() else ""
     old_count = c.audit_write_failure_count()
     with Inject(c, {gap_file.name}) as gap_injection:
+        # Fail ONLY the live append. The spill-journal is a distinct durable
+        # file and must stay writable or this tests a whole-disk catastrophe
+        # rather than the specific append_csv notification site.
+        gap_injection._matches = lambda name: name == gap_file.name
         gap_append = c.append_csv(gap_file, gap_fields, {"event": "FAULT", "payload": "injected"})
     new_journal = journal.read_text(encoding="utf-8") if journal.exists() else ""
     gap_health = c.build_live_integrity_status().get("counts") or {}
