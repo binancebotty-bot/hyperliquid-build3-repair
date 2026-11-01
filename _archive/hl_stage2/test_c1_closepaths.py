@@ -38,10 +38,37 @@ def latest_attempt_rows():
             latest[row["attempt_id"]]=row
     return latest
 
-def attempt_is_resolved(row):
-    return bool(row) and row.get("status") not in (
-        "pending_send","PENDING_SEND","ORDER_UNKNOWN","") and row.get("terminal_state") not in (
-        "PENDING_SEND","SEND_OUTCOME_UNKNOWN_HOLD","SEND_OUTCOME_UNKNOWN_MANUAL_ALERT","")
+def proven_terminal_attempt(aid,row,original_id,original_cloid,intent_id,live_rows,
+                            landed_oid="",recovery_oid=""):
+    """Positive, fixture-bounded venue proof, NOT status-is-not-pending.
+    One of: proven original CLOID cancelled; original CLOID filled and
+    OID matched; recovery OID fully matched. Every other state is UNRESOLVED.
+    """
+    if not row or row.get("attempt_id")!=aid or row.get("intent_id")!=intent_id:
+        return False
+    def matched(oid,quantity):
+        return bool(oid) and t.approx(sum(
+            float(f.get("fill_size") or 0) for f in live_rows
+            if f.get("exchange_order_id")==str(oid)
+            and f.get("intent_id")==intent_id
+            and f.get("ledger_action") in {"UPDATED","CLOSED"}),quantity)
+    if aid==original_id:
+        if row.get("cloid")!=original_cloid:
+            return False
+        if landed_oid:
+            return (row.get("status")=="ORDER_FILLED"
+                    and row.get("terminal_state")=="FILLED_AMBIGUOUS_SEND"
+                    and row.get("exchange_order_id")==str(landed_oid)
+                    and matched(landed_oid,float(row.get("copy_size") or 0)))
+        return (row.get("status")=="ORDER_CANCELLED"
+                and row.get("terminal_state")=="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY"
+                and not row.get("exchange_order_id")
+                and row.get("operator_action")=="WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE")
+    if recovery_oid and row.get("exchange_order_id")==str(recovery_oid):
+        return (row.get("status")=="ORDER_FILLED"
+                and row.get("terminal_state")=="MATCHED_BY_EXCHANGE_ORDER_ID"
+                and matched(recovery_oid,float(row.get("copy_size") or 0)))
+    return False
 
 def bind_paths(root):
     root=Path(root)
@@ -203,7 +230,7 @@ def restart_case(landed):
             gw._append_real_attempt(original_intent,outcome[1],outcome[2])
         last=latest_attempt_rows().get(pend[0]["attempt_id"])
         check("R_LANDED_ORIGINAL_ATTEMPT_TERMINALISED_SAME_ID",
-              attempt_is_resolved(last)
+              last is not None
               and last.get("status")=="ORDER_FILLED"
               and last.get("terminal_state")=="FILLED_AMBIGUOUS_SEND"
               and last.get("exchange_order_id")==str(venue["oid"])
@@ -226,6 +253,16 @@ def restart_case(landed):
               not matcher.match_and_apply(copy,{original_intent.intent_id:original_intent})
               and len(read(c.LIVE_FILLS_CSV))==len(final_rows) and not ex.calls,
               "duplicate live_rows=%r"%(read(c.LIVE_FILLS_CSV),))
+        check("R_LANDED_POSITIVE_TERMINAL_PLUS_MATCHED_FILL",
+              proven_terminal_attempt(
+                  pend[0]["attempt_id"],latest_attempt_rows().get(pend[0]["attempt_id"]),
+                  pend[0]["attempt_id"],cloid,original_intent.intent_id,final_rows,
+                  landed_oid=str(venue["oid"]))
+              and len(latest_attempt_rows())==1,
+              "terminal=%r oid=%r matched_fills=%r"%
+              (latest_attempt_rows()[pend[0]["attempt_id"]].get("terminal_state"),
+               venue["oid"],[(x.get("exchange_order_id"),x.get("fill_size"))
+                              for x in final_rows]))
     else:
         # Confirmed cancellation of an EXIT is a distinct terminal event:
         # the actual resolver must NOT blindly re-send. The close remains
@@ -258,7 +295,9 @@ def restart_case(landed):
             },base_row=src,durable=True)
         final_original=latest_attempt_rows().get(pend[0]["attempt_id"])
         check("R_NOT_LANDED_ORIGINAL_PENDING_TERMINALISED_SAME_ID",
-              closed and attempt_is_resolved(final_original)
+              closed and proven_terminal_attempt(
+                  pend[0]["attempt_id"],final_original,pend[0]["attempt_id"],
+                  cloid,original_intent.intent_id,[])
               and final_original.get("status")=="ORDER_CANCELLED"
               and final_original.get("terminal_state")=="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY"
               and final_original.get("operator_action")=="WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE"
@@ -328,14 +367,43 @@ def restart_case(landed):
         original=latest.get(pend[0]["attempt_id"])
         gtcs=[(aid,row) for aid,row in latest.items()
               if row.get("exchange_order_id")=="7777"]
+        live=read(c.LIVE_FILLS_CSV)
+        # The SAME positive proof is used for actual latest journal and both
+        # executable mutant controls. Reconstructed success view excludes only
+        # the known BASELINE-RED GTC pending (no OID); this calibrates the
+        # oracle, but DOES NOT make the real-journal assertion green.
+        known={aid:row for aid,row in latest.items()
+               if aid==pend[0]["attempt_id"] or
+                  row.get("exchange_order_id")=="7777"}
+        def all_proven(rows):
+            return (len(rows)>=2 and pend[0]["attempt_id"] in rows
+                    and any(row.get("exchange_order_id")=="7777"
+                            for row in rows.values())
+                    and all(proven_terminal_attempt(
+                        aid,row,pend[0]["attempt_id"],cloid,
+                        original_intent.intent_id,live,recovery_oid="7777")
+                        for aid,row in rows.items()))
+        calibrated=all_proven(known)
+        check("R_NOT_LANDED_POSITIVE_ORACLE_CALIBRATED",
+              calibrated and len(known)==2,
+              "expected_set=%r actual_full_latest=%r"%
+              ([(aid,row.get("status")) for aid,row in known.items()],
+               [(aid,row.get("status")) for aid,row in latest.items()]))
+        for label,fake_status,fake_terminal in (
+            ("RESTING","ORDER_RESTING","ORDER_RESTING"),
+            ("UNKNOWN","EXCHANGE_OUTCOME_UNKNOWN","EXCHANGE_OUTCOME_UNKNOWN")):
+            forged_id="mutant_extra_"+label.lower()
+            forged=dict(next(row for aid,row in gtcs if row.get("status")=="ORDER_FILLED"))
+            forged.update(attempt_id=forged_id,status=fake_status,
+                          terminal_state=fake_terminal)
+            mutant=dict(known)
+            mutant[forged_id]=forged
+            check("R_NOT_LANDED_"+label+"_MUTANT_REJECTED",
+                  calibrated and not all_proven(mutant),
+                  "mutant_id=%s status=%s terminal=%s mutated_oracle=%r"%
+                  (forged_id,fake_status,fake_terminal,all_proven(mutant)))
         check("R_NOT_LANDED_BOTH_ATTEMPT_IDS_TERMINAL_AFTER_SWEEP",
-              attempt_is_resolved(original)
-              and original.get("status")=="ORDER_CANCELLED"
-              and bool(gtcs)
-              and any(row.get("status")=="ORDER_FILLED" and
-                      row.get("terminal_state")=="MATCHED_BY_EXCHANGE_ORDER_ID"
-                      for _,row in gtcs)
-              and all(attempt_is_resolved(row) for row in latest.values())
+              all_proven(latest)
               and all(aid!=pend[0]["attempt_id"] for aid,_ in gtcs),
               "sweep=%r original=%r gtc_latest=%r all_latest=%r"%
               (sweep,original and (original.get("status"),original.get("terminal_state")),
