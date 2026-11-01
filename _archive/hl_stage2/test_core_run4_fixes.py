@@ -272,8 +272,11 @@ def main() -> None:
           str(fake.calls))
     rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
     check("R1_RECOVERY_ORDER_WRITTEN_TO_SEND_ATTEMPTS_WITH_ITS_ORDER_ID",
-          len(rows) == 1 and rows[0]["status"] == "ORDER_RESTING" and rows[0]["exchange_order_id"] == "4244"
-          and rows[0]["intent_id"] == exit_it.intent_id and rows[0]["reduce_only_sent"] == "True",
+          len(rows) == 2 and rows[0]["status"] == "pending_send"
+          and rows[1]["status"] == "ORDER_RESTING"
+          and rows[0]["attempt_id"] == rows[1]["attempt_id"]
+          and rows[1]["exchange_order_id"] == "4244"
+          and all(r["intent_id"] == exit_it.intent_id and r["reduce_only_sent"] == "True" for r in rows),
           str([(r.get("order_type"), r.get("status"), r.get("exchange_order_id"),
                 r.get("reduce_only_sent"), r.get("intent_id")) for r in rows]))
     matcher = c.CopyFillMatcher(led, c.AuditLogWriter())
@@ -339,16 +342,20 @@ def main() -> None:
         return {"status": "order", "order": {"status": "canceled", "order": {
             "oid": payload["oid"], "origSz": str(status_of["orig"]), "sz": str(status_of["left"])}}}
     c.OPEN_ORDERS_FETCHER = order_status
+    # P1 separately pins the actual IOC partial-fill recovery behavior.
+    # P3 tests the independent standing-cancel path, so create a *real*
+    # standing GTC from a genuine IOC no-match, then simulate a GTC part fill.
     led = ledger("p3", a_btc=2.0)
     snapshot(2.0)
-    fake = CancelExchange([part], ok_cancel)
+    fake = CancelExchange([NO_MATCH], ok_cancel)
     g = gateway(fake, led)
     first = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
     send_real(g, first)
     standing = c.load_json(c.STANDING_CLOSES_FILE, {})
-    check("P3_STANDING_CLOSE_REMEMBERED_BY_SLEEVE", first.sleeve_id in standing and standing[first.sleeve_id]["size"] == 1.5,
+    check("P3_STANDING_CLOSE_REMEMBERED_BY_SLEEVE", first.sleeve_id in standing and standing[first.sleeve_id]["size"] == 2.0,
           str(standing))
-    led.sleeve(A, "BTC")["signed_size"] = 1.5   # the copy poll owned the 0.5 part fill
+    status_of.update(orig=2.0, left=1.5)  # GTC partially filled 0.5
+    led.sleeve(A, "BTC")["signed_size"] = 1.5   # copy poll owned the GTC's 0.5 fill
     led._recompute_net(led.data)
     snapshot(1.5)
     fake.calls.clear()
@@ -359,17 +366,17 @@ def main() -> None:
           and abs(fake.calls[0]["size"] - 1.5) < 1e-9 and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
     # cancelled after it part-filled 0.5, a fill the ledger has not seen yet: the next close is 0.5 smaller
     led = ledger("p3b", a_btc=1.5)
-    fake = CancelExchange([part], ok_cancel)
+    fake = CancelExchange([NO_MATCH], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long")))
-    status_of.update(orig=1.125, left=0.625)
+    status_of.update(orig=1.5, left=1.0)  # the real resting GTC filled 0.5
     fake.calls.clear()
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long")))
     check("P3_PART_FILLED_STANDING_CLOSE_NOT_CLOSED_TWICE", fake.calls and abs(fake.calls[0]["size"] - 1.0) < 1e-9,
           str(fake.calls))
     c.OPEN_ORDERS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("status unreadable"))
     led = ledger("p3c", a_btc=2.0)
-    fake = CancelExchange([part], ok_cancel)
+    fake = CancelExchange([NO_MATCH], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     fake.calls.clear()
@@ -383,7 +390,7 @@ def main() -> None:
     # the standing close filled before the next close: the ledger (brought up to date) decides what is left
     led = ledger("p4", a_btc=2.0)
     snapshot(2.0)
-    fake = CancelExchange([part], gone_cancel)
+    fake = CancelExchange([NO_MATCH], gone_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
@@ -398,7 +405,7 @@ def main() -> None:
           and status == "SEND_NOT_ATTEMPTED_STANDING_CLOSE_FILLED", f"{status} {fake.calls}")
     led = ledger("p5", a_btc=2.0)
     snapshot(2.0)
-    fake = CancelExchange([part], RuntimeError("timeout"))
+    fake = CancelExchange([NO_MATCH], RuntimeError("timeout"))
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     fake.calls.clear()
