@@ -1,0 +1,117 @@
+name: Coder One GAPFIX-1525 three disposable mutants
+# All mutation edits are confined to temporary test process directories.
+on:
+  push:
+    branches: [gpt/coder1-gapfix-1525-integration-20261101]
+  pull_request:
+    branches: [hermes/integration]
+permissions:
+  contents: read
+jobs:
+  three-single-site-mutations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SOURCE_CORE_SHA: 0a99d215c99b794717ce5b34f46cc299dae09106
+      CODER_TEST_BASE: 0a99d215c99b794717ce5b34f46cc299dae09106
+      C2_RUNNER_SHA: 25dae1866bac8fe4f2390c52593bde47cc5eab28
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/coder1-gapfix-1525-integration-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies before all outbound sockets are blocked
+        run: |
+          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
+      - name: Verify pinned historical Core, repaired test ancestry and unchanged engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/c1-gapfix-1525 .github/scripts
+          git diff --exit-code "$CODER_TEST_BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
+          test "$(git rev-parse "$SOURCE_CORE_SHA:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
+          test "$(git hash-object _archive/hl_stage2/test_core_disk_full.py)" = "0f0cf30403783bc43b3f1e15462018ef0f848bd4"
+          test "$(git hash-object _archive/hl_stage2/test_core_liq_parity.py)" = "6071743d2fb824c35eb3cfc665e3408430a4807c"
+          git show "$C2_RUNNER_SHA:.github/scripts/c2_mutate_1400.py" > .github/scripts/c1_gapfix_1525_runtime.py
+          python -m pip freeze > evidence/c1-gapfix-1525/dependencies.txt
+          printf 'Historical Core=%s\nHistorical Core blob=e470862a291bbf241e22d8011b757ed9c2b53d68\nTracked Core blob=e470862a291bbf241e22d8011b757ed9c2b53d68\nTest head=%s\n' "$SOURCE_CORE_SHA" "$(git rev-parse HEAD)" > evidence/c1-gapfix-1525/provenance.txt
+      - name: Narrow C2 proven runner to three missed mutants and named GAP assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/scripts/c1_gapfix_1525_runtime.py')
+          s=p.read_text(encoding='utf-8')
+          start=s.index('FILES = [')
+          end=s.index('# Anchor/replacement',start)
+          s=s[:start]+'''FILES = ["test_core_disk_full.py", "test_core_liq_parity.py"]
+          '''+s[end:]
+          start=s.index('MUTANTS = {')
+          end=s.index('RESULT_RE = re.compile(',start)
+          s=s[:start]+'''MUTANTS = {
+              "test_core_disk_full.py": [
+                  ("omit_final_attempt_append",
+                   "self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state",
+                   "pass  # MUTANT: no final send-attempt revision",
+                   "GAP_FINAL_ATTEMPT_LATEST_ROW_MATCHES_PHYSICAL_OID"),
+                  ("mute_append_write_failure",
+                   "            note_audit_write_failure(path, exc)\\n            if not spill_on_failure:",
+                   "            pass  # MUTANT: suppress audit write failure record\\n            if not spill_on_failure:",
+                   "GAP_AUDIT_APPEND_FAILURE_DURABLE_HEALTH_ATTRIBUTION"),
+              ],
+              "test_core_liq_parity.py": [
+                  ("allow_unknown_liq_projection",
+                   "        liq, how = self._follower_projected_liq_px(intent, mark)\\n        if liq is None:",
+                   "        liq, how = self._follower_projected_liq_px(intent, mark)\\n        if liq is None:\\n            return None  # MUTANT: allow unproved projection",
+                   "GAP_UNREADABLE_FOLLOWER_PROJECTION_FAILS_CLOSED"),
+              ],
+          }
+          assert len(MUTANTS["test_core_disk_full.py"]) == 2 and len(MUTANTS["test_core_liq_parity.py"]) == 1
+          '''+s[end:]
+          s=s.replace('evidence" / "c2-mutate-1400"', 'evidence" / "c1-gapfix-1525"')
+          s=s.replace('"coder_tests":"ad384e4922c5e9707abeb072d6ec502bc7691c9f"', '"coder_tests":"gpt/coder1-gapfix-1525-integration-20261101"')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Execute pristine baselines then three independent disposable Core mutants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u .github/scripts/c1_gapfix_1525_runtime.py | tee evidence/c1-gapfix-1525/runner.log
+          python - <<'PY'
+          import json, pathlib
+          r=json.loads(pathlib.Path('evidence/c1-gapfix-1525/report.json').read_text())
+          assert len(r["baseline"])==2 and len(r["mutations"])==3, "missing or duplicate tests"
+          for b in r["baseline"]:
+              assert b["returncode"]==0 and b["totals"] and b["totals"][1]=="0", b
+          for m in r["mutations"]:
+              assert m["classification"]=="CAUGHT_EXPECTED_ASSERTION" and m["expected_assertion_failed"], m
+          print("GAPFIX_3_MUTANTS_CAUGHT_BY_THE_EXACT_NAMED_ASSERTIONS=PASS")
+          PY
+      - name: Prove tracked Core unchanged and hash all evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$CODER_TEST_BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
+          echo CORE_UNTOUCHED=PASS > evidence/c1-gapfix-1525/core-unchanged.txt
+          (cd evidence/c1-gapfix-1525 && sha256sum *.json *.tsv *.log *.txt > SHA256SUMS.txt) || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coder1-gapfix-1525-baselines-and-three-mutants
+          path: evidence/c1-gapfix-1525/
+          if-no-files-found: warn
+          retention-days: 30
