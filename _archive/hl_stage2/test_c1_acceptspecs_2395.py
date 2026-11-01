@@ -61,6 +61,7 @@ def a_wallet_mode_unreadable():
     fid="ACC_A_ENTRY_MODE_UNKNOWN"
     led,ex,net=f.new_ledger(),f.FakeExchange(),[0.0]
     gw=f.make_gateway(ex,led,net)
+    gw.cfg.liq_parity_enabled=lambda:False
     it=entry(led,f.A,fid)
     gw.cfg.wallet_mode=lambda _:(_ for _ in ()).throw(RuntimeError("MODE_UNREADABLE"))
     ok,status=gw.send_if_allowed(it)
@@ -96,6 +97,10 @@ def a_wallet_mode_unreadable():
     fid="ACC_A_CLOSE_WITHIN_NET"
     led,ex,net=f.new_ledger(),f.FakeExchange(),[2.0]
     it=f.exit_intent(led,f.A,"SELL",1.0,fid,2.0)
+    # The builder defaults to the full sleeve when no separate leader head
+    # is available; this explicit partial-fill intent models SELL1 of A+2.
+    it.copy_size=1.0
+    it.copy_notional=100.0
     gw=f.make_gateway(ex,led,net)
     ok,status=gw.send_if_allowed(it)
     check("A_RO_BOUNDARY_REFERENCE_REGRESSION",
@@ -111,6 +116,14 @@ def b_no_owned_proof():
     f.set_sleeve(led,f.B,1.0)
     it=f.exit_intent(led,f.A,"SELL",1.0,fid,1.0)
     f.set_sleeve(led,f.A,0.0)
+    # The original close is HELD, not terminally consumed: current ledger zero
+    # does not prove its previous owed obligation has been reconciled.
+    c.AuditLogWriter().append_reconciliation(
+        "CLOSE_ESCALATION","HELD_CLOSE_OWNERSHIP_UNPROVED",
+        leader_wallet=f.A,leader_fill_id=fid,intent_id=it.intent_id,
+        coin=f.COIN,action="RECONCILE_OWED_CLOSE_BEFORE_RETRY",
+        engine_can_send="False",
+        notes="close was held before ledger zero; no terminal fill proof")
     gw=f.make_gateway(ex,led,net)
     ok,status=gw.send_if_allowed(it)
     rec,send,red=record(fid,"B_ZERO")
@@ -165,28 +178,36 @@ def c_global_close_only():
     check("C_OWED_HALF_DURABLE_EXPLICIT",
           bool(owed) and near(f.sleeve_of(led,f.A),2.0),
           "owed=%r expected named %s with owed_size=0.5"%(owed,owed_name))
-    # Two independent clearing triggers and their durable acknowledgments.
-    # The setter models a permitted operator-mode change only in the isolated
-    # config fixture; no production config, engine or exchange is touched.
-    mode[0]="ON"
-    gw.clear_close_escalations()
-    toggled=rows(c.RECONCILIATION_CSV,fid)
-    check("C_OWED_ROW_CLEARS_WHEN_GLOBAL_SWITCH_OFF",
-          any(x.get("status")=="GLOBAL_CLOSE_ONLY_OWED_CLEARED"
-              and x.get("action")=="CLEARED_GLOBAL_CLOSE_ONLY_DISABLED"
-              for x in toggled),
-          "statuses=%r switch=%s"%([x.get("status") for x in toggled],mode[0]))
-    mode[0]="CLOSE"
-    f.set_sleeve(led,f.A,0.0)
-    f.set_sleeve(led,f.B,0.0)
-    net[0]=0.0
-    gw.clear_close_escalations()
-    flat=rows(c.RECONCILIATION_CSV,fid)
-    check("C_OWED_ROW_CLEARS_WHEN_DUAL_FLAT",
-          any(x.get("status")=="GLOBAL_CLOSE_ONLY_OWED_CLEARED"
-              and x.get("action")=="CLEARED_DUAL_FLAT"
-              for x in flat),
-          "statuses=%r net=%r owned=%r"%([x.get("status") for x in flat],net[0],f.sleeve_of(led,f.A)))
+    # Two INDEPENDENT new close instances: an OFF transition must not
+    # satisfy a separate FLAT transition's proof. Both begin with owed0.5.
+    for trigger in ("SWITCH_OFF","DUAL_FLAT"):
+        subfid="ACC_C_CLEAR_"+trigger
+        own,venue,truth=f.new_ledger(),f.FakeExchange(),[1.5]
+        f.set_sleeve(own,f.B,-0.5)
+        subit=f.exit_intent(own,f.A,"SELL",2.0,subfid,2.0)
+        sender=f.make_gateway(venue,own,truth)
+        switch=["CLOSE"]
+        sender.cfg.send_mode_now=lambda _s=switch:_s[0]
+        sender.send_if_allowed(subit)
+        before_rows=rows(c.RECONCILIATION_CSV,subfid)
+        started=any(x.get("status")==owed_name and
+                    "owed_size=0.5" in (x.get("notes") or "") for x in before_rows)
+        if trigger=="SWITCH_OFF":
+            switch[0]="ON"  # isolated operator fixture; no real config edit
+        else:
+            f.set_sleeve(own,f.A,0)
+            f.set_sleeve(own,f.B,0)
+            truth[0]=0
+        sender.clear_close_escalations()
+        after_rows=rows(c.RECONCILIATION_CSV,subfid)
+        action=("CLEARED_GLOBAL_CLOSE_ONLY_DISABLED" if trigger=="SWITCH_OFF"
+                else "CLEARED_DUAL_FLAT")
+        check("C_OWED_ROW_CLEARS_WHEN_"+trigger,
+              started and any(x.get("status")=="GLOBAL_CLOSE_ONLY_OWED_CLEARED"
+                              and x.get("action")==action for x in after_rows),
+              "started=%r actions=%r switch=%s truth=%s owned=%s"%
+              (started,[(x.get("status"),x.get("action")) for x in after_rows],
+               switch[0],truth[0],f.sleeve_of(own,f.A)))
 
 def cfg_for(wallets):
     p=Path(tempfile.mkdtemp(prefix="c1_accept_cfg_"))/"live_config.json"
@@ -195,6 +216,41 @@ def cfg_for(wallets):
                       "auto_send_enabled":True,
                       "global_controls":{"send_mode":"ON"}}),encoding="utf-8")
     return c.ConfigManager(p)
+
+def d_real_startup_cap(cfg,tag):
+    """Real main() cap gate; sentinel prevents any true LiveCopyCore launch."""
+    prev={name:getattr(c,name) for name in
+          ("ConfigManager","LiveCopyCore","acquire_global_instance_lock",
+           "acquire_instance_lock","sender_key_check","install_core_attribution_hooks")}
+    stamp=c._XNET.claim_network_stamp
+    refusal=c._XNET.stamp_state_refusal
+    old_argv=sys.argv
+    seen=[]
+    class PostCapReached(Exception):pass
+    try:
+        c._XNET.claim_network_stamp=lambda *_a,**_k:None
+        c._XNET.stamp_state_refusal=lambda *_a,**_k:""
+        c.acquire_global_instance_lock=lambda *_a,**_k:None
+        c.acquire_instance_lock=lambda *_a,**_k:None
+        c.install_core_attribution_hooks=lambda *_a,**_k:None
+        c.sender_key_check=lambda:{"ok":True,"detail":"synthetic sentinel"}
+        c.ConfigManager=lambda *a,**kw:cfg
+        def sentinel(*args,**kwargs):
+            seen.append("CORE_AFTER_CAP")
+            raise PostCapReached
+        c.LiveCopyCore=sentinel
+        sys.argv=["HL_Live_Copy_Service_Core.py","--once"]
+        try:c.main();status="RETURNED"
+        except PostCapReached:status="POST_CAP_REACHED"
+        except SystemExit as ex:status="REFUSED:"+str(ex)
+    finally:
+        for name,obj in prev.items():setattr(c,name,obj)
+        c._XNET.claim_network_stamp=stamp
+        c._XNET.stamp_state_refusal=refusal
+        sys.argv=old_argv
+    print("STARTUP::%s outcome=%s seen=%r"%(tag,status,seen),flush=True)
+    return status,seen
+
 
 def d_cap_10():
     ten=["0x%040x"%(0xC100+i) for i in range(10)]
@@ -205,6 +261,15 @@ def d_cap_10():
           and len(cfg.stream_wallets())==10,
           "active=%s live=%s stream=%s"%(len(cfg.active_wallets()),
               len(cfg.live_wallets()),len(cfg.stream_wallets())))
+    outcome,seen=d_real_startup_cap(cfg,"ELEVEN_LIVE")
+    check("D_ELEVENTH_WALLET_NO_FATAL_GLOBAL_STARTUP",
+          outcome=="POST_CAP_REACHED" and seen==["CORE_AFTER_CAP"],
+          "actual=%r expected=post-cap sentinel; 10 originals must keep starting"%outcome)
+    ten_cfg=cfg_for({w:"ON" for w in ten})
+    ten_outcome,ten_seen=d_real_startup_cap(ten_cfg,"TEN_LIVE")
+    check("D_TEN_LIVE_STARTUP_REFERENCE_REGRESSION",
+          ten_outcome=="POST_CAP_REACHED" and ten_seen==["CORE_AFTER_CAP"],
+          "actual=%r"%ten_outcome)
     # D1 original 10 entries must still be actually dispatchable via the
     # real SenderGateway without treating 11th as whole-process fatal.
     successes=[]
