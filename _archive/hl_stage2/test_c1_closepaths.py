@@ -136,12 +136,45 @@ def restart_case(landed):
     gw=t.f.make_gateway(ex,ledger_before,net)
     gw.cfg.liq_parity_enabled=lambda:False
     gw._close_escalations=c.load_json(c.CLOSE_ESCALATIONS_FILE,{}) or {}
+    # The exact production Cloid reconciliation function can now process
+    # externally verified orderStatus plus fill completeness. This is a bounded
+    # post-restart operator/agent step, NOT a claim of auto-start scheduling.
+    cloid=pend[0]["cloid"]
+    copied={"coin":COIN,"side":"SELL","sz":1.0,"px":100.0,
+            "oid":str(venue["oid"]),"hash":"restartlanded","tid":str(venue["oid"]),
+            "time":c.utc_now_ms(),"cloid":venue["cloid"]} if landed=="LANDED" else None
+    old_post=c._XNET.post_many
+    old_fill_read=c._read_all_copy_fills
+    def order_status(_fetcher,payloads,*args,**kwargs):
+        assert payloads==[{"type":"orderStatus","user":c.USER_WALLET,"oid":cloid}]
+        return [{"ok":True,"data":{"order":{
+            "status":"filled" if landed=="LANDED" else "canceled",
+            "order":{"oid":venue["oid"] if landed=="LANDED" else "",
+                     "limitPx":venue["px"]}}}}]
+    c._XNET.post_many=order_status
+    c._read_all_copy_fills=lambda *args,**kwargs: (
+        ([copied] if copied is not None else []),"FILLS_COMPLETE")
+    try:
+        outcome=gw._resolve_ambiguous_send_outcome(
+            COIN,original_intent,cloid,1.0,float(pend[0]["limit_price"]),
+            True,"process died before reply",{"send_real_started_ms":c.utc_now_ms(),
+                "send_attempt_id":pend[0]["attempt_id"],"send_cloid":cloid},
+            schedule_followup=False,record_hold=False)
+    finally:
+        c._XNET.post_many=old_post
+        c._read_all_copy_fills=old_fill_read
     if landed=="LANDED":
-        # User/agent performs a read-only exact cloid + venue fill lookup after
-        # restart. Real matcher's action is measured, not inferred from a net.
-        copy={"coin":COIN,"side":"SELL","sz":1.0,"px":100.0,
-              "oid":str(venue["oid"]),"hash":"restartlanded","tid":str(venue["oid"]),
-              "time":c.utc_now_ms(),"cloid":venue["cloid"]}
+        check("R_LANDED_EXACT_CLOID_PROVES_PRIOR_FILL_NO_RESEND",
+              outcome is not None and outcome[0] is True
+              and outcome[1]=="ORDER_FILLED"
+              and str(outcome[2].get("oid"))==str(venue["oid"])
+              and not ex.calls,
+              "proof=%r venue=%r calls=%r"%(outcome,venue,ex.calls))
+        # User/agent performs read-only cloid+fill lookup above; attach only its
+        # proven returned OID to the original durable intent.
+        if outcome is not None and outcome[0] is True:
+            gw._append_real_attempt(original_intent,outcome[1],outcome[2])
+        copy=copied
         matcher=c.CopyFillMatcher(ledger_before,c.AuditLogWriter())
         applied=matcher.match_and_apply(copy,{original_intent.intent_id:original_intent})
         final_rows=read(c.LIVE_FILLS_CSV)
@@ -157,8 +190,19 @@ def restart_case(landed):
               and len(read(c.LIVE_FILLS_CSV))==len(final_rows) and not ex.calls,
               "duplicate live_rows=%r"%(read(c.LIVE_FILLS_CSV),))
     else:
-        # The venue shows the original cloid never landed. Hold persists until
-        # that proof; do NOT automatically submit a replacement here.
+        # Confirmed cancellation of an EXIT is a distinct terminal event:
+        # the actual resolver must NOT blindly re-send. The close remains
+        # owed and its named convergence re-evaluation is observable.
+        cancel=[x for x in read(c.RECONCILIATION_CSV)
+                if x.get("status")=="EXIT_CANCELLED_RECOMPUTE_PENDING"]
+        check("R_NOT_LANDED_CLOID_CANCELLED_SIGNALS_RECOMPUTE",
+              outcome is not None and outcome[0] is False
+              and outcome[1]=="ORDER_CANCELLED"
+              and outcome[2].get("terminal_state")=="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY"
+              and any(x.get("action")=="WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE" for x in cancel)
+              and not ex.calls,
+              "proof=%r recompute=%r calls=%r"%(outcome,cancel,ex.calls))
+        for x in cancel:exact_row("CANCELLED_RECOMPUTE",x)
         check("R_NOT_LANDED_OWED_VISIBLE_NO_ABANDONMENT",
               t.approx(ledger_before.coin_net(COIN),1) and t.approx(net[0],1)
               and bool(alerts) and not ex.calls,
@@ -220,6 +264,21 @@ def hold_rows():
           "status=%r rows=%r red=%r"%(status,rec,red))
     for x in rec:
         if x.get("status")=="AUTHORISED_CLOSE_REFUSAL":exact_row("UNREADABLE_NET",x)
+    # The operator-facing RED JSON is a separate surface. The first precise
+    # CLOSE_PROOF_HOLD_UNREADABLE_NET reason may be overwritten by the generic
+    # SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD in _finish. A generic RED reason
+    # is NOT adequate as a standalone actionable diagnosis without cross-table
+    # joins; require exact root cause in its own row (negative finding).
+    red_rows=c.load_json(c.CLOSE_ESCALATIONS_FILE,{})
+    exact=next((x for x in red_rows.values() if isinstance(x,dict)
+                and x.get("leader_fill_id")==fid),{})
+    print("ROW::CLOSE_ESCALATIONS_JSON "+json.dumps(exact,sort_keys=True),flush=True)
+    check("H_RED_JSON_RETAINS_SPECIFIC_ROOT_CAUSE",
+          exact.get("reason")=="CLOSE_PROOF_HOLD_UNREADABLE_NET"
+          and exact.get("state")=="OPEN"
+          and exact.get("intent_id")==it.intent_id,
+          "red_json_reason=%r expected=CLOSE_PROOF_HOLD_UNREADABLE_NET"%
+          exact.get("reason"))
     # Named empty/consumed sleeve: terminal NO_SEND, not another RED.
     root,led,net,ex,gw,it,fid=t.make("HOLD_CONSUMED",0.05,0.0,0.05,qty=0.05)
     done,done_status=gw.send_if_allowed(it)
