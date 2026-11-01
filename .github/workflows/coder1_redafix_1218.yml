@@ -1,0 +1,72 @@
+name: Coder One REDAFIX paired pinned offline gate
+on:
+  push:
+    branches: [gpt/coder1-redafix-1218-20261101]
+  pull_request:
+    branches: [hermes/integration]
+permissions:
+  contents: read
+jobs:
+  paired-six-file-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_POLL_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_UNEXPLAINED_WAIT_SEC: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/coder1-redafix-1218-20261101
+          fetch-depth: 0
+      - name: Verify engine unchanged and construct pinned baseline
+        shell: bash
+        run: |
+          BASE=6598efa7ffcac093aa7dbf847d993486c128a6d2
+          git diff --exit-code "$BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          git worktree add --detach "$RUNNER_TEMP/coder1_base" "$BASE"
+          mkdir -p evidence/redafix1218
+          printf 'BASE=%s\nCANDIDATE=%s\n' "$BASE" "$(git rev-parse HEAD)" > evidence/redafix1218/metadata.txt
+          python3 --version >> evidence/redafix1218/metadata.txt
+      - name: Run six before and after with identical hermetic env
+        shell: bash
+        run: |
+          set +e
+          for phase in before after; do
+            if [ "$phase" = before ]; then src="$RUNNER_TEMP/coder1_base/_archive/hl_stage2"; else src="$GITHUB_WORKSPACE/_archive/hl_stage2"; fi
+            mkdir -p "evidence/redafix1218/$phase"
+            for label in append_truncate disk_full liq_parity margin_gate_and_single_terminal off_path_skip r1_cursor; do
+              log="$GITHUB_WORKSPACE/evidence/redafix1218/$phase/${label}.log"
+              (cd "$src" && timeout --signal=TERM --kill-after=5s 120s python3 -u "test_core_${label}.py") > "$log" 2>&1
+              rc=$?
+              printf '%s\t%s\t%s\n' "$phase" "$label" "$rc" >> evidence/redafix1218/exit-codes.tsv
+              echo "== $phase $label rc=$rc =="
+              grep -E 'RESULT::|TOTAL=|FAILED=|FINDING::|Traceback|Exception|Error:|FAILED:|AssertionError' "$log" | tail -n 50 || true
+            done
+          done
+          python3 - <<'PY'
+          import csv,pathlib,re
+          root=pathlib.Path("evidence/redafix1218")
+          lines=["# Before/after actual test observations", "", "| Phase | Test | Exit | Reported TOTAL / FAILED | FAIL labels |", "|---|---|---:|---|---|"]
+          for phase,label,code in csv.reader((root/"exit-codes.tsv").open(),delimiter="\t"):
+            content=(root/phase/(label+".log")).read_text(errors="replace").splitlines()
+            summary=next((s for s in reversed(content) if re.search(r"TOTAL=\d+ FAILED=\d+",s)), "NO_TOTAL_CRASH_OR_TIMEOUT")
+            fails=[s.strip() for s in content if "RESULT::" in s and "_FAIL" in s or "FINDING::" in s]
+            fails=[s.replace("|",r"\|")[:500] for s in fails]
+            lines.append("| "+ " | ".join((phase,label,code,summary.replace("|",r"\|"),"<newline>".join(fails)[:7000]))+" |")
+          (root/"paired-results.md").write_text("\n".join(lines)+"\n",encoding="utf-8")
+          PY
+          (cd evidence/redafix1218 && sha256sum metadata.txt exit-codes.tsv paired-results.md before/*.log after/*.log > SHA256SUMS.txt)
+          cat evidence/redafix1218/paired-results.md
+      - name: Upload all real logs on RED or GREEN
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coder1-redafix-1218-paired-logs
+          path: evidence/redafix1218/
+          if-no-files-found: warn
