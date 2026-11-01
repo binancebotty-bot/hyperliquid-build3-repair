@@ -5791,12 +5791,23 @@ class SenderGateway:
         wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
         if self.sender_key_invalid:
             return "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
-        if not self.cfg.wallet_enabled(wallet):
+        lifecycle = classify_send_lifecycle(intent)
+        # Safe read for exits: unreadable wallet mode fails closed for entries only
+        # (WMODE ruling ecebbb4). A close must never be blocked by an unreadable mode;
+        # re-raise for entry/add so the generic pre-wire handler keeps entries fail-closed.
+        try:
+            _enabled = self.cfg.wallet_enabled(wallet)
+            _wmode_raw = self.cfg.wallet_mode(wallet)
+        except Exception:
+            if lifecycle in {"ENTRY", "ADD"} or entry_leg:
+                raise
+            _enabled = True
+            _wmode_raw = ""
+        if _enabled is False:
             return "WALLET_DISABLED_AT_SEND"
-        wmode = str(self.cfg.wallet_mode(wallet) or "").upper()
+        wmode = str(_wmode_raw or "").upper()
         if wmode == "OFF":
             return "WALLET_OFF"
-        lifecycle = classify_send_lifecycle(intent)
         if entry_leg:
             # CC1-B-SENDBACK2-2140(1): the EXCESS leg of a SPLIT close (CC1-B-RULING-CEILING-1920(b)) is an
             # ENTRY, not a close. It rides a close-lifecycle intent, so classifying it by the INTENT made every
