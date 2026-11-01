@@ -407,6 +407,15 @@ second_ioc = ioc_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0))
 check("J2_5E_IOC_RETRY_WINDOW", first_ioc[1] == "ORDER_REJECTED" and second_ioc[1] == "SKIPPED_IOC_NO_IMMEDIATE_MATCH", f"{first_ioc}, {second_ioc}")
 check("J2_5F_ONE_IOC_AUDIT_OUTCOME", [r[1] for r in ioc_rows].count("IOC_NO_IMMEDIATE_MATCH") == 1, str(ioc_rows))
 
+# CLOSES ARE SACRED (CC1-B-RULING-GROUP4-2325): a close/EXIT is NEVER held by an
+# exit cooldown. The 60s exit-attempt branch was DELETED from send_if_allowed, not
+# exempted: the only surviving per-coin gates (market halt / IOC no-match / margin
+# reject) and the rate-limit slot cooldown are ENTRY/ADD-only or bypassed for
+# reduce-only, and _last_exit_attempt_ms is now a passive stamp with no reader.
+# These rows pin the deletion: re-adding the branch turns them RED.
+_CORE_SRC = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
+_SEND_BODY = _CORE_SRC.split("    def send_if_allowed(", 1)[1].split("\n    def ", 1)[0]
+
 exit_gw = make_gateway(FakeExchange())
 exit_rows = stub_send(exit_gw, "MARKET_HALTED")
 exit_gw._send_real = lambda intent, timing=None: (True, "ORDER_FILLED", {"exchange_called": True, "reject_category": "", "reduce_only_sent": True})
@@ -414,7 +423,11 @@ exit_intent = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0, coin_net_b
 exit_first = exit_gw.send_if_allowed(exit_intent)
 exit_second = exit_gw.send_if_allowed(make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True))
 check("J2_5G_REDUCTIONS_NOT_HALTED", exit_first == (True, "ORDER_FILLED"))
-check("J2_5H_EXIT_ATTEMPT_MAX_ONCE_PER_MINUTE", exit_second[1] == "EXIT_ATTEMPT_COOLDOWN")
+check("J2_5H_EXIT_ATTEMPT_MAX_ONCE_PER_MINUTE",
+      exit_second == (True, "ORDER_FILLED")
+      and "EXIT_ATTEMPT_COOLDOWN" not in _SEND_BODY
+      and "_last_exit_attempt_ms.get(" not in _CORE_SRC,
+      f"exit_first={exit_first!r} exit_second={exit_second!r}")
 
 failed_exit_gw = make_gateway(FakeExchange())
 stub_send(failed_exit_gw, "")
@@ -434,9 +447,11 @@ try:
 finally:
     c.utc_now_ms = saved_now
 check("J2_5I_FAILED_EXIT_COUNTS_FOR_COOLDOWN", first_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST"
-      and blocked_failed_exit[1] == "EXIT_ATTEMPT_COOLDOWN" and len(failed_exit_calls) == 2)
+      and blocked_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST" and len(failed_exit_calls) == 3,
+      f"first={first_failed_exit!r} second={blocked_failed_exit!r} calls={len(failed_exit_calls)}")
 check("J2_5J_EXIT_ALLOWED_AFTER_60_SECONDS", retry_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST"
-      and len(failed_exit_calls) == 2)
+      and len(failed_exit_calls) == 3,
+      f"retry={retry_failed_exit!r} calls={len(failed_exit_calls)}")
 
 mock_exit_gw = make_gateway(FakeExchange())
 mock_exit_gw._pre_send_ownership_gate = lambda intent: (True, {})
@@ -458,7 +473,54 @@ finally:
     else:
         os.environ["HL_LIVE_MOCK_SEND"] = saved_mock
 check("J2_5K_MOCK_EXIT_COUNTS_FOR_COOLDOWN", first_mock_exit[1] == "MOCK_ORDER_SENT"
-      and second_mock_exit[1] == "EXIT_ATTEMPT_COOLDOWN")
+      and second_mock_exit[1] == "MOCK_ORDER_SENT"
+      and not getattr(mock_exit_gw, "_last_exit_attempt_ms", {}),
+      f"first={first_mock_exit!r} second={second_mock_exit!r}")
+
+# --- The cooldown that REMAINS, and must: the 429 rate-limit slot cooldown. ---
+# Deleting the exit branch must not weaken pacing for entries. An ENTRY arriving inside
+# the window still waits at the slot gate; an EXIT/REDUCE send passes wait_for_cooldown=False
+# and is never held. Both read the SAME single gate (_reserve_exchange_order_slot).
+import time as _time_mod
+import types as _types
+
+class _ClockShim:
+    """time module proxy that records sleep() and lets the window expire while waiting."""
+    def __init__(self, on_sleep):
+        self._on_sleep = on_sleep
+        self.slept = []
+    def sleep(self, sec):
+        self.slept.append(sec)
+        self._on_sleep()
+    def __getattr__(self, name):
+        return getattr(_time_mod, name)
+
+rl_gw = make_gateway(FakeExchange())
+rl_gw._note_exchange_rate_limit("429 too many requests")
+armed_until = rl_gw._exchange_rate_limit_cooldown_until_ms
+_shim = _ClockShim(lambda: setattr(rl_gw, "_exchange_rate_limit_cooldown_until_ms", 0))
+_saved_time = c.time
+c.time = _shim
+try:
+    entry_slot = rl_gw._reserve_exchange_order_slot(wait_for_cooldown=True)   # the ENTRY path
+    entry_waited = list(_shim.slept)
+    _shim.slept.clear()
+    rl_gw._note_exchange_rate_limit("429 too many requests")
+    exit_slot = rl_gw._reserve_exchange_order_slot(wait_for_cooldown=False)   # the EXIT/REDUCE path
+    exit_waited = list(_shim.slept)
+finally:
+    c.time = _saved_time
+check("J2_5L_ENTRY_HELD_BY_RATE_LIMIT_COOLDOWN",
+      bool(entry_waited) and entry_slot > 0 and armed_until > 0,
+      f"armed_until={armed_until} entry_waited={entry_waited} entry_slot={entry_slot}")
+check("J2_5M_EXIT_BYPASSES_RATE_LIMIT_COOLDOWN",
+      not exit_waited and exit_slot > 0,
+      f"exit_waited={exit_waited} exit_slot={exit_slot}")
+check("J2_5N_COOLDOWN_GATE_IS_SINGLE_AND_ENTRY_ONLY",
+      _CORE_SRC.count("if wait_for_cooldown and cooldown_until_ms > now_ms:") == 1
+      and "wait_for_cooldown=not (reduce_only or bypass_rate_limit_cooldown)" in _CORE_SRC
+      and 'bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"}' in _CORE_SRC,
+      f"gate_count={_CORE_SRC.count('if wait_for_cooldown and cooldown_until_ms > now_ms:')}")
 
 
 # ============================================================================
