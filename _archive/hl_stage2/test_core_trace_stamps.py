@@ -43,7 +43,12 @@ import HL_Live_Copy_Service_Core as c  # noqa: E402
 
 c.requests.post = offline
 c.USER_WALLET = "0x" + "c" * 40
-c.HLAccount, c.HLExchange = object, object  # non-None so _send_real proceeds to the stubbed client
+c.HLAccount, c.HLExchange = object, object  # fake SDK; NO real client
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "trace-global.lock")
+c.acquire_global_instance_lock(tmp)
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {},
+    "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed",
+                         "fixed_notional": 200}}})
 c.follower_mid = lambda coin: 100.0
 c.leader_mid = lambda coin, use_cached=False: 100.0
 c.follower_position_mark = lambda coin: 100.0
@@ -96,15 +101,13 @@ RESOLVED = {"ok": True, "sdk_coin": "ZRO", "sz_decimals": 2, "price_max_decimals
             "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
 
-class Led:
-    def coin_net(self, key):
-        return 0.0
-
-
 def send(tag, block):
     fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(),
+                         c.ManualLedger(path=tmp / ("trace_" + tag + ".json")))
     gw._resolve_coin = lambda coin: dict(RESOLVED)
+    gw._get_exchange_client = lambda *a, **k: fake
+    gw._exchange_client_has_symbol = lambda *a, **k: True
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True
     gw._validate_final_wire_order = (lambda *a, **k: (False, {"status": "WIRE_BLOCKED", "error": "", "exchange_response": {},
@@ -113,7 +116,6 @@ def send(tag, block):
     gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
     gw._ensure_margin_mode = lambda *a, **k: None
     gw._fresh_exchange_net = lambda coin: 0.0
-    gw.ledger = Led()
     i = object.__new__(c.Intent)
     i.intent_id = "i-" + tag
     i.fill = c.LeaderFill("fid-" + tag, LEADER, "ZRO", "BUY", 100.0, 10.0, 1, "WS_CAPTURED", 1_234_567, {})
@@ -127,6 +129,16 @@ def send(tag, block):
     gw._append_real_attempt(i, status, result)
     return fake, i, status
 
+
+# Same tested call path: losing the genuine OS lease must NEVER call fake.order.
+c.release_global_instance_lock()
+fake_unowned, unowned, blocked_status = send("no_lease", False)
+check("no_lease_prevents_physical_send", fake_unowned.calls == 0, blocked_status)
+check("no_lease_has_no_send_started_stamp",
+      stages(unowned.fill).get("send_real_started_ms") is None,
+      str(stages(unowned.fill)))
+c.acquire_global_instance_lock(tmp)
+check("real_sender_lease_held", c._sender_lease_owned())
 
 fake, intent, status = send("real", False)
 sr = stages(intent.fill)
