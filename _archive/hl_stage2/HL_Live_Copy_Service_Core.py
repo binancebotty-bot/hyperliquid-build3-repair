@@ -8834,14 +8834,8 @@ class SenderGateway:
         blocked; closes/exits unchanged (leader closes only, sized from the follower net; not forced reduce-only). ON: unchanged.
         Unreadable mode: fail OPEN to the intent-time decision, loudly. Never writes a wallet mode."""
         wallet = intent.fill.leader_wallet
-        try:
-            enabled = self.cfg.wallet_enabled(wallet)
-            mode = self.cfg.wallet_mode(wallet)
-        except Exception as exc:
-            if lifecycle in {"ENTRY", "ADD"}:
-                raise
-            log_error("send_time_wallet_mode_unreadable", f"intent_id={intent.intent_id} wallet={wallet}: {exc!r}; using the intent-time decision")
-            return None
+        enabled = self.cfg.wallet_enabled(wallet)
+        mode = self.cfg.wallet_mode(wallet)
         if not enabled:
             return "BLOCKED_OFF", f"wallet disabled at send time (intent created in mode {intent.wallet_mode})"
         if mode == "OFF":
@@ -9095,7 +9089,52 @@ class SenderGateway:
             return _finish(False, "MASTER_REAL_ORDERS_OFF")
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
             return _finish(False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY")
-        mode_block = self._send_time_wallet_mode_block(intent, lifecycle)  # rw12: the wallet may have moved to CLO/OFF since the intent was made
+        # Wallet mode read: catch unreadable mode for ENTRY/ADD at the source, return named fail-closed status.
+        # EXIT/REDUCE must remain non-blocking (per contract).
+        mode_block = None
+        wallet_mode_exc = None
+        try:
+            mode_block = self._send_time_wallet_mode_block(intent, lifecycle)
+        except Exception as exc:
+            wallet_mode_exc = exc
+        if wallet_mode_exc is not None and lifecycle in {"ENTRY", "ADD"}:
+            # Distinguish wallet_enabled unreadable from wallet_mode unreadable in notes.
+            wallet = intent.fill.leader_wallet
+            enabled_unreadable = False
+            mode_unreadable = False
+            try:
+                self.cfg.wallet_enabled(wallet)
+            except Exception:
+                enabled_unreadable = True
+            try:
+                self.cfg.wallet_mode(wallet)
+            except Exception:
+                mode_unreadable = True
+            notes = "wallet_enabled unreadable at send time" if enabled_unreadable else "wallet_mode unreadable at send time"
+            if mode_unreadable and not enabled_unreadable:
+                notes = "wallet_mode unreadable at send time"
+            elif enabled_unreadable and mode_unreadable:
+                notes = "wallet_enabled and wallet_mode unreadable at send time"
+            status = "SEND_NOT_ATTEMPTED_WALLET_MODE_UNREADABLE"
+            # Persist keyed reconciliation row through existing audit mechanism.
+            try:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL",
+                    status,
+                    leader_wallet=intent.fill.leader_wallet,
+                    leader_fill_id=intent.fill.leader_fill_id,
+                    intent_id=intent.intent_id,
+                    coin=canonical_coin_key(intent.fill.coin),
+                    action="REVIEW_WALLET_MODE_BEFORE_ENTRY",
+                    reject_category="WALLET_MODE_BLOCK",
+                    terminal_state=status,
+                    engine_can_send=False,
+                    notes=notes,
+                )
+            except Exception as audit_exc:
+                # Durable escalation: audit write failure must not be log-only.
+                note_audit_write_failure(RECONCILIATION_CSV, audit_exc)
+            return _finish(False, status)
         if mode_block is not None:
             self._append_local_block_reconciliation(intent, mode_block[0], {
                 "terminal_state": mode_block[0], "reject_category": "WALLET_MODE_BLOCK",
