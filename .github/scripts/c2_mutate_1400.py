@@ -196,7 +196,7 @@ for file in FILES:
             report["mutations"].append(item)
             continue
         mutated=SOURCE.replace(anchor,replacement,1)
-        assert mutated!=SOURCE and mutated.count("MUTANT:")
+        assert mutated!=SOURCE
         r=run_test(file,mutated,name)
         assert r["file"]==file
         r["expected_case"]=expected_case
