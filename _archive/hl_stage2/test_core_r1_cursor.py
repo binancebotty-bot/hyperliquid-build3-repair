@@ -98,8 +98,7 @@ def main():
     core.ws.write_health = lambda: {"ws_summary": {}}
     core._daily_loss_block = lambda: ""
     core._scope_sweep_block = lambda: ""
-    due_calls = []
-    core._leader_poll_due = lambda **kw: (due_calls.append(kw) or True)
+    core._leader_poll_due = lambda **kw: True
     # The original poll_wallets() owns this selection-change attribute.
     # This test replaces poll_wallets with a deterministic fake, so seed
     # the exact state its real implementation would create.
@@ -119,11 +118,6 @@ def main():
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
     check("poll_queue_fixture_is_saturated", all(q.full() for q in core._hot_queues))
     first = core.run_cycle(use_source_csv=False, poll_live=True)
-    errors_now = c.read_csv_rows(c.ERRORS_CSV) if c.ERRORS_CSV.exists() else []
-    print("OBSERVE::R1_POLL_DUE=%r starts=%r wallet_mode=%r status=%r network_errors=%r fatal=%r error_tail=%r" %
-          (due_calls, poll_starts, core.cfg.wallet_mode(A),
-           first.poll_loop_status, first.network_errors, first.fatal_errors,
-           [{k: e.get(k) for k in ("context", "error", "message")} for e in errors_now[-3:]]), flush=True)
     check("poll_fill_was_rejected_for_queue_saturation", poll_fill[0] is not None and first.leader_fills_queued == 0)
     if poll_fill[0] is None:
         raise AssertionError("HARNESS: poll callback never exercised; cursor proof invalid")
