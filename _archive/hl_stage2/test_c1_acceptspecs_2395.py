@@ -169,8 +169,35 @@ def b_no_owned_proof():
                   [(x.get("status"),x.get("reject_category")) for x in rec]))
 
 def c_global_close_only():
-    # C1: A+2,B-.5, net+1.5; top header CLOSE, leader SELL2.
-    # Wire only +1.5 until flat; owed .5 persists for A.
+    # Authoritative contract: existing close_escalations.json keyed by wallet::coin,
+    # OPEN with exact intent and numeric owed_size=.5; a log alone is never owed.
+    owed_name="GLOBAL_CLOSE_ONLY_OWED_REMAINDER"
+    def keyed(intent, path=None):
+        key=c.normalise_wallet(intent.fill.leader_wallet)+"::"+c.canonical_coin_key(intent.fill.coin)
+        raw=c.load_json(path or c.CLOSE_ESCALATIONS_FILE,{})
+        return key,raw.get(key) if isinstance(raw,dict) else None
+    def open_owed(intent, path=None):
+        key,row=keyed(intent,path)
+        return (isinstance(row,dict) and row.get("state")=="OPEN"
+                and row.get("wallet")==c.normalise_wallet(intent.fill.leader_wallet)
+                and row.get("coin")==c.canonical_coin_key(intent.fill.coin)
+                and row.get("intent_id")==intent.intent_id
+                and row.get("leader_fill_id")==intent.fill.leader_fill_id
+                and row.get("reason")==owed_name
+                and near(row.get("owed_size"),0.5))
+    def cleared(intent, audit_rows, action, path=None):
+        key,row=keyed(intent,path)
+        named=any(x.get("status")=="GLOBAL_CLOSE_ONLY_OWED_CLEARED"
+                  and x.get("leader_fill_id")==intent.fill.leader_fill_id
+                  and x.get("intent_id")==intent.intent_id
+                  and x.get("action")==action for x in audit_rows)
+        inactive=(row is None or
+                  (isinstance(row,dict) and row.get("state")=="CLEARED"
+                   and row.get("intent_id")==intent.intent_id
+                   and row.get("leader_fill_id")==intent.fill.leader_fill_id
+                   and near(row.get("owed_size"),0)))
+        return named and inactive  # a ceremonial clear with OPEN .5 is RED
+
     fid="ACC_C_GLOBAL_CLOSE_ONLY"
     led,ex,net=f.new_ledger(),f.FakeExchange(),[1.5]
     f.set_sleeve(led,f.B,-0.5)
@@ -185,16 +212,18 @@ def c_global_close_only():
           and near(ex.calls[0]["size"],1.5)
           and ex.calls[0]["reduce_only"] is True,
           "status=%r wire=%r expected SELL1.5 RO=true"%(status,ex.calls))
-    owed_name="GLOBAL_CLOSE_ONLY_OWED_REMAINDER"
     owed=[x for x in rec if x.get("status")==owed_name
+          and x.get("leader_fill_id")==fid
           and x.get("intent_id")==it.intent_id
           and "owed_size=0.5" in (x.get("notes") or "")
           and x.get("action")=="RECHECK_WHEN_GLOBAL_CLOSE_ONLY_OFF_OR_FLAT"]
     check("C_OWED_HALF_DURABLE_EXPLICIT",
-          bool(owed) and near(f.sleeve_of(led,f.A),2.0),
-          "owed=%r expected named %s with owed_size=0.5"%(owed,owed_name))
-    # Two INDEPENDENT new close instances: an OFF transition must not
-    # satisfy a separate FLAT transition's proof. Both begin with owed0.5.
+          bool(owed) and open_owed(it) and near(f.sleeve_of(led,f.A),2.0),
+          "audit=%r durable_keyed=%r"%(
+              bool(owed),keyed(it)))
+
+    # Two independently constructed obligations; never let one clear satisfy
+    # the other. Each must begin on disk as OPEN with numeric amount .5.
     for trigger in ("SWITCH_OFF","DUAL_FLAT"):
         subfid="ACC_C_CLEAR_"+trigger
         own,venue,truth=f.new_ledger(),f.FakeExchange(),[1.5]
@@ -204,25 +233,54 @@ def c_global_close_only():
         switch=["CLOSE"]
         sender.cfg.send_mode_now=lambda _s=switch:_s[0]
         sender.send_if_allowed(subit)
-        before_rows=rows(c.RECONCILIATION_CSV,subfid)
-        started=any(x.get("status")==owed_name and
-                    "owed_size=0.5" in (x.get("notes") or "") for x in before_rows)
+        started=open_owed(subit) and any(
+            x.get("status")==owed_name and x.get("intent_id")==subit.intent_id
+            for x in rows(c.RECONCILIATION_CSV,subfid))
         if trigger=="SWITCH_OFF":
-            switch[0]="ON"  # isolated operator fixture; no real config edit
+            switch[0]="ON"
         else:
             f.set_sleeve(own,f.A,0)
             f.set_sleeve(own,f.B,0)
             truth[0]=0
         sender.clear_close_escalations()
-        after_rows=rows(c.RECONCILIATION_CSV,subfid)
         action=("CLEARED_GLOBAL_CLOSE_ONLY_DISABLED" if trigger=="SWITCH_OFF"
                 else "CLEARED_DUAL_FLAT")
-        check("C_OWED_ROW_CLEARS_WHEN_"+trigger,
-              started and any(x.get("status")=="GLOBAL_CLOSE_ONLY_OWED_CLEARED"
-                              and x.get("action")==action for x in after_rows),
-              "started=%r actions=%r switch=%s truth=%s owned=%s"%
-              (started,[(x.get("status"),x.get("action")) for x in after_rows],
-               switch[0],truth[0],f.sleeve_of(own,f.A)))
+        found=cleared(subit,rows(c.RECONCILIATION_CSV,subfid),action)
+        check("C_OWED_ROW_CLEARS_WHEN_"+trigger,started and found,
+              "started=%r actually_cleared=%r keyed_after=%r switch=%s"%
+              (started,found,keyed(subit),switch[0]))
+
+    # Executed POSITIVE and ZOMBIE controls use the SAME predicate above on
+    # separate durable synthetic files. Append clear audit first, then revive
+    # OPEN .5 without modifying the audit: the oracle MUST become false.
+    with tempfile.TemporaryDirectory(prefix="c1_owed_oracle_") as td:
+        path=Path(td)/"close_escalations.json"
+        audit=Path(td)/"reconciliation.csv"
+        key,_=keyed(it)
+        live=dict(state="OPEN",wallet=c.normalise_wallet(f.A),
+                  coin=c.canonical_coin_key(f.COIN),intent_id=it.intent_id,
+                  leader_fill_id=it.fill.leader_fill_id,reason=owed_name,
+                  owed_size=0.5)
+        action="CLEARED_GLOBAL_CLOSE_ONLY_DISABLED"
+        with audit.open("w",newline="",encoding="utf-8") as h:
+            writer=csv.DictWriter(h,fieldnames=["leader_fill_id","intent_id","status","action"])
+            writer.writeheader()
+            writer.writerow(dict(leader_fill_id=fid,intent_id=it.intent_id,
+                                 status="GLOBAL_CLOSE_ONLY_OWED_CLEARED",action=action))
+        c.atomic_write_json(path,{key:live})
+        initially_open=open_owed(it,path)
+        c.atomic_write_json(path,{key:{**live,"state":"CLEARED","owed_size":0}})
+        actual_rows=rows(audit,fid)
+        positive=cleared(it,actual_rows,action,path)
+        check("C_CLEAR_ORACLE_POSITIVE_DISK_CALIBRATION",initially_open and positive,
+              "open_before=%r cleared_after=%r row=%r"%
+              (initially_open,positive,keyed(it,path)))
+        c.atomic_write_json(path,{key:live})  # zombie after a genuine clear row
+        zombie=cleared(it,actual_rows,action,path)
+        check("C_ZOMBIE_OPEN_HALF_NEGATIVE_DETECTED",
+              initially_open and positive and open_owed(it,path) and not zombie,
+              "clear_audit_present=%r zombie_rejected=%r durable=%r"%
+              (bool(actual_rows),not zombie,keyed(it,path)))
 
 def cfg_for(wallets):
     p=Path(tempfile.mkdtemp(prefix="c1_accept_cfg_"))/"live_config.json"
