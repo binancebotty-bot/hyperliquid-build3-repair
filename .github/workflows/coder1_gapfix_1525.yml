@@ -1,4 +1,5 @@
 name: Coder One GAPFIX-1525 three disposable mutants
+# All mutation edits are confined to temporary test process directories.
 on:
   push:
     branches: [gpt/coder1-gapfix-1525-20261101]
