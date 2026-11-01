@@ -1,0 +1,51 @@
+name: Coder1 Closepaths offline crash and hold evidence
+on:
+  push:
+    branches: [gpt/coder1-closepaths-20261031]
+permissions:
+  contents: read
+jobs:
+  offline-closepaths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Execute synthetic crash/restart and close-drift proofs at unchanged Core
+        shell: bash
+        env:
+          HL_LIVE_ENV_FILE: /nonexistent
+          HL_LEADER_NETWORK: testnet
+          HL_FOLLOWER_NETWORK: testnet
+          HL_LIVE_AUTO_SEND_ENABLED: "0"
+          HL_LIVE_POLL_ENABLED: "0"
+          HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS: "0"
+          HL_LIVE_UNEXPLAINED_WAIT_SEC: "0"
+        run: |
+          mkdir -p evidence
+          {
+            echo "REPOSITORY=$GITHUB_REPOSITORY"
+            echo "HEAD_SHA=$(git rev-parse HEAD)"
+            echo "BASE_SHA=eb747bba816ad1768807eaa43e93285feb35da8f"
+            python3 --version
+            uname -srm
+          } > evidence/environment.txt
+          git diff --exit-code eb747bba816ad1768807eaa43e93285feb35da8f HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py >> evidence/environment.txt
+          set +e
+          (cd _archive/hl_stage2 && python3 -u test_c1_closepaths.py) > evidence/closepaths-output.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > evidence/exit-code.txt
+          cat evidence/closepaths-output.txt
+          printf 'TEST_EXIT_CODE=%s\n' "$rc"
+          (cd evidence && sha256sum environment.txt closepaths-output.txt exit-code.txt > SHA256SUMS.txt)
+          cat evidence/SHA256SUMS.txt
+          exit "$rc"
+      - name: Upload exact output, exit status and digest whether RED or GREEN
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c1-closepaths-evidence
+          path: evidence/
+          if-no-files-found: warn
