@@ -19,7 +19,7 @@ CORE = STAGE / "HL_Live_Copy_Service_Core.py"
 # not the later Coder One branch's tracked Core (different Git blob).
 SOURCE = subprocess.check_output(
     ["git", "show", "0a99d215c99b794717ce5b34f46cc299dae09106:_archive/hl_stage2/HL_Live_Copy_Service_Core.py"],
-    cwd=ROOT).decode("utf-8-sig")
+    cwd=ROOT).decode("utf-8-sig").replace("\r\n", "\n")
 FILES = [
     "test_core_append_truncate.py",
     "test_core_disk_full.py",
@@ -132,6 +132,12 @@ def run_test(fname, code, label):
     try:
         (work / "HL_Live_Copy_Service_Core.py").write_text(code, encoding="utf-8")
         shutil.copy2(STAGE / fname, work / fname)
+        # The disk-full test starts a Python -c child with its own stripped
+        # environment. Link original sibling modules into its private CWD, so
+        # exchange_truth and other imports work without changing the TEST.
+        for dep in STAGE.glob("*.py"):
+            if dep.name not in (fname, "HL_Live_Copy_Service_Core.py", "sitecustomize.py"):
+                (work / dep.name).symlink_to(dep.resolve())
         (work / "sitecustomize.py").write_text(sitecustomize, encoding="utf-8")
         env = os.environ.copy()
         env.update({
