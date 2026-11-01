@@ -93,6 +93,21 @@ def a_wallet_mode_unreadable():
           and near(f.sleeve_of(led,f.A),2),
           "status=%r wire=%r ledger=%r (expected signed follower net after fill=-0.5)"%
           (status,wire,led.coin_net(f.COIN)))
+    # Positive flip control on identical owned/net but readable wallet mode:
+    # a leader deliberately flips the SHARED exchange through flat, with RO
+    # false. The unreadable-mode witness above must not be misclassified as a
+    # policy ban on all flips.
+    fid="ACC_A_FLIP_WITH_READABLE_MODE"
+    led,ex,net=f.new_ledger(),f.FakeExchange(),[1.5]
+    f.set_sleeve(led,f.B,-0.5)
+    it=f.exit_intent(led,f.A,"SELL",2.0,fid,2.0)
+    gw=f.make_gateway(ex,led,net)
+    ok,status=gw.send_if_allowed(it)
+    check("A_READABLE_MODE_INTENDED_FLIP_REGRESSION",
+          ok and len(ex.calls)==1 and ex.calls[0]["is_buy"] is False
+          and near(ex.calls[0]["size"],2.0)
+          and ex.calls[0]["reduce_only"] is False,
+          "status=%r same_ledger=1.5 exchange=1.5 wire=%r"%(status,ex.calls))
     # Contrasting control: an ordinary bounded SELL <= +2.0 is RO True.
     fid="ACC_A_CLOSE_WITHIN_NET"
     led,ex,net=f.new_ledger(),f.FakeExchange(),[2.0]
