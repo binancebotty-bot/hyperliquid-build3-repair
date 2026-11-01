@@ -8488,6 +8488,23 @@ class SenderGateway:
             if amount <= tol:
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
             wire_delta = ManualLedger.signed_delta(intent.copy_side, amount)
+            if SenderGateway._global_close_only(self):
+                # GLOBAL close-only: position may only be REDUCED. Force reduce-only and
+                # cap the wire at the exchange net when it opposes; never send across.
+                # Owed remainder durable (CLAMPED row) cleared on switch-off / dual-flat.
+                _clamped = amount > abs(net) + tol
+                amount = min(amount, abs(net))
+                amount = self._floor_wire_size(round(amount, 10), sz_dec)
+                if amount <= tol:
+                    return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+                wire_delta = ManualLedger.signed_delta(intent.copy_side, amount)
+                ro = True
+                if _clamped:
+                    try:
+                        self._open_close_escalation(intent, "CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED")
+                    except Exception as exc:
+                        log_error("close_escalation_write_failed", exc)
+                return decide("SEND", amount, ro)
             ro = net * wire_delta < 0 and amount <= abs(net) + tol  # from the REAL net, never forced
             try:
                 self._open_close_escalation(
@@ -8496,9 +8513,16 @@ class SenderGateway:
             except Exception as exc:
                 log_error("close_escalation_write_failed", exc)
             return decide("SEND", amount, ro)
+        # unknown net: re-read already performed by _close_net_with_reread; still unknown -> HOLD.
         amount = self._floor_wire_size(round(min(requested, abs(owned)), 10), sz_dec)
         if amount <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+        if SenderGateway._global_close_only(self):
+            try:
+                self._open_close_escalation(intent, "CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED")
+            except Exception as exc:
+                log_error("close_escalation_write_failed", exc)
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_GLOBAL_CLOSE_ONLY_UNKNOWN_NET")
         try:
             self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_NET_UNREADABLE_RESTING")
         except Exception as exc:
