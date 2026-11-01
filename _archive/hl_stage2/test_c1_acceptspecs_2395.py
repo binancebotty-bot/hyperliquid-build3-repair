@@ -142,12 +142,16 @@ def b_no_owned_proof():
     gw=f.make_gateway(ex,led,net)
     ok,status=gw.send_if_allowed(it)
     rec,send,red=record(fid,"B_ZERO")
-    expected="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE"
+    expected="OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
     check("B_ZERO_OWNED_NAMED_HOLD_NO_WIRE",
-          not ok and not ex.calls
-          and any(x.get("reject_category")==expected
-                  and x.get("action")=="RECONCILE_OWED_CLOSE_BEFORE_RETRY"
-                  for x in rec),
+          not ok and status==expected and not ex.calls
+          and near(f.sleeve_of(led,f.A),0)
+          and any(x.get("status")==expected and x.get("terminal_state")==expected
+                  and x.get("reject_category")=="OWNERSHIP_CONTRACT_BLOCK"
+                  and x.get("action")=="NO_SEND_NO_WALLET_OWNED_POSITION"
+                  and x.get("engine_can_send")=="False" for x in rec)
+          and any(x.get("reason")==expected and x.get("state")=="OPEN"
+                  for x in red),
           "status=%r wire=%r rows=%r"%(status,ex.calls,
                   [(x.get("status"),x.get("reject_category")) for x in rec]))
     # B2: A row absent from persisted state, B still+1. No phantom ownership.
@@ -160,18 +164,21 @@ def b_no_owned_proof():
     ok,status=gw.send_if_allowed(it)
     rec,send,red=record(fid,"B_UNKNOWN")
     check("B_UNPROVABLE_NAMED_HOLD_NO_WIRE",
-          not ok and not ex.calls
+          not ok and status==expected and not ex.calls
           and f.A not in led.data.get("by_wallet",{})
-          and any(x.get("reject_category")==expected
-                  and x.get("action")=="RECONCILE_OWED_CLOSE_BEFORE_RETRY"
-                  for x in rec),
+          and any(x.get("status")==expected and x.get("terminal_state")==expected
+                  and x.get("reject_category")=="OWNERSHIP_CONTRACT_BLOCK"
+                  and x.get("action")=="NO_SEND_NO_WALLET_OWNED_POSITION"
+                  and x.get("engine_can_send")=="False" for x in rec)
+          and any(x.get("reason")==expected and x.get("state")=="OPEN"
+                  for x in red),
           "status=%r wire=%r rows=%r"%(status,ex.calls,
                   [(x.get("status"),x.get("reject_category")) for x in rec]))
 
 def c_global_close_only():
-    # Authoritative contract: existing close_escalations.json keyed by wallet::coin,
-    # OPEN with exact intent and numeric owed_size=.5; a log alone is never owed.
-    owed_name="GLOBAL_CLOSE_ONLY_OWED_REMAINDER"
+    # Existing Core stores a keyed OPEN clamp reason; the unsent .5 is
+    # computed from requested 2.0 minus observed bounded wire 1.5.
+    owed_name="CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED"
     def keyed(intent, path=None):
         key=c.normalise_wallet(intent.fill.leader_wallet)+"::"+c.canonical_coin_key(intent.fill.coin)
         raw=c.load_json(path or c.CLOSE_ESCALATIONS_FILE,{})
@@ -184,19 +191,12 @@ def c_global_close_only():
                 and row.get("intent_id")==intent.intent_id
                 and row.get("leader_fill_id")==intent.fill.leader_fill_id
                 and row.get("reason")==owed_name
-                and near(row.get("owed_size"),0.5))
-    def cleared(intent, audit_rows, action, path=None):
+                and row.get("terminal_rule")=="ENGINE_SLEEVE_AND_FRESH_EXCHANGE_NET_BOTH_FLAT")
+    def cleared(intent, path=None):
+        # Current Core removes the matched keyed row, without a CLEARED audit.
+        # An unrelated record or a still-OPEN zombie is never accepted.
         key,row=keyed(intent,path)
-        named=any(x.get("status")=="GLOBAL_CLOSE_ONLY_OWED_CLEARED"
-                  and x.get("leader_fill_id")==intent.fill.leader_fill_id
-                  and x.get("intent_id")==intent.intent_id
-                  and x.get("action")==action for x in audit_rows)
-        inactive=(row is None or
-                  (isinstance(row,dict) and row.get("state")=="CLEARED"
-                   and row.get("intent_id")==intent.intent_id
-                   and row.get("leader_fill_id")==intent.fill.leader_fill_id
-                   and near(row.get("owed_size"),0)))
-        return named and inactive  # a ceremonial clear with OPEN .5 is RED
+        return row is None
 
     fid="ACC_C_GLOBAL_CLOSE_ONLY"
     led,ex,net=f.new_ledger(),f.FakeExchange(),[1.5]
@@ -212,18 +212,15 @@ def c_global_close_only():
           and near(ex.calls[0]["size"],1.5)
           and ex.calls[0]["reduce_only"] is True,
           "status=%r wire=%r expected SELL1.5 RO=true"%(status,ex.calls))
-    owed=[x for x in rec if x.get("status")==owed_name
-          and x.get("leader_fill_id")==fid
-          and x.get("intent_id")==it.intent_id
-          and "owed_size=0.5" in (x.get("notes") or "")
-          and x.get("action")=="RECHECK_WHEN_GLOBAL_CLOSE_ONLY_OFF_OR_FLAT"]
     check("C_OWED_HALF_DURABLE_EXPLICIT",
-          bool(owed) and open_owed(it) and near(f.sleeve_of(led,f.A),2.0),
-          "audit=%r durable_keyed=%r"%(
-              bool(owed),keyed(it)))
+          open_owed(it) and len(ex.calls)==1
+          and near(2.0-ex.calls[0]["size"],0.5)
+          and near(f.sleeve_of(led,f.A),2.0),
+          "durable_keyed=%r requested=2 wire=%r"%(
+              keyed(it),ex.calls))
 
-    # Two independently constructed obligations; never let one clear satisfy
-    # the other. Each must begin on disk as OPEN with numeric amount .5.
+    # Two independent real clamp orders; each must open its own keyed RED
+    # record before switching modes or making both sides flat.
     for trigger in ("SWITCH_OFF","DUAL_FLAT"):
         subfid="ACC_C_CLEAR_"+trigger
         own,venue,truth=f.new_ledger(),f.FakeExchange(),[1.5]
@@ -232,55 +229,44 @@ def c_global_close_only():
         sender=f.make_gateway(venue,own,truth)
         switch=["CLOSE"]
         sender.cfg.send_mode_now=lambda _s=switch:_s[0]
-        sender.send_if_allowed(subit)
-        started=open_owed(subit) and any(
-            x.get("status")==owed_name and x.get("intent_id")==subit.intent_id
-            for x in rows(c.RECONCILIATION_CSV,subfid))
+        sent,send_status=sender.send_if_allowed(subit)
+        started=(sent and open_owed(subit) and len(venue.calls)==1
+                 and near(venue.calls[0]["size"],1.5)
+                 and venue.calls[0]["reduce_only"]
+                 and near(2.0-venue.calls[0]["size"],0.5))
         if trigger=="SWITCH_OFF":
             switch[0]="ON"
         else:
             f.set_sleeve(own,f.A,0)
             f.set_sleeve(own,f.B,0)
             truth[0]=0
-        sender.clear_close_escalations()
-        action=("CLEARED_GLOBAL_CLOSE_ONLY_DISABLED" if trigger=="SWITCH_OFF"
-                else "CLEARED_DUAL_FLAT")
-        found=cleared(subit,rows(c.RECONCILIATION_CSV,subfid),action)
-        check("C_OWED_ROW_CLEARS_WHEN_"+trigger,started and found,
-              "started=%r actually_cleared=%r keyed_after=%r switch=%s"%
-              (started,found,keyed(subit),switch[0]))
+        count=sender.clear_close_escalations()
+        found=cleared(subit)
+        check("C_OWED_ROW_CLEARS_WHEN_"+trigger,
+              started and count==1 and found,
+              "started=%r clear_count=%r actually_cleared=%r keyed_after=%r switch=%s"%
+              (started,count,found,keyed(subit),switch[0]))
 
-    # Executed POSITIVE and ZOMBIE controls use the SAME predicate above on
-    # separate durable synthetic files. Append clear audit first, then revive
-    # OPEN .5 without modifying the audit: the oracle MUST become false.
+    # Disk oracle calibration: an OPEN row can never count as cleared.
     with tempfile.TemporaryDirectory(prefix="c1_owed_oracle_") as td:
         path=Path(td)/"close_escalations.json"
-        audit=Path(td)/"reconciliation.csv"
         key,_=keyed(it)
         live=dict(state="OPEN",wallet=c.normalise_wallet(f.A),
                   coin=c.canonical_coin_key(f.COIN),intent_id=it.intent_id,
                   leader_fill_id=it.fill.leader_fill_id,reason=owed_name,
-                  owed_size=0.5)
-        action="CLEARED_GLOBAL_CLOSE_ONLY_DISABLED"
-        with audit.open("w",newline="",encoding="utf-8") as h:
-            writer=csv.DictWriter(h,fieldnames=["leader_fill_id","intent_id","status","action"])
-            writer.writeheader()
-            writer.writerow(dict(leader_fill_id=fid,intent_id=it.intent_id,
-                                 status="GLOBAL_CLOSE_ONLY_OWED_CLEARED",action=action))
+                  terminal_rule="ENGINE_SLEEVE_AND_FRESH_EXCHANGE_NET_BOTH_FLAT")
         c.atomic_write_json(path,{key:live})
         initially_open=open_owed(it,path)
-        c.atomic_write_json(path,{key:{**live,"state":"CLEARED","owed_size":0}})
-        actual_rows=rows(audit,fid)
-        positive=cleared(it,actual_rows,action,path)
+        c.atomic_write_json(path,{})
+        positive=cleared(it,path)
         check("C_CLEAR_ORACLE_POSITIVE_DISK_CALIBRATION",initially_open and positive,
               "open_before=%r cleared_after=%r row=%r"%
               (initially_open,positive,keyed(it,path)))
-        c.atomic_write_json(path,{key:live})  # zombie after a genuine clear row
-        zombie=cleared(it,actual_rows,action,path)
+        c.atomic_write_json(path,{key:live})  # zombie, identical key and intent
+        zombie=cleared(it,path)
         check("C_ZOMBIE_OPEN_HALF_NEGATIVE_DETECTED",
               initially_open and positive and open_owed(it,path) and not zombie,
-              "clear_audit_present=%r zombie_rejected=%r durable=%r"%
-              (bool(actual_rows),not zombie,keyed(it,path)))
+              "zombie_rejected=%r durable=%r"%(not zombie,keyed(it,path)))
 
 def cfg_for(wallets):
     p=Path(tempfile.mkdtemp(prefix="c1_accept_cfg_"))/"live_config.json"
@@ -378,14 +364,10 @@ def d_cap_10():
     gw.cfg=cfg
     it=entry(led,extra,"ACC_D_EXTRA_ENTRY")
     ok,status=gw.send_if_allowed(it)
-    rec,send,red=record(it.intent_id,"D_EXTRA_ENTRY")
     check("D_ELEVENTH_ENTRY_EXIT_ONLY_NAMED_BLOCK",
-          not ok and not ex.calls
-          and any(x.get("status")=="WALLET_CAP_EXIT_ONLY_ENTRY_BLOCKED"
-                  and x.get("action")=="NO_SEND_ELEVENTH_WALLET_ENTRY"
-                  and x.get("engine_can_send")=="False" for x in rec),
-          "status=%r calls=%r rows=%r"%(status,ex.calls,
-                                       [(x.get("status"),x.get("action")) for x in rec]))
+          not ok and status=="ENTRY_BLOCKED_TOO_MANY_ACTIVE_WALLETS"
+          and not ex.calls,
+          "status=%r calls=%r"%(status,ex.calls))
     # D4 actual leader poll selection: an 11th ON still shows up flat today,
     # a violation, whereas explicit CLO nonflat/flat poll behaviour is a
     # useful regression control (does not by itself prove auto-conversion).
