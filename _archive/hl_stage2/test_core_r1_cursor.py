@@ -100,6 +100,10 @@ def main():
     core._scope_sweep_block = lambda: ""
     due_calls = []
     core._leader_poll_due = lambda **kw: (due_calls.append(kw) or True)
+    # The original poll_wallets() owns this selection-change attribute.
+    # This test replaces poll_wallets with a deterministic fake, so seed
+    # the exact state its real implementation would create.
+    core._poll_wallet_selection_changed = False
     core.poll_wallets = lambda: [A]
     def poll_fills(wallet, start_ms, end_ms=None):
         poll_starts.append(start_ms)
