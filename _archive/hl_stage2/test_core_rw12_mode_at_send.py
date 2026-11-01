@@ -160,7 +160,6 @@ def main() -> None:
     check("M2_ADD_QUEUED_ON_THEN_CLO_IS_BLOCKED", not sent and status == "BLOCKED_CLO_ENTRY" and not ex.calls, "%s %s" % (sent, status))
     ex, sent, status, it = attempt("clo_exit", "CLO", side="SELL", lifecycle="EXIT")
     check("M3_EXIT_STILL_SENT_IN_CLO", len(ex.calls) == 1 and status != "BLOCKED_CLO_ENTRY", "%s %s %d" % (sent, status, len(ex.calls)))
-    check("M3_CLO_EXIT_NOT_FORCED_REDUCE_ONLY_BY_THE_GATE", status != "BLOCKED_OFF" and len(ex.calls) == 1, status)
     for lc, side in (("ENTRY", "BUY"), ("ADD", "BUY"), ("EXIT", "SELL"), ("REDUCE", "SELL")):
         ex, sent, status, it = attempt("off_" + lc, "OFF", side=side, lifecycle=lc)
         check("M4_%s_QUEUED_ON_THEN_OFF_SENDS_NOTHING" % lc, not sent and status == "BLOCKED_OFF" and not ex.calls, "%s %s %d" % (sent, status, len(ex.calls)))

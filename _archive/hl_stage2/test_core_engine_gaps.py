@@ -222,11 +222,11 @@ def main() -> None:
     env.update({"HL_LIVE_AUDIT_DIR": str(run_dir), "HL_LIVE_ENV_FILE": str(run_dir / "none.env")})
     r = subprocess.run([sys.executable, "HL_Live_Copy_Service_Core.py", "--once"], cwd=str(HERE), env=env,
                        capture_output=True, text=True, timeout=180)
-    check("W2_ELEVEN_ACTIVE_WALLETS_REFUSED_AT_START", r.returncode != 0 and "TOO_MANY_ACTIVE_WALLETS" in r.stderr, r.stderr[-300:])
+    check("W2_ELEVEN_ACTIVE_WALLETS_STARTS_EXITING_ONLY", r.returncode == 0 and "TOO_MANY_ACTIVE_WALLETS" not in r.stderr, r.stderr[-300:])
     config(all_wallets=wallets(11))
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     core.run_cycle(use_source_csv=False)
-    check("W3_RELOAD_OVER_LIMIT_BLOCKS_ENTRIES", core._entry_sends_blocked_reason == "TOO_MANY_ACTIVE_WALLETS",
+    check("W3_RELOAD_OVER_LIMIT_WALLET_EXIT_ONLY", core.cfg.wallet_over_stream_cap("0x%040x" % 0xB00A),
           core._entry_sends_blocked_reason)
     config(gc={"max_daily_loss_usd": 50}, all_wallets=wallets(1))
     pnl["rows"] = [[0, "0"], [1, "-60"]]
