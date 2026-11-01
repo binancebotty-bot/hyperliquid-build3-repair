@@ -15,7 +15,11 @@ STAGE = ROOT / "_archive" / "hl_stage2"
 OUT = ROOT / "evidence" / "c2-mutate-1400"
 OUT.mkdir(parents=True, exist_ok=True)
 CORE = STAGE / "HL_Live_Copy_Service_Core.py"
-SOURCE = CORE.read_text(encoding="utf-8-sig")
+# Contract: mutate the EXACT historical Core from the controller's source SHA,
+# not the later Coder One branch's tracked Core (different Git blob).
+SOURCE = subprocess.check_output(
+    ["git", "show", "0a99d215c99b794717ce5b34f46cc299dae09106:_archive/hl_stage2/HL_Live_Copy_Service_Core.py"],
+    cwd=ROOT).decode("utf-8-sig")
 FILES = [
     "test_core_append_truncate.py",
     "test_core_disk_full.py",
