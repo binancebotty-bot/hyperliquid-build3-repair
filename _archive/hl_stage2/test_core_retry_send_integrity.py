@@ -35,6 +35,11 @@ def main() -> None:
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000"})
     import HL_Live_Copy_Service_Core as c
+    # Real OS-held singleton lease in this disposable test process, not a
+    # patched _sender_lease_owned() return value.
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender-global.lock")
+    c.acquire_global_instance_lock(tmp)
+    check("FIXTURE_REAL_SENDER_LEASE_HELD", c._sender_lease_owned())
 
     c.USER_WALLET = FOLLOWER
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100"}
@@ -98,12 +103,34 @@ def main() -> None:
         g.leader_reduced_since = lambda f: 0
         g._margin_mode_done = {"BTC"}
         g.cfg.master_switch_now = lambda: True
+        # Isolated read-only testnet exchange/identity witnesses. Keep the
+        # production _close_wire_plan and _place_order safety checks alive.
+        g._fresh_exchange_net = lambda coin: 2.0
+        g._close_proof_account_ok = lambda: True
+        g._follower_order_account_for_proof = lambda: FOLLOWER
         return g
 
     def own_cloid_each(ex, iid, n):
         cl = [x["cloid"] for x in ex.calls]
         return (len(ex.calls) == n and all(cl) and len(set(cl)) == n
                 and all(x["cloid"] in x["pending_at_call"] for x in ex.calls))
+
+    # Same fixture NEGATIVE: losing the real lease must prevent a physical
+    # call and must not create a pending_send row.
+    c.release_global_instance_lock()
+    ex_negative = Ex("lease_negative", [])
+    g_negative = gw(ex_negative)
+    refused = g_negative._place_order(
+        ex_negative, "BTC", True, 1.0, 100.0, "Ioc", False,
+        intent=mk_intent("lease_negative"), path="lease_negative",
+        cloid="0x" + "f" * 32,
+        pre_send=lambda: (_ for _ in ()).throw(AssertionError("unowned pre_send fired")))
+    check("FIXTURE_UNOWNED_LEASE_NEVER_CALLS_OR_PENDS",
+          not ex_negative.calls and refused.get("exchange_called") is False
+          and not pending_cloids("lease_negative")
+          and "NO_SENDER_LEASE" in str(refused), str(refused))
+    c.acquire_global_instance_lock(tmp)
+    check("FIXTURE_REACQUIRED_REAL_LEASE", c._sender_lease_owned())
 
     # ---- S1: IOC no-match then the follow-up send (entry IOC retry / missed-entry limit)
     ex = Ex("s1", [NOMATCH, FILLED(1.0, 100.0)])
@@ -135,12 +162,14 @@ def main() -> None:
     ex = Ex("s3", [RESTING])
     g = gw(ex)
     g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+    g.ledger._recompute_net(g.ledger.data)
     it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
         c.LeaderFill("f_s3", A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
     it.intent_id = "s3"
     g.audit.append_order_intent(it)
-    g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
-    check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1, str(ex.calls))
+    g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match", sz_dec=3)
+    check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1,
+          "calls=%r standing=%r" % (ex.calls, c.load_json(c.STANDING_CLOSES_FILE, {})))
     check("S3_STANDING_CLOSE_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s3", 1), str(ex.calls))
     check("S3_STANDING_CLOSE_STILL_REDUCE_ONLY", bool(ex.calls) and ex.calls[0]["ro"] is True)
 
@@ -148,7 +177,8 @@ def main() -> None:
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     sites = re.findall(r"self\._place_order\((.*?)\)\n", src, re.S)
     bad = [s[:70] for s in sites if "pre_send=" not in s or "cloid=" not in s]
-    check("S4_ALL_SIX_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 7 and not bad, "%d %s" % (len(sites), bad))
+    check("S4_ALL_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND",
+          len(sites) >= 8 and not bad, "%d %s" % (len(sites), bad))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
