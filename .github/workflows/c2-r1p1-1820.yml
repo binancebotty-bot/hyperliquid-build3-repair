@@ -2,6 +2,8 @@ name: C2 R1 P1 pinned run4 test-only diagnosis
 on:
   push:
     branches: [gpt/coder2-r1p1-1820-20261101]
+  pull_request:
+    branches: [hermes/integration]
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: gpt/coder2-r1p1-1820-20261101
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v5
