@@ -41,7 +41,7 @@ jobs:
           git diff --exit-code "$CODER_TEST_BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
           test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
           test "$(git rev-parse "$SOURCE_CORE_SHA:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
-          test "$(git hash-object _archive/hl_stage2/test_core_disk_full.py)" = "537e791068b9a7def73a34b9c13a272199030692"
+          test "$(git hash-object _archive/hl_stage2/test_core_disk_full.py)" = "fafc322e027e28b2289240ee33fc81488647280d"
           test "$(git hash-object _archive/hl_stage2/test_core_liq_parity.py)" = "6071743d2fb824c35eb3cfc665e3408430a4807c"
           git show "$C2_RUNNER_SHA:.github/scripts/c2_mutate_1400.py" > .github/scripts/c1_gapfix_1525_runtime.py
           python -m pip freeze > evidence/c1-gapfix-1525/dependencies.txt
