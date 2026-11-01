@@ -17,6 +17,8 @@ would default to True.
 """
 import sys
 import types
+import os
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -134,6 +136,11 @@ def _mode_flips_after_the_wait():
     return 'ON' if _seq['n'] == 1 else 'OFF'   # allowed by the early gate, refused by the post-wait one
 
 
+# Own the real isolated OS lease, otherwise the late gate legitimately
+# refuses the missing lease BEFORE it can re-read the changed mode.
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(Path(tempfile.mkdtemp(prefix="offpath_")) / "sender.lock")
+C.acquire_global_instance_lock()
+assert C._sender_lease_owned(), "HARNESS: cannot exercise post-wait mode change without real lease"
 gw2 = types.SimpleNamespace(
     cfg=types.SimpleNamespace(send_mode_now=_mode_flips_after_the_wait, wallet_enabled=lambda w: True,
                               wallet_mode=lambda w: 'LIVE'),
@@ -154,7 +161,8 @@ try:
                                          intent=_post_intent, path='send_other')
     check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE',
           _post.get('exchange_called') is False and _seq['n'] >= 2
-          and _post.get('terminal_state') == 'BLOCKED_AT_PLACE_ORDER',
+          and _post.get('terminal_state') == 'BLOCKED_AT_PLACE_ORDER'
+          and 'MASTER_REAL_ORDERS_OFF' in str(_post.get('response')),
           'mode_calls=%r result=%r' % (_seq['n'], _post))
     check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP',
           'exchange_call_started_ms' not in (_post.get('timing') or {})
