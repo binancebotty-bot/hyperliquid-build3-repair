@@ -40,9 +40,18 @@ check('SEND_MODE_SURVIVES_NORMALISATION', U._normalise_global_controls(live).get
       'normalised controls = %r' % (sorted(U._normalise_global_controls(live)),))
 check('A_SENDING_PAIR_NEVER_DISPLAYS_OFF', mode(live) == 'ON',
       '_send_mode returned %r for send_mode=ON - the page would tell an operator sending is off' % (mode(live),))
-check('OFF_IS_STILL_OFF', mode(dict(live, send_mode='OFF')) == 'OFF', 'got %r' % (mode(dict(live, send_mode='OFF')),))
-check('CLOSE_ONLY_IS_STILL_CLOSE', mode(dict(live, send_mode='CLOSE')) == 'CLOSE',
-      'got %r' % (mode(dict(live, send_mode='CLOSE')),))
+# The existing legitimate states and ONE shared corrupt-mode fixture.
+for name, configured, accepted in (
+    ('OFF_IS_STILL_OFF', 'OFF', {'OFF'}),
+    ('CLOSE_ONLY_IS_STILL_CLOSE', 'CLOSE', {'CLOSE'}),
+    ('UNKNOWN_GLOBAL_MODE_NEVER_OFF', 'IMPOSSIBLE_MODE', {'FAULT', 'UNKNOWN'}),
+):
+    observed = mode(dict(live, send_mode=configured))
+    check(name, observed in accepted, 'configured=%s rendered=%s' % (configured, observed))
+bad_wallet = U.normalize_live_wallet_config('0x' + '1' * 40, {'mode': 'IMPOSSIBLE_MODE'})
+check('UNKNOWN_WALLET_MODE_NEVER_OFF',
+      bad_wallet['mode'] in {'FAULT', 'UNKNOWN'} and bad_wallet['service_eligibility_reason'] != 'MODE_OFF',
+      'unreadable mode mapped to %r' % bad_wallet)
 check('THE_NUMERIC_CONTROLS_ARE_STILL_NUMBERS',
       all(isinstance(U._normalise_global_controls(live).get(k), float)
           for k in ('max_total_live_exposure_usd', 'max_wallet_exposure_usd', 'max_daily_loss_usd')),
