@@ -34,6 +34,23 @@ jobs:
             uname -srm
             git diff --exit-code efd2022f4b88ec9e0a2adf74da1130d01380232b HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
           } > evidence/environment.txt 2>&1
+          {
+            if python3 -c "import graphify" >/dev/null 2>&1; then
+              echo "GRAPHIFY_CLI=AVAILABLE"
+              python3 -m graphify update . || echo "GRAPHIFY_UPDATE=FAILED_NOT_VALIDATED"
+            else
+              echo "GRAPHIFY_CLI=UNAVAILABLE"
+              echo "GRAPHIFY_UPDATE=NOT_RUN"
+            fi
+            if command -v ponytail >/dev/null 2>&1; then
+              echo "PONYTAIL_CLI=AVAILABLE"
+              ponytail --help >/dev/null 2>&1 || echo "PONYTAIL_HELP=FAILED_NOT_VALIDATED"
+            else
+              echo "PONYTAIL_CLI=UNAVAILABLE"
+              echo "PONYTAIL_RUN=NOT_RUN"
+            fi
+          } > evidence/graphify-ponytail.txt 2>&1
+          cat evidence/graphify-ponytail.txt
           set +e
           (cd _archive/hl_stage2 && python3 -u test_c1_acceptspecs_2395.py) > evidence/acceptance-output.txt 2>&1
           rc=$?
@@ -41,7 +58,7 @@ jobs:
           printf '%s\n' "$rc" > evidence/exit-code.txt
           cat evidence/acceptance-output.txt
           printf 'TEST_EXIT_CODE=%s\n' "$rc"
-          (cd evidence && sha256sum environment.txt acceptance-output.txt exit-code.txt > SHA256SUMS.txt)
+          (cd evidence && sha256sum environment.txt acceptance-output.txt exit-code.txt graphify-ponytail.txt > SHA256SUMS.txt)
           cat evidence/SHA256SUMS.txt
           exit "$rc"
       - name: Upload exact output and digest even when baseline RED
