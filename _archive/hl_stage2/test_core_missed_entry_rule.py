@@ -26,6 +26,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -698,8 +699,13 @@ def main() -> None:
     st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     st["last_leader_poll_cursor_ms"] = {LEADER: before}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
-    core.run_cycle(use_source_csv=False, poll_live=True)
-    core.run_cycle(use_source_csv=False, poll_live=True)
+    # Advance a full retention window between sweeps: adjacent real-time calls are only
+    # milliseconds apart and cannot prove the retention-floor clamp against cursor replay.
+    clock_b = c.utc_now_ms()
+    with mock.patch.object(c, "utc_now_ms", return_value=clock_b):
+        core.run_cycle(use_source_csv=False, poll_live=True)
+    with mock.patch.object(c, "utc_now_ms", return_value=clock_b + c.LEADER_POLL_RETENTION_MS):
+        core.run_cycle(use_source_csv=False, poll_live=True)
     check("R7_HELD_CURSOR_DOES_NOT_GROW_THE_READ_WINDOW", len(starts_b) == 2 and starts_b[1] > starts_b[0] + 1000000, str(starts_b))
     core.sender.sender_key_invalid = ""
     core.run_cycle(use_source_csv=False, poll_live=True)
