@@ -218,11 +218,16 @@ def g5_wallet_cap():
     ten,eleven,ten_clo=cfg(10),cfg(11),cfg(10,1)
     check("G5_TEN_LIVE_RESPECT_CAP",len(ten.stream_wallets())==10
           and not ten.live_over_stream_cap(),"stage=ten stream=%r cap=%r"%(len(ten.stream_wallets()),c.MAX_WALLETS))
+    extra=eleven.live_wallets()[10]
     check("G5_ELEVENTH_LIVE_EXPLICIT_OVER_CAP",
           eleven.live_over_stream_cap() and len(eleven.stream_wallets())==10
-          and len(eleven.live_wallets())==11,
-          "stage=eleventh live=%r stream=%r over=%r"%
-          (len(eleven.live_wallets()),len(eleven.stream_wallets()),eleven.live_over_stream_cap()))
+          and len(eleven.live_wallets())==11
+          and eleven.wallet_over_stream_cap(extra)
+          and all(not eleven.wallet_over_stream_cap(w) for w in eleven.stream_wallets()),
+          "stage=eleventh live=%r stream=%r over=%r extra_blocked=%r ten_enter=%r"%
+          (len(eleven.live_wallets()),len(eleven.stream_wallets()),eleven.live_over_stream_cap(),
+           eleven.wallet_over_stream_cap(extra),
+           all(not eleven.wallet_over_stream_cap(w) for w in eleven.stream_wallets())))
     check("G5_ELEVENTH_CLO_HAS_NO_WS_SLOT",
           not ten_clo.live_over_stream_cap() and len(ten_clo.stream_wallets())==10
           and len(ten_clo.active_wallets())==11,
@@ -286,10 +291,7 @@ def g5_real_startup_gate():
                 outcome="REFUSED:"+str(exc)
             except ReachedPostCapStartup:
                 outcome="POST_CAP_STARTUP_REACHED"
-            expected=(outcome=="POST_CAP_STARTUP_REACHED" and reached==["CORE_CONSTRUCTION_REACHED"]
-                      if label!="ELEVEN" else
-                      outcome.startswith("REFUSED:TOO_MANY_ACTIVE_WALLETS:")
-                      and "11 wallets are LIVE" in outcome and not reached)
+            expected=(outcome=="POST_CAP_STARTUP_REACHED" and reached==["CORE_CONSTRUCTION_REACHED"])
             check("G5_REAL_STARTUP_GATE_"+label,expected,
                   "phase=main_wallet_limit config=%s outcome=%s reached=%r"%
                   (label,outcome,reached))

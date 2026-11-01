@@ -744,7 +744,7 @@ def leader_poll_start_ms(cursor_ms, now_ms, interval_ms, overlap_ms, retention_m
     return start
 POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "40"))
 LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
-MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
+MAX_WALLETS = 10  # hard cap: exchange limits userFills WS subscriptions per connection
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
@@ -4163,6 +4163,19 @@ class ConfigManager:
         CLO is followed by polling only, so it never counts against MAX_WALLETS."""
         return len(self.live_wallets()) > MAX_WALLETS
 
+    def stream_entry_allowed_wallets(self) -> set:
+        """The LIVE wallets that hold a leader-stream slot (the first MAX_WALLETS by fill rank).
+        Only these may take new entries; any LIVE wallet beyond the cap is entry-blocked."""
+        return set(self.stream_wallets())
+
+    def wallet_over_stream_cap(self, wallet) -> bool:
+        """True when this LIVE wallet is beyond the stream cap (no WS slot) and must not take entries."""
+        try:
+            w = str(wallet)
+        except Exception:
+            return False
+        return w in self.live_wallets() and w not in self.stream_entry_allowed_wallets()
+
     def stream_wallets(self) -> List[str]:
         """Wallets the leader stream follows: LIVE only, at most MAX_WALLETS. CLO and OFF never take
         a websocket slot (controller ruling 6313307039); they ride REST polling (see
@@ -5224,6 +5237,8 @@ class IntentBuilder:
             lifecycle, _ = self.ledger.classify_leader_side_for_wallet(wallet, fill.coin, fill.side)
             if lifecycle in {"ENTRY", "ADD"}:
                 if entry_block_reason or self.cfg.wallet_mode(wallet) == "CLO":
+                    return True
+                if self.cfg.wallet_over_stream_cap(wallet):
                     return True
                 if not self.cfg.is_symbol_allowed(fill.coin)[0]:
                     return True
@@ -8993,6 +9008,8 @@ class SenderGateway:
         now_ms = utc_now_ms()
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
             return _finish(False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY")  # CLOSE: reductions only, no entry or top-up
+        if lifecycle in {"ENTRY", "ADD"} and self.cfg.wallet_over_stream_cap(intent.fill.leader_wallet):
+            return _finish(False, "ENTRY_BLOCKED_TOO_MANY_ACTIVE_WALLETS")
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
             return _finish(False, f"ENTRY_BLOCKED_{entry_block_reason}")
         if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
@@ -15141,15 +15158,20 @@ class LiveCopyCore:
         active = self.cfg.active_wallets()
         close_only = [w for w in active if self.cfg.wallet_mode(w) == "CLO"]
         ledger = getattr(self, "ledger", None)
-        nonflat = ledger.nonflat_wallets_from_disk() if close_only and ledger is not None else None
+        nonflat = ledger.nonflat_wallets_from_disk() if ledger is not None else None
         poll_all_active = bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
         candidates = active if poll_all_active else list(self.wallets) + close_only
         selected = []
+        stream_set = set(self.cfg.stream_wallets())
         for wallet in dict.fromkeys(candidates):
             mode = self.cfg.wallet_mode(wallet)
             if (not self.cfg.wallet_enabled(wallet) or mode == "OFF"
                     or (mode == "CLO" and nonflat is not None and wallet not in nonflat)):
                 continue
+            # extras beyond the WS cap are polled only while they hold an open sleeve
+            if mode == "ON" and wallet not in stream_set:
+                if nonflat is not None and wallet not in nonflat:
+                    continue
             selected.append(wallet)
         modes = tuple(sorted((w, self.cfg.wallet_enabled(w), self.cfg.wallet_mode(w)) for w in self.cfg.wallets()))
         close_state = tuple((w, None if nonflat is None else w in nonflat) for w in close_only)
@@ -15224,8 +15246,9 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
-            # Gate 4: more LIVE wallets than the leader stream can follow (CLO rides polling; refused, never dropped)
-            if not _block and self.cfg.live_over_stream_cap():
+            # Gate 4: startup safety only - no wallet holds a stream slot (genuinely unsafe). Per-wallet entry
+            # blocking for extras lives in wallet_over_stream_cap() / send_if_allowed / blocked_locally.
+            if not _block and self.cfg.live_over_stream_cap() and not self.cfg.stream_entry_allowed_wallets():
                 _block = "TOO_MANY_ACTIVE_WALLETS"
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
@@ -17607,9 +17630,9 @@ def main() -> None:
         if _key["ok"] is None:
             print(f"WARNING: {_key['detail']}; a rejection on the first order will stop all sending", file=sys.stderr)
         _cfg = ConfigManager()
-        if _cfg.live_over_stream_cap():
-            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_cfg.live_wallets())} wallets are LIVE but the leader stream "
-                             f"follows at most {MAX_WALLETS}; set the extra wallets to CLO (polled) or OFF")
+        if _cfg.live_over_stream_cap() and not _cfg.stream_entry_allowed_wallets():
+            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_cfg.live_wallets())} wallets are LIVE but no wallet holds a "
+                             f"leader-stream slot (cap {MAX_WALLETS}); genuinely unsafe config")
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
