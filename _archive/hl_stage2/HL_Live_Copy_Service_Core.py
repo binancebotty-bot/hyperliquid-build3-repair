@@ -7211,8 +7211,14 @@ class SenderGateway:
         if audit_reason:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_AUDIT_PROOF", audit_reason)
         exchange, exchange_reason = self._persisted_exchange_positions()
-        if exchange_reason:
+        # EXITS ONLY: a missing/unreadable persisted exchange snapshot is NOT
+        # disqualifying. The close still goes out at the fill-proven owned size
+        # (CC1-B-GATE-OWNERSHIP-RULING). ENTRIES stay fail-closed (WMODE-style).
+        _is_exit = (lifecycle in {"REDUCE", "EXIT"} or bool(getattr(intent, "reduce_only_intended", False)))
+        if exchange_reason and not _is_exit:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF", exchange_reason)
+        if exchange_reason and _is_exit:
+            exchange = {}  # unreadable -> no exchange net; guards below treat as 0
         exchange_net = fnum(exchange.get(coin_key), 0.0)
         manual_net = self.ledger.coin_net(coin_key) if self.ledger else 0.0
         sleeves = self._manual_sleeves_for_coin(coin_key)
