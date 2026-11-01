@@ -1,0 +1,6 @@
+append_truncate	1	_archive/hl_stage2/test_core_append_truncate.py
+disk_full	1	_archive/hl_stage2/test_core_disk_full.py
+liq_parity	1	_archive/hl_stage2/test_core_liq_parity.py
+margin_gate_and_single_terminal	1	_archive/hl_stage2/test_core_margin_gate_and_single_terminal.py
+off_path_skip	1	_archive/hl_stage2/test_core_off_path_skip.py
+r1_cursor	1	_archive/hl_stage2/test_core_r1_cursor.py
