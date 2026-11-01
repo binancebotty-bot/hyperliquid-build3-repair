@@ -4,6 +4,9 @@ on:
     branches:
       - gpt/tests-b-mutate-1400-20261101
   workflow_dispatch:
+  pull_request:
+    branches:
+      - hermes/integration
 permissions:
   contents: read
 jobs:
