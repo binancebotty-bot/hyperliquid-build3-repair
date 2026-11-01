@@ -8146,7 +8146,7 @@ class SenderGateway:
         sent WITHOUT reduce-only so the account moves to the new sum of the sleeves."""
         if not self._reduce_only_for_intent(intent):
             return False
-        if self._global_close_only():
+        if SenderGateway._global_close_only(self):
             return True
         if not bval(os.getenv("HL_LIVE_NETTING_AWARE_REDUCE_ONLY"), True):
             return False
@@ -8348,7 +8348,7 @@ class SenderGateway:
         if amount <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
         delta = ManualLedger.signed_delta(intent.copy_side, amount)
-        if self._global_close_only():
+        if SenderGateway._global_close_only(self):
             # GLOBAL close-only: position may only be REDUCED. Force reduce-only and
             # cap the wire at the exchange net when it opposes; never send across.
             if actual * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
@@ -8862,7 +8862,7 @@ class SenderGateway:
                 continue
             # GLOBAL close-only clamped remainder is OWED only while the switch is on.
             if (str(row.get("reason") or "").startswith("CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED")
-                    and not self._global_close_only()):
+                    and not SenderGateway._global_close_only(self)):
                 with _CLOSE_ESCALATIONS_LOCK:
                     latest = (json.loads(CLOSE_ESCALATIONS_FILE.read_text(encoding="utf-8-sig"))
                               if CLOSE_ESCALATIONS_FILE.exists() else {})
