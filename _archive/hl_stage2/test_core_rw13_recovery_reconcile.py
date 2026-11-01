@@ -183,8 +183,13 @@ def main() -> None:
             c.LeaderFill("f_" + label, A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
         it.intent_id = label
         g.audit.append_order_intent(it)
+        check(label.upper() + "_STANDING_OWNED_EXIT_FIXTURE",
+              it.reduce_only_intended and c.classify_send_lifecycle(it) == "EXIT"
+              and abs(g.ledger.coin_net("BTC") - 2.0) < 1e-9
+              and c.SenderGateway._close_proof_account_ok(),
+              "decision=%s reduce_only=%s net=%s" % (it.decision, it.reduce_only_intended, g.ledger.coin_net("BTC")))
         seen = spy(g)
-        g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
+        g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match", sz_dec=resolved["sz_decimals"])
         return g, it, ex, seen
 
     g, it, ex, seen = standing("a5", TimeoutError("Read timed out"))
