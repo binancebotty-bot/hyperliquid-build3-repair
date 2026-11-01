@@ -88,7 +88,8 @@ def main() -> None:
         def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
             return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
-            self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
+            self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size,
+                               "reduce_only": reduce_only, "cloid": cloid})
             if self.replies:
                 return self.replies.pop(0)
             if tif["limit"]["tif"] == "Gtc":
@@ -110,6 +111,13 @@ def main() -> None:
         g._exchange_client_for_coin = lambda coin: (fake, "BTC")
         g._close_proof_account_ok = lambda: True
         g._follower_order_account_for_proof = lambda: FOLLOWER
+        # A faithful available audit and named exchange snapshot feed the
+        # REAL _pre_send_ownership_gate; the gate itself remains executable.
+        g._audit_proof_block_reason = lambda: ""
+        g._persisted_exchange_positions = lambda: (
+            {k: c.fnum(v.get("signed_size")) for k, v in
+             (c.load_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {}) or {})
+             .get("positions_by_coin", {}).items()}, "")
         # Staged testnet exchange source: keep Core close sizing/RO/hold real.
         g._fresh_exchange_net = lambda coin: c.fnum(
             (c.load_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {}) or {})
@@ -122,6 +130,18 @@ def main() -> None:
         c.HLAccount, c.HLExchange = object, object
         try:
             return g._send_real(intent)
+        finally:
+            c.HLAccount, c.HLExchange = saved
+            os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+
+    def send_authorised(g, intent):
+        """Use normal send_if_allowed -> _send_real -> _append_real_attempt,
+        with a real lease and a fake exchange; no real SDK or network."""
+        os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
+        saved = c.HLAccount, c.HLExchange
+        c.HLAccount, c.HLExchange = object, object
+        try:
+            return g.send_if_allowed(intent)
         finally:
             c.HLAccount, c.HLExchange = saved
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
@@ -266,20 +286,58 @@ def main() -> None:
           negative_hold == "CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH"
           and negative_sz == 0.0, negative_hold)
     g._close_proof_account_ok = account_proof
-    ok, status, res = send_real(g, exit_it)
+    ok, status = send_authorised(g, exit_it)
     gtc = [x for x in fake.calls if x["tif"] == "Gtc"]
     check("R1_UNFILLED_CLOSE_STANDS_AS_REDUCE_ONLY_LIMIT", len(gtc) == 1 and gtc[0]["reduce_only"] and gtc[0]["size"] == 2.0,
           str(fake.calls))
-    rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
-    check("R1_RECOVERY_ORDER_WRITTEN_TO_SEND_ATTEMPTS_WITH_ITS_ORDER_ID",
-          len(rows) == 2 and rows[0]["status"] == "pending_send"
-          and rows[1]["status"] == "ORDER_RESTING"
-          and rows[0]["attempt_id"] == rows[1]["attempt_id"]
-          and rows[1]["exchange_order_id"] == "4244"
-          and all(r["intent_id"] == exit_it.intent_id and r["reduce_only_sent"] == "True" for r in rows),
-          str([(r.get("order_type"), r.get("status"), r.get("exchange_order_id"),
-                r.get("reduce_only_sent"), r.get("intent_id"), r.get("attempt_id"),
-                r.get("cloid")) for r in rows]))
+    # Append-only fold: physical CLOID and attempt_id are ONE order identity;
+    # extra historical revisions and a separate OID matcher-index row are legal.
+    def fold_recovery(rows, wire, oid, iid):
+        own = [r for r in rows if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"
+               and r.get("intent_id") == iid]
+        pending = [r for r in own if r.get("status") == "pending_send"
+                   and r.get("cloid") and r.get("attempt_id")]
+        if len(pending) != 1 or not wire or not oid:
+            return False, {"pending": pending, "oid": oid}
+        p = pending[0]
+        revisions = [r for r in own if r.get("attempt_id") == p["attempt_id"]]
+        last = revisions[-1]
+        index = [r for r in own if str(r.get("exchange_order_id") or "") == str(oid)
+                 and r.get("status") == "ORDER_RESTING"]
+        ok = (p["cloid"] == wire["cloid"]
+              and last.get("cloid") == p["cloid"]
+              and last.get("status") in {"ORDER_RESTING", "FILLED_AWAITING_COPY_POLL"}
+              and str(last.get("exchange_order_id") or "") == str(oid)
+              and bool(index))
+        return ok, {"cloid": p["cloid"], "attempt_id": p["attempt_id"],
+                    "folded_status": last.get("status"),
+                    "folded_oid": last.get("exchange_order_id"),
+                    "matcher_rows": len(index)}
+
+    rows = c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
+    resting = c.load_json(c.STANDING_CLOSES_FILE, {}).get(exit_it.sleeve_id, {})
+    oid_r1 = str(resting.get("oid") or "")
+    wire_r1 = gtc[0] if len(gtc) == 1 else {}
+    r1_ok, r1_fold = fold_recovery(rows, wire_r1, oid_r1, exit_it.intent_id)
+    check("R1_RECOVERY_PHYSICAL_ATTEMPT_TERMINAL_AND_MATCHER_BOUND",
+          r1_ok, str(r1_fold))
+    # Verifier controls on IN-MEMORY copies, never write a fabricated terminal.
+    # Mutant = drop the terminal revision after a real physical order: MUST RED.
+    physical = [r for r in rows if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"
+                and r.get("intent_id") == exit_it.intent_id
+                and r.get("status") == "pending_send" and r.get("cloid")]
+    if physical and wire_r1 and oid_r1:
+        pretend_terminal = dict(physical[0], status="ORDER_RESTING",
+                                exchange_order_id=oid_r1,
+                                terminal_state="EXIT_RECOVERY_ACTIVE")
+        good, _ = fold_recovery(rows + [pretend_terminal], wire_r1, oid_r1, exit_it.intent_id)
+        dropped, _ = fold_recovery(rows + [pretend_terminal] if False else rows,
+                                   wire_r1, oid_r1, exit_it.intent_id)
+        check("R1_FOLD_VERIFIER_REJECTS_DROPPED_TERMINAL_MUTANT",
+              good and not dropped, "constructed_terminal=%s orphaned=%s" % (good, dropped))
+    else:
+        check("R1_FOLD_VERIFIER_REJECTS_DROPPED_TERMINAL_MUTANT", False,
+              "no physical GTC/cloid/OID witness")
     matcher = c.CopyFillMatcher(led, c.AuditLogWriter())
     now = c.utc_now_ms()
     owned = matcher.match_and_apply({"coin": "BTC", "side": "A", "px": "100", "sz": "2.0", "oid": 4244, "hash": "0xr1",
