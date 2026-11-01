@@ -18,7 +18,6 @@ jobs:
       HL_LIVE_AUTO_SEND_ENABLED: "0"
       HL_LIVE_POLL_ENABLED: "0"
       HL_LIVE_WS_ENABLED: "0"
-      HL_LIVE_MOCK_SEND: "1"
       PYTHONUNBUFFERED: "1"
       BASE: 6598efa7ffcac093aa7dbf847d993486c128a6d2
     steps:
