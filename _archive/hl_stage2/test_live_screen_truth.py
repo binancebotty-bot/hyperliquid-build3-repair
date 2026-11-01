@@ -42,6 +42,13 @@ def main() -> None:
     def offline(*a, **k):
         raise OSError("offline test: no network")
     urllib.request.urlopen = offline
+    try:
+        import fastapi  # noqa: F401 — before Core/UI imports; optional UI-only dependency
+    except ModuleNotFoundError as exc:
+        if exc.name == "fastapi":
+            print("SKIP::DEPENDENCY_MISSING fastapi")
+            return  # zero assertions executed: runner must classify NOT_RUN, never PASS
+        raise
     import HL_Live_Copy_Service_Core as c
     import HL_Copy_App_SSOT as ui
     from fastapi.testclient import TestClient
@@ -65,9 +72,16 @@ def main() -> None:
           and abs(c.ConfigManager().marketable_bps() - 20.0) < 1e-9, r.text[:200])
 
     # ---- L2 / L3 -------------------------------------------------------------------------------
-    ui.ACCOUNT_VALUE_FETCHER = lambda payload: [["day", {"accountValueHistory": [[0, "1450.0"], [1, "1450.12"]],
+    valid_value_fetcher = lambda payload: [["day", {"accountValueHistory": [[0, "1450.0"], [1, "1450.12"]],
                                                          "pnlHistory": [[0, "0"], [1, "0"]]}]]
+    ui.ACCOUNT_VALUE_FETCHER = valid_value_fetcher
     ui._ACCOUNT_VALUE_CACHE.clear()
+    # The API deliberately reads the latest cached slow refresh (never fetches on its
+    # request thread). A first cold GET returns {} until the worker completes.
+    # Seed it by running the REAL refresh path synchronously with fake input.
+    ui._fetch_exchange_account_snapshot = lambda: {"available": False, "reason": "OFFLINE_TEST_FIXTURE"}
+    ui._exchange_slow_refresh()
+    ui._AUDIT_SUMMARY_CACHE.clear()
     cfg = c.load_json(c.LIVE_CONFIG_FILE, {})
     cfg.update({"auto_send_enabled": True, "wallets": {"0x" + "d" * 40: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed"}}})
     c.atomic_write_json(c.LIVE_CONFIG_FILE, cfg)
@@ -79,6 +93,30 @@ def main() -> None:
     check("L3_MASTER_SWITCH_REPORTED", summary.get("master_real_orders_enabled") is True, str(summary.get("master_real_orders_enabled")))
     check("L3_PILL_FOLLOWS_MASTER_SWITCH", "const armed=lcAudit.master_real_orders_enabled===true" in page
           and "APP DISABLED" not in page)
+
+    # Same API, same account/route: absent follower evidence must NEVER reuse the
+    # prior $1450.12 as a truthful live account value. This is the fail-capable
+    # negative control; the positive above proves the offline fake fetcher works.
+    ui.ACCOUNT_VALUE_FETCHER = lambda _payload: (_ for _ in ()).throw(OSError("NO_FOLLOWER_EVIDENCE"))
+    ui._ACCOUNT_VALUE_CACHE.clear()
+    ui._exchange_slow_refresh()
+    ui._AUDIT_SUMMARY_CACHE.clear()
+    unavailable = client.get("/api/live-audit-summary").json()
+    missing = unavailable.get("follower_account") or {}
+    check("L2_MISSING_FOLLOWER_VALUE_NOT_MISREPORTED_AS_VALID",
+          missing.get("ok") is False and missing.get("value") is None
+          and (unavailable.get("status_banner") or {}).get("account_value") is None,
+          str(missing))
+    ui.ACCOUNT_VALUE_FETCHER = valid_value_fetcher
+    ui._ACCOUNT_VALUE_CACHE.clear()
+    ui._exchange_slow_refresh()
+    ui._AUDIT_SUMMARY_CACHE.clear()
+    recovered = client.get("/api/live-audit-summary").json()
+    fresh = recovered.get("follower_account") or {}
+    check("L2_VALID_FOLLOWER_VALUE_RECOVERS_AFTER_UNAVAILABLE",
+          fresh.get("ok") is True and abs(fresh.get("value", 0) - 1450.12) < 1e-9
+          and (recovered.get("status_banner") or {}).get("account_value") == 1450.12,
+          str(fresh))
 
     # ---- L4 ------------------------------------------------------------------------------------
     r = client.post("/api/manual-reconciliation/archive-ledger-row", json={"coin": "BTC"})
