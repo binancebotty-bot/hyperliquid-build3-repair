@@ -44,6 +44,9 @@ def main():
     core.async_dispatch = True
 
     now = c.utc_now_ms()
+    # A running copy session began before these queued fills; the real
+    # cursor properly excludes pre-cutover fills.
+    core.dedupe.live_start_ms = now - 120000
     f1 = c.LeaderFill("r1a", A, "BTC", "BUY", 100.0, 1.0, now - 60000, "TEST", 0, {"oid": "1", "dir": "Open Long"})
     f2 = c.LeaderFill("r1b", A, "ETH", "BUY", 100.0, 1.0, now - 30000, "TEST", 0, {"oid": "2", "dir": "Open Long"})
     check("nothing_pending_cursor_moves", core.leader_cursor_next(A, now) == now)
@@ -95,7 +98,11 @@ def main():
     core.ws.write_health = lambda: {"ws_summary": {}}
     core._daily_loss_block = lambda: ""
     core._scope_sweep_block = lambda: ""
-    core._leader_poll_due = lambda: True
+    core._leader_poll_due = lambda **kw: True
+    # The original poll_wallets() owns this selection-change attribute.
+    # This test replaces poll_wallets with a deterministic fake, so seed
+    # the exact state its real implementation would create.
+    core._poll_wallet_selection_changed = False
     core.poll_wallets = lambda: [A]
     def poll_fills(wallet, start_ms, end_ms=None):
         poll_starts.append(start_ms)
@@ -112,6 +119,8 @@ def main():
     check("poll_queue_fixture_is_saturated", all(q.full() for q in core._hot_queues))
     first = core.run_cycle(use_source_csv=False, poll_live=True)
     check("poll_fill_was_rejected_for_queue_saturation", poll_fill[0] is not None and first.leader_fills_queued == 0)
+    if poll_fill[0] is None:
+        raise AssertionError("HARNESS: poll callback never exercised; cursor proof invalid")
     saved = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(A, 0)
     check("poll_queue_full_cursor_holds_unqueued_fill", saved <= poll_fill[0].timestamp_ms,
           f"cursor={saved} fill={poll_fill[0].timestamp_ms}")
