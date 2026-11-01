@@ -7516,6 +7516,7 @@ class SenderGateway:
                                                   bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre, intent=intent, path="exit_recovery")
             ok, status, oid, error = self._parse_hl_response(recovery_response)
+            import sys as _d; print('DBG2 placed ok=%r status=%r oid=%r err=%r' % (ok,status,oid,error), file=_d.stderr, flush=True)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
                 with self._resting_lock:
@@ -7527,6 +7528,11 @@ class SenderGateway:
                         "sleeve_tol": max(0.0, abs(wire_size) - abs(remainder)) if remainder is not None else 0.0}
                     atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
             if ok and oid:
+                try:
+                    self._open_close_escalation(intent, "EXIT_RECOVERY_QUEUED")
+                except Exception as exc:
+                    import sys as _d; print('DBG7 escalation err=%r' % (exc,), file=_d.stderr, flush=True)
+                    log_error("close_escalation_write_failed", exc)
                 self._record_placed_order(intent, oid, close_size, limit_px, _ro, "REAL_GTC_RECOVERY_CLOSE",
                                           "EXIT_RECOVERY_ACTIVE", "STANDING_LIMIT_CLOSE",
                                           f"standing close (reduce_only={_ro}) for what the IOC close did not fill; {notes}")
@@ -8454,6 +8460,7 @@ class SenderGateway:
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
             wire_delta = ManualLedger.signed_delta(intent.copy_side, amount)
             ro = net * wire_delta < 0 and amount <= abs(net) + tol  # from the REAL net, never forced
+            state["close_verified_sz_decimals"] = sz_dec
             try:
                 self._open_close_escalation(
                     intent, "CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY" if ro
@@ -8468,6 +8475,7 @@ class SenderGateway:
             self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_NET_UNREADABLE_RESTING")
         except Exception as exc:
             log_error("close_escalation_write_failed", exc)
+        state["close_verified_sz_decimals"] = sz_dec
         return decide("SEND", amount, False)  # unreadable net: never force reduce_only
 
     def _close_net_with_reread(self, coin: str) -> Optional[float]:
@@ -9711,7 +9719,7 @@ class SenderGateway:
                 if repair_note:
                     netting_note = (netting_note + "; " if netting_note else "") + repair_note
             if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"} and reject_category == "IOC_NO_IMMEDIATE_MATCH":
-                self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response, parsed_error, sz_dec=sz_dec)
+                self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, float(intent.fill.price), wire_size, response, parsed_error, sz_dec=sz_dec)
             if ok and status == "ORDER_FILLED" and lifecycle in {"REDUCE", "EXIT"}:
                 # a close that only part-filled (thin book) leaves the rest standing as a reduce-only close at the
                 # same price, so the position still goes flat (run 4: leftovers stayed open as dust)
