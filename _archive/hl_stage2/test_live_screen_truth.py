@@ -42,6 +42,13 @@ def main() -> None:
     def offline(*a, **k):
         raise OSError("offline test: no network")
     urllib.request.urlopen = offline
+    try:
+        import fastapi
+    except ModuleNotFoundError as exc:
+        if exc.name == 'fastapi':
+            print('SKIP::DEPENDENCY_MISSING fastapi')
+            return  # NOT_RUN: no L1–L6 assertions executed, never reported PASS
+        raise
     import HL_Live_Copy_Service_Core as c
     import HL_Copy_App_SSOT as ui
     from fastapi.testclient import TestClient

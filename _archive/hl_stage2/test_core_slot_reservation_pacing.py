@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 import time
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -17,8 +18,11 @@ os.environ["HL_LIVE_AUDIT_DIR"] = _TEST_AUDIT_DIR
 os.environ["HL_LIVE_ENV_FILE"] = str(Path(_TEST_AUDIT_DIR) / "none.env")
 os.environ["HL_LEADER_NETWORK"] = "testnet"
 os.environ["HL_FOLLOWER_NETWORK"] = "testnet"
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(Path(_TEST_AUDIT_DIR) / "sender-global.lock")
 
 import HL_Live_Copy_Service_Core as core  # noqa: E402
+core.acquire_global_instance_lock(Path(_TEST_AUDIT_DIR) / "state")
+assert core._sender_lease_owned(), "real isolated sender lease is mandatory"
 
 
 class RecordingSenderGateway(core.SenderGateway):
@@ -97,7 +101,16 @@ def sender_gateway():
     gateway._exchange_rate_limit_cooldown_until_ms = 0
     gateway.sender_key_invalid = ""
     gateway._note_sender_key_rejection = lambda response: None
+    gateway.cfg = types.SimpleNamespace(send_mode_now=lambda: "ON", wallet_enabled=lambda _w: True, wallet_mode=lambda _w: "ON")
+    gateway.audit = mock.Mock()
     return gateway
+
+
+def valid_entry(side="BUY"):
+    fill = core.LeaderFill("slot-fixture", "0x" + "1" * 40, "BTC", side, 100.0, 1.0, 100000, "TEST")
+    return core.Intent("slot-fixture", fill, side, 1.0, 100.0, "ON", "fixed",
+                       "ENTRY_ALLOWED", "ENTRY", "slot-sleeve", "", "FLAT",
+                       0.0, 0.0, False, False)
 
 
 class SlotReservationPacingTests(unittest.TestCase):
@@ -120,7 +133,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         def place_order():
             try:
                 start.wait(timeout=3)
-                gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False)
+                gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False, intent=valid_entry())
             except Exception as exc:  # surfaced in the main test thread
                 errors.append(exc)
 
@@ -165,7 +178,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         def place_order():
             try:
                 start.wait(timeout=3)
-                gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", False)
+                gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", False, intent=valid_entry("SELL"))
             except Exception as exc:  # surfaced in the main test thread
                 errors.append(exc)
 
@@ -182,9 +195,9 @@ class SlotReservationPacingTests(unittest.TestCase):
         self.assertTrue(all(not thread.is_alive() for thread in threads), "order worker thread did not finish")
         self.assertEqual(errors, [])
         self.assertEqual(len(gateway.slot_reservations), worker_count)
-        expected_slots = [cooldown_until_ms + index * gap_ms for index in range(worker_count)]
-        self.assertEqual(gateway.slot_reservations, expected_slots, "integer slot spacing must honor gap exactly")
-        self.assertGreaterEqual(len(sleeps), worker_count, "cooldown and paced-slot waits should include every order")
+        expected_slots = [100000 + (index + 1) * gap_ms for index in range(worker_count)]
+        self.assertEqual(gateway.slot_reservations, expected_slots, "429 may NOT postpone entries past ordinary short order-slot pacing")
+        self.assertGreaterEqual(len(sleeps), worker_count, "ordinary paced-slot waits must include every order")
         self.assertTrue(all(seconds > 0 for seconds in sleeps), "every recorded order wait should be positive")
         self.assertEqual(len(exchange.calls), worker_count)
         call_times = [call[0] for call in exchange.calls]
@@ -204,9 +217,9 @@ class SlotReservationPacingTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": str(gap_ms)}):
             with mock.patch.object(core, "utc_now_ms", new=lambda: now_ms):
                 with mock.patch.object(core.time, "sleep", new=lambda _seconds: None):
-                    gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False)
+                    gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False, intent=valid_entry())
                     gateway._cancel_order(exchange, "BTC", "123")
-                    gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", True)
+                    gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", False, intent=valid_entry("SELL"))
 
         self.assertEqual(
             gateway.slot_reservations,
@@ -215,6 +228,18 @@ class SlotReservationPacingTests(unittest.TestCase):
         )
         self.assertEqual(len(exchange.calls), 2)
         self.assertEqual(len(exchange.cancels), 1)
+
+    def test_armed_entry_reaches_fake_wire_and_off_mode_refuses_same_fixture(self):
+        gateway = sender_gateway()
+        fake = FakeExchange()
+        row = valid_entry()
+        response = gateway._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False, intent=row)
+        self.assertEqual(response.get("status"), "ok")
+        self.assertEqual(len(fake.calls), 1, "positive wire control must be sendable, not vacuously blocked")
+        gateway.cfg.send_mode_now = lambda: "OFF"
+        blocked = gateway._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False, intent=row)
+        self.assertEqual(len(fake.calls), 1, "matched OFF fixture must make zero additional calls")
+        self.assertIn("MASTER_REAL_ORDERS_OFF", str(blocked))
 
     def test_cancel_sleep_does_not_hold_slot_lock(self):
         gateway = sender_gateway()

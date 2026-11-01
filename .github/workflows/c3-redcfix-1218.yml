@@ -1,0 +1,106 @@
+name: C3 REDCFIX 1218 offline regression
+on:
+  push:
+    branches: [gpt/c3-redcfix-1218-20261101]
+  pull_request:
+    branches: [hermes/integration]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LEADER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_POLL_ENABLED: "0"
+      HL_LIVE_WS_ENABLED: "0"
+      PYTHONUNBUFFERED: "1"
+      BASE: 6598efa7ffcac093aa7dbf847d993486c128a6d2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/c3-redcfix-1218-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pinned source and production files unchanged
+        shell: bash
+        run: |
+          git cat-file -e "$BASE^{commit}"
+          test "$(git merge-base HEAD "$BASE")" = "$BASE"
+          git diff --exit-code "$BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/HL_Copy_App_SSOT.py
+          git show -s --format='%H %P %s' HEAD
+      - name: Execute tests with Python network refused and parse result honestly
+        shell: bash
+        run: |
+          mkdir -p redc-logs netguard
+          cat > netguard/sitecustomize.py <<'PYGUARD'
+          import socket
+          def _deny(*args, **kwargs):
+              raise OSError("REDC_OFFLINE_NETWORK_DENIED")
+          socket.socket.connect = _deny
+          socket.socket.connect_ex = _deny
+          socket.create_connection = _deny
+          PYGUARD
+          export PYTHONPATH="$PWD/netguard"
+          python3 - <<'PYTEST'
+          import os, pathlib, re, subprocess, sys
+          output = pathlib.Path("redc-logs")
+          names = ["test_core_send_lock_isolation","test_core_missed_entry_rule","test_core_master_gate","test_core_observability_part1","test_core_slot_reservation_pacing","test_request_weight_followup","test_live_screen_truth"]
+          reports = ["file\tstatus\ttotal\tfailed\texit"]
+          for name in names:
+              p = pathlib.Path("_archive/hl_stage2") / (name + ".py")
+              if not p.is_file():
+                  result = (name, "CANNOT_RUN", "-", "-", "-")
+                  (output / (name+".log")).write_text("CANNOT_RUN: file absent at pinned source\n")
+              else:
+                  try:
+                      proc = subprocess.run([sys.executable, "-u", str(p)], capture_output=True, text=True, errors="replace", timeout=105, env=os.environ.copy())
+                      log = proc.stdout + "\n--- STDERR ---\n" + proc.stderr + "\nEXIT_CODE=" + str(proc.returncode) + "\n"
+                      (output / (name+".log")).write_text(log)
+                      markers = list(re.finditer(r"TOTAL=(\d+)\s+FAILED=(\d+)", log))
+                      unit = list(re.finditer(r"Ran (\d+) tests? in ", log))
+                      if "SKIP::DEPENDENCY_MISSING" in log:
+                          status, total, failed = "NOT_RUN", "-", "-"
+                      elif markers:
+                          total, failed = markers[-1].groups()
+                          status = "PASS" if int(failed) == 0 and proc.returncode == 0 else "FAIL" if int(failed) > 0 else "UNPARSED"
+                      elif unit:
+                          total = unit[-1].group(1)
+                          match = re.search(r"FAILED \(([^)]*)\)", log)
+                          if match:
+                              counts = dict((k, int(v)) for k,v in re.findall(r"(failures|errors)=(\d+)", match.group(1)))
+                              failed = str(sum(counts.values()))
+                              status = "FAIL" if int(failed) > 0 else "UNPARSED"
+                          elif re.search(r"(?m)^OK(?: \(skipped=\d+\))?$", log):
+                              failed = "0"
+                              status = "PASS" if proc.returncode == 0 else "UNPARSED"
+                          else:
+                              status, failed = "UNPARSED", "-"
+                      else:
+                          status, total, failed = "UNPARSED", "-", "-"
+                      result = (name,status,str(total),str(failed),str(proc.returncode))
+                  except subprocess.TimeoutExpired as e:
+                      (output / (name+".log")).write_text("TIMEOUT after 105 seconds\n" + str(e))
+                      result = (name,"UNPARSED","-","-","124")
+              reports.append("\t".join(result))
+              print("STATUS=%s FILE=%s TOTAL=%s FAILED=%s EXIT=%s" % (result[1],result[0],result[2],result[3],result[4]), flush=True)
+              if p.is_file():
+                  log = (output / (name+".log")).read_text(errors="replace")
+                  for line in log.splitlines():
+                      if line.startswith("RESULT::") and line.endswith("_FAIL") or line.startswith("RESULT::") and "_FAIL |" in line:
+                          print(line[:350])
+                      elif line.startswith(("FAIL:", "ERROR:", "FAILED (", "Traceback", "ModuleNotFoundError", "AttributeError", "AssertionError", "SKIP::")):
+                          print(line[:350])
+          (output/"summary.tsv").write_text("\n".join(reports)+"\n")
+          PYTEST
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c3-redcfix-1218-evidence
+          path: redc-logs/
+          retention-days: 14
+          if-no-files-found: warn
