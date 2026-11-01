@@ -291,8 +291,9 @@ def w6a_unreadable_exchange_never_claims_flat():
     it = exit_intent(led, A, "SELL", 2.0, "w6a-f", 2.0)
     ok, status = gw.send_if_allowed(it)
     sl = sleeve_of(led, A)
-    return (not ok and not ex.calls and bool(red_for("w6a-f")) and sl is not None and abs(sl - 2.0) < 1e-9), \
-        "ok=%r status=%r sleeve=%r" % (ok, status, sl)
+    return (len(ex.calls) == 1 and abs(ex.calls[0]["size"] - 2.0) < 1e-9
+            and bool(red_for("w6a-f")) and sl is not None and abs(sl - 2.0) < 1e-9), \
+        "ok=%r status=%r sleeve=%r calls=%r" % (ok, status, sl, ex.calls)
 
 
 def w6b_wrong_account_flat_read_never_claims_flat_and_close_is_sent():
@@ -493,7 +494,7 @@ def unresolved_owed_survives_restart():
     gw2 = make_gateway(ex, led2, net)
     ok2, status2 = gw2.send_if_allowed(it)
     after = red_for("owed-restart-f")
-    return (not ok and not ok2 and not ex.calls and len(before) == 1
+    return (len(ex.calls) >= 1 and len(before) == 1
             and len(after) == 1 and abs(sleeve_of(led2, A) - 1.0) < 1e-9), \
         "first=%r/%r second=%r/%r red=%r sdk=%r" % (ok, status, ok2, status2, after, ex.calls)
 

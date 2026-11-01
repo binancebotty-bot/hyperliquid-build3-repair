@@ -7214,9 +7214,18 @@ class SenderGateway:
         if audit_reason:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_AUDIT_PROOF", audit_reason)
         exchange, exchange_reason = self._persisted_exchange_positions()
-        if exchange_reason:
+        _is_exit = (lifecycle in {"REDUCE", "EXIT"} or bool(getattr(intent, "reduce_only_intended", False)))
+        # EXITS ONLY: a missing/unreadable persisted exchange snapshot is NOT
+        # disqualifying (CC1-B-GATE-OWNERSHIP-RULING). Carry the exchange net
+        # as UNKNOWN (None) - never 0.0, never "flat". ENTRIES stay fail-closed.
+        if exchange_reason and not _is_exit:
             return False, self._ownership_gate_block(intent, "OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF", exchange_reason)
-        exchange_net = fnum(exchange.get(coin_key), 0.0)
+        if exchange_reason and _is_exit:
+            exchange = None  # unreadable persisted snapshot -> unknown, never flat
+        if exchange is None:
+            exchange_net = None
+        else:
+            exchange_net = fnum(exchange.get(coin_key), 0.0)
         manual_net = self.ledger.coin_net(coin_key) if self.ledger else 0.0
         sleeves = self._manual_sleeves_for_coin(coin_key)
         live_sleeves = [(w, s) for w, s in sleeves if abs(fnum(s.get("signed_size"), 0.0)) > POSITION_EPSILON]
@@ -7226,9 +7235,12 @@ class SenderGateway:
         # ownership problem, not an entry permission problem. Blocking entries
         # here caused valid copy-required leader entries to be missed whenever
         # another wallet already had the same coin open.
-        tol = max(POSITION_EPSILON, 1e-9 * max(abs(manual_net), abs(exchange_net)))
-        unexplained = (abs(exchange_net) > abs(manual_net) + tol
-                       or (abs(exchange_net) > tol and manual_net * exchange_net < 0))
+        tol = max(POSITION_EPSILON, 1e-9 * max(abs(manual_net), abs(exchange_net) if exchange_net is not None else 0.0))
+        if exchange_net is None:
+            unexplained = False
+        else:
+            unexplained = (abs(exchange_net) > abs(manual_net) + tol
+                           or (abs(exchange_net) > tol and manual_net * exchange_net < 0))
         if lifecycle in {"ENTRY", "ADD"}:
             if unexplained:
                 # the engine could open here but never close (closes into an unexplained position are refused
@@ -7243,7 +7255,7 @@ class SenderGateway:
                 return False, block
             return True, {}
 
-        if abs(manual_net) > POSITION_EPSILON and abs(exchange_net) > POSITION_EPSILON and manual_net * exchange_net < 0:
+        if exchange_net is not None and abs(manual_net) > POSITION_EPSILON and abs(exchange_net) > POSITION_EPSILON and manual_net * exchange_net < 0:
             return False, self._ownership_gate_block(
                 intent, "OWNERSHIP_GATE_SIGN_CONFLICT",
                 "manual ledger and exchange account net have opposite signs",
