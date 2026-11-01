@@ -216,6 +216,34 @@ def main() -> None:
     check("L7_PARITY_ALLOWS_SAME_OR_BETTER", proj is not None and safe[1] == SENT,
           "entry=%s; gate present=%s (an allowed entry is only meaningful once the gate exists)" % (safe, proj is not None))
 
+    # GAP 3: prove a VALID leader plus the SAME gateway's available follower
+    # projection permits entry, but an explicitly unavailable follower
+    # projection fails closed before any fake physical send. Old L8 deliberately
+    # made the LEADER unreadable and could not reach this precise fault site.
+    gap_fake = FakeExchange()
+    gap_gate = gateway(gap_fake, c.ManualLedger(path=tmp / "gap_liq.json"))
+    projected = []
+    projected_results = [(10.0, "valid projected follower"), (None, "follower projection unavailable")]
+    def gap_projected_liq(intent, mark):
+        projected.append((intent.intent_id, mark))
+        return projected_results[min(len(projected) - 1, 1)]
+    gap_gate._follower_projected_liq_px = gap_projected_liq
+    good_leader_dist, good_leader_reason = gap_gate._leader_liq_distance(A, "BTC", 100.0, "")
+    gap_safe = gap_gate.send_if_allowed(mk_intent("ENTRY_ALLOWED", "ENTRY"))
+    gap_unknown = gap_gate.send_if_allowed(mk_intent("ENTRY_ALLOWED", "ENTRY"))
+    check("GAP_VALID_LEADER_AND_FOLLOWER_PROJECTION_ALLOWS_ENTRY",
+          good_leader_dist is not None and abs(good_leader_dist - 0.5) < 1e-9
+          and gap_safe == (True, SENT) and len(projected) >= 1
+          and gap_fake.calls == [],
+          "leader=%r reason=%r safe=%r projection_calls=%r fake_calls=%r" %
+          (good_leader_dist, good_leader_reason, gap_safe, projected, gap_fake.calls))
+    check("GAP_UNREADABLE_FOLLOWER_PROJECTION_FAILS_CLOSED",
+          good_leader_dist is not None and abs(good_leader_dist - 0.5) < 1e-9
+          and len(projected) == 2 and gap_unknown == (False, "LIQ_PARITY_BLOCKED")
+          and gap_fake.calls == [],
+          "leader=%r unknown=%r projections=%r fake_calls=%r" %
+          (good_leader_dist, gap_unknown, projected, gap_fake.calls))
+
     class Resp:
         def __init__(self, body):
             self._b = body
