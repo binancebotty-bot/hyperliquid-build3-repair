@@ -1,0 +1,63 @@
+name: C3 REDC 0955 hermetic test classification
+on:
+  push:
+    branches: [gpt/c3-redc-0955-20261101]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  redc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_POLL_ENABLED: "0"
+      HL_LIVE_MOCK_SEND: "1"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact pinned source
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD^)" = "6598efa7ffcac093aa7dbf847d993486c128a6d2"
+          git show -s --format="%H %P %s" HEAD
+          mkdir -p redc-logs
+      - name: Run all seven source tests; retain full exceptions and markers
+        shell: bash
+        run: |
+          set -u
+          set -o pipefail
+          targets=(test_send_lock_isolation test_missed_entry_rule test_master_gate test_observability_part1 test_live_screen_truth test_slot_reservation_pacing test_request_weight_followup)
+          for target in "${targets[@]}"; do
+            mapfile -t paths < <(find _archive/hl_stage2 -type f -name "*${target}*.py" -print | sort)
+            echo "TARGET=${target}; MATCHES=${#paths[@]}" | tee "redc-logs/${target}.meta"
+            if [ "${#paths[@]}" -eq 0 ]; then
+              printf 'CANNOT_RUN: missing filename substring %s at pinned SHA\n' "${target}" > "redc-logs/${target}.log"
+              continue
+            fi
+            for path in "${paths[@]}"; do
+              stem="$(basename "${path}" .py)"
+              name="${target}__${stem}"
+              echo "BEGIN:${name} PATH=${path}" | tee -a "redc-logs/${target}.meta"
+              code=0
+              timeout 90s python3 -u "${path}" > "redc-logs/${name}.log" 2>&1 || code=$?
+              echo "EXIT_CODE=${code}" >> "redc-logs/${name}.log"
+              printf 'EXIT_CODE=%d FILE=%s\n' "${code}" "${path}" | tee -a "redc-logs/${target}.meta"
+              echo "SUMMARY:${name}"
+              grep -E 'RESULT::|TOTAL=|FAILED=|Ran [0-9]+ tests|^FAILED \(|^OK$|Traceback|ImportError|ModuleNotFoundError|AssertionError|ERROR|FAIL' "redc-logs/${name}.log" | tail -n 80 || true
+            done
+          done
+      - name: Upload REDC exact logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c3-redc-0955-logs
+          path: redc-logs/
+          if-no-files-found: warn
+          retention-days: 14
