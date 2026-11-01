@@ -484,6 +484,97 @@ def hold_rows():
           "status=%r rows=%r"%(blocked,named))
     for x in named:exact_row("CONSUMED_FLAT",x)
 
+def inventory_hold_paths():
+    """High-risk previously omitted durable hold/refusal paths on pinned SenderGateway.
+
+    These are actual send_if_allowed / recovery-method calls, never invented audit
+    rows. All account/net reads, SDK and HTTP stay synthetic and fully offline.
+    """
+    cases=[
+        ("MASTER_OFF","MASTER_REAL_ORDERS_OFF","CLOSE_ESCALATION",
+         "AUTHORISED_CLOSE_REFUSAL","MASTER_REAL_ORDERS_OFF",
+         "RECONCILE_OWED_CLOSE_BEFORE_RETRY","master"),
+        ("KEY_INVALID","SEND_BLOCKED_SENDER_KEY_NOT_VALID","CLOSE_ESCALATION",
+         "AUTHORISED_CLOSE_REFUSAL","SEND_BLOCKED_SENDER_KEY_NOT_VALID",
+         "RECONCILE_OWED_CLOSE_BEFORE_RETRY","key"),
+        ("PENDING_EXIT","PENDING_EXIT_GUARD_ACTIVE","SEND_TERMINAL",
+         "PENDING_EXIT_GUARD_ACTIVE","PENDING_EXIT_GUARD",
+         "NO_SEND_PENDING_EXIT_IN_FLIGHT","pending"),
+        ("AUDIT_MISSING","OWNERSHIP_GATE_MISSING_AUDIT_PROOF","OWNERSHIP_GATE",
+         "OWNERSHIP_GATE_MISSING_AUDIT_PROOF","OWNERSHIP_CONTRACT_BLOCK",
+         "NO_SEND_OWNERSHIP_RECONCILIATION_REQUIRED","audit"),
+        ("EXCHANGE_MISSING","OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF","OWNERSHIP_GATE",
+         "OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF","OWNERSHIP_CONTRACT_BLOCK",
+         "NO_SEND_OWNERSHIP_RECONCILIATION_REQUIRED","exchange"),
+        ("ACCOUNT_MISMATCH","SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD","CLOSE_ESCALATION",
+         "AUTHORISED_CLOSE_REFUSAL","CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH",
+         "RECONCILE_OWED_CLOSE_BEFORE_RETRY","account"),
+        ("WALLET_OFF","BLOCKED_OFF","SEND_TERMINAL",
+         "BLOCKED_OFF","WALLET_MODE_BLOCK",
+         "NO_SEND_WALLET_MODE_CHANGED","wallet"),
+    ]
+    for label,status_expected,event,root_status,reason,action,inject in cases:
+        root,led,net,ex,gw,it,fid=t.make("INV_"+label,1,0,1)
+        if inject=="master":gw.cfg.master_switch_now=lambda:False
+        elif inject=="key":gw.sender_key_invalid=True
+        elif inject=="pending":gw._mark_pending_exit(it)
+        elif inject=="audit":gw._audit_proof_block_reason=lambda:"audit snapshot not proved"
+        elif inject=="exchange":gw._persisted_exchange_positions=lambda:({},"no fresh exchange snapshot")
+        elif inject=="account":
+            # Real account-mismatch method runs: swap the configured actual
+            # follower sender address to a distinct synthetic address; restore.
+            saved=os.environ.get("HL_LIVE_HL_ACCOUNT_ADDRESS")
+            os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"]=t.f.OTHER_ACCOUNT
+        elif inject=="wallet":gw.cfg.wallet_enabled=lambda wallet:False
+        try:
+            ok,status=gw.send_if_allowed(it)
+            observed=read(c.RECONCILIATION_CSV)
+            red=t.open_red(fid,it.intent_id)
+        finally:
+            if inject=="account":
+                if saved is None:os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS",None)
+                else:os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"]=saved
+        match=[row for row in observed
+               if row.get("leader_fill_id")==fid
+               and row.get("event")==event
+               and row.get("status")==root_status
+               and row.get("reject_category")==reason
+               and row.get("action")==action
+               and row.get("engine_can_send")=="False"
+               and row.get("intent_id")==it.intent_id]
+        check("INV_"+label+"_NAMED_NO_WIRE_DURABLE",
+              not ok and status==status_expected and not ex.calls
+              and bool(match) and bool(red)
+              and all(row.get("state")=="OPEN" for row in red),
+              "status=%s match=%r red=%r rows=%r"%(
+                  status,bool(match),red,
+                  [(x.get("event"),x.get("status"),x.get("reject_category"),
+                    x.get("action")) for x in observed]))
+        for row in observed:
+            if row.get("leader_fill_id")==fid:
+                exact_row("INVENTORY_"+label,row)
+
+    # Real G13 partial-fill safety path, but explicitly simulate a current
+    # ledger that MAY LAG before actual OID match: no GTC, named durable
+    # STANDING_CLOSE_NOT_PLACED plus OPEN RED (never weaken this gate).
+    root,led,net,ex,gw,it,fid=t.make("INV_PREMATCH_LAG",1,0,1)
+    gw._queue_exit_recovery_if_needed(
+        ex,COIN,it,it.fill.price,1.0,t.fstatus(9011,0.6),
+        "IOC partially filled before copy poll",remainder=0.4,sz_dec=3)
+    observed=read(c.RECONCILIATION_CSV)
+    named=[x for x in observed if x.get("event")=="EXIT_RECOVERY"
+           and x.get("status")=="STANDING_CLOSE_NOT_PLACED"
+           and x.get("action")=="NO_STANDING_CLOSE"
+           and "CLOSE_PROOF_HOLD_NO_CURRENT_LEDGER" in (x.get("notes") or "")]
+    check("INV_NO_CURRENT_LEDGER_PREMATCH_HOLD_DURABLE",
+          not ex.calls and bool(named) and bool(t.open_red(fid,it.intent_id))
+          and any(x.get("reject_category")=="CLOSE_PROOF_HOLD_NO_CURRENT_LEDGER"
+                  for x in observed if x.get("status")=="AUTHORISED_CLOSE_REFUSAL"),
+          "calls=%r named=%r rows=%r"%(ex.calls,named,observed))
+    for row in observed:
+        if row.get("leader_fill_id")==fid:exact_row("INVENTORY_NO_CURRENT_LEDGER",row)
+
+
 def main():
     for landed in ("LANDED","NOT_LANDED"):
         try:restart_case(landed)
@@ -497,6 +588,8 @@ def main():
         except Exception as exc:check("S_"+args[0]+"_HARNESS_EXCEPTION",False,repr(exc))
     try:hold_rows()
     except Exception as exc:check("H_HARNESS_EXCEPTION",False,repr(exc))
+    try:inventory_hold_paths()
+    except Exception as exc:check("INV_HARNESS_EXCEPTION",False,repr(exc))
     failed=[name for name,p in RESULTS if not p]
     print("TOTAL=%d FAILED=%d"%(len(RESULTS),len(failed)),flush=True)
     print("FAILED_LABELS="+",".join(failed),flush=True)
