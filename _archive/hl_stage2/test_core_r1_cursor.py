@@ -98,7 +98,8 @@ def main():
     core.ws.write_health = lambda: {"ws_summary": {}}
     core._daily_loss_block = lambda: ""
     core._scope_sweep_block = lambda: ""
-    core._leader_poll_due = lambda **kw: True
+    due_calls = []
+    core._leader_poll_due = lambda **kw: (due_calls.append(kw) or True)
     core.poll_wallets = lambda: [A]
     def poll_fills(wallet, start_ms, end_ms=None):
         poll_starts.append(start_ms)
@@ -114,6 +115,9 @@ def main():
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
     check("poll_queue_fixture_is_saturated", all(q.full() for q in core._hot_queues))
     first = core.run_cycle(use_source_csv=False, poll_live=True)
+    print("OBSERVE::R1_POLL_DUE=%r starts=%r wallet_mode=%r status=%r network_errors=%r" %
+          (due_calls, poll_starts, core.cfg.wallet_mode(A),
+           first.poll_loop_status, first.network_errors), flush=True)
     check("poll_fill_was_rejected_for_queue_saturation", poll_fill[0] is not None and first.leader_fills_queued == 0)
     if poll_fill[0] is None:
         raise AssertionError("HARNESS: poll callback never exercised; cursor proof invalid")
