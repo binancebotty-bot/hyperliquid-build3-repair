@@ -37,6 +37,10 @@ def main() -> None:
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000",
                        "HL_LIVE_RATE_LIMIT_COOLDOWN_MS": "0"})
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: real isolated sender lease missing"
 
     c.USER_WALLET = FOLLOWER
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100"}
@@ -85,6 +89,8 @@ def main() -> None:
         g._pre_send_ownership_gate = lambda it: (True, {})
         g.leader_reduced_since = lambda f: 0
         g._margin_mode_done = {"BTC"}
+        g._fetch_all_mids = lambda: {"BTC": 100.0}
+        g._fresh_exchange_net = lambda coin: g.ledger.coin_net(coin)
         g.cfg.master_switch_now = lambda: True
         return g
 
