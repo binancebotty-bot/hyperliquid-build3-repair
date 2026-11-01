@@ -378,7 +378,7 @@ def main() -> None:
     led = ledger(a=447.0)
     it = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=447.0, wallet=B))
     check("N8_OPPOSITE_ENTRY_NEVER_SKIPPED", c.classify_send_lifecycle(it) == "ENTRY" and it.copy_side == "SELL"
-          and "BLOCK" not in str(it.decision), f"{c.classify_send_lifecycle(it)} {it.decision}")
+          and "BLOCK" not in str(it.decision), f"{c.classify_send_lifecycle(it)} {it.decision}; reason={it.reason}")
 
     # a close rejected because the account moved first: once the records catch up it is resent without reduce-only
     led = ledger(a=447.0)
@@ -406,8 +406,10 @@ def main() -> None:
     g = gateway(fake, led)
     os.environ["HL_LIVE_NETTING_RETRY_WAIT_SEC"] = "0.6"
     ok, status, res = send_real(g, exit_intent(led, A, "SELL", 447.0))
-    check("N9_NO_CATCH_UP_NO_BLIND_RESEND", not ok and len(fake.calls) == 1 and res.get("reject_category") == "REDUCE_ONLY_REJECTED",
-          f"{status} {fake.calls}")
+    check("N9_NO_CATCH_UP_NO_BLIND_RESEND",
+          not ok and not fake.calls and status == "SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD"
+          and "CLOSE_PROOF_HOLD" in str(res.get("error", "")),
+          f"{status} {fake.calls}; {res.get('error', '')}")
 
     # ---- N10: the screen shows each coin's net and which leader holds what --------------------------------------
     ui = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8-sig")
@@ -499,8 +501,8 @@ def main() -> None:
     it = exit_intent(led, A, "SELL", 1.0)
     snapshot(1.5)   # 0.5 that no sleeve explains (e.g. the mainnet leftovers)
     ok, block = g._pre_send_ownership_gate(it)
-    check("G3_CLOSE_BLOCKED_WHEN_EXCHANGE_HOLDS_MORE", not ok and block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
-          and "MANUAL_REVIEW" in block.get("operator_action", ""), str(block.get("status")))
+    check("G3_BOUNDED_OWNED_CLOSE_ALLOWED_WITH_SAME_SIDE_FOREIGN_EXCESS",
+          ok and not block, str(block))
     snapshot(1.0)
     check("G3_CLOSE_ALLOWED_WHEN_SLEEVES_EXPLAIN_IT", g._pre_send_ownership_gate(it)[0])
     snapshot(0.5)   # the exchange holds less (our own close/fill not seen yet): a reduce-only close can't touch others
@@ -508,7 +510,8 @@ def main() -> None:
     led2 = ledger(a=1.0, b=-1.0)
     snapshot(0.7)
     g2 = gateway(FakeExchange(), led2)
-    check("G3_NETTED_LEADERS_WITH_A_RESIDUAL_BLOCKED", not g2._pre_send_ownership_gate(exit_intent(led2, A, "SELL", 1.0))[0])
+    check("G3_NETTED_OWNED_CLOSE_ALLOWED_WITH_SAME_SIDE_FOREIGN_EXCESS",
+          g2._pre_send_ownership_gate(exit_intent(led2, A, "SELL", 1.0))[0])
     entry_it = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", wallet=B))
     snapshot(1.0)
     check("G3_ENTRIES_ALLOWED_WHEN_EXPLAINED", c.classify_send_lifecycle(entry_it) == "ENTRY" and g._pre_send_ownership_gate(entry_it)[0])
@@ -522,7 +525,8 @@ def main() -> None:
     check("G3_ENTRIES_FINE_WHEN_EXCHANGE_HOLDS_LESS", g._pre_send_ownership_gate(entry_it)[0])
     # lag: the exchange shows our fill before the ledger does; the close waits for the records instead of failing
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
-        A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
+        A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000},
+        B: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
     os.environ.update({"HL_LIVE_UNEXPLAINED_WAIT_SEC": "4", "HL_LIVE_MOCK_SEND": "1"})
     led = ledger(a=1.0)
     snapshot(2.0)
@@ -564,9 +568,10 @@ def main() -> None:
     g.truth_refresh = a_close_reaches_ledger
     ok, status = g.send_if_allowed(it)
     check("G3_SIGN_CONFLICT_FROM_LAG_WAITED_FOR", ok and status == "MOCK_ORDER_SENT", status)
-    # a real unexplained position survives fresh truth: blocked, with refreshes bounded
+    # A real opposite-sign exchange/ledger mismatch remains a close HOLD:
+    # same-side foreign excess must NOT block an owned close.
     led = ledger(a=1.0)
-    snapshot(1.5)
+    snapshot(-1.5)
     g = gateway(FakeExchange(), led)
     it = exit_intent(led, A, "SELL", 1.0)
     it.decision = "EXIT_ALLOWED"
@@ -574,9 +579,10 @@ def main() -> None:
     g.truth_refresh = lambda: calls.append(1)
     os.environ["HL_LIVE_UNEXPLAINED_WAIT_SEC"] = "3"
     ok, status = g.send_if_allowed(it)
-    check("G3_REAL_UNEXPLAINED_STILL_BLOCKED", not ok and status == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
+    check("G3_REAL_SIGN_CONFLICT_STILL_BLOCKED", not ok and status == "OWNERSHIP_GATE_SIGN_CONFLICT"
           and 1 <= len(calls) <= 3, f"{status} {len(calls)}")
-    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if "UNEXPLAINED" in str(r.get("status", ""))] \
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+            if any(key in str(r.get("status", "")) for key in ("UNEXPLAINED", "SIGN_CONFLICT"))] \
         if hasattr(c, "RECONCILIATION_CSV") else [1]
     check("G3_BLOCK_RECORDED_FOR_THE_SCREEN", bool(rows))
     os.environ.pop("HL_LIVE_MOCK_SEND", None)
