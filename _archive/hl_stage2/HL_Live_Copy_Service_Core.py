@@ -7515,8 +7515,8 @@ class SenderGateway:
                                                   bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre, intent=intent, path="exit_recovery")
             ok, status, oid, error = self._parse_hl_response(recovery_response)
-            import sys as _d; print('DBG2 placed ok=%r status=%r oid=%r err=%r' % (ok,status,oid,error), file=_d.stderr, flush=True)
-            self._recovery_intent_ids.add(intent.intent_id)
+            if ok and oid:
+                self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
                 with self._resting_lock:
                     self._standing_closes[intent.sleeve_id] = {
@@ -9723,12 +9723,13 @@ class SenderGateway:
                 filled = self._filled_size(response)
                 left = self._floor_wire_size(round(wire_size - filled, 10), sz_dec) if filled > 0 else 0.0
                 if left > 0:
-                    try:
-                        self._open_close_escalation(intent, "CEILING_EXCESS_OWED")
-                    except Exception as exc:
-                        log_error("close_escalation_write_failed", exc)
                     self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response,
                                                         f"close part-filled {filled} of {wire_size}", remainder=left, sz_dec=sz_dec)
+                    try:
+                        if intent.sleeve_id not in getattr(self, "_standing_closes", {}):
+                            self._open_close_escalation(intent, "CEILING_EXCESS_OWED")
+                    except Exception as exc:
+                        log_error("close_escalation_write_failed", exc)
             return ok, status, {
                 "exchange_response": response, "oid": oid,
                 "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
