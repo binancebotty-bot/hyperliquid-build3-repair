@@ -1,0 +1,87 @@
+name: Coder One REDA six-file hermetic classification
+on:
+  push:
+    branches: [gpt/coder1-reda-0955-20261101]
+    paths: [.github/workflows/coder1_reda_0955.yml]
+permissions:
+  contents: write
+jobs:
+  six-file-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_POLL_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_UNEXPLAINED_WAIT_SEC: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Verify exact immutable Core baseline
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD^)" = "6598efa7ffcac093aa7dbf847d993486c128a6d2"
+          git diff --exit-code 6598efa7ffcac093aa7dbf847d993486c128a6d2 HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          python3 --version
+      - name: Run all six real test files without engine edits
+        id: run
+        shell: bash
+        run: |
+          set -u
+          mkdir -p evidence/coder1_reda_0955
+          printf 'SOURCE_SHA=6598efa7ffcac093aa7dbf847d993486c128a6d2\nWORKFLOW_SHA=%s\n' "$(git rev-parse HEAD)" > evidence/coder1_reda_0955/environment.txt
+          python3 --version >> evidence/coder1_reda_0955/environment.txt
+          for label in append_truncate disk_full liq_parity margin_gate_and_single_terminal off_path_skip r1_cursor; do
+            file="_archive/hl_stage2/test_core_${label}.py"
+            log="evidence/coder1_reda_0955/${label}.log"
+            if test ! -f "$file"; then
+              printf 'CANNOT_RUN missing file %s\n' "$file" > "$log"
+              rc=127
+            else
+              (cd _archive/hl_stage2 && timeout --signal=TERM --kill-after=5s 120s python3 -u "test_core_${label}.py") > "$log" 2>&1
+              rc=$?
+            fi
+            printf '%s\t%s\t%s\n' "$label" "$rc" "$file" >> evidence/coder1_reda_0955/exit-codes.tsv
+            echo "=== ${label} exit=${rc} ==="
+            grep -E 'RESULT::|FINDING::|TOTAL=|FAILED=|FAILED:|Traceback|Error|Exception|AssertionError' "$log" | tail -n 60 || true
+          done
+          python3 - <<'PY'
+          import pathlib,re,csv
+          base=pathlib.Path("evidence/coder1_reda_0955")
+          lines=["# Coder One six-file hermetic run","",
+          "Immutable Core source: `6598efa7ffcac093aa7dbf847d993486c128a6d2`",
+          "No exchange/network/signing; testnet, sends off. Detailed logs are in attached Actions artifact.","",
+          "| File | Exit | Named observations (verbatim RESULT and summary lines) |","|---|---|---|"]
+          for label,code,path in csv.reader((base/"exit-codes.tsv").open(),delimiter="\t"):
+              data=(base/f"{label}.log").read_text(errors="replace").splitlines()
+              observed=[x.strip() for x in data if re.search(r"RESULT::|FINDING::|TOTAL=|FAILED=|FAILED:|Traceback|Error|Exception|AssertionError",x)]
+              text="<newline>".join(observed[-80:]) if observed else "(no named cases; inspect full log)"
+              text=text.replace("|",r"\|").replace("&#","&amp;#")[:16000]
+              lines.append(f"| {path} | {code} | {text} |")
+          (base/"results.md").write_text("\n".join(lines)+"\n")
+          PY
+          (cd evidence/coder1_reda_0955 && sha256sum *.log exit-codes.tsv results.md environment.txt > SHA256SUMS.txt)
+          cat evidence/coder1_reda_0955/exit-codes.tsv
+      - name: Upload six verbatim logs, exits and digests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coder1-reda-0955-six-file-logs
+          path: evidence/coder1_reda_0955/
+          if-no-files-found: warn
+      - name: Commit observed run summary to this test-only branch
+        if: always()
+        shell: bash
+        run: |
+          test -f evidence/coder1_reda_0955/results.md || exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/coder1_reda_0955/results.md evidence/coder1_reda_0955/exit-codes.tsv evidence/coder1_reda_0955/environment.txt evidence/coder1_reda_0955/SHA256SUMS.txt
+          git commit -m "evidence: six pinned hermetic test observations" || exit 0
+          git push origin HEAD:gpt/coder1-reda-0955-20261101 || echo "SUMMARY_PUSH_BLOCKED; see uploaded artifact"
