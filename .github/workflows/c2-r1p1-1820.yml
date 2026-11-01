@@ -72,10 +72,10 @@ jobs:
           set -e
           cd "$GITHUB_WORKSPACE"
           printf 'PYTHON_EXIT=%s\n' "$rc" | tee evidence/c2-r1p1-1820/exit.txt
-          grep '^RESULT::.*_FAIL' evidence/c2-r1p1-1820/run4.log | tee evidence/c2-r1p1-1820/failing-results.txt
+          grep -E '^RESULT::[^[:space:]]+_FAIL([[:space:]]|$)' evidence/c2-r1p1-1820/run4.log | tee evidence/c2-r1p1-1820/failing-results.txt
           grep '^TOTAL=' evidence/c2-r1p1-1820/run4.log | tail -1 | tee evidence/c2-r1p1-1820/total.txt
           test "$rc" -eq 1
-          test "$(grep -c '^RESULT::.*_FAIL' evidence/c2-r1p1-1820/run4.log)" -eq 2
+          test "$(grep -Ec '^RESULT::[^[:space:]]+_FAIL([[:space:]]|$)' evidence/c2-r1p1-1820/run4.log)" -eq 2
           grep -q '^RESULT::R1_RECOVERY_PHYSICAL_ATTEMPT_TERMINAL_AND_MATCHER_BOUND_FAIL' evidence/c2-r1p1-1820/run4.log
           grep -q '^RESULT::P1_GTC_ATTEMPT_AND_MATCHER_LIFECYCLE_FAIL' evidence/c2-r1p1-1820/run4.log
           grep -q '^TOTAL=65 FAILED=2$' evidence/c2-r1p1-1820/run4.log
