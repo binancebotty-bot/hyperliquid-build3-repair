@@ -276,14 +276,16 @@ class RequestWeightFollowupTests(unittest.TestCase):
                                                   intent=intent)
             self.assertEqual(response.get("status"), "ok")
             self.assertEqual(len(fake.calls), 1, "same fixture must have a positive physical fake send")
-            self.assertEqual(entry_gateway._last_exchange_order_ms, now_ms,
-                             "429 must not defer an ENTRY beyond the short slot pacing")
-            self.assertEqual(sleeps, [], "8 second HTTP429 cooldown violates Boss's no-entry-pause rule")
             entry_gateway.cfg.send_mode_now = lambda: "OFF"
             blocked = entry_gateway._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False,
                                                   intent=intent)
             self.assertIn("MASTER_REAL_ORDERS_OFF", str(blocked))
             self.assertEqual(len(fake.calls), 1, "OFF negative must prevent another physical call")
+            # Assert the ruled pacing after both positive and OFF negative are exercised:
+            # a 429 delay must still fail this case, never conceal the real wire proof.
+            self.assertEqual(entry_gateway._last_exchange_order_ms, now_ms,
+                             "429 must not defer an ENTRY beyond the short slot pacing")
+            self.assertEqual(sleeps, [], "8 second HTTP429 cooldown violates Boss's no-entry-pause rule")
 
 
 if __name__ == "__main__":
