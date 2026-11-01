@@ -1,0 +1,37 @@
+name: Coder One specfix against integration (offline)
+on:
+  push:
+    branches: [gpt/coder1-specfix-0936-integration]
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_POLL_ENABLED: "0"
+      HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS: "0"
+      HL_LIVE_UNEXPLAINED_WAIT_SEC: "0"
+      HL_LIVE_MISSED_ENTRY_RULE: "0"
+      HL_LIVE_TEST_LOCAL_BLOCK_SEND_ATTEMPT: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify engine unchanged and execute all acceptance checks
+        shell: bash
+        run: |
+          git diff --exit-code 6598efa7ffcac093aa7dbf847d993486c128a6d2 HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          (cd _archive/hl_stage2 && python3 -u test_c1_acceptspecs_2395.py) 2>&1 | tee acceptance-output.txt
+          exit ${PIPESTATUS[0]}
+      - name: Preserve actual test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coder1-specfix-0936-output
+          path: acceptance-output.txt
+          if-no-files-found: warn
