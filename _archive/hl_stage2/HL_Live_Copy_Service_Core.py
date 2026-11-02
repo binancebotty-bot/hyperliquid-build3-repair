@@ -8308,6 +8308,8 @@ class SenderGateway:
         state = timing if isinstance(timing, dict) else {}
         def decide(kind: str, amount: float = 0.0, ro: bool = False, why: str = "") -> Tuple[bool, float, str]:
             state["close_decision"] = kind
+            if kind == "SEND":
+                state["close_verified_sz_decimals"] = sz_dec
             return ro, amount, why
         if not self.ledger or ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
@@ -12434,17 +12436,20 @@ def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 200
         if account_value <= 0:
             return False                       # an unreadable/zero account is not a data point
         total_notional = 0.0
+        unrealized = 0.0
         for ap in raw.get("assetPositions") or []:
             pos = ap.get("position") if isinstance(ap, dict) else None
             if isinstance(pos, dict):
                 total_notional += abs(fnum(pos.get("positionValue"), 0.0))
+                unrealized += fnum(pos.get("unrealizedPnl"), 0.0)
         history.append({
             "timestamp": snapshot.get("created_at") or utc_now_iso(),
             "account_value": account_value,
             "unified_portfolio_value": account_value,
+            "portfolio_value": account_value,
             "unified_portfolio_value_source": value_source,
             "withdrawable": fnum(raw.get("withdrawable"), 0.0),
-            "unrealized_pnl": None,
+            "unrealized_pnl": unrealized,
             "open_position_count": len(raw.get("assetPositions") or []),
             "manual_live_exposure": total_notional,
             "seeded": False,
