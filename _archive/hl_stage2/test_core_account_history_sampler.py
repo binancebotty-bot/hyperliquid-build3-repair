@@ -85,6 +85,34 @@ try:
           and hist[0].get('seeded') is False,
           'entry=%r' % (hist[0] if hist else None,))
 
+    # WITNESS for the engine's additive history keys. The screen's S11 check is satisfied by the fixture it
+    # writes itself, so NOTHING else in the lane fails if these keys regress; this is the only place the
+    # writer is actually read back. portfolio_value must be the point's own account_value, and
+    # unrealized_pnl must be the SUM of assetPositions[].unrealizedPnl (two positions, distinct values,
+    # neither equal to the account value) - not a placeholder and not a single position.
+    witness_dir = Path(tempfile.mkdtemp(prefix='accthist_witness_'))
+    try:
+        C.AUDIT_DIR = witness_dir
+        pnl_snap = snap(value=0.0)
+        pnl_snap['raw']['assetPositions'] = [
+            {'position': {'coin': 'A0', 'positionValue': '10.0', 'unrealizedPnl': '6.5'}},
+            {'position': {'coin': 'A1', 'positionValue': '20.0', 'unrealizedPnl': '0.1'}},
+        ]
+        C.append_account_history_point(pnl_snap)
+        wpath = witness_dir / 'exchange_account_history.json'
+        wh = json.loads(wpath.read_text()) if wpath.exists() else []
+        pt = wh[-1] if wh else {}
+        check('THE_POINT_RECORDS_PORTFOLIO_VALUE_AS_THE_ACCOUNT_VALUE',
+              len(wh) == 1 and pt.get('portfolio_value') == 80.0 and pt.get('account_value') == 80.0,
+              'points=%d point=%r' % (len(wh), pt))
+        check('THE_POINT_RECORDS_THE_SUMMED_OPEN_PNL',
+              len(wh) == 1 and isinstance(pt.get('unrealized_pnl'), (int, float))
+              and abs(float(pt.get('unrealized_pnl')) - 6.6) < 1e-9,
+              'points=%d unrealized_pnl=%r (two positions 6.5 + 0.1)' % (len(wh), pt.get('unrealized_pnl')))
+    finally:
+        C.AUDIT_DIR = tmp
+        shutil.rmtree(witness_dir, ignore_errors=True)
+
     reads_before = len(_reads)
     again = C.append_account_history_point(snap())
     hist = json.loads(path.read_text())

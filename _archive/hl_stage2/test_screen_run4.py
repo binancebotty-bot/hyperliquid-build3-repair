@@ -306,10 +306,29 @@ def main() -> None:
     ui.atomic_write_json(ui.EXCHANGE_ACCOUNT_HISTORY_FILE, [
         {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 7200_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1300, "unified_portfolio_value": 1440.0, "open_position_count": 0},
         {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1310, "unified_portfolio_value": 1449.0, "open_position_count": 0},
-        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "portfolio_value": 1418.0, "unrealized_pnl": 6.6, "open_position_count": 1},
     ])
     EXCHANGE["positions"] = [{"coin": "BTC", "szi": 0.3, "mark": 120.0, "entry": 98.0, "upnl": 6.6}]
     ui._ACCOUNT_VALUE_CACHE.clear()
+    # The newest history point is produced by the ENGINE writer, never written by this fixture: a value the test
+    # wrote itself proves nothing about append_account_history_point (review round 2, defect 1 - the old check read
+    # back its own fixture and still passed with the engine hunk fully reverted). The unified read is forced
+    # unreadable so the engine records its own snapshot equity on the documented fallback, with the summed
+    # assetPositions unrealizedPnl - so the S11_HISTORY assertion below is RED if the engine stops writing
+    # portfolio_value or goes back to a None PnL placeholder.
+    import HL_Live_Copy_Service_Core as engine
+    _eng_snapshot = {
+        "created_at": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(),
+        "raw": {"marginSummary": {"accountValue": "1418.0"}, "withdrawable": "1300",
+                "assetPositions": [{"position": {"coin": "BTC", "positionValue": "36.0", "unrealizedPnl": "6.6"}}]}}
+    _real_post_many, _real_scope = engine._XNET.post_many, engine.follower_dex_scope
+    engine.follower_dex_scope = lambda: ["", "xyz"]                     # a non-default scope whose read fails
+    engine._XNET.post_many = lambda *a, **k: [{"ok": False}]            # -> unified unreadable -> equity fallback
+    try:
+        appended = engine.append_account_history_point(_eng_snapshot, min_gap_sec=0.0)
+    finally:
+        engine._XNET.post_many, engine.follower_dex_scope = _real_post_many, _real_scope
+    check("S11_HISTORY_POINT_IS_WRITTEN_BY_THE_ENGINE", appended is True,
+          "append_account_history_point -> %r" % (appended,))
     # The screen's exchange figures now come from a background reader with a 60 s TTL (`_exchange_slow_cached`), so a
     # fresh EXCHANGE state must be pulled and handed to that cache the same way `_exchange_slow_refresh` does;
     # otherwise the tally is computed against the pre-run snapshot (no open position) and the figures stay blank.
