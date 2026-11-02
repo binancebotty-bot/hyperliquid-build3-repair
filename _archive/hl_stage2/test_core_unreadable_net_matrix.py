@@ -21,9 +21,12 @@ from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(
-    Path(tempfile.mkdtemp(prefix="h2-net-matrix-")) / "offline.lock"
-)
+_OFFLINE_DIR = Path(tempfile.mkdtemp(prefix="h2-net-matrix-"))
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(_OFFLINE_DIR / "offline.lock")
+os.environ["HL_LIVE_ENV_FILE"] = str(_OFFLINE_DIR / "nonexistent.env")
+os.environ["HL_LEADER_NETWORK"] = "testnet"
+os.environ["HL_FOLLOWER_NETWORK"] = "testnet"
+os.environ["HL_LIVE_UNEXPLAINED_WAIT_SEC"] = "0"
 # Deny every outbound TCP connection, including accidental SDK fallthrough.
 _ORIGINAL_CONNECT = socket.socket.connect
 def _deny_connect(sock, address):
@@ -106,7 +109,7 @@ def stub_gateway(context, read_fault):
             [] if missing_sleeve else [(LEADER, {"signed_size": 1.0})]),
         _ownership_gate_block=lambda intent, status, reason, *a: {
             "status": status, "terminal_state": status, "error": reason,
-            "operator_action": "HOLD_OWED_UNREADABLE", "exchange_called": False},
+            "operator_action": "NO_SEND_OWNERSHIP_BLOCK", "exchange_called": False},
         _append_local_block_reconciliation=lambda intent, status, row:
             audit_rows.append(("OWNERSHIP_GATE", status, dict(row))),
         audit=types.SimpleNamespace(append_reconciliation=lambda *a, **kw:
@@ -130,7 +133,7 @@ def stub_gateway(context, read_fault):
     gw._fresh_exchange_net = _fresh
     def _send(intent, timing=None):
         sends.append({"id": intent.intent_id, "copy_side": intent.copy_side})
-        return True, "ORDER_FILLED", {"exchange_called": True, "reject_category": ""}
+        return False, "HARNESS_SEND_INTERCEPTED", {"exchange_called": False, "reject_category": ""}
     gw._send_real = _send
     return gw, sends, audit_rows, escalations, reads, account
 
@@ -205,8 +208,8 @@ def run_cell(read_fault, context, phase):
                 "wrong_account", "foreign_exposure")
             # Close must read twice when it has usable ownership data and
             # precision; missing sleeve may legitimately hold before any read.
-            reread_ok = len(reads) == (0 if context == "missing_ownership" else 3)
-            # 1 direct preflight fresh reader + 2 inside _close_net_with_reread.
+            reread_ok = len(reads) == (0 if context == "missing_ownership" else 2)
+            # Direct fresh preflight above is independent; 2 reads inside close recheck.
             owned_send = (decision == "SEND" and abs(amount - 1.0) < 1e-10 and
                           ro is False and bool(escalations))
             safe_hold = (decision == "HOLD" and amount == 0 and ro is False and
