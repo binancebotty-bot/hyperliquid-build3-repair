@@ -117,6 +117,22 @@ def write_csv(path: Path, rows):
         w.writerows(rows)
 
 
+def wait_for_exchange_snapshot() -> bool:
+    """The screen takes its exchange figures off the request path (ui: `_exchange_slow_cached`, TTL 60 s), so a
+    page load only KICKS a background read. Wait for that read to land before reading the summary, instead of
+    asserting on a value that is legitimately still blank. Offline and bounded: the fake urlopen returns at once."""
+    deadline = time.time() + 10.0
+    while time.time() < deadline:
+        cached = ui.load_json(ui.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+        if isinstance(cached, dict) and cached.get("ok") and cached.get("available"):
+            with ui._SLOW_EXCHANGE_LOCK:
+                seeded = bool(ui._SLOW_EXCHANGE.get("snapshot"))
+            if seeded:
+                return True
+        time.sleep(0.05)
+    return False
+
+
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="screen_run4_"))
     env_file = tmp / "stage2.env"
@@ -158,7 +174,7 @@ def main() -> None:
     check("S1_LIVE_WALLET_COUNT_SEPARATE", top["live_wallets"] == 2, str(top["live_wallets"]))
     check("S1_ONE_LABEL_ON_SCREEN", "REAL ORDERS:" not in panel and "lcAutoSend" not in panel and "Real order sending" not in panel
           and "MASTER REAL ORDERS" not in panel and "const armed=lcAudit.master_real_orders_enabled===true" in panel
-          and ">Sending<" in panel and "Live wallets: ${liveCount}" in panel)
+          and ">Sending<" in panel and "${liveCount} live" in panel)
 
     # ---- S2 calm health ---------------------------------------------------------------------------------
     H = ui._build_health_summary
@@ -290,10 +306,17 @@ def main() -> None:
     ui.atomic_write_json(ui.EXCHANGE_ACCOUNT_HISTORY_FILE, [
         {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 7200_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1300, "unified_portfolio_value": 1440.0, "open_position_count": 0},
         {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1310, "unified_portfolio_value": 1449.0, "open_position_count": 0},
-        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "open_position_count": 1},
+        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "portfolio_value": 1418.0, "unrealized_pnl": 6.6, "open_position_count": 1},
     ])
     EXCHANGE["positions"] = [{"coin": "BTC", "szi": 0.3, "mark": 120.0, "entry": 98.0, "upnl": 6.6}]
     ui._ACCOUNT_VALUE_CACHE.clear()
+    # The screen's exchange figures now come from a background reader with a 60 s TTL (`_exchange_slow_cached`), so a
+    # fresh EXCHANGE state must be pulled and handed to that cache the same way `_exchange_slow_refresh` does;
+    # otherwise the tally is computed against the pre-run snapshot (no open position) and the figures stay blank.
+    _fresh = ui._fetch_exchange_account_snapshot()
+    with ui._SLOW_EXCHANGE_LOCK:
+        ui._SLOW_EXCHANGE.update({"snapshot": _fresh, "follower": ui._follower_account_value_safe(),
+                                  "built_at": time.time()})
     ui.atomic_write_json(ui.LIVE_COPY_CONFIG_FILE, {**cfg, "auto_send_enabled": True})
     ui.atomic_write_json(ui.LIVE_COPY_SERVICE_STATE_FILE, fresh_state(resting_entry_limits=2))
     ui._AUDIT_SUMMARY_CACHE.clear()
