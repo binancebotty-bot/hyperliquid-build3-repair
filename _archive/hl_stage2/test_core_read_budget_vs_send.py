@@ -14,6 +14,7 @@ import socket
 import sys
 import tempfile
 import threading
+import types
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,6 +37,21 @@ os.environ.update({
     "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0",
     "HL_LIVE_HTTP_SESSION": "0",
 })
+# No installer/download: provide a deliberately non-networking requests seam
+# when the isolated runner has no optional requests package installed.
+try:
+    import requests  # noqa: F401
+except ModuleNotFoundError:
+    _rq = types.ModuleType("requests")
+    class _DeniedSession:
+        def request(self, *_a, **_k):
+            raise AssertionError("REAL_SESSION_REQUEST_DENIED")
+    def _denied_post(*_a, **_k):
+        raise AssertionError("REAL_REQUESTS_POST_DENIED")
+    _rq.Session = _DeniedSession
+    _rq.post = _denied_post
+    sys.modules["requests"] = _rq
+
 import HL_Live_Copy_Service_Core as core  # noqa: E402
 import headroom  # noqa: E402
 
