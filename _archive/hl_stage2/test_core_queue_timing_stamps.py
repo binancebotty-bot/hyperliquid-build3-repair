@@ -50,6 +50,13 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     core._already_handled = lambda _fill: True
     core._guard_key = lambda fill: fill.leader_fill_id
     core._release_queued = lambda batch, q: [q.task_done() for _ in batch]
+    core._fill_trace_condition = threading.Condition()
+    import collections
+    core._fill_trace_buffer = collections.deque(maxlen=c.FILL_TRACE_QUEUE_MAX)
+    core._fill_trace_dropped = 0
+    core._fill_trace_writer_done = False
+    core._fill_trace_writer = threading.Thread(target=core._fill_trace_writer_loop, daemon=True, name="HLCore-fill-trace-writer")
+    core._fill_trace_writer.start()
 
     fills = [
         c.LeaderFill(f"fill-{i}", "wallet-a", f"COIN-{i}", "BUY", 1.0, 1.0,
@@ -119,9 +126,19 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     core._fill_trace("cycle_start", None, {"cycle_id": 7})
     core._fill_trace("cycle_end", None, {"cycle_id": 7, "duration_ms": 12})
     trace = Path(tmp) / "fill_trace.jsonl"
-    rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
-    if not any(row.get("k") == "queue_depth" and row.get("hot_depth") == [0]
+    deadline = time.monotonic() + 5.0
+    rows = []
+    while time.monotonic() < deadline:
+        if trace.exists():
+            try:
+                rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
+            except json.JSONDecodeError:
+                rows = []
+        if any(row.get("k") == "queue_depth" and row.get("hot_depth") == [0]
                and row.get("priority_depth") == [0] for row in rows):
+            break
+        time.sleep(0.05)
+    else:
         raise AssertionError("10-second queue-depth sample was not written to the append-only trace")
     drained_ids = {row.get("id") for row in rows if row.get("k") == "batch_drained"}
     if drained_ids != {fill.leader_fill_id for fill in fills}:
