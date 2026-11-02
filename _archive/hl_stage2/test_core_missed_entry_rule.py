@@ -44,11 +44,16 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="missedentry_"))
+    (tmp / "append_only").mkdir(parents=True, exist_ok=True)
     os.environ.update({"HL_LIVE_LIQ_PARITY": "0", "HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    orig_cache_refresh = c._send_cache_refresh
+    c._send_cache_refresh = lambda: (c._SEND_ROWS_CACHE.update({"rows": None}), orig_cache_refresh())[1]
+    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+    c.ensure_csv_header(c.RECONCILIATION_CSV, c.RECONCILIATION_FIELDS)
     # C7-WO-1-R95 lease: the sender refuses unless the engine already owns the machine-
     # wide lease. Acquire it as the real engine does at start, in an ISOLATED temp lock
     # path so the live machine lock is never opened.
@@ -122,6 +127,7 @@ def main() -> None:
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
     def gateway(fake):
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
         # sends ON: the gate re-reads the mode at the physical call, so BOTH accessors must say ON
         gw.cfg.master_switch_now = lambda: True
@@ -132,13 +138,23 @@ def main() -> None:
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        gw._unowned_inventory_block = lambda f: ""
+        gw._proven_owned_for_sleeve = lambda w, k: (10.0, "fills")
+        gw._close_proof_account_ok = lambda: True
+        gw._follower_order_account_for_proof = lambda: c.USER_WALLET
+        gw._final_close_proof = lambda intent, size, ro, timing: ""
+        gw._reduce_only_on_wire = lambda intent, size: True
+        gw._fresh_exchange_net = lambda coin: 10.0
         return gw
 
     def send(gc, side="BUY", follower=100.0, leader=None, replies=None, f=None, sleeve=0.0):
+        c._SEND_ROWS_CACHE["rows"] = None
         config(**gc)
         led = c.ManualLedger(path=tmp / f"l{seq[0]}.json")
         if sleeve:
-            led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
+            s = led.sleeve(LEADER, "BTC")
+            s["signed_size"] = sleeve
+            s["direction"] = "LONG"
         intent = c.IntentBuilder(c.ConfigManager(), led).build(f or fill(side))
         # earlier scenarios' limits count as filled: one resting entry per wallet/coin/side (run 4) is tested in M9
         reg = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}) or {}
@@ -198,7 +214,7 @@ def main() -> None:
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
         check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
-        check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
+        check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), f"status={status} res={res} calls={fake.calls}")
     finally:
         c.LEADER_NETWORK = saved_leader
 
@@ -662,8 +678,9 @@ def main() -> None:
     before = st["last_leader_poll_cursor_ms"][LEADER]
     check("R7_CURSOR_SEED_IS_INSIDE_THE_RETENTION_WINDOW", before > c.utc_now_ms() - c.LEADER_POLL_RETENTION_MS,
           "%s %s" % (before, c.LEADER_POLL_RETENTION_MS))
-    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([], "POLL_OK")
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([], "POLL_PARTIAL")
     core.sender.sender_key_invalid = "User or API Wallet does not exist"
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
     # instrumented so a rare failure says WHY: was the flag still set, and what did the hold branch keep
