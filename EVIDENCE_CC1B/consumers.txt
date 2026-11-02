@@ -1,0 +1,136 @@
+# consumers of account-history point / portfolio_value / unrealized_pnl
+# scope: repo py+html+js, excluding clone_test/, anonymous_clone_t_*/, hermes/scratch-C/, .worktrees/, graphify-out/, certification/results/ (harness mirrors)
+
+===== PATTERN: append_account_history_point =====
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2602:    # The ENGINE owns this file now (append_account_history_point in the cycle). Two processes doing read/modify/write
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12403:def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 2000,
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12462:            log_error("append_account_history_point_failed", exc)
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12501:                append_account_history_point(snapshot)
+_archive/hl_stage2/test_core_account_history_sampler.py:102:        C.append_account_history_point(s, max_points=3)
+_archive/hl_stage2/test_core_account_history_sampler.py:28:if not hasattr(C, 'append_account_history_point'):
+_archive/hl_stage2/test_core_account_history_sampler.py:7:FAILING FIRST on 41d8aa9: append_account_history_point does not exist.
+_archive/hl_stage2/test_core_account_history_sampler.py:73:    wrote = C.append_account_history_point(snap(value=0.0))
+_archive/hl_stage2/test_core_account_history_sampler.py:89:    again = C.append_account_history_point(snap())
+_archive/hl_stage2/test_core_account_history_sampler.py:97:    C.append_account_history_point  # keep the reference used above
+_archive/hl_stage2/test_core_xyz_equity_not_double_source.py:31:    wrote = C.append_account_history_point(xyz_snapshot())
+
+===== PATTERN: exchange_account_history =====
+_archive/hl_stage2/HL_Copy_App_SSOT.py:101:EXCHANGE_ACCOUNT_HISTORY_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_history.json"
+_archive/hl_stage2/HL_Copy_App_SSOT.py:1696:        "exchange_account_history": exchange_history,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:7745:  const hist=lcAudit.exchange_account_history||lcAudit.exchange_history||[];
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12414:        path = AUDIT_DIR / "exchange_account_history.json"
+_archive/hl_stage2/test_core_account_history_sampler.py:63:    path = tmp / 'exchange_account_history.json'
+_archive/hl_stage2/test_core_xyz_equity_not_double_source.py:30:    hist = os.path.join(tmp, 'exchange_account_history.json')
+
+===== PATTERN: portfolio_value =====
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2326:_TALLY_VALUE_KEYS = (("portfolio_value", "whole-account portfolio value"),
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2327:                     ("unified_portfolio_value", "unified portfolio value (spot USDC total)"),
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2601:def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str, Any], portfolio_value: Optional[float] = None) -> None:
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2617:        "unified_portfolio_value": fnum(snapshot.get("unified_portfolio_value")) if is_present_num(snapshot.get("unified_portfolio_value")) else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2629:        "portfolio_value": fnum(portfolio_value) if is_present_num(portfolio_value) else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2652:        "portfolio_value": fnum(follower_account.get("value")) if follower_account.get("ok") and is_present_num(follower_account.get("value")) else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2653:        "unified_portfolio_value": fnum(exchange_snapshot.get("unified_portfolio_value")) if exchange_snapshot.get("available") and is_present_num(exchange_snapshot.get("unified_portfolio_value")) else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2769:        unified_portfolio_value: Optional[float] = None
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2770:        unified_portfolio_value_source = ""
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2775:            unified_portfolio_value = fnum(usdc_balance.get("total"))
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2776:            unified_portfolio_value_source = "spotClearinghouseState.balances[coin=USDC].total"
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2830:            "unified_portfolio_value": unified_portfolio_value,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2831:            "unified_portfolio_value_source": unified_portfolio_value_source,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2922:    unified_value = exchange_snapshot.get("unified_portfolio_value")
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2942:            baseline["baseline_unified_portfolio_value"] = fnum(unified_value)
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2943:            baseline["baseline_source"] = exchange_snapshot.get("unified_portfolio_value_source") or ""
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2955:    elif isinstance(baseline, dict) and acct and has_unified and not is_present_num(baseline.get("baseline_unified_portfolio_value")):
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2956:        baseline["baseline_unified_portfolio_value"] = fnum(unified_value)
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2957:        baseline["baseline_source"] = exchange_snapshot.get("unified_portfolio_value_source") or ""
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2972:    baseline_unified = fnum(baseline.get("baseline_unified_portfolio_value")) if isinstance(baseline, dict) and is_present_num(baseline.get("baseline_unified_portfolio_value")) else None
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2974:    account_value_source = exchange_snapshot.get("unified_portfolio_value_source") if has_unified else exchange_snapshot.get("raw_total_usd_source") or ""
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2978:        "baseline_unified_portfolio_value": baseline_unified,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2985:        "current_unified_portfolio_value": fnum(unified_value) if has_unified else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:7746:  const hasUnified=hist.some(p=>isNum(p.unified_portfolio_value));
+_archive/hl_stage2/HL_Copy_App_SSOT.py:7748:  const visible=filterScale(hist.map(p=>({timestamp:p.timestamp||p.updated_at||'', timestamp_ms:tsOf(p), value:hasUnified?num(p.unified_portfolio_value,NaN):num(p.account_value,NaN)}))).filter(p=>isNum(p.value)).sort((a,b)=>a.timestamp_ms-b.timestamp_ms);
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12446:            "unified_portfolio_value": account_value,
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12447:            "portfolio_value": account_value,
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12448:            "unified_portfolio_value_source": value_source,
+_archive/hl_stage2/test_core_account_history_sampler.py:76:          and hist[0].get('unified_portfolio_value') == 80.0,
+_archive/hl_stage2/test_core_account_history_sampler.py:78:    check('THE_GRAPH_USES_UNIFIED_ACCOUNT_VALUE', bool(hist) and hist[0].get('unified_portfolio_value') == 80.0
+_archive/hl_stage2/test_screen_run4.py:307:        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 7200_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1300, "unified_portfolio_value": 1440.0, "open_position_count": 0},
+_archive/hl_stage2/test_screen_run4.py:308:        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1310, "unified_portfolio_value": 1449.0, "open_position_count": 0},
+_archive/hl_stage2/test_screen_run4.py:309:        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "portfolio_value": 1418.0, "unrealized_pnl": 6.6, "open_position_count": 1},
+_archive/hl_stage2/test_screen_run4.py:341:    check("S11_HISTORY_RECORDS_OPEN_PNL_AND_PORTFOLIO", hist and hist[-1].get("portfolio_value") == 1418.0
+_archive/hl_stage2/test_screen_run4.py:420:    hist5 = [{"timestamp_ms": RUN_START_MS - 60_000, "unified_portfolio_value": 1449.0},
+_archive/hl_stage2/test_screen_run4.py:421:             {"timestamp_ms": RUN_START_MS + 60_000, "unified_portfolio_value": 1447.0}]
+_archive/hl_stage2/test_screen_run4.py:427:    check("R5_FIRST_VALUE_SAVED", s1["saved"] and saved.get("run_key") == 111 and saved.get("entry", {}).get("unified_portfolio_value") == 1449.0, str(saved)[:200])
+_archive/hl_stage2/test_screen_run4.py:429:    check("R5_REUSED_AFTER_RESTART", s2["saved"] and s2["ms"] == s1["ms"] and s2["entry"]["unified_portfolio_value"] == 1449.0, str(s2))
+_archive/hl_stage2/test_screen_run4.py:431:    check("R5_NEW_RUN_RECOMPUTES", s3["entry"]["unified_portfolio_value"] == 1447.0 and ui.load_json(ui.PNL_RUN_START_FILE, {}).get("run_key") == 222, str(s3))
+_archive/hl_stage2/test_screen_run4.py:433:    t5 = ui._build_pnl_tally({"available": True, "unified_portfolio_value": 1418.0, "pnl_tally_inputs": {}},
+_archive/hl_stage2/test_screen_run4.py:481:    tl = ui._build_pnl_tally({"available": True, "unified_portfolio_value": 1418.0, "unrealized_pnl": 0.0,
+certification/gen_matrix.py:266:        "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.", "renderGraph")
+
+===== PATTERN: unrealized_pnl =====
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2628:        "unrealized_pnl": fnum(snapshot.get("unrealized_pnl")) if is_present_num(snapshot.get("unrealized_pnl")) else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2670:    u_now = fnum(exchange_snapshot.get("unrealized_pnl")) if is_present_num(exchange_snapshot.get("unrealized_pnl")) else None
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2671:    if is_present_num(entry.get("unrealized_pnl")):
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2672:        u_start, u_start_note = fnum(entry.get("unrealized_pnl")), "recorded at start"
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2807:                "unrealized_pnl": upnl,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2843:            "unrealized_pnl": unrealized,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2844:            "unrealized_pnl_source": "sum(assetPositions.position.unrealizedPnl)",
+_archive/hl_stage2/HL_Copy_App_SSOT.py:2991:        "exchange_unrealized_pnl": fnum(exchange_snapshot.get("unrealized_pnl")) if exchange_snapshot.get("available") else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3472:            "unrealized_pnl": None if _account_only else perf.get("unrealized_pnl_estimate"),
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3487:            "live_unrealized_pnl": None if _account_only else perf.get("live_unrealized_pnl"),
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3590:            "unrealized_pnl": None if is_shared or unsafe_external_status else owned_unrealized,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3626:                "unrealized_pnl": None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3662:                "unrealized_pnl": None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3698:                "unrealized_pnl": _exchange_field(ex, "unrealized_pnl") or None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:3758:            "unrealized_pnl": row.get("unrealized_pnl"),
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4296:                "unrealized_pnl": owned_upnl if exchange_available and not pending else None,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4306:        unrealized_pnl: Optional[float] = None if unrealized_unknown else round(total_unrealized, 4)
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4308:        if pnl_status == "N/A" and open_positions and unrealized_pnl is not None:
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4319:        elif unrealized_pnl is None:
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4322:            net_pnl = round(realized_pnl + unrealized_pnl - fnum(wallet_fees), 4)
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4376:            "unrealized_pnl_estimate": unrealized_pnl,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:4391:            "live_unrealized_pnl": unrealized_pnl,
+_archive/hl_stage2/HL_Copy_App_SSOT.py:7827: const upnl=snap.available&&snap.unrealized_pnl!=null?('$'+Number(snap.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'<span class="lc-grey" title="exchange not readable">—</span>';
+_archive/hl_stage2/HL_Copy_App_SSOT.py:7829: const upnlCls=signCls(snap.unrealized_pnl);
+_archive/hl_stage2/HL_Copy_App_SSOT.py:7971:  const real=d.realized_pnl, unreal=d.unrealized_pnl, net=d.net_pnl, st=d.pnl_status||'N/A';
+_archive/hl_stage2/HL_Copy_App_SSOT.py:8016: out+=`<span>Open: <b class="${signCls(perf.live_unrealized_pnl)}">${moneyOrDash(perf.live_unrealized_pnl,perf.unrealized_reason)}</b></span>`;
+_archive/hl_stage2/HL_Copy_App_SSOT.py:8033:  out+=openPos.map(p=>{const em=String(p.exchange_match||'');const stCls=(em==='MATCH'||em==='OWNED_FULLY_SUPPORTED')?'lc-green':(em.indexOf('PENDING')>=0||em.indexOf('UNSUPPORTED')>=0)?'lc-amber':'lc-grey';return `<tr><td><b>${h(p.coin)}</b></td><td>${pill(p.side||'—',p.side||'')}</td><td class="${p.signed_size>0?'lc-pos':'lc-neg'}">${h(p.signed_size)}</td><td>${p.entry_px!=null?h(p.entry_px):'n/a'}</td><td>${p.mark_px!=null?h(p.mark_px):'n/a'}</td><td class="${signCls(p.unrealized_pnl)}">${moneyOrDash(p.unrealized_pnl,'no live price or ledger/exchange disagree')}</td><td>${moneyFmt(p.exposure)||'n/a'}</td><td><span class="lc-pill ${stCls}">${h(p.exchange_match||'?')}</span></td></tr>`;}).join('');
+_archive/hl_stage2/HL_Copy_App_SSOT.py:8132:  const upnlCls=r.unrealized_pnl!=null?(Number(r.unrealized_pnl)>0?'lc-pos':Number(r.unrealized_pnl)<0?'lc-neg':''):'';
+_archive/hl_stage2/HL_Copy_App_SSOT.py:8133: const upnlStr=r.unrealized_pnl!=null?('$'+Number(r.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'—';
+_archive/hl_stage2/HL_Live_Copy_Service.py:2084:            "realized_pnl": 0.0, "unrealized_pnl": 0.0, "notional": 0.0,
+_archive/hl_stage2/HL_Live_Copy_Service.py:2091:        unrealized = sum(fnum(p.get("unrealized_pnl")) for p in wallet_positions)
+_archive/hl_stage2/HL_Live_Copy_Service.py:2717:            "unrealized_after": round(fnum(pos.get("unrealized_pnl")), 8),
+_archive/hl_stage2/HL_Live_Copy_Service.py:2756:            "unrealized_pnl": unrealized, "notional": abs(new_signed * fill.price),
+_archive/hl_stage2/HL_Live_Copy_Service_Core.py:12450:            "unrealized_pnl": unrealized,
+_archive/hl_stage2/test_screen_run4.py:220:        "BTC": {"coin": "BTC", "signed_size": 0.3, "mark_px": 120.0, "entry_px": 98.0, "unrealized_pnl": 6.6, "position_value": 36.0},
+_archive/hl_stage2/test_screen_run4.py:221:        "SOL": {"coin": "SOL", "signed_size": 3.0, "mark_px": 20.0, "entry_px": 21.0, "unrealized_pnl": -3.0, "position_value": 60.0}}}
+_archive/hl_stage2/test_screen_run4.py:227:    check("S3_WALLET_A_CLOSED_OPEN_NET", abs(pa["live_realized_pnl"] - 5) < 1e-9 and abs(pa["live_unrealized_pnl"] - 10) < 1e-9
+_archive/hl_stage2/test_screen_run4.py:228:          and abs(pa["fees"] - 0.2) < 1e-9 and abs(pa["live_net_pnl"] - 14.8) < 1e-9, str({k: pa[k] for k in ("live_realized_pnl", "live_unrealized_pnl", "fees", "live_net_pnl")}))
+_archive/hl_stage2/test_screen_run4.py:229:    check("S3_WALLET_B_CLOSED_OPEN_NET", abs(pb["live_realized_pnl"] + 2) < 1e-9 and abs(pb["live_unrealized_pnl"] + 3) < 1e-9
+_archive/hl_stage2/test_screen_run4.py:230:          and abs(pb["live_net_pnl"] + 5.09) < 1e-9, str({k: pb[k] for k in ("live_realized_pnl", "live_unrealized_pnl", "fees", "live_net_pnl")}))
+_archive/hl_stage2/test_screen_run4.py:309:        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "portfolio_value": 1418.0, "unrealized_pnl": 6.6, "open_position_count": 1},
+_archive/hl_stage2/test_screen_run4.py:342:          and abs((hist[-1].get("unrealized_pnl") or 0) - 6.6) < 1e-9, str(hist[-1:]))
+_archive/hl_stage2/test_screen_run4.py:400:        "BTC": {"coin": "BTC", "signed_size": -0.5, "mark_px": 105.0, "entry_px": 110.0, "unrealized_pnl": 2.5, "position_value": 52.5}}}
+_archive/hl_stage2/test_screen_run4.py:403:    check("R3_FLIP_USES_REPLAY_AVERAGE", abs(pf["live_realized_pnl"] - 10) < 1e-9 and abs(pf["live_unrealized_pnl"] - 2.5) < 1e-9,
+_archive/hl_stage2/test_screen_run4.py:404:          str({k: pf.get(k) for k in ("live_realized_pnl", "live_unrealized_pnl")}))
+_archive/hl_stage2/test_screen_run4.py:481:    tl = ui._build_pnl_tally({"available": True, "unified_portfolio_value": 1418.0, "unrealized_pnl": 0.0,
+
+
+===== FINDINGS (read-only analysis) =====
+HISTORY POINT PRODUCER: _archive/hl_stage2/HL_Live_Copy_Service_Core.py:12403 append_account_history_point -> writes AUDIT_DIR/exchange_account_history.json (:12414), called from the engine cycle at :12501
+
+ACCOUNT-HISTORY POINT CONSUMERS (all read the JSON list; none reads point.unrealized_pnl today):
+  HL_Copy_App_SSOT.py:1628 loads EXCHANGE_ACCOUNT_HISTORY_FILE for the pnl tally
+  HL_Copy_App_SSOT.py:1695 publishes lcAudit.exchange_history
+  HL_Copy_App_SSOT.py:1696 publishes lcAudit.exchange_account_history
+  HL_Copy_App_SSOT.py:1701 publishes account_points
+  HL_Copy_App_SSOT.py:2358 _pnl_tally_start re-reads the file for the seeded-start label
+  HL_Copy_App_SSOT.py:2370 _pnl_tally_start picks the start record
+  HL_Copy_App_SSOT.py:7745 JS graph hist=lcAudit.exchange_account_history||exchange_history
+  HL_Copy_App_SSOT.py:7748 JS graph plots unified_portfolio_value (fallback account_value) - NOT portfolio_value, NOT unrealized_pnl
+  HL_Copy_App_SSOT.py:2326/2376 _TALLY_VALUE_KEYS=(portfolio_value, unified_portfolio_value) start-record selection
+
+portfolio_value: producer Core:12447 (new); consumer SSOT:2326/2376 via _TALLY_VALUE_KEYS; dead writer SSOT:2601 _append_exchange_history returns at :2605 (UI no longer writes history); no JS read of point.portfolio_value.
+
+unrealized_pnl: history point Core:12450 (new; was hardcoded None); SSOT:2628,2670-2672 are in the dead _append_exchange_history path - no live consumer. The UI Open-PnL comes from the live exchange snapshot, not history: SSOT:2991 exchange_unrealized_pnl, :4306-4322 unrealized_pnl/net_pnl, :4376 unrealized_pnl_estimate, :4391 live_unrealized_pnl; JS :7827-7829, :7971, :8016, :8033, :8132-8133. Engine: HL_Live_Copy_Service.py:2091,:2717,:2756.
+
+TESTS asserting the new fields: test_screen_run4.py:341 S11_HISTORY_RECORDS_OPEN_PNL_AND_PORTFOLIO, :342 unrealized_pnl==6.6; test_core_account_history_sampler.py:75,78,81,84,91,93,104 (point shape/throttle/cap).
