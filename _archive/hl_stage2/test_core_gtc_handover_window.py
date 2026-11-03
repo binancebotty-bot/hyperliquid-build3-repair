@@ -107,10 +107,10 @@ def main():
     started = threading.Event()
     gate = threading.Event()
     orig_register = g._register_resting_entry
-    def patched(intent, sdk_coin, oid, px, size, why, cloid="", attempt_id=""):
+    def patched(intent, sdk_coin, oid, px, size, why, *args, **kwargs):
         started.set()
         gate.wait(timeout=5)
-        return orig_register(intent, sdk_coin, oid, px, size, why, cloid=cloid, attempt_id=attempt_id)
+        return orig_register(intent, sdk_coin, oid, px, size, why)
     g._register_resting_entry = patched
 
     def worker():

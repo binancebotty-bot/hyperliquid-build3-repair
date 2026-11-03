@@ -6960,9 +6960,12 @@ class SenderGateway:
         wallet, key = normalise_wallet(wallet), canonical_coin_key(coin)
         with self._resting_lock:
             for row in self._resting_entries.values():
-                if (row.get("leader_wallet") == wallet and canonical_coin_key(row.get("coin")) == key
-                        and row.get("side") == side and not row.get("withdrawing") and not row.get("withdraw_pending")
-                        and self._row_open_size(row) > 0):
+                if not (row.get("leader_wallet") == wallet and canonical_coin_key(row.get("coin")) == key
+                        and row.get("side") == side and not row.get("withdrawing") and not row.get("withdraw_pending")):
+                    continue
+                if row.get("reserved"):
+                    return dict(row)
+                if self._row_open_size(row) > 0:
                     return dict(row)
         return None
 
