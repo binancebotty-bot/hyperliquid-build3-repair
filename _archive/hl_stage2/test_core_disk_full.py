@@ -177,6 +177,10 @@ def main() -> None:
     os.environ.pop("HL_LIVE_MOCK_SEND", None)          # the real send path, with a fake exchange
     import requests
     import HL_Live_Copy_Service_Core as c
+    # Actual OS-backed isolated sender lease; no gate monkeypatch.
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -190,7 +194,7 @@ def main() -> None:
     def write_cfg():
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True,
                                                  "global_controls": {"min_notional": 1},
-                                                 "wallets": {LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed",
+                                                 "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed",
                                                                       "fixed_notional": 100}}})
 
     write_cfg()
@@ -209,6 +213,7 @@ def main() -> None:
     s._leader_state = lambda wallet, dex="": ({"assetPositions": [{"position": {"coin": "", "liquidationPx": "60"}}]}, "ok")
     s._follower_projected_liq_px = lambda intent, mark: (mark * 0.1, "test fact")
     s._ensure_margin_mode = lambda *a, **k: None
+    os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
 
     def intent(lifecycle="ENTRY", side="BUY", size=1.0, reduce_only=False, fid="j1"):
         fill = c.LeaderFill(fid, LEADER, "BTC", side, 100.0, size, c.utc_now_ms(), "TEST")
@@ -223,9 +228,19 @@ def main() -> None:
         return [str(r.get("context") or "") for r in errors()]
 
     def intent_rows():
+        c.flush_intent_writer(30.0)  # intent rows are written behind the send; read them once the writer is idle
         return c.read_csv_rows(c.ORDER_INTENTS_CSV) if c.ORDER_INTENTS_CSV.exists() else []
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig", errors="replace")
+
+    # Positive same-gateway real-gate control: before a write fault,
+    # the fake exchange must actually see exactly one wire call.
+    positive_exchange = FakeExchange()
+    s._get_exchange_client = lambda *_a, **_k: positive_exchange
+    positive_ok, positive_status = s.send_if_allowed(intent(fid="positive"))
+    check("POSITIVE_SEND_REAL_LEASE_REACHES_FAKE_EXCHANGE",
+          positive_ok and len(positive_exchange.calls) == 1,
+          "status=%r calls=%r" % (positive_status, positive_exchange.calls))
 
     # ================= (a) order_intents append fails BEFORE any send =================
     # Judged at _run_plan, the production worker boundary that wraps _process_leader_fill.
@@ -239,10 +254,12 @@ def main() -> None:
             core._run_plan(0, [it_a.fill])
         except BaseException as exc:  # noqa: BLE001 - the point of the check
             raised_a = exc
+        c.flush_intent_writer(30.0)  # the intent row is written behind the send: its failure is recorded by the writer
     check("A1_NO_ORDER_SENT_WHEN_INTENT_ROW_CANNOT_BE_WRITTEN", fake_a.calls == [], "exchange calls=%d" % len(fake_a.calls))
     check("A2_FAILURE_CONTAINED_AT_THE_WORKER_BOUNDARY", raised_a is None,
           "the intent-append failure escaped _run_plan: %r" % (raised_a,))
-    check("A3_LOUD_RECORD_OF_THE_FAILURE", ("ws_hot_send" in error_contexts() or "process_leader_fill" in error_contexts()),
+    check("A3_LOUD_RECORD_OF_THE_FAILURE", ("ws_hot_send" in error_contexts() or "process_leader_fill" in error_contexts()
+                                              or "intent_write_behind" in error_contexts()),
           "errors.csv contexts=%s" % error_contexts()[-3:])
     it_a2 = intent(fid="a2")
     core.intents_by_id[it_a2.intent_id] = it_a2
@@ -271,6 +288,7 @@ def main() -> None:
     fake_b = FakeExchange()
     s._get_exchange_client = lambda *_a, **_k: fake_b
     raised_b, status_b = None, None
+    c._close_audit_handle(c.SEND_ATTEMPTS_CSV)  # reset cached writer before fault injection
     with Inject(c, {"send_attempts.csv"}):
         try:
             _sent, status_b = s.send_if_allowed(intent(fid="b"))
@@ -286,11 +304,21 @@ def main() -> None:
     s._get_exchange_client = lambda *_a, **_k: fake_b3
     it_b3 = intent(fid="b3")
     raised_b3, status_b3 = None, None
+    # Force the live pending row to close its cached file handle, so the
+    # second/final append opens anew and the real file-system fault fires.
+    c._close_audit_handle(c.SEND_ATTEMPTS_CSV)
+    original_begin = s._begin_pending_send
+    def _pending_then_close(*args, **kwargs):
+        pending_id = original_begin(*args, **kwargs)
+        c._close_audit_handle(c.SEND_ATTEMPTS_CSV)
+        return pending_id
+    s._begin_pending_send = _pending_then_close
     with Inject(c, {"send_attempts.csv"}, skip=1):   # 1st append ok (pending), 2nd fails (final row)
         try:
             _sent_b3, status_b3 = s.send_if_allowed(it_b3)
         except BaseException as exc:  # noqa: BLE001
             raised_b3 = exc
+    s._begin_pending_send = original_begin
     rows_b3 = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("intent_id") == it_b3.intent_id]
     expect_cloid = c.generate_cloid(it_b3.intent_id)
     pending_ok = len(rows_b3) == 1 and rows_b3[0].get("status") == "pending_send" and rows_b3[0].get("cloid") == expect_cloid

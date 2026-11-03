@@ -51,6 +51,10 @@ def main() -> None:
                        "HL_LIVE_MOCK_SEND": "1", "HL_LIVE_LIQ_PARITY": "1", "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    c.acquire_global_instance_lock(tmp / "state")  # actual OS lease; physical gate intact
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
+    os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -135,7 +139,15 @@ def main() -> None:
 
     # margin mode refused by the exchange: an ENTRY must be refused (MARGIN_MODE_UNSET); a CLOSE still goes
     fake_bad = FakeExchange(raise_on_leverage=True)
-    gb = gateway(fake_bad, c.ManualLedger(path=tmp / "l3.json"))
+    owned_ledger = c.ManualLedger(path=tmp / "l3.json")
+    owned_ledger.sleeve(A, "BTC")["signed_size"] = 1.0
+    owned_ledger._recompute_net(owned_ledger.data)
+    gb = gateway(fake_bad, owned_ledger)
+    # Same-account, opposing actual exchange net with a documented owned sleeve.
+    gb._fresh_exchange_net = lambda coin: 1.0
+    gb._persisted_exchange_positions = lambda: ({"BTC": 1.0}, "")
+    gb._follower_order_account_for_proof = lambda: FOLLOWER
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
     ent_ok, ent_status, _ = send_real(gb, mk_intent("ENTRY_ALLOWED", "ENTRY"))
     cl_ok, cl_status, _ = send_real(gb, mk_intent("EXIT_ALLOWED", "EXIT", "SELL", 1.0, 1.0))
     check("L3_MARGIN_MODE_FAILURE_BLOCKS_ENTRY_NOT_CLOSE",

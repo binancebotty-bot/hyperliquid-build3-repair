@@ -12,9 +12,12 @@ import socket
 import subprocess
 import threading
 import time
+import contextvars
+from contextlib import contextmanager
 from collections import deque
 from pathlib import Path
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 INFO_LIMIT_PER_MIN = int(os.getenv("HL_LIVE_INFO_WEIGHT_LIMIT", "1200"))
 WS_USER_QUOTA_DEFAULT = int(os.getenv("HL_LIVE_WS_USER_QUOTA", "15"))
@@ -30,6 +33,34 @@ _ACTIONS = {
     "ws_foreign": ["ASK_BOSS_STOP_OR_CAP_OTHER_WS_CLIENT", "SHED_LEADER"],
 }
 FOREIGN_SCAN_SEC = float(os.getenv("HL_LIVE_FOREIGN_WS_SCAN_SEC", "30"))
+_REQUEST_LANE = contextvars.ContextVar("hl_request_lane", default="hot")
+_SESSION_REQUEST_MONITOR = None
+_WEIGHT_TL = threading.local()   # set while exchange_truth.http_post posts: it notes its own weight, the session counter must not
+
+
+@contextmanager
+def suppress_session_weight():
+    """http_post counts the weight of its own attempts; the session counter (which sees the same Session.request)
+    must not add it a second time."""
+    prev = getattr(_WEIGHT_TL, "skip", False)
+    _WEIGHT_TL.skip = True
+    try:
+        yield
+    finally:
+        _WEIGHT_TL.skip = prev
+
+
+@contextmanager
+def request_lane(lane: str):
+    token = _REQUEST_LANE.set(str(lane or "hot"))
+    try:
+        yield
+    finally:
+        _REQUEST_LANE.reset(token)
+
+
+def current_request_lane() -> str:
+    return _REQUEST_LANE.get()
 
 
 def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any]:
@@ -91,6 +122,7 @@ class HeadroomMonitor:
         self._lock = threading.Lock()
         self._clock = clock
         self._info: Dict[str, Deque[Tuple[float, int]]] = {}   # host -> (time, weight) within the last 60 s
+        self._http_requests: Dict[Tuple[int, str, str, str, str], int] = {}
         self._level: Dict[str, str] = {}                        # resource -> current level
         self._below_since: Dict[str, float] = {}                # resource -> time it first read lower than its level
         self._last: Dict[str, Dict[str, Any]] = {}
@@ -112,6 +144,36 @@ class HeadroomMonitor:
             while d and now - d[0][0] > 60.0:
                 d.popleft()
 
+    def note_request(self, url: str, payload: Any, lane: str, status_code: Any) -> None:
+        parsed = urlsplit(str(url))
+        host, path = (parsed.hostname or "").lower(), parsed.path.rstrip("/") or "/"
+        if host == "api.hyperliquid.xyz":
+            network = "mainnet_exchange" if path.endswith("/exchange") else "mainnet_read" if path.endswith("/info") else "mainnet_other"
+        elif host == "api.hyperliquid-testnet.xyz":
+            network = "testnet_exchange" if path.endswith("/exchange") else "testnet_read" if path.endswith("/info") else "testnet_other"
+        else:
+            return
+        action = payload.get("action") if isinstance(payload, dict) else None
+        endpoint = payload.get("type") if isinstance(payload, dict) else None
+        if not endpoint and isinstance(action, dict):
+            endpoint = action.get("type")
+        endpoint = str(endpoint or path.lstrip("/") or "unknown")
+        status = str(status_code if status_code is not None else "NO_RESPONSE")
+        minute_ms = int(self._clock() * 1000) // 60000 * 60000
+        key = (minute_ms, endpoint, str(lane or "hot"), network, status)
+        with self._lock:
+            self._http_requests[key] = self._http_requests.get(key, 0) + 1
+            oldest = minute_ms - 60 * 60 * 1000
+            for old in [k for k in self._http_requests if k[0] < oldest]:
+                del self._http_requests[old]
+
+    def http_requests_by_minute(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [
+                {"minute_ms": minute, "endpoint": endpoint, "lane": lane, "network": network,
+                 "status": status, "count": count}
+                for (minute, endpoint, lane, network, status), count in sorted(self._http_requests.items())
+            ]
     def info_used(self, host: str) -> int:
         now = self._clock()
         with self._lock:
@@ -188,6 +250,7 @@ class HeadroomMonitor:
             else:
                 out["ws_foreign_scan"] = {"ok": False, "error": f.get("error", "not scanned yet")}
         out["refusals"] = list(self.refusals[-5:])
+        out["http_requests_by_minute"] = self.http_requests_by_minute()
         out["worst"] = max((v["level"] for v in out.values() if isinstance(v, dict) and "level" in v), key=LEVELS.index, default="OK")
         if any(k.startswith("refusal:") and v == "CRITICAL" for k, v in self._level.items()):
             out["worst"] = "CRITICAL"
@@ -238,6 +301,120 @@ class HeadroomMonitor:
             pass
 
 
+def install_session_counter(monitor: HeadroomMonitor) -> None:
+    """Count the Hyperliquid SDK's sessions, including requests made during SDK construction."""
+    global _SESSION_REQUEST_MONITOR
+    import requests
+
+    _SESSION_REQUEST_MONITOR = monitor
+    current = requests.Session.request
+    if getattr(current, "_headroom_counter", False):
+        return
+
+    def counted_request(session: Any, method: str, url: str, *a: Any, **k: Any) -> Any:
+        active = _SESSION_REQUEST_MONITOR
+        lane = "hot-send" if urlsplit(str(url)).path.rstrip("/").endswith("/exchange") else current_request_lane()
+        try:
+            response = current(session, method, url, *a, **k)
+        except Exception as exc:
+            if active is not None:
+                active.note_request(url, k.get("json"), lane,
+                                    getattr(getattr(exc, "response", None), "status_code", None))
+                _note_session_weight(active, method, url, k.get("json"), None)  # dispatched: weight may have been spent
+            raise
+        if active is not None:
+            active.note_request(url, k.get("json"), lane, getattr(response, "status_code", None))
+            _note_session_weight(active, method, url, k.get("json"), response)
+        return response
+
+    counted_request._headroom_counter = True
+    requests.Session.request = counted_request
+
+
+_ROW_TYPES = ("userFills", "userFillsByTime", "historicalOrders", "userFunding")   # weight = 20 + rows // 20 (info_weight)
+_LAST_ROWS: Dict[str, int] = {}
+_LAST_ROWS_LOCK = threading.Lock()
+
+
+_FAILED_ROW_MAX = 100000
+
+
+def _failed_row_default() -> int:
+    """HL_LIVE_FAILED_ROW_ESTIMATE, parsed only when needed: non-finite, negative or unparsable -> 500; clamped to 100000."""
+    try:
+        v = float(os.getenv("HL_LIVE_FAILED_ROW_ESTIMATE") or 500)
+        if v != v or v in (float("inf"), float("-inf")) or v < 0:
+            return 500
+        return min(_FAILED_ROW_MAX, int(v))
+    except (OverflowError, ValueError, TypeError):
+        return 500
+
+
+def _rows_for(payload: Any, response: Any) -> int:
+    """Row count that prices a row-scaled /info read. A seen response records the per-type last count; a dispatched
+    request that raised (response None: the server may still have processed it) is charged the last observed count for
+    that type, else HL_LIVE_FAILED_ROW_ESTIMATE (default 500). Non-row types always 0."""
+    t = str(payload.get("type") if isinstance(payload, dict) else "")
+    if response is None:
+        if t not in _ROW_TYPES:
+            return 0
+        with _LAST_ROWS_LOCK:
+            cached = _LAST_ROWS.get(t)
+        if cached is not None:
+            return cached
+        return _failed_row_default()
+    rows = 0
+    try:
+        j = response.json()
+        rows = len(j) if isinstance(j, list) else 0
+    except Exception:
+        pass
+    if t in _ROW_TYPES and getattr(response, "status_code", 200) != 429 and rows:
+        with _LAST_ROWS_LOCK:
+            _LAST_ROWS[t] = rows
+    return rows
+
+
+def _note_session_weight(monitor, method, url, payload, response):
+    """SDK-session /info posts (Info client: meta, spotMeta, ...) spend weight too. /exchange and non-/info add none;
+    skipped while http_post is counting its own attempt (exactly once)."""
+    if getattr(_WEIGHT_TL, "skip", False) or str(method).upper() != "POST":
+        return
+    try:
+        parsed = urlsplit(str(url))
+        if parsed.path.rstrip("/").endswith("/info") and parsed.hostname:
+            note_shared_http(url, payload, response, monitor)
+    except Exception:
+        pass
+
+
+def note_shared_http(url, payload, response, monitor=None):
+    """Feed the /info WEIGHT budget for a read that went through the shared keep-alive session
+    (exchange_truth.http_post), which never passes through CountingRequests.post. Without this,
+    every post_many read (openOrders sweeps, per-DEX reads) was weight info_used never saw, so the
+    graded figure was a floor, not a total. The request COUNT is already covered by
+    install_session_counter; this adds only the weight (and a 429 refusal)."""
+    monitor = monitor if monitor is not None else _SESSION_REQUEST_MONITOR
+    if monitor is None:
+        return
+    try:
+        parsed = urlsplit(str(url))
+        if not parsed.path.rstrip("/").endswith("/info"):
+            return
+        host = (parsed.hostname or "").lower()
+        if not host:
+            return
+        try:
+            rows = _rows_for(payload, response)
+        except Exception:  # an estimate failure must never skip the charge: base weight at least
+            rows = 0
+        monitor.note_info(host, payload, rows)
+        if getattr(response, "status_code", 200) == 429:
+            monitor.note_refusal("info:" + host, "HTTP 429 from /info")
+    except Exception:
+        pass
+
+
 class CountingRequests:
     """Stands in for the `requests` module: delegates everything, and counts /info POSTs by host weight."""
 
@@ -250,17 +427,32 @@ class CountingRequests:
         return getattr(self._real, name)
 
     def post(self, url: str, *a: Any, **k: Any) -> Any:
+        lane = current_request_lane()
         real_post = self._real.post   # looked up at call time: patches on the real module still apply
+        shared_http = False
         if (getattr(real_post, "__module__", "") == "requests.api" and not a and "json" in k
                 and set(k) <= {"json", "timeout"}):
             try:
                 import exchange_truth as _xt  # one shared keep-alive session: a bare post opens a new TCP+TLS connection per read
-                resp = _xt.http_post(url, k.get("json"), k.get("timeout"))
+                shared_http = True
+                resp = _xt.http_post(url, k.get("json"), k.get("timeout"), self._monitor)
             except ImportError:
                 resp = real_post(url, *a, **k)
+            except Exception as exc:
+                if not shared_http:
+                    self._monitor.note_request(url, k.get("json"), lane,
+                                               getattr(getattr(exc, "response", None), "status_code", None))
+                raise
         else:
-            resp = real_post(url, *a, **k)
-        if url in self._urls:
+            try:
+                resp = real_post(url, *a, **k)
+            except Exception as exc:
+                self._monitor.note_request(url, k.get("json"), lane,
+                                           getattr(getattr(exc, "response", None), "status_code", None))
+                raise
+        if not shared_http:
+            self._monitor.note_request(url, k.get("json"), lane, getattr(resp, "status_code", None))
+        if url in self._urls and not shared_http:   # the shared path already noted its weight in http_post
             try:
                 host = str(url).split("//", 1)[-1].split("/", 1)[0]
                 rows = 0
