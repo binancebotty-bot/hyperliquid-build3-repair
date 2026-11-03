@@ -171,9 +171,16 @@ def run_cell(read_fault, context, phase):
             raw_label = type(raw).__name__
         else:
             raw_label = repr(raw)
-        note("FRESH_READER_CLASSIFIES", phase, read_fault, context,
-             raw is None, "raw=%s" % raw_label,
-             "typed unreadable; never guessed flat")
+        # Characterization is reported separately; None/0.0 are not safe
+        # typed failures, even when the observed return is reproducible.
+        reason = raw.get("reason") if isinstance(raw, dict) else getattr(raw, "reason", None)
+        typed_unreadable = (raw is not None and not isinstance(raw, (int, float))
+                            and isinstance(reason, str) and bool(reason.strip()))
+        print("OBSERVED::FRESH_READER::%s::%s::%s::raw=%s" %
+              (phase, read_fault, context, raw_label))
+        note("FRESH_UNREADABLE_REASON_PRESERVED", phase, read_fault, context,
+             typed_unreadable, "raw=%s;reason=%r" % (raw_label, reason),
+             "typed unreadable with explicit cause; never guessed flat")
         if phase == "entry":
             # Real pre-send ownership logic / real send lane. All sends are fake.
             try:
@@ -203,24 +210,20 @@ def run_cell(read_fault, context, phase):
             except Exception as exc:
                 ro, amount, why, decision = False, 0.0, type(exc).__name__, "EXCEPTION"
                 error = "%s:%s" % (type(exc).__name__, str(exc)[:80])
-            requires_hold = context in (
-                "global_close_only", "missing_ownership", "missing_fills",
-                "wrong_account", "foreign_exposure")
             # Close must read twice when it has usable ownership data and
             # precision; missing sleeve may legitimately hold before any read.
             reread_ok = len(reads) == (0 if context == "missing_ownership" else 2)
             # Direct fresh preflight above is independent; 2 reads inside close recheck.
-            owned_send = (decision == "SEND" and abs(amount - 1.0) < 1e-10 and
-                          ro is False and bool(escalations))
+            # A fill-proven sleeve does NOT prove an exchange net is readable.
+            # Characterize SEND in actual=, but never score non-RO SEND green
+            # while the fresh net is unreadable/malformed.
             safe_hold = (decision == "HOLD" and amount == 0 and ro is False and
                          bool(why) and bool(escalations))
-            outcome = (safe_hold if requires_hold else owned_send)
             note("CLOSE_REVALIDATE_OWNED_RO_AND_RED", phase, read_fault, context,
-                 reread_ok and outcome,
+                 reread_ok and safe_hold,
                  "decision=%s;size=%s;ro=%s;why=%s;reads=%d;RED=%s;error=%s" %
                  (decision, amount, ro, why, len(reads), escalations, error),
-                 ("HOLD + named reason + RED owed" if requires_hold
-                  else "one reread, SEND only fill-proven 1.0, RO false, RED owed"))
+                 "HOLD + named reason + RED owed; never SEND on unreadable fresh net")
 
 for _r in READ_FAULTS:
     for _ctx in CONTEXTS:
