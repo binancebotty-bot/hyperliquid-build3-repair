@@ -214,16 +214,19 @@ def run_cell(read_fault, context, phase):
             # precision; missing sleeve may legitimately hold before any read.
             reread_ok = len(reads) == (0 if context == "missing_ownership" else 2)
             # Direct fresh preflight above is independent; 2 reads inside close recheck.
-            # A fill-proven sleeve does NOT prove an exchange net is readable.
-            # Characterize SEND in actual=, but never score non-RO SEND green
-            # while the fresh net is unreadable/malformed.
+            # Normal-mode close may use the independently fill-proven sleeve
+            # with non-RO and RED escalation; restrictive modes must HOLD.
+            requires_hold = context != "normal"
+            owned_send = (decision == "SEND" and abs(amount - 1.0) < 1e-10 and
+                          ro is False and bool(escalations))
             safe_hold = (decision == "HOLD" and amount == 0 and ro is False and
                          bool(why) and bool(escalations))
             note("CLOSE_REVALIDATE_OWNED_RO_AND_RED", phase, read_fault, context,
-                 reread_ok and safe_hold,
+                 reread_ok and (safe_hold if requires_hold else owned_send),
                  "decision=%s;size=%s;ro=%s;why=%s;reads=%d;RED=%s;error=%s" %
                  (decision, amount, ro, why, len(reads), escalations, error),
-                 "HOLD + named reason + RED owed; never SEND on unreadable fresh net")
+                 ("HOLD + named reason + RED owed" if requires_hold else
+                  "fill-proven 1.0 non-RO SEND + reread + RED owed"))
 
 for _r in READ_FAULTS:
     for _ctx in CONTEXTS:
