@@ -1,0 +1,35 @@
+name: H2 unreadable net offline matrix (expected RED)
+on:
+  pull_request:
+    paths:
+      - _archive/hl_stage2/test_core_unreadable_net_matrix.py
+      - .github/workflows/matrix-h2-net-scratch.yml
+permissions:
+  contents: read
+jobs:
+  pinned-h2-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile one test file
+        run: python -m py_compile _archive/hl_stage2/test_core_unreadable_net_matrix.py
+      - name: Execute source-bound matrix and expose RED rows
+        shell: bash
+        run: |
+          set +e
+          export PYTHONNOUSERSITE=1
+          timeout 150s python -u _archive/hl_stage2/test_core_unreadable_net_matrix.py > /tmp/h2-matrix.txt 2>&1
+          rc=$?
+          grep '^CASE::' /tmp/h2-matrix.txt || true
+          grep '^H2_' /tmp/h2-matrix.txt || true
+          grep -E '^(Traceback|[A-Za-z]+Error:|ModuleNotFoundError:)' /tmp/h2-matrix.txt || true
+          echo "MATRIX_EXIT_CODE=$rc"
+          grep -q '^H2_SUMMARY::checks=96::' /tmp/h2-matrix.txt || { echo 'ERROR: harness did not finish 48x2 checks'; tail -40 /tmp/h2-matrix.txt; exit 1; }
+          grep -q '::RED::' /tmp/h2-matrix.txt || { echo 'ERROR: expected fail-capable RED missing'; exit 1; }
+          test "$rc" -eq 1 || { echo "ERROR: expected RED exit=1, got $rc"; exit 1; }
+          echo "EXPECTED_RED_PROVEN=YES"
+      - name: Source identity
+        run: |
+          git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/test_core_unreadable_net_matrix.py
+          sha256sum _archive/hl_stage2/test_core_unreadable_net_matrix.py
