@@ -50,7 +50,11 @@ def main() -> None:
         os.environ.pop(k, None)
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
     import requests
+    # C7-WO-1-R95 machine-wide sender lease (fixture: point the lock into the temp dir so the live
+    # machine lock is untouched; a sender that does not already hold the lease never reaches the wire)
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "engine-global.lock")
     import HL_Live_Copy_Service_Core as c
+    c.acquire_global_instance_lock(tmp / "state")
     os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
 
     def offline(*a, **k):
@@ -96,8 +100,22 @@ def main() -> None:
     resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
+    def fresh_fill_history():
+        # _proven_owned_for_sleeve sums live_fills.csv per wallet+coin (the ledger's own source of truth), and the
+        # sleeve ids repeat across scenarios, so an earlier scenario's real fill would out-vote the ledger this
+        # scenario just built. Close the engine's cached append handle first (Windows keeps the file locked).
+        try:
+            c._close_audit_handle(c.LIVE_FILLS_CSV)
+        except Exception:
+            pass
+        try:
+            c.LIVE_FILLS_CSV.unlink()
+        except (FileNotFoundError, PermissionError):
+            pass
+
     def gateway(fake, ledger=None):
         c.atomic_write_json(c.STANDING_CLOSES_FILE, {})   # sleeve ids repeat across scenarios: start each one clean
+        fresh_fill_history()
         g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
         g._resolve_coin = lambda coin: dict(resolved)
         g._get_exchange_client = lambda *a, **k: fake
@@ -105,10 +123,14 @@ def main() -> None:
         g._validate_final_wire_order = lambda *a, **k: (True, {})
         g._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         g._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        g._fresh_exchange_net = lambda coin: SNAP["net"]   # stub the fresh read (Core:16919 idiom)
         return g
 
     def send_real(g, intent):
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
+        # the placeholder key is not FOLLOWER's key: name the signing account explicitly so the close
+        # proof (reader == signer) can be satisfied, exactly as a real self-signed follower does
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = c.USER_WALLET
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object
         try:
@@ -116,8 +138,12 @@ def main() -> None:
         finally:
             c.HLAccount, c.HLExchange = saved
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+            os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
+
+    SNAP = {"net": 0.0}   # the follower MIRRORS the leader: _fresh_exchange_net returns the sleeve magnitude
 
     def snapshot(net, coin="BTC"):
+        SNAP["net"] = net
         c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {coin: {"signed_size": net}}})
 
     def ledger(name, **sleeves):
@@ -245,7 +271,8 @@ def main() -> None:
     gtc = [x for x in fake.calls if x["tif"] == "Gtc"]
     check("R1_UNFILLED_CLOSE_STANDS_AS_REDUCE_ONLY_LIMIT", len(gtc) == 1 and gtc[0]["reduce_only"] and gtc[0]["size"] == 2.0,
           str(fake.calls))
-    rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
+    rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"
+            and r.get("exchange_order_id")]   # the placed order's row: the pre-wire pending_send row has no order id
     check("R1_RECOVERY_ORDER_WRITTEN_TO_SEND_ATTEMPTS_WITH_ITS_ORDER_ID",
           len(rows) == 1 and rows[0]["status"] == "ORDER_RESTING" and rows[0]["exchange_order_id"] == "4244"
           and rows[0]["intent_id"] == exit_it.intent_id and rows[0]["reduce_only_sent"] == "True", str(rows)[:300])
@@ -328,7 +355,7 @@ def main() -> None:
     nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long"))
     ok, status, res = send_real(g, nxt)
     check("P3_NEXT_CLOSE_WITHDRAWS_THE_STANDING_ONE_FIRST",
-          fake.cancels == [int(standing[first.sleeve_id]["oid"])] and fake.calls and fake.calls[0]["tif"] == "Ioc"
+          first.sleeve_id in standing and fake.cancels == [int(standing[first.sleeve_id]["oid"])] and fake.calls and fake.calls[0]["tif"] == "Ioc"
           and abs(fake.calls[0]["size"] - 1.5) < 1e-9 and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
     # cancelled after it part-filled 0.5, a fill the ledger has not seen yet: the next close is 0.5 smaller
     led = ledger("p3b", a_btc=1.5)
@@ -342,6 +369,8 @@ def main() -> None:
           str(fake.calls))
     c.OPEN_ORDERS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("status unreadable"))
     led = ledger("p3c", a_btc=2.0)
+    snapshot(2.0)   # the follower really holds 2.0: without this the stub net is the stale 1.5 from p3b, and the
+                    # engine correctly holds FOREIGN_UNITS instead of reaching the unreadable-status path under test
     fake = CancelExchange([part], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
@@ -386,7 +415,16 @@ def main() -> None:
     fake = FakeExchange([NO_MATCH])
     g = gateway(fake, led)
     time.sleep(0.02)
-    config(send=False, marketable_bps=20)   # switched off while the close was being sent
+    config(send=True, marketable_bps=20)
+    # The flip must happen WHILE the close is on the wire: the gate re-reads the mode at the one physical
+    # call, so a flip before send_real starts would (correctly) stop the close IOC itself and the scenario
+    # would no longer model "switched off while the close was being sent".
+    _p7_order = fake.order
+    def _p7_order_then_off(*a, **k):
+        _r = _p7_order(*a, **k)
+        config(send=False, marketable_bps=20)
+        return _r
+    fake.order = _p7_order_then_off
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
 
@@ -442,6 +480,7 @@ def main() -> None:
         "3": {"oid": "3", "leader_wallet": A, "coin": "BTC", "side": "BUY", "limit_px": 100.0, "size": 1.0, "placed_ms": 1}}
     c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1, "coin": "BTC", "side": "B", "sz": "0.5", "limitPx": "100"},
                                       {"oid": 2, "coin": "ETH", "side": "A", "sz": "1.0", "limitPx": "50"}]
+    c.invalidate_open_orders_cache()  # periodic_open_orders serves a 15 s cache (3f1a418); drop it so this read is real
     still = g.refresh_resting_open_sizes()
     exp = g.resting_entry_exposure()
     check("C5_OPEN_SIZE_READ_FROM_THE_EXCHANGE_FILLED_ONES_DROP_OUT",
@@ -459,7 +498,7 @@ def main() -> None:
     core.stop()
 
     # ---- O: one resting entry limit per leader, coin and side ---------------------------------------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)
     saved_leader = c.LEADER_NETWORK
     c.LEADER_NETWORK = c.FOLLOWER_NETWORK
     try:

@@ -5869,7 +5869,8 @@ class SenderGateway:
                            timing: Optional[Dict[str, Any]]) -> str:
         """R1: reuse the ONE close decision after every wait, at the physical wire."""
         dec = timing.get("close_verified_sz_decimals") if isinstance(timing, dict) else None
-        ro, actual, why = self._close_wire_plan(intent, size, dec, timing=timing)
+        ro, actual, why = self._close_wire_plan(intent, size, dec, timing=timing,
+                                                ledger_may_lag=bool((timing or {}).get("close_ledger_may_lag", False)))
         if why:
             return why
         return ("CLOSE_PROOF_HOLD_WIRE_SIZE_OR_RO_CHANGED"
@@ -8306,8 +8307,16 @@ class SenderGateway:
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
         state = timing if isinstance(timing, dict) else {}
+        # C7-WO-1-R96: every SEND this plan authorises records the precision it used, so the wire-time
+        # _final_close_proof can re-run the SAME decision with the SAME precision instead of reading a
+        # missing key and failing closed with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION (the standing close was
+        # planned here with a real sz_dec and then refused at the wire). Also record which regime decided,
+        # so the proof re-derives under the same premise rather than a stricter one.
+        state["close_ledger_may_lag"] = bool(ledger_may_lag)
         def decide(kind: str, amount: float = 0.0, ro: bool = False, why: str = "") -> Tuple[bool, float, str]:
             state["close_decision"] = kind
+            if kind == "SEND" and sz_dec is not None:
+                state["close_verified_sz_decimals"] = sz_dec
             return ro, amount, why
         if not self.ledger or ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
