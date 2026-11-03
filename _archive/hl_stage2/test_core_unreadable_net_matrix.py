@@ -210,23 +210,32 @@ def run_cell(read_fault, context, phase):
             except Exception as exc:
                 ro, amount, why, decision = False, 0.0, type(exc).__name__, "EXCEPTION"
                 error = "%s:%s" % (type(exc).__name__, str(exc)[:80])
-            # Close must read twice when it has usable ownership data and
-            # precision; missing sleeve may legitimately hold before any read.
-            reread_ok = len(reads) == (0 if context == "missing_ownership" else 2)
-            # Direct fresh preflight above is independent; 2 reads inside close recheck.
-            # Normal-mode close may use the independently fill-proven sleeve
-            # with non-RO and RED escalation; restrictive modes must HOLD.
-            requires_hold = context != "normal"
+            # Invalid ownership or malformed exposure must HOLD, including in
+            # normal mode. Only valid-account not-ok/throw reads can use the
+            # independently fill-proven normal-mode close fallback.
+            requires_hold = (context != "normal" or
+                             read_fault in ("malformed_wallet", "malformed_exposure"))
+            # Missing sleeve exits before reads; malformed numeric exposure
+            # holds after the first read; remaining faults are re-read twice.
+            expected_reads = (0 if context == "missing_ownership" else
+                              1 if read_fault == "malformed_exposure" else 2)
+            reread_ok = len(reads) == expected_reads
             owned_send = (decision == "SEND" and abs(amount - 1.0) < 1e-10 and
-                          ro is False and bool(escalations))
-            safe_hold = (decision == "HOLD" and amount == 0 and ro is False and
-                         bool(why) and bool(escalations))
+                          ro is False)
+            protective_hold = (decision == "HOLD" and amount == 0 and
+                               ro is False and bool(why))
+            wire_safe = protective_hold if requires_hold else owned_send
+            red_recorded = bool(escalations)
+            # A protective HOLD is not an unsafe wire decision merely because
+            # the separate RED/owed diagnostic obligation is unproven.
             note("CLOSE_REVALIDATE_OWNED_RO_AND_RED", phase, read_fault, context,
-                 reread_ok and (safe_hold if requires_hold else owned_send),
-                 "decision=%s;size=%s;ro=%s;why=%s;reads=%d;RED=%s;error=%s" %
-                 (decision, amount, ro, why, len(reads), escalations, error),
-                 ("HOLD + named reason + RED owed" if requires_hold else
-                  "fill-proven 1.0 non-RO SEND + reread + RED owed"))
+                 reread_ok and wire_safe and red_recorded,
+                 "decision=%s;size=%s;ro=%s;why=%s;reads=%d;expected_reads=%d;"
+                 "wire_safe=%s;RED_recorded=%s;RED=%s;error=%s" %
+                 (decision, amount, ro, why, len(reads), expected_reads,
+                  wire_safe, red_recorded, escalations, error),
+                 ("protective HOLD + named reason + separate RED owed" if requires_hold
+                  else "fill-proven 1.0 non-RO SEND + reread + RED owed"))
 
 for _r in READ_FAULTS:
     for _ctx in CONTEXTS:
