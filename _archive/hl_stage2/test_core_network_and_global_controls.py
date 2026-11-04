@@ -146,9 +146,11 @@ print(json.dumps(calls))
 def global_controls_tests() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="coregc_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
-                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_FOLLOWER_DEXES": "xyz"})  # HIP-3 DEX in scope
+                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_FOLLOWER_DEXES": "xyz",
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock")})  # HIP-3 DEX in scope
     os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
     import HL_Live_Copy_Service_Core as c
+    c.acquire_global_instance_lock(tmp / "gstate")  # sender lease, temp lock
     import HL_Copy_App_SSOT as ui
     from fastapi.testclient import TestClient
     ui.LIVE_COPY_CONFIG_FILE = c.LIVE_CONFIG_FILE
@@ -311,13 +313,13 @@ def global_controls_tests() -> None:
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
     def send(gc, side="BUY", mid=93.0, sleeve=0.0):
-        config(**gc)
+        config(send_mode="ON", **gc)  # master gate refuses MASTER_REAL_ORDERS_OFF otherwise
         led = c.ManualLedger(path=tmp / f"send{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side))
         fake = FakeExchange()
-        gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), led)
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -325,6 +327,9 @@ def global_controls_tests() -> None:
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         set_mid(mid)
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
+        # the close proof needs the SIGNER to be the account the positions are read from; with the SDK
+        # faked out, the env account address is the only way to declare that (self-signed follower).
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object
         try:
@@ -332,6 +337,7 @@ def global_controls_tests() -> None:
         finally:
             c.HLAccount, c.HLExchange = saved
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+            os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
         return status, fake.calls, intent
 
     status, calls, intent = send({"marketable_bps": 10})

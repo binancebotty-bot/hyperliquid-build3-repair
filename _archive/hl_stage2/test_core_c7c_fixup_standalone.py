@@ -87,9 +87,9 @@ def gateway(spy):
     g._pre_exchange_asset_safety = lambda *a: (True, {})
     g._withdraw_standing_close = lambda ex, it, size, dec, timing: (size, None)
     g._ensure_margin_mode = lambda *a: None
-    g._close_wire_plan = lambda it, size, dec, min_ok=None, timing=None: (True, size, "")
+    g._close_wire_plan = lambda it, size, dec, min_ok, timing: (True, size, "")
     g._effective_symbol_min_notional = lambda *a: 1.0
-    g._master_gate_reason = lambda *a, **kw: ""
+    g._master_gate_reason = lambda *a: ""
     g._note_sender_key_rejection = lambda *a: None
     g._note_exchange_rate_limit = lambda *a: None
     return g
@@ -112,18 +112,17 @@ def run():
 
     # The immediately following exit must reach the physical order, not sit in a 30s guard.
     g._reserve_exchange_order_slot = lambda **kw: c.utc_now_ms()
-    def _bps(*a, **kw):
-        print("BEGIN_PENDING CALLED", a, kw)
-        return None
-    g._begin_pending_send = _bps
-    g._terminalise_pending_as_no_call = lambda *a, **kw: None
+    g._begin_pending_send = lambda *a: None
     with patch.object(c, "HLAccount", object), patch.object(c, "HLExchange", object):
         with patch.object(c, "wait_intent_durable", lambda *a, **kw: None):
-            with patch.object(c, "_sender_lease_owned", lambda: True):
-                second = g.send_if_allowed(exit_intent("immediately-next"))
+            second = g.send_if_allowed(exit_intent("immediately-next"))
     check("C7C_NEXT_EXIT_NOT_PENDING_BLOCKED",
           second[1] != "PENDING_EXIT_GUARD_ACTIVE", second)
     check("C7C_NEXT_EXIT_REACHES_EXCHANGE_ORDER", len(spy.calls) == 1, spy.calls)
+    check("C7C_CONFIRMED_EXCHANGE_CALL_STAMPS", bool(g._last_exit_attempt_ms),
+          g._last_exit_attempt_ms)
+    check("C7C_PHYSICAL_CALL_RETAINS_PENDING_GUARD", bool(g._pending_exit_guard),
+          g._pending_exit_guard)
 
     mock_gateway = gateway(OrderSpy())
     with patch.dict(os.environ, {"HL_LIVE_MOCK_SEND": "1"}):

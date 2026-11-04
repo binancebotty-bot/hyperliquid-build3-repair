@@ -45,6 +45,10 @@ def main():
                        "HL_LIVE_MM_WAIT_SEC": "2"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    # C7 fence (Core:5940 _sender_lease_owned): _place_order refuses the wire unless this process owns the
+    # machine-wide sender lease. This harness builds a bare SenderGateway, so take it here; private lock path.
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "engine-global.lock")
+    c.acquire_global_instance_lock(tmp / "state")
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -84,7 +88,16 @@ def main():
 
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "reduce_only": reduce_only})
-            return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 9000 + len(self.calls)}}]}}}
+            # Answer truthfully per time-in-force: an IOC that matches fills at once, a GTC rests. The engine now
+            # labels from the EXCHANGE REPLY (Core:5727 _blocked_reply/status branch), not from `take`, so a fake
+            # that always replies "resting" makes a take read as MISSED_ENTRY_LIMIT_RESTED. Real HL reply shape:
+            # filled -> {"totalSz", "avgPx", "oid"}; resting -> {"oid"}.
+            oid = 9000 + len(self.calls)
+            if str(tif["limit"]["tif"]).lower() == "ioc":
+                status = {"filled": {"totalSz": str(size), "avgPx": str(px), "oid": oid}}
+            else:
+                status = {"resting": {"oid": oid}}
+            return {"status": "ok", "response": {"type": "order", "data": {"statuses": [status]}}}
 
         def cancel(self, coin, oid):
             self.cancels.append((coin, oid))
@@ -106,6 +119,9 @@ def main():
         cc.sender._resolve_coin = lambda coin, allow_snapshot=False: dict(RESOLVED)
         cc.sender._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         cc.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        # Same stub gateway() already applies: the ownership/exchange-proof gate (Core:7210) has its own
+        # coverage; this file certifies the deferred-entry refusal rule, not ownership.
+        cc.sender._pre_send_ownership_gate = lambda intent: (True, {})
         return cc
 
     def intent(f=None):
