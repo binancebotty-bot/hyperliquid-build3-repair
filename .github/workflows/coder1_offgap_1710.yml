@@ -1,0 +1,132 @@
+name: Coder One OFFGAP-1710 shared OFF physical mutation
+on:
+  push:
+    branches: [gpt/coder1-offgap-1710-integration-20261101]
+  pull_request:
+    branches: [hermes/integration]
+permissions:
+  contents: read
+jobs:
+  three-real-lease-off-mutations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PINNED_SOURCE: 0a99d215c99b794717ce5b34f46cc299dae09106
+      REPAIRED_TESTS: b4e63820d14fd99ac2e147fe90b98767054eb362
+      C2_RUNNER: e574c8b2f2e3b98be1e57410fa39eaef896af40d
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+      HL_USER_WALLET: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/coder1-offgap-1710-integration-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned fake-run test deps before socket isolation
+        run: |
+          python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
+      - name: Pin Core and three test blobs with no production changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/c1-offgap-1710 .github/scripts
+          git diff --exit-code "$PINNED_SOURCE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          test "$(git rev-parse "$PINNED_SOURCE:_archive/hl_stage2/HL_Live_Copy_Service_Core.py")" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          test "$(git hash-object _archive/hl_stage2/test_t1a_cloid_pending_row.py)" = 6b74ab1372a0be292e402a7988934fcd2293294b
+          test "$(git hash-object _archive/hl_stage2/test_readiness1_ambiguous_timeout_no_blind_resend.py)" = 1a8de4c69f88f1fbfe6de6696f21d1ba6d096aee
+          test "$(git hash-object _archive/hl_stage2/test_core_rw13_recovery_reconcile.py)" = 034be4528db097d945273e12d7e88789a007b5e5
+          git show "$C2_RUNNER:.github/scripts/c2_mutate_off_1550.py" > .github/scripts/c1_offgap_1710_runtime.py
+          python -m pip freeze > evidence/c1-offgap-1710/dependencies.txt
+          printf 'historical_core=%s\nrepaired_tests=%s\ncandidate=%s\n' "$PINNED_SOURCE" "$REPAIRED_TESTS" "$(git rev-parse HEAD)" > evidence/c1-offgap-1710/provenance.txt
+      - name: Narrow C2 mutation runner to three shared-OFF cases and before/after
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path(".github/scripts/c1_offgap_1710_runtime.py")
+          s=p.read_text(encoding="utf-8")
+          start=s.index("FILES = [")
+          end=s.index("OFF_ANCHOR =",start)
+          s=s[:start]+'''FILES = ["test_t1a_cloid_pending_row.py",
+                   "test_readiness1_ambiguous_timeout_no_blind_resend.py",
+                   "test_core_rw13_recovery_reconcile.py"]
+          '''+s[end:]
+          start=s.index("MUTANTS = {")
+          end=s.index("RESULT_RE = re.compile(",start)
+          s=s[:start]+'''MUTANTS = {
+            "test_t1a_cloid_pending_row.py": [(
+              "global_off_shared_gate", OFF_ANCHOR, OFF_REPLACE,
+              "OFFGAP_T1A_SHARED_MASTER_OFF_BLOCKS_PHYSICAL_WIRE")],
+            "test_readiness1_ambiguous_timeout_no_blind_resend.py": [(
+              "global_off_shared_gate", OFF_ANCHOR, OFF_REPLACE,
+              "OFFGAP_READINESS1_SHARED_MASTER_OFF_BLOCKS_PHYSICAL_WIRE")],
+            "test_core_rw13_recovery_reconcile.py": [(
+              "global_off_shared_gate", OFF_ANCHOR, OFF_REPLACE,
+              "OFFGAP_RW13_SHARED_MASTER_OFF_BLOCKS_PHYSICAL_WIRE")],
+          }
+          assert all(len(MUTANTS[f]) == 1 for f in FILES)
+          '''+s[end:]
+          s=s.replace('"c2-mutate-off-1550"','"c1-offgap-1710"')
+          s=s.replace('shutil.copy2(STAGE/file,work/file)',
+          '''if label=="before":
+                      (work/file).write_bytes(subprocess.check_output(
+                          ["git","show",REPAIRS+":_archive/hl_stage2/"+file],cwd=ROOT))
+                  else:
+                      shutil.copy2(STAGE/file,work/file)''')
+          s=s.replace('"baseline":[],"mutations":[]}', '"before":[],"baseline":[],"mutations":[]}')
+          s=s.replace('for file in FILES:\n    b=execute(file,SOURCE,"baseline",probe=True)',
+          '''for file in FILES:
+              before=execute(file,SOURCE,"before",probe=False)
+              report["before"].append(before)
+              print("BEFORE "+json.dumps({k:v for k,v in before.items()
+                  if k not in ("tracebacks","cases_failed")},sort_keys=True),flush=True)
+              b=execute(file,SOURCE,"baseline",probe=True)''')
+          p.write_text(s,encoding="utf-8")
+          PY
+          python -m py_compile .github/scripts/c1_offgap_1710_runtime.py
+      - name: Execute three historical baselines, three updated suites and three disposable OFF mutants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u .github/scripts/c1_offgap_1710_runtime.py | tee evidence/c1-offgap-1710/runner.log
+          python - <<'PY'
+          import json,pathlib
+          r=json.loads(pathlib.Path("evidence/c1-offgap-1710/report.json").read_text())
+          assert len(r["before"])==len(r["baseline"])==len(r["mutations"])==3, r
+          for old,new in zip(r["before"],r["baseline"]):
+              assert old["file"]==new["file"], (old,new)
+              assert old["returncode"]==new["returncode"]==0
+              assert old["totals"] and old["totals"][1]=="0",old
+              assert new["totals"] and new["totals"][1]=="0",new
+              assert int(new["totals"][0])==int(old["totals"][0])+2,(old,new)
+          for m in r["mutations"]:
+              assert m["classification"]=="CAUGHT_NAMED_ASSERTION" and m["expected_case_red"],m
+              assert m["returncode"]==1 and m["totals"] and m["totals"][1]=="1",m
+          print("OFFGAP_THREE_BASELINES_GREEN_THREE_NAMED_MUTANTS_RED=PASS")
+          PY
+      - name: Verify Core remains identical, hash evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$PINNED_SOURCE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          test "$(git hash-object _archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          echo CORE_UNTOUCHED=PASS > evidence/c1-offgap-1710/core-unchanged.txt
+          (cd evidence/c1-offgap-1710 && sha256sum *.json *.tsv *.log *.txt > SHA256SUMS.txt) || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coder1-offgap-1710-before-after-three-mutants
+          path: evidence/c1-offgap-1710/
+          if-no-files-found: warn
+          retention-days: 30
