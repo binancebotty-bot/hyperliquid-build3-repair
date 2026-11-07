@@ -1,0 +1,90 @@
+name: C2 R1 P1 pinned run4 test-only diagnosis
+on:
+  push:
+    branches: [gpt/coder2-r1p1-1820-20261101]
+  pull_request:
+    branches: [hermes/integration]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-run4-r1-p1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PINNED_CORE_SHA: 0a99d215c99b794717ce5b34f46cc299dae09106
+      C2_TEST_SHA: 366a12a53209d68e6867910f8fa8051e761905d0
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: '0'
+      HL_LIVE_POLL_ENABLED: '0'
+      HL_LIVE_SCOPE_SWEEP_THREAD: '0'
+      HL_LIVE_HL_PRIVATE_KEY: ''
+      HL_USER_WALLET: ''
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/coder2-r1p1-1820-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install fixture dependencies before offline test network lock
+        run: python -m pip install --disable-pip-version-check -q requests python-dotenv websocket-client websockets hyperliquid-python-sdk==0.24.0 psutil
+      - name: Pin immutable Core and repaired run4 test in disposable directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin '+refs/heads/gpt/tests-b-redbfix-1218-20261101:refs/remotes/origin/gpt/tests-b-redbfix-1218-20261101'
+          CORE='_archive/hl_stage2/HL_Live_Copy_Service_Core.py'
+          TEST='_archive/hl_stage2/test_core_run4_fixes.py'
+          test "$(git rev-parse "HEAD:$CORE")" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          test "$(git rev-parse "$PINNED_CORE_SHA:$CORE")" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          test "$(git rev-parse "$C2_TEST_SHA:$TEST")" = a4d2d24d8f9866d407da0a8446f8dc4f80f3a363
+          mkdir -p evidence/c2-r1p1-1820 "$RUNNER_TEMP/c2-r1p1"
+          cp _archive/hl_stage2/*.py "$RUNNER_TEMP/c2-r1p1/"
+          git show "$C2_TEST_SHA:$TEST" > "$RUNNER_TEMP/c2-r1p1/test_core_run4_fixes.py"
+          test "$(git hash-object "$RUNNER_TEMP/c2-r1p1/HL_Live_Copy_Service_Core.py")" = e470862a291bbf241e22d8011b757ed9c2b53d68
+          test "$(git hash-object "$RUNNER_TEMP/c2-r1p1/test_core_run4_fixes.py")" = a4d2d24d8f9866d407da0a8446f8dc4f80f3a363
+          cat > "$RUNNER_TEMP/c2-r1p1/sitecustomize.py" <<'PY'
+          import socket
+          def deny(*args, **kwargs):
+              raise RuntimeError("C2_R1P1_OFFLINE_SOCKET_DENIED")
+          socket.socket.connect = deny
+          socket.socket.connect_ex = deny
+          socket.create_connection = deny
+          PY
+          printf 'CORE_SHA=%s\nTEST_SHA=%s\nHEAD_SHA=%s\n' "$PINNED_CORE_SHA" "$C2_TEST_SHA" "$(git rev-parse HEAD)" > evidence/c2-r1p1-1820/provenance.txt
+          sha256sum .github/workflows/c2-r1p1-1820.yml "$RUNNER_TEMP/c2-r1p1/HL_Live_Copy_Service_Core.py" "$RUNNER_TEMP/c2-r1p1/test_core_run4_fixes.py" > evidence/c2-r1p1-1820/SHA256SUMS.txt
+      - name: Execute source-true run4 suite with network denied and preserve two REDs
+        shell: bash
+        run: |
+          set -uo pipefail
+          export PYTHONPATH="$RUNNER_TEMP/c2-r1p1"
+          cd "$RUNNER_TEMP/c2-r1p1"
+          set +e  # The suite is intentionally RED; preserve its exit code and evidence.
+          python -u test_core_run4_fixes.py > "$GITHUB_WORKSPACE/evidence/c2-r1p1-1820/run4.log" 2>&1
+          rc=$?
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          printf 'PYTHON_EXIT=%s\n' "$rc" | tee evidence/c2-r1p1-1820/exit.txt
+          grep -E '^RESULT::[^[:space:]]+_FAIL([[:space:]]|$)' evidence/c2-r1p1-1820/run4.log | tee evidence/c2-r1p1-1820/failing-results.txt
+          grep '^TOTAL=' evidence/c2-r1p1-1820/run4.log | tail -1 | tee evidence/c2-r1p1-1820/total.txt
+          test "$rc" -eq 1
+          test "$(grep -Ec '^RESULT::[^[:space:]]+_FAIL([[:space:]]|$)' evidence/c2-r1p1-1820/run4.log)" -eq 2
+          grep -q '^RESULT::R1_RECOVERY_PHYSICAL_ATTEMPT_TERMINAL_AND_MATCHER_BOUND_FAIL' evidence/c2-r1p1-1820/run4.log
+          grep -q '^RESULT::P1_GTC_ATTEMPT_AND_MATCHER_LIFECYCLE_FAIL' evidence/c2-r1p1-1820/run4.log
+          grep -q '^TOTAL=65 FAILED=2$' evidence/c2-r1p1-1820/run4.log
+          git diff --exit-code -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/test_core_run4_fixes.py
+          echo 'DIAGNOSTIC_EXPECTED_REDS_CONFIRMED=PASS (test suite itself remains RED)'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c2-r1p1-1820-full-output
+          path: evidence/c2-r1p1-1820
+          if-no-files-found: warn
+          retention-days: 30
