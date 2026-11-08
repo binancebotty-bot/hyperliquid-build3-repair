@@ -155,6 +155,7 @@ LIVE_WS_HEALTH_FILE = AUDIT_DIR / "live_ws_health.json"
 MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
+RESTING_ENTRY_QUARANTINE_FILE = AUDIT_DIR / "resting_entry_quarantine.json"
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
 _CLOSE_ESCALATIONS_LOCK = threading.RLock()
@@ -5596,6 +5597,7 @@ class SenderGateway:
             if isinstance(_row, dict):
                 _row.pop("withdrawing", None)  # an in-memory claim; a stop mid-withdrawal must not leave it set
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
+        self._resting_quarantine = load_json(RESTING_ENTRY_QUARANTINE_FILE, {}) or {}
         self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
         self._close_escalations: Dict[str, Dict[str, Any]] = load_json(CLOSE_ESCALATIONS_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
@@ -6619,59 +6621,73 @@ class SenderGateway:
                                                           r.get("outcome")) for r in _not_closed))))
         except Exception as exc:
             log_error("orphan_attempt_sweep_failed", exc)
-        cloids, oids = self._engine_owned_cloids_and_oids()
         ok, orders, detail = self._read_open_orders()
         if not ok:
-            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [], "user_owned": [],
-                    "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
-        adopted, cancelled, user_owned = [], [], []
-        # USER-OWNED ORDERS ARE NEVER CANCELLED (gap 1, simplified by controller 6421004689): the engine always
-        # sets an engine-shaped cloid, so an unmatched order with no cloid or a non-engine cloid is the human's.
-        # No ledger is consulted: an absent or unreadable ledger cannot change any classification.
-        for dex, o in orders:
-            oid = str(o.get("oid", "")).strip()
+            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
+                    "user_owned": [], "detail": str(detail) + "; no order touched"}
+        user_owned = []
+        for dex, order in orders:
+            oid = str(order.get("oid") or "").strip()
             if not oid:
                 continue
-            cloid = str(o.get("cloid") or "").strip().lower()
-            if (cloid and cloid in cloids) or (oid in oids):
-                self._adopt_orphan_order(dex, o)
-                adopted.append({"oid": oid, "cloid": cloid})
-                continue
-            if not is_engine_cloid(cloid):
-                reason = ("no cloid on the order: the engine always sets one, so this order is not the engine's"
-                          if not cloid else
-                          "cloid %s is not engine-shaped (0x + exactly 32 hex), so this order is not the engine's"
-                          % cloid)
-                self._label_user_owned_order(dex, o, reason)
-                user_owned.append({"oid": oid, "cloid": cloid, "reason": reason})
-                continue
-            outcome = self._cancel_orphan_order(dex, o)
-            cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
-        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
+            with self._resting_lock:
+                for row in self._resting_entries.values():
+                    if not isinstance(row, dict) or str(row.get("oid") or "") != oid:
+                        continue
+                    key = self._resting_key(row) or ("LEGACY:" + oid)
+                    if key not in self._resting_quarantine:
+                        pending = dict(self._resting_quarantine)
+                        pending[key] = {"state": "HELD_FOR_OWNER_REVIEW",
+                                        "registry_row": dict(row),
+                                        "observed_dex": str(dex),
+                                        "observed_order": dict(order),
+                                        "created_at_ms": utc_now_ms()}
+                        atomic_write_json(RESTING_ENTRY_QUARANTINE_FILE, pending)
+                        self._resting_quarantine = pending
+            reason = "startup observation only; no adoption, re-arm or cancellation"
+            self._label_user_owned_order(dex, order, reason)
+            user_owned.append({"oid": oid, "dex": dex, "reason": reason})
+        return {"ok": True, "skipped": False, "adopted": [], "cancelled": [],
                 "user_owned": user_owned,
-                "detail": "%s; adopted=%d cancelled=%d user_owned_left_untouched=%d" % (
-                    detail, len(adopted), len(cancelled), len(user_owned))}
+                "detail": f"{detail}; adopted=0 cancelled=0 user_owned={len(user_owned)}"}
+
+    @staticmethod
+    def _resting_key(row: Dict[str, Any]) -> str:
+        if not (row.get("follower_account") and "dex" in row
+                and row.get("oid") and row.get("coin") and row.get("cloid")):
+            return ""
+        return json.dumps([FOLLOWER_NETWORK, normalise_wallet(row["follower_account"]),
+                           str(row["dex"]).strip().lower(),
+                           canonical_coin_key(row["coin"]), str(row["oid"]),
+                           str(row["cloid"]).strip().lower()], separators=(",", ":"))
+
+    def _resting_quarantined(self, row: Dict[str, Any]) -> bool:
+        key = self._resting_key(row) or ("LEGACY:" + str(row.get("oid") or ""))
+        held = self._resting_quarantine.get(key)
+        return isinstance(held, dict) and held.get("state") == "HELD_FOR_OWNER_REVIEW"
+
+    def restore_resting_quarantine(self, row: Dict[str, Any], approval: str) -> bool:
+        key = self._resting_key(row)
+        if not key or len(str(approval).strip()) < 8:
+            return False
+        with self._resting_lock:
+            held = self._resting_quarantine.get(key)
+            if not isinstance(held, dict) or held.get("state") != "HELD_FOR_OWNER_REVIEW":
+                return False
+            replacement = dict(self._resting_quarantine)
+            replacement[key] = {**held, "state": "RESTORED_BY_OPERATOR",
+                                "approval": str(approval), "restored_ms": utc_now_ms()}
+            atomic_write_json(RESTING_ENTRY_QUARANTINE_FILE, replacement)
+            self._resting_quarantine = replacement
+        self.audit.append_reconciliation("STARTUP_ORPHAN", "RESTING_QUARANTINE_RESTORED",
+            coin=row.get("coin", ""), exchange_order_id=str(row.get("oid")),
+            action="MANUAL_OWNER_RESTORATION", terminal_state="RESTORED_BY_OPERATOR",
+            notes="approval=" + str(approval))
+        return True
 
     def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
-        """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
-        oid = str(o.get("oid", ""))
-        coin = str(o.get("coin") or "")
-        side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
-        size = fnum(o.get("sz") or o.get("origSz"))
-        px = fnum(o.get("limitPx"))
-        cloid = str(o.get("cloid") or "").strip()
-        row = {"oid": oid, "leader_wallet": "", "coin": coin, "sdk_coin": coin, "side": side, "limit_px": px,
-               "size": size, "intent_id": "", "leader_fill_id": "", "leader_fill_ms": 0, "leader_price": px,
-               "placed_ms": utc_now_ms(), "cloid": cloid, "why": "startup_orphan_adopted", "open_size": size}
-        with self._resting_lock:
-            self._resting_entries[oid] = row
-            atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
-        promoted = self._promote_pending_row_to_resting(cloid, oid)
-        self.audit.append_reconciliation(
-            "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=coin, exchange_order_id=oid,
-            action="NO_ACTION_ORPHAN_ADOPTED", terminal_state="ORPHAN_ORDER_ADOPTED",
-            notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches an engine record (cloid={cloid}); "
-                   f"adopted as a resting engine order; pending_row_promoted={promoted}"))
+        """Legacy helper: never promote exchange observations to engine orders."""
+        self._label_user_owned_order(dex, o, "no startup adoption authority")
 
     def _promote_pending_row_to_resting(self, cloid: str, oid: str) -> bool:
         """A pending_send row owning this cloid becomes ORDER_RESTING with the order id, so the matcher treats
@@ -6747,13 +6763,18 @@ class SenderGateway:
         wallet, key = normalise_wallet(intent.fill.leader_wallet), canonical_coin_key(intent.fill.coin)
         row = {
             "oid": str(oid), "leader_wallet": wallet, "coin": intent.fill.coin,
+            "follower_account": normalise_wallet(USER_WALLET),
+            "dex": str(intent.fill.coin).split(":", 1)[0].lower() if ":" in str(intent.fill.coin) else "",
             "sdk_coin": sdk_coin, "side": intent.copy_side, "limit_px": px, "size": size, "intent_id": intent.intent_id,
             "leader_fill_id": intent.fill.leader_fill_id, "leader_fill_ms": int(fnum(intent.fill.timestamp_ms, 0)),
             "leader_price": intent.fill.price, "placed_ms": utc_now_ms(), "why": why,
             "cloid": generate_cloid(intent.intent_id),
         }
         with self._resting_lock:
-            self._resting_entries[str(oid)] = row
+            key = self._resting_key(row)
+            if not key:
+                raise RuntimeError("RESTING_IDENTITY_UNPROVEN")
+            self._resting_entries[key] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if intent.copy_side == "BUY" else "BUY"), 0)
             late = opposite_ms > 0 and opposite_ms >= row["leader_fill_ms"]
@@ -6808,18 +6829,19 @@ class SenderGateway:
                 read_ok.add(dex)
                 for o in r["data"]:
                     if isinstance(o, dict):
-                        open_sz[str(o.get("oid", ""))] = fnum(o.get("sz"))
+                        open_sz[(dex, str(o.get("oid", "")), str(o.get("cloid") or "").lower())] = fnum(o.get("sz"))
         now, still_open = utc_now_ms(), 0
         with self._resting_lock:
             for oid, row in self._resting_entries.items():
                 text = str(row.get("coin") or "")
                 dex = text.split(":", 1)[0].strip().lower() if ":" in text else ""
-                if dex not in read_ok:
+                if dex not in read_ok or not self._resting_key(row) or self._resting_quarantined(row):
                     continue
+                oid = str(row.get("oid"))
                 # placed after the read started: the read may predate it, keep the placed size
                 if int(fnum(row.get("placed_ms"), 0)) >= started - 1000 and oid not in open_sz:
                     continue
-                row["open_size"], row["open_checked_ms"] = open_sz.get(oid, 0.0), now
+                row["open_size"], row["open_checked_ms"] = open_sz.get((dex, oid, str(row.get("cloid") or "").lower()), 0.0), now
             still_open = sum(1 for r in self._resting_entries.values() if self._row_open_size(r) > 0)
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
         return still_open
@@ -6994,7 +7016,10 @@ class SenderGateway:
         time (a second cancel answers "already canceled" and would read as a fill). Returns copies of the claimed."""
         claimed = []
         for r in rows:
-            live = self._resting_entries.get(str(r.get("oid")))
+            key = self._resting_key(r)
+            if not key or self._resting_quarantined(r):
+                continue
+            live = self._resting_entries.get(key)
             if live is not None and not live.get("withdrawing"):
                 live["withdrawing"] = True
                 claimed.append(dict(live))
@@ -7011,6 +7036,9 @@ class SenderGateway:
                        cancelled: str = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") -> List[Dict[str, Any]]:
         withdrawn: List[Dict[str, Any]] = []
         for row in rows:
+            with self._resting_lock:
+                if not self._resting_key(row) or self._resting_quarantined(row):
+                    continue
             oid, response, error = str(row.get("oid")), {}, ""
             try:
                 exchange, sdk_coin = self._exchange_client_for_coin(str(row.get("coin")))
@@ -7028,12 +7056,12 @@ class SenderGateway:
             first_failure = not row.get("withdraw_pending")
             with self._resting_lock:
                 if outcome != "RESTING_ENTRY_CANCEL_FAILED":
-                    self._resting_entries.pop(oid, None)
+                    self._resting_entries.pop(self._resting_key(row), None)
                     withdrawn.append({**row, "withdraw_outcome": outcome})
-                elif oid in self._resting_entries:
-                    self._resting_entries[oid]["withdraw_pending"] = why
-                    self._resting_entries[oid]["withdraw_label"] = cancelled
-                    self._resting_entries[oid].pop("withdrawing", None)
+                elif self._resting_key(row) in self._resting_entries:
+                    self._resting_entries[self._resting_key(row)]["withdraw_pending"] = why
+                    self._resting_entries[self._resting_key(row)]["withdraw_label"] = cancelled
+                    self._resting_entries[self._resting_key(row)].pop("withdrawing", None)
                 atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             if outcome == "RESTING_ENTRY_CANCEL_FAILED" and not first_failure:
                 continue  # already on screen as a Critical diff; retried quietly each cycle
