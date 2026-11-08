@@ -10,7 +10,7 @@ CORE = Path(__file__).resolve().parents[1] / "_archive/hl_stage2/HL_Live_Copy_Se
 module = ast.parse(CORE.read_text(encoding="utf-8-sig"))
 cls = next(n for n in module.body if isinstance(n, ast.ClassDef) and n.name == "SenderGateway")
 method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "_wire_entry_exposure_block")
-scope = {"math": math, "time": time, "os": os,
+scope = {"Any": __import__("typing").Any, "math": math, "time": time, "os": os,
          "fnum": lambda x, default=0: float(x if x is not None else default),
          "normalise_wallet": str.lower,
          "classify_send_lifecycle": lambda intent: intent.lifecycle}
