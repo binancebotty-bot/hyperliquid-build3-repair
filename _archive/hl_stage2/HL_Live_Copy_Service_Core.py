@@ -5787,6 +5787,50 @@ class SenderGateway:
     # only in a swallowed exception (Codex fix 4).
     _gate_journal_failures: int = 0
 
+    def _wire_entry_exposure_block(self, intent: Any, size: float, limit_px: float,
+                                   reduce_only: bool, entry_leg: bool = False) -> str:
+        """R5: recheck entry exposure at the physical sender; genuine closes are exempt.
+
+        Count builder in-flight reservations, resting limits and exchange exposure.
+        Missing evidence fails closed for entries, never for closes.
+        """
+        if not entry_leg and (reduce_only or classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}):
+            return ""
+        wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
+        wallet_cap = self.cfg.max_wallet_exposure(wallet)
+        total_cap = self.cfg.max_total_exposure()
+        if wallet_cap <= 0 and total_cap <= 0:
+            return ""
+        notional = abs(float(size) * float(limit_px))
+        if not math.isfinite(notional) or notional <= 0:
+            return "ENTRY_EXPOSURE_UNPRICEABLE"
+        source = self.cap_source
+        if source is None:
+            return "ENTRY_EXPOSURE_SOURCE_MISSING"
+        resting = source._resting()
+        if resting.get("unreadable"):
+            return "ENTRY_RESTING_EXPOSURE_UNREADABLE"
+        now = time.monotonic()
+        ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
+        pending = sum(abs(units) * px for _coin, units, px, at
+                      in source._exposure_pending if now - at <= ttl)
+        resting_total = fnum(resting.get("total_usd"), 0.0)
+        if wallet_cap > 0:
+            if self.ledger is None:
+                return "ENTRY_WALLET_LEDGER_MISSING"
+            wallet_exposure = self.ledger.wallet_abs_exposure_usd(wallet, {intent.fill.coin: limit_px})
+            wallet_exposure += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
+            # Pending reservations are not wallet-tagged; assign all to this wallet (conservative).
+            if wallet_exposure + pending + notional > wallet_cap + 1e-9:
+                return "ENTRY_WALLET_EXPOSURE_CAP"
+        if total_cap > 0:
+            exchange = source.follower_exposure()
+            if not exchange.get("ok"):
+                return "ENTRY_TOTAL_EXPOSURE_UNREADABLE"
+            if fnum(exchange.get("total_usd")) + resting_total + pending + notional > total_cap + 1e-9:
+                return "ENTRY_TOTAL_EXPOSURE_CAP"
+        return ""
+
     def _master_gate_reason(self, intent: Any, path: str = "", entry_leg: bool = False) -> str:
         """Why this order may NOT go to the exchange, or "" when it may.
 
@@ -5942,6 +5986,8 @@ class SenderGateway:
         try:
             if not _late_block:
                 _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+            if not _late_block:
+                _late_block = self._wire_entry_exposure_block(intent, size, limit_px, reduce_only, entry_leg)
             if not _late_block and _is_close:
                 _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
@@ -5970,6 +6016,8 @@ class SenderGateway:
                     _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
                 else:
                     _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
+                if not _late_block:
+                    _late_block = self._wire_entry_exposure_block(intent, size, limit_px, reduce_only, entry_leg)
                 if not _late_block and _is_close:
                     _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
