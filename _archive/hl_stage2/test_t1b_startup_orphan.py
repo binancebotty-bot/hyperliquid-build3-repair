@@ -84,19 +84,18 @@ def main() -> None:
                         known_cloid=cl, pending_attempt="pend1")
     check("B1_MATCHED_ADOPTED", res["ok"] and not fake.cancels and len(res["adopted"]) == 1, str(res))
     reg = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}) or {}
-    check("B2_MATCHED_RECORDED_AS_RESTING", "555" in reg and reg["555"]["cloid"] == cl and reg["555"]["side"] == "BUY", str(reg))
+    check("B2_RECORD_ONLY_NO_REARM", "555" not in reg, str(reg))
     adopted = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_ADOPTED"]
     check("B3_ADOPTION_AUDITED", len(adopted) == 1 and adopted[0].get("exchange_order_id") == "555", str(adopted)[:300])
     promoted = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("attempt_id") == "pend1"]
-    check("B4_PENDING_ROW_PROMOTED_TO_ORDER_RESTING", promoted and promoted[-1]["status"] == "ORDER_RESTING"
-          and promoted[-1]["exchange_order_id"] == "555", str(promoted)[:300])
+    check("B4_PENDING_ROW_UNCHANGED", promoted and promoted[-1]["status"] == "pending_send", str(promoted)[:300])
 
     # ---- B5: an unknown order is cancelled and audited ----------------------------------------------
     res, fake, gw = run(orders=[{"oid": 777, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99",
                                  "cloid": "0x" + "f" * 32}])
-    check("B5_UNMATCHED_CANCELLED", res["ok"] and fake.cancels == [("BTC", 777)] and len(res["cancelled"]) == 1, str(res))
+    check("B5_UNMATCHED_USER_OWNED", res["ok"] and not fake.cancels and len(res["user_owned"]) == 1, str(res))
     cancelled = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_CANCELLED"]
-    check("B6_CANCEL_AUDITED", len(cancelled) == 1 and cancelled[0].get("exchange_order_id") == "777", str(cancelled)[:300])
+    check("B6_USER_OWNED_AUDITED", not cancelled and any(r.get("status") == "ORPHAN_ORDER_USER_OWNED" and r.get("exchange_order_id") == "777" for r in recon_rows()), str(recon_rows())[:300])
 
     # ---- B7: an order with no cloid but an oid we already hold is adopted ----------------------------
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {"888": {"oid": "888", "coin": "BTC", "side": "BUY",
@@ -182,14 +181,13 @@ def main() -> None:
     for ledger in ("absent", "unreadable", "normal"):
         res, fake, gw = one({"oid": 1003, "coin": "BTC", "side": "A", "sz": "2", "limitPx": "50",
                              "cloid": ENGINE_CLOID}, ledger)
-        check("G3_ENGINE_CLOID_CANCELLED__LEDGER_%s" % ledger.upper(),
-              res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1003")]
-              and len(res["cancelled"]) == 1 and not (res.get("user_owned") or []), str(res))
+        check("G3_FOREIGN_CLOID_USER_OWNED__LEDGER_%s" % ledger.upper(),
+              res["ok"] and not fake.cancels and len(res["user_owned"]) == 1, str(res))
     # G4: engine-shaped cloid in UPPERCASE is still engine-shaped -> cancelled
     res, fake, gw = one({"oid": 1004, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "50",
                          "cloid": "0X" + "A" * 32})
-    check("G4_UPPERCASE_ENGINE_CLOID_CANCELLED",
-          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1004")], str(res))
+    check("G4_UPPERCASE_FOREIGN_USER_OWNED",
+          res["ok"] and not fake.cancels and len(res["user_owned"]) == 1, str(res))
     # G5: the sleeve machinery is GONE from the core - no _sleeved_coins, no sleeve constant
     check("G5_SLEEVE_MACHINERY_DELETED",
           not hasattr(c.SenderGateway, "_sleeved_coins") and not hasattr(c, "USER_SLEEVE_WALLET"), "still present")

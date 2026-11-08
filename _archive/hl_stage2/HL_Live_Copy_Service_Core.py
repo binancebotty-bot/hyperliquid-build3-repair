@@ -6637,41 +6637,36 @@ class SenderGateway:
                 self._adopt_orphan_order(dex, o)
                 adopted.append({"oid": oid, "cloid": cloid})
                 continue
-            if not is_engine_cloid(cloid):
-                reason = ("no cloid on the order: the engine always sets one, so this order is not the engine's"
-                          if not cloid else
-                          "cloid %s is not engine-shaped (0x + exactly 32 hex), so this order is not the engine's"
-                          % cloid)
-                self._label_user_owned_order(dex, o, reason)
-                user_owned.append({"oid": oid, "cloid": cloid, "reason": reason})
-                continue
-            outcome = self._cancel_orphan_order(dex, o)
-            cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
+            # Cloid shape is not proof. Foreign orders, including engine-shaped
+            # but unrecognised cloIDs, remain user-owned and untouched.
+            reason = ("no cloid or engine send/resting proof" if not cloid
+                      else "cloid %s has no matching engine send/resting proof" % cloid)
+            self._label_user_owned_order(dex, o, reason)
+            user_owned.append({"oid": oid, "cloid": cloid, "reason": reason})
         return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
                 "user_owned": user_owned,
                 "detail": "%s; adopted=%d cancelled=%d user_owned_left_untouched=%d" % (
                     detail, len(adopted), len(cancelled), len(user_owned))}
 
     def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
-        """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
+        """Record an owned open order, never re-arm it or mutate runtime order state."""
         oid = str(o.get("oid", ""))
+        if any(str(r.get("exchange_order_id")) == oid and
+               r.get("status") == "ORPHAN_ORDER_ADOPTED"
+               for r in read_csv_rows(RECONCILIATION_CSV)):
+            return  # append-only, deduped per OID across restarts
         coin = str(o.get("coin") or "")
         side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
         size = fnum(o.get("sz") or o.get("origSz"))
         px = fnum(o.get("limitPx"))
         cloid = str(o.get("cloid") or "").strip()
-        row = {"oid": oid, "leader_wallet": "", "coin": coin, "sdk_coin": coin, "side": side, "limit_px": px,
-               "size": size, "intent_id": "", "leader_fill_id": "", "leader_fill_ms": 0, "leader_price": px,
-               "placed_ms": utc_now_ms(), "cloid": cloid, "why": "startup_orphan_adopted", "open_size": size}
-        with self._resting_lock:
-            self._resting_entries[oid] = row
-            atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
-        promoted = self._promote_pending_row_to_resting(cloid, oid)
         self.audit.append_reconciliation(
             "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=coin, exchange_order_id=oid,
-            action="NO_ACTION_ORPHAN_ADOPTED", terminal_state="ORPHAN_ORDER_ADOPTED",
-            notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches an engine record (cloid={cloid}); "
-                   f"adopted as a resting engine order; pending_row_promoted={promoted}"))
+            action="RECORD_ONLY_NO_REARM", terminal_state="ORPHAN_ORDER_ADOPTED",
+            notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches engine proof "
+                   f"(cloid={cloid}, dex={dex or 'main'}); record-only adoption, "
+                   "no resting-registry mutation, no pending-send promotion, no exchange action"))
+
 
     def _promote_pending_row_to_resting(self, cloid: str, oid: str) -> bool:
         """A pending_send row owning this cloid becomes ORDER_RESTING with the order id, so the matcher treats
