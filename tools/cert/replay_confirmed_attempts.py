@@ -85,13 +85,16 @@ def replay(rows, confirmations, ledger_rows):
         seen.add(key)
         lk = (order, leader)
         ledger[lk] = ledger.get(lk, D(0)) + positive(row.get("fill_size"))
+    # A second attempt claiming the same OID makes the exchange-to-attempt link ambiguous.
+    recorded_oid_counts = Counter(oid(r.get("exchange_order_id")) for r in latest.values()
+                                  if oid(r.get("exchange_order_id")))
     closed = []
     for key, row in by_cloid.items():
         if key in conflicted or key not in confirmations_by_cloid:
             continue
         order, status, filled = confirmations_by_cloid[key]
         prior_order = str(row.get("exchange_order_id") or "").strip()
-        if prior_order and oid(prior_order) != order:
+        if prior_order and (oid(prior_order) != order or recorded_oid_counts[order] > 1):
             continue
         wanted = positive(row.get("copy_size"))
         leader = str(row.get("leader_fill_id") or "")
@@ -137,10 +140,10 @@ def main():
                 writer.writerow(row)
             fh.flush()
             os.fsync(fh.fileno())
+    latest = {r["attempt_id"]: r for r in sends if r.get("attempt_id")}
+    unresolved = {aid for aid, row in latest.items() if str(row.get("status") or "").upper() in OPEN}
     print(json.dumps({"eligible": len(changes), "applied": len(changes) if args.apply else 0,
-                      "still_unresolved": len({r.get("attempt_id") for r in sends
-                                               if r.get("attempt_id") and r.get("status", "").upper() in OPEN}
-                                              - {r.get("attempt_id") for r in changes}),
+                      "still_unresolved": len(unresolved - {r["attempt_id"] for r in changes}),
                       "mode": "APPLY_OFFLINE" if args.apply else "DRY_RUN"}, sort_keys=True))
 
 
