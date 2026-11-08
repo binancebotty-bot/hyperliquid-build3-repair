@@ -11378,7 +11378,7 @@ class WSManager:
         self.wallets = self.wallets_now()
         self.ingestor = ingestor
         self.hot_fill_handler = hot_fill_handler
-        self.queue: "queue.Queue[LeaderFill]" = queue.Queue(maxsize=50000)
+        self.queue: "queue.Queue[LeaderFill]" = queue.Queue(maxsize=32)
         self.last_msg_ms: Dict[str, int] = {w: 0 for w in self.wallets}
         self.last_error: Dict[str, str] = {}
         self.enabled = bval(os.getenv("HL_LIVE_WS_ENABLED"), False)
@@ -13222,12 +13222,15 @@ class LiveCopyCore:
         # coin: one coin always goes to the same worker, so its fills (every leader's, as they net on one
         # account) stay in order, while different coins are sent in parallel.
         self.hot_send_workers = max(1, min(32, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
-        self._hot_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
+        self._entry_slots = threading.BoundedSemaphore(384)
+        self._close_slots = threading.BoundedSemaphore(96)
+        self._queue_slot_kind: Dict[str, bool] = {}
+        self._hot_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=384) for _ in range(self.hot_send_workers)]
         self._hot_queue = self._hot_queues[0]
         # run 5: convergence closes waited ~7.7 min behind a worker's batch of entries and were re-queued every few
         # minutes without ever being sent. Closes (leader exits and convergence) get their own lane per worker,
         # which the worker empties before every fill it sends.
-        self._prio_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
+        self._prio_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=96) for _ in range(self.hot_send_workers)]
         self._converge_queued: set = set()  # sleeves with a convergence close still waiting on a worker
         self._queued_keys: set = set()  # guard keys of fills waiting on a worker
         self._pending_ts: Dict[str, Tuple[str, int]] = {}  # guard key -> (leader wallet, fill time) while queued or in flight
@@ -13488,9 +13491,21 @@ class LiveCopyCore:
                     self._queued_keys.discard(key)
 
         is_close = self._is_close_fill(fill)
+        slots = self._close_slots if is_close else self._entry_slots
+        if not slots.acquire(blocking=False):
+            if not append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, {
+                    "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
+                    "event": "FILL_PENDING", "status": "HOT_QUEUE_CAP_RETRY",
+                    "leader_wallet": fill.leader_wallet, "leader_fill_id": fill.leader_fill_id,
+                    "coin": fill.coin, "action": "REDELIVER_FROM_SOURCE",
+                    "notes": "entry not admitted; no sender attempt; retain source cursor"}, durable=True):
+                raise RuntimeError("HOT_QUEUE_CAP_AUDIT_FAILED")
+            return False
         with self._queued_lock:
             if key in self._queued_keys:
+                slots.release()
                 return True
+            self._queue_slot_kind[key] = is_close
             self._queued_keys.add(key)
             self._pending_ts[key] = (str(fill.leader_wallet).lower(), int(fnum(fill.timestamp_ms, 0)))
             self._pending_seen[key] = (utc_now_ms(), str(fill.leader_wallet), str(fill.coin), str(fill.leader_fill_id))
@@ -13526,7 +13541,9 @@ class LiveCopyCore:
                 self._hot_queues[shard].put_nowait(fill)
             return True
         except queue.Full:
+            slots.release()
             with self._queued_lock:
+                self._queue_slot_kind.pop(key, None)
                 self._queued_keys.discard(key)
                 self._pending_ts.pop(key, None)
                 self._pending_seen.pop(key, None)
@@ -13772,11 +13789,26 @@ class LiveCopyCore:
     def hot_backlog(self) -> int:
         return sum(q.qsize() for q in self._hot_queues) + sum(q.qsize() for q in getattr(self, "_prio_queues", []))
 
+    def drain_startup_hot_queue(self, timeout_sec: float = 15.0) -> bool:
+        deadline = time.monotonic() + max(0.0, timeout_sec)
+        while time.monotonic() <= deadline:
+            with self._queued_lock:
+                pending = bool(self._queued_keys) or bool(self._inflight)
+            with self._deferred_lock:
+                pending = pending or bool(self._deferred)
+            if not pending and self.hot_backlog() == 0 and self.ws.queue.empty():
+                return True
+            if self._hot_stop_event.wait(0.05):
+                return False
+        return False
+
     def _release_queued(self, batch: List[LeaderFill], q: "queue.Queue[LeaderFill]") -> None:
         with self._queued_lock:
             for f in batch:
                 _gk = self._guard_key(f)
                 self._queued_keys.discard(_gk)
+                kind = self._queue_slot_kind.pop(_gk, None)
+                (self._close_slots if kind else self._entry_slots).release()
                 self._pending_ts.pop(_gk, None)
                 self._pending_seen.pop(_gk, None)
                 self._pending_rowed.discard(_gk)
@@ -14000,6 +14032,8 @@ class LiveCopyCore:
         elif send_status == "SKIPPED_INSUFFICIENT_MARGIN":
             # margin was short for an IOC; rest instead of dropping the copy (the cap/exposure checks still ran)
             cause = "MARGIN_REJECT_AT_REFUSAL"
+        elif send_status == "QUEUE_STALE_ENTRY":
+            cause = "ORD_010_ENTRY_AGE_OVER_30S"
         elif utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0)) > ENTRY_MAX_AGE_MS:
             cause = "ORD_010_ENTRY_AGE_OVER_30S"
         else:
@@ -14563,7 +14597,20 @@ class LiveCopyCore:
                 intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_BEFORE_LIVE_START", terminal_state="PRE_CUTOVER_NOT_SENT",
                 engine_can_send="False", notes=f"leader fill at {fill.timestamp_ms} is older than the saved live start {self.dedupe.live_start_ms}: recorded, not copied")
             return True, "PRE_CUTOVER", intent
-        self._past_send_keys.add(self._guard_key(fill))  # an error from here on must not offer the fill again (no double order)
+        self._past_send_keys.add(self._guard_key(fill))  # guard precedes any possible missed-entry wire send
+        if (classify_send_lifecycle(intent) in {"ENTRY", "ADD"}
+                and utc_now_ms() - int(fnum(fill.timestamp_ms, 0)) > ENTRY_MAX_AGE_MS):
+            try:
+                outcome = self._apply_missed_entry_rule_on_refusal(fill, intent, "QUEUE_STALE_ENTRY")
+                if outcome is None:
+                    raise RuntimeError("QUEUE_STALE_ENTRY_REMEDY_UNAVAILABLE")
+                return False, str(outcome.get("outcome") or "QUEUE_STALE_ENTRY"), intent
+            except Exception as exc:
+                self.audit.append_reconciliation(
+                    "ALERT", "QUEUE_STALE_ENTRY_REVIEW", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin,
+                    action="MANUAL_REVIEW_NO_RESEND", notes=repr(exc))
+                return False, "QUEUE_STALE_ENTRY_REVIEW", intent
         try:
             sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
         except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
@@ -17917,6 +17964,17 @@ def main() -> None:
             startup_summary.fatal_errors = 1
             write_startup_status()
             raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
+        if args.loop and (args.poll_live or (source_path and source_path.exists())):
+            core.run_cycle(use_source_csv=bool(source_path and source_path.exists()),
+                           poll_live=bool(args.poll_live), poll_copy=False,
+                           reconcile_exchange=False)
+            while not core.drain_startup_hot_queue(15.0):
+                startup_summary.ok = False
+                startup_summary.entry_sends_blocked_reason = "STARTUP_DRAIN_PENDING"
+                write_startup_status()
+                if (AUDIT_DIR / "STOP_REQUESTED").exists():
+                    core.stop()
+                    raise SystemExit("STARTUP_DRAIN_STOPPED")
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0
         if args.ws:
