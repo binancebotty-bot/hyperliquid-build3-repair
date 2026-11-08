@@ -4949,7 +4949,7 @@ class IntentBuilder:
         # entries approved since the snapshot, with the monotonic time of approval: they are
         # released by AGE, never by the next read - a read taken before the fill cannot prove it
         # landed, and clearing them on every read let 132 entries pass a $900 cap on 2026-10-25
-        self._exposure_pending: List[Tuple[str, float, float, float]] = []
+        self._exposure_pending: List[Tuple[str, float, float, float, str]] = []
         self._exposure_gen = 0  # bumped at every snapshot install
         self._exposure_prefetched: Optional[Tuple[Dict[str, Any], int, int, int]] = None  # (exp, ms, gen, pending_len)
         self._exposure_prefetch_lock = threading.Lock()
@@ -5149,7 +5149,7 @@ class IntentBuilder:
                    "exposure_total": round(float(fnum(exp.get("total_usd"))), 2),
                    "exposure_ok": bool(exp.get("ok")),
                    "pending_n": len(pend),
-                   "pending_usd": round(sum(abs(u) * px for _c, u, px, _a in pend), 2),
+                   "pending_usd": round(sum(abs(u) * px for _c, u, px, _a, _fid in pend), 2),
                    "decision": "BLOCKED" if block else "ALLOWED", "reason": block or ""}
             _cd = getattr(_CAP_TLS, "cap_detail", None) or {}
             if _cd:
@@ -5176,8 +5176,8 @@ class IntentBuilder:
         _pend_ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
         _now_mono = time.monotonic()
         _live_pend = [e for e in self._exposure_pending if _now_mono - e[3] <= _pend_ttl]
-        pending_total = sum(abs(u) * px for _c, u, px, _at in _live_pend)
-        pending_coin = sum(u for c, u, _px, _at in _live_pend if c == coin)
+        pending_total = sum(abs(u) * px for _c, u, px, _at, _fid in _live_pend)
+        pending_coin = sum(u for c, u, _px, _at, _fid in _live_pend if c == coin)
         # resting entry limits count as if they all fill (run 4: $2,256 resting was outside the caps)
         resting = self._resting()
         if resting.get("unreadable"):
@@ -5222,7 +5222,7 @@ class IntentBuilder:
                 return "max total exposure exceeded" if cap_total > 0 else "max asset directional exposure exceeded"
             _CAP_TLS.scale = frac  # build() sizes the order down by this fraction
             units *= frac
-        self._exposure_pending.append((coin, units, value_px, time.monotonic()))
+        self._exposure_pending.append((coin, units, value_px, time.monotonic(), str(fill.leader_fill_id)))
         return ""
 
     def blocked_locally(self, fill: LeaderFill, entry_block_reason: str = "") -> bool:
@@ -5591,6 +5591,7 @@ class SenderGateway:
         self._asset_snapshot_loaded: bool = False
         self._suppress_unknown_asset_persist: bool = False
         self._exchange_order_lock = threading.Lock()
+        self._wire_cap_lock = threading.Lock()
         self.sender_key_invalid: str = ""  # set by a definite exchange rejection of the signing key; stops all sending
         self._resting_entries: Dict[str, Dict[str, Any]] = load_json(RESTING_ENTRY_ORDERS_FILE, {}) or {}
         for _row in self._resting_entries.values():
@@ -5789,6 +5790,52 @@ class SenderGateway:
     # only in a swallowed exception (Codex fix 4).
     _gate_journal_failures: int = 0
 
+    def _wire_entry_exposure_block(self, intent: Any, size: float, limit_px: float,
+                                   reduce_only: bool, entry_leg: bool = False) -> str:
+        """R5: recheck entry exposure at the physical sender; genuine closes are exempt.
+
+        Count builder in-flight reservations, resting limits and exchange exposure.
+        Missing evidence fails closed for entries, never for closes.
+        """
+        if (not entry_leg and reduce_only and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+                and self._reduce_only_for_intent(intent)):
+            return ""
+        wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
+        wallet_cap = self.cfg.max_wallet_exposure(wallet)
+        total_cap = self.cfg.max_total_exposure()
+        if wallet_cap <= 0 and total_cap <= 0:
+            return ""
+        notional = abs(float(size) * float(limit_px))
+        if not math.isfinite(notional) or notional <= 0:
+            return "ENTRY_EXPOSURE_UNPRICEABLE"
+        source = self.cap_source
+        if source is None:
+            return "ENTRY_EXPOSURE_SOURCE_MISSING"
+        resting = source._resting()
+        if resting.get("unreadable"):
+            return "ENTRY_RESTING_EXPOSURE_UNREADABLE"
+        now = time.monotonic()
+        ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
+        pending = sum(abs(units) * px for _coin, units, px, at, owner
+                      in source._exposure_pending if now - at <= ttl
+                      and owner != str(intent.fill.leader_fill_id))
+        resting_total = fnum(resting.get("total_usd"), 0.0)
+        if wallet_cap > 0:
+            if self.ledger is None:
+                return "ENTRY_WALLET_LEDGER_MISSING"
+            wallet_exposure = self.ledger.wallet_abs_exposure_usd(wallet, {intent.fill.coin: limit_px})
+            wallet_exposure += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
+            # Pending reservations are not wallet-tagged; assign all to this wallet (conservative).
+            if wallet_exposure + pending + notional > wallet_cap + 1e-9:
+                return "ENTRY_WALLET_EXPOSURE_CAP"
+        if total_cap > 0:
+            exchange = source.follower_exposure()
+            if not exchange.get("ok"):
+                return "ENTRY_TOTAL_EXPOSURE_UNREADABLE"
+            if fnum(exchange.get("total_usd")) + resting_total + pending + notional > total_cap + 1e-9:
+                return "ENTRY_TOTAL_EXPOSURE_CAP"
+        return ""
+
     def _master_gate_reason(self, intent: Any, path: str = "", entry_leg: bool = False) -> str:
         """Why this order may NOT go to the exchange, or "" when it may.
 
@@ -5898,6 +5945,23 @@ class SenderGateway:
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
                      pre_send: Optional[Callable[[], str]] = None,
                      intent: Any = None, path: str = "", entry_leg: bool = False) -> Any:
+        genuine_close = (intent is not None and not entry_leg and reduce_only
+                         and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+                         and self._reduce_only_for_intent(intent))
+        if genuine_close:
+            return self._place_order_impl(exchange, sdk_coin, is_buy, size, limit_px, tif, reduce_only,
+                                          timing, started_key, cloid, bypass_rate_limit_cooldown,
+                                          pre_send, intent, path, entry_leg)
+        with self._wire_cap_lock:
+            return self._place_order_impl(exchange, sdk_coin, is_buy, size, limit_px, tif, reduce_only,
+                                          timing, started_key, cloid, bypass_rate_limit_cooldown,
+                                          pre_send, intent, path, entry_leg)
+
+    def _place_order_impl(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
+                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
+                     cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
+                     pre_send: Optional[Callable[[], str]] = None,
+                     intent: Any = None, path: str = "", entry_leg: bool = False) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -5944,6 +6008,8 @@ class SenderGateway:
         try:
             if not _late_block:
                 _late_block = self._master_gate_reason(intent, (path or "") + ":post_wait")
+            if not _late_block:
+                _late_block = self._wire_entry_exposure_block(intent, size, limit_px, reduce_only, entry_leg)
             if not _late_block and _is_close:
                 _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
@@ -5972,6 +6038,8 @@ class SenderGateway:
                     _late_block = "SEND_BLOCKED_NO_SENDER_LEASE"
                 else:
                     _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
+                if not _late_block:
+                    _late_block = self._wire_entry_exposure_block(intent, size, limit_px, reduce_only, entry_leg)
                 if not _late_block and _is_close:
                     _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
