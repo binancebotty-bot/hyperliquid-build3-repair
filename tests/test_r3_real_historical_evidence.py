@@ -1,10 +1,10 @@
-"""R3 run14 cert-run four-CSV-only correlation, 5-8 November 2026 UTC.
+"""R3 captured testnet snapshot four-CSV-only correlation, 9 November 2026 UTC.
 
 NOT state.db-backed evidence: no state database existed for this cert run.
 NOT authenticated exchange provenance: four local journals cannot attest
 exchange identity. No replay, mutation, network calls, or synthetic history.
 Missing cert-run evidence makes this test FAIL. Execution remains NOT_RUN until
-build3 supplies all four read-only copies from run14/state_20261105/append_only.
+build3 supplies all four read-only copies from r3c_20261109/snapshot_20261109T125937Z/state_20261109/append_only.
 The match count is derived strictly from those CSV rows, never a target constant.
 """
 import csv
@@ -61,9 +61,9 @@ def _source(kind):
     parts = path.parts
     assert path.name == filename, f"R3_CERT_RUN_WRONG_FILENAME:{kind}:{path}"
     assert len(parts) >= 4 and parts[-3:] == (
-        "state_20261105", "append_only", filename), (
+        "state_20261109", "append_only", filename), (
         f"R3_CERT_RUN_LAYOUT_INVALID:{kind}:{path}")
-    assert any("run14" in part.lower() for part in parts[:-3]), (
+    assert parts[-5:-3] == ("r3c_20261109", "snapshot_20261109T125937Z"), (
         f"R3_CERT_RUN_PROVENANCE_PATH_MISSING:{kind}:{path}")
     return path
 
@@ -83,14 +83,14 @@ def _read(kind, path):
             assert stamp.isdigit(), f"R3_BAD_TIMESTAMP:{kind}:{line}"
             ms = int(stamp)
             assert START_MS <= ms < END_MS, (
-                f"R3_OUTSIDE_5_8_NOV_CERT_RUN:{kind}:{line}:{ms}")
+                f"R3_OUTSIDE_CAPTURED_SNAPSHOT_WINDOW:{kind}:{line}:{ms}")
             rows.append(row)
     assert rows, f"R3_EMPTY_CERT_RUN_CSV:{kind}:{path}"
     return rows
 
 
 def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
-    """Fail closed on corrupt run14 CSVs, report actual OID+CLOID/leader joins.
+    """Fail closed on corrupt captured-snapshot CSVs, report actual OID+CLOID/leader joins.
 
     Not state.db evidence, not an authenticated exchange confirmation, NOT_RUN
     pending four actual cert-run paths. Status-based no-send rows are counted
