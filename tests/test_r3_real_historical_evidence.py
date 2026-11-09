@@ -28,8 +28,8 @@ HEADERS = {
     "fills": ("created_at", "created_at_ms", "copy_fill_id", "intent_id", "leader_fill_id", "leader_wallet", "sleeve_id", "position_id", "coin", "side", "fill_price", "fill_size", "fill_notional", "fee", "source", "exchange_hash", "exchange_order_id", "ledger_action", "wallet_position_before", "wallet_position_after", "coin_net_after", "notes"),
     "intents": ("created_at", "created_at_ms", "intent_id", "leader_fill_id", "leader_wallet", "source", "coin", "leader_side", "copy_side", "leader_price", "leader_size", "leader_notional", "copy_size", "copy_notional", "wallet_mode", "copy_mode", "decision", "reason", "sleeve_id", "position_id", "position_direction_before", "wallet_position_before", "coin_net_before", "reduce_only_intended", "reduce_only_sent_planned", "marketable_bps", "max_close_adverse_diff_pct", "min_notional", "notes"),
 }
-START_MS = int(datetime(2026, 11, 5, tzinfo=timezone.utc).timestamp() * 1000)
-END_MS = int(datetime(2026, 11, 9, tzinfo=timezone.utc).timestamp() * 1000)
+START_MS = 1794229022124
+END_MS = 1794229177124
 CLOID = re.compile(r"0x[0-9a-fA-F]{32}\Z")
 OID = re.compile(r"[0-9]+\Z")
 
