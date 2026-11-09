@@ -5,6 +5,7 @@ The second send can be refused only by a separately-held intent reservation.
 See test_r5_physical_concurrency.py for the actual _place_order -> exchange.order path.
 """
 import ast
+import pytest
 from pathlib import Path
 import threading
 import time
@@ -20,11 +21,11 @@ cls = next(x for x in tree.body if isinstance(x, ast.ClassDef) and x.name == "Se
 def meth(name):
     return next(x for x in cls.body if isinstance(x, ast.FunctionDef) and x.name == name)
 scope = {"Any": Any, "Optional": Optional, "Dict": Dict, "Callable": Callable,
-         "math": math, "os": os, "time": time,
+         "math": math, "os": os, "time": time, "AUDIT_DIR":Path.cwd(),
          "fnum": lambda x, default=0: float(x if x is not None else default),
          "normalise_wallet": str.lower,
          "classify_send_lifecycle": lambda intent: intent.lifecycle}
-exec(compile(ast.Module(body=[meth("_wire_entry_exposure_block"), meth("_place_order")],
+exec(compile(ast.Module(body=[meth("_wire_cap_reservation_db"), meth("_wire_entry_exposure_block"), meth("_place_order")],
                         type_ignores=[]), str(CORE), "exec"), scope)
 
 def intent(life="ENTRY", fid="a", attempt=None):
@@ -33,6 +34,7 @@ def intent(life="ENTRY", fid="a", attempt=None):
               reduce_only_intended=life in {"EXIT", "REDUCE"})
 
 class Host:
+    _wire_cap_reservation_db = scope["_wire_cap_reservation_db"]
     _reduce_only_for_intent = lambda self, intent: intent.lifecycle in {"EXIT", "REDUCE"}
     _wire_entry_exposure_block = scope["_wire_entry_exposure_block"]
     _place_order = scope["_place_order"]
@@ -60,6 +62,10 @@ class Host:
         time.sleep(.01)  # simultaneous threads overlap before exchange confirmation
         self.wire_count += 1
         return "SENT"
+
+@pytest.fixture(autouse=True)
+def _isolated_db(tmp_path,monkeypatch):
+    monkeypatch.setenv("HL_LIVE_WIRE_CAP_DB",str(tmp_path/"wire-cap.sqlite3"))
 
 def test_atomic_competing_entries():
     h = Host()
@@ -93,8 +99,7 @@ def test_pending_does_not_double_count_current():
 
 def test_reduce_only_flag_not_close_proof():
     h = Host()
-    h._wire_cap_reservations[("w", "held", "intent-held")] = {
-        "wallet": "w", "notional": 10., "state": "UNKNOWN_UNTIL_PROVEN"}
+    assert h._wire_entry_exposure_block(intent(fid="held"), 10., 1., False, reserve=True) == ""
     # A forged reduce_only=True on an ENTRY is an entry, not a close.
     assert h._wire_entry_exposure_block(intent("ENTRY"), 1., 1., True) == "ENTRY_WALLET_EXPOSURE_CAP"
     # A real EXIT with an independently validated lifecycle remains exempt.
