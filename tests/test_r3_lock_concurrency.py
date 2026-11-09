@@ -126,7 +126,7 @@ def test_real_apply_locked_refuses_wrong_account_scope(files):
     before = sends.read_bytes()
     lines = [json.loads(x) for x in confirmation.read_text().splitlines()]
     lines[0]["account"] = "foreign"
-    confirmation.write_text("\\n".join(json.dumps(x) for x in lines) + "\\n")
+    confirmation.write_text("\n".join(json.dumps(x) for x in lines) + "\n")
     with pytest.raises(RuntimeError,match="R3_CONFIRMATION_SCOPE_UNVERIFIED"):
         r3.apply_locked(sends,confirmation,ledger)
     assert sends.read_bytes() == before
