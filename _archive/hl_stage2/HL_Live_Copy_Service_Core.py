@@ -5802,9 +5802,9 @@ class SenderGateway:
         """Release only on durable NO_CALL or confirmed exposure observation."""
         identity = (normalise_wallet(str(intent.fill.leader_wallet or "")),
                     str(intent.fill.leader_fill_id or ""), str(intent.intent_id or ""))
-        if proof not in {"NO_CALL", "OBSERVED_IN_EXPOSURE"}:
-            return False
-        if proof == "OBSERVED_IN_EXPOSURE" and not (exchange_confirmed and counted_in_exposure):
+        # NO_CALL requires a separately verified durable journal receipt. Do not
+        # accept caller assertions here: an UNKNOWN wire outcome must remain held.
+        if proof != "OBSERVED_IN_EXPOSURE" or not (exchange_confirmed and counted_in_exposure):
             return False
         import sqlite3
         try:
