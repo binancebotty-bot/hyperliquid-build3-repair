@@ -21,7 +21,7 @@ cls = next(x for x in tree.body if isinstance(x, ast.ClassDef) and x.name == "Se
 def meth(name):
     return next(x for x in cls.body if isinstance(x, ast.FunctionDef) and x.name == name)
 scope = {"Any": Any, "Optional": Optional, "Dict": Dict, "Callable": Callable,
-         "math": math, "os": os, "time": time, "AUDIT_DIR":Path.cwd(),
+         "math": math, "os": os, "time": time, "Path":Path, "AUDIT_DIR":Path.cwd(),
          "fnum": lambda x, default=0: float(x if x is not None else default),
          "normalise_wallet": str.lower,
          "classify_send_lifecycle": lambda intent: intent.lifecycle}
