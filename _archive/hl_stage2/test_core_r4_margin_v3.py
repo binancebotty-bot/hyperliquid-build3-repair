@@ -44,10 +44,17 @@ def intent(n, life="ENTRY"):
         fill=SimpleNamespace(coin="BTC"))
 
 
+def reserve(sender, entry, size, price):
+    return sender._reserve_margin_rest_at_wire(
+        entry, size, price, attempt_id="attempt-" + entry.intent_id,
+        sdk_coin="BTC", is_buy=True, tif="Gtc", reduce_only=False,
+        cloid="cloid-" + entry.intent_id)
+
+
 def process_claim(args):
     root, n = args
     sender = make_gateway(root, 100)
-    return sender._reserve_margin_rest_at_wire(intent(n), 1.0, 70.0)
+    return reserve(sender, intent(n), 1.0, 70.0)
 
 
 def test_parallel_processes_cannot_double_spend(tmp_path):
@@ -61,16 +68,16 @@ def test_parallel_processes_cannot_double_spend(tmp_path):
 
 def test_restart_still_reserves_collateral(tmp_path):
     sender = make_gateway(tmp_path, 100)
-    assert sender._reserve_margin_rest_at_wire(intent(1), 1, 70)
+    assert reserve(sender, intent(1), 1, 70)
     restarted = make_gateway(tmp_path, 100)
-    assert not restarted._reserve_margin_rest_at_wire(intent(2), 1, 70)
-    assert not restarted._reserve_margin_rest_at_wire(intent(1), 1, 70)
+    assert not reserve(restarted, intent(2), 1, 70)
+    assert not reserve(restarted, intent(1), 1, 70)
 
 
 def test_no_collateral_and_close_not_admitted_as_entry(tmp_path):
     sender = make_gateway(tmp_path, 0)
-    assert not sender._reserve_margin_rest_at_wire(intent(1), 1, 70)
-    assert not sender._reserve_margin_rest_at_wire(intent(1, "EXIT"), 1, 70)
+    assert not reserve(sender, intent(1), 1, 70)
+    assert not reserve(sender, intent(1, "EXIT"), 1, 70)
 
 
 def test_physical_order_has_reservation_after_writeahead_and_final_gates():
