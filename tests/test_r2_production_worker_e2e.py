@@ -95,6 +95,25 @@ scope = {
 }
 exec(compile(ast.Module(body=nodes, type_ignores=[]), str(CORE), "exec"), scope)
 
+# Use the actual production SenderGateway wire boundary, with a no-network
+# exchange spy. Only external exchange truth/risk collaborators are stubbed.
+SENDER_CLASS = next(n for n in TREE.body
+                    if isinstance(n, ast.ClassDef) and n.name == "SenderGateway")
+WIRE_METHODS = ("_place_order", "_place_order_impl")
+wire_nodes = [next(n for n in SENDER_CLASS.body
+                   if isinstance(n, ast.FunctionDef) and n.name == name)
+              for name in WIRE_METHODS]
+wire_scope = dict(scope)
+wire_scope.update({
+    "FOLLOWER_NETWORK": "testnet", "MAINNET_ORDERS_CONFIRMED": False,
+    "_sender_lease_owned": lambda: True,
+    "_sdk_cloid": lambda x: x, "_exchange_accepts_cloid": lambda ex: False,
+    "_open_orders_send_begin": lambda: None, "_open_orders_send_end": lambda: None,
+    "PreWireNoCallFault": type("PreWireNoCallFault", (Exception,), {}),
+    "PendingSendWriteFailed": type("PendingSendWriteFailed", (Exception,), {}),
+})
+exec(compile(ast.Module(body=wire_nodes, type_ignores=[]), str(CORE), "exec"), wire_scope)
+
 
 class Journal:
     def __init__(self):
@@ -108,27 +127,58 @@ class Journal:
         return any(row[2].get("leader_fill_id") == fid for row in self.rows)
 
 
+class OrderSpy:
+    def __init__(self, sender):
+        self.sender = sender
+    def order(self, *args, **kw):
+        self.sender.orders.append((self.sender._wire_label,
+                                   self.sender._current_fill_id, now_ms()))
+        return {"status": "ok", "response": {"type": "order", "data":
+                {"statuses": [{"resting": {"oid": 123}}]}}}
+
+
 class FakeSender:
+    _place_order = wire_scope["_place_order"]
+    _place_order_impl = wire_scope["_place_order_impl"]
+    _master_gate_reason = lambda self, *a, **kw: ""
+    _wire_entry_exposure_block = lambda self, *a, **kw: ""
+    _final_close_proof = lambda self, *a, **kw: ""
+    _reduce_only_for_intent = lambda self, intent: intent.lifecycle == "EXIT"
+    _reserve_exchange_order_slot = lambda self, **kw: now_ms()
+    _gate_refusal_row = lambda self, *a, **kw: None
+    _journal_authorised_close_refusal = lambda self, *a, **kw: None
+    _note_sender_key_rejection = lambda self, *a, **kw: None
+
     def __init__(self, host):
         self.host = host
         self._market_halted_until_ms = {}
+        self._wire_cap_lock = threading.RLock()
         self.orders = []
         self.remedies = []
+        self._physical_exchange = OrderSpy(self)
+
+    def _send_to_wire(self, intent, label):
+        self._wire_label = label
+        self._current_fill_id = intent.fill.leader_fill_id
+        result = self._place_order(self._physical_exchange, intent.fill.coin, True,
+                                   1.0, 1.0, "Ioc", intent.lifecycle == "EXIT",
+                                   timing={}, intent=intent, path="R2_TEST_OFFLINE")
+        assert result["status"] == "ok"
+
     def known_dispatch_reject(self, fill):
         return ""
     def cancel_resting_entries_against(self, fill):
         return []
     def _missed_entry_rest_or_diff(self, intent, cause):
-        # Physical send must not have been pre-marked before the reoffer.
+        # The real wire call below must not be pre-marked as completed.
         assert self.host._guard_key(intent.fill) not in self.host._past_send_keys
         self.remedies.append((intent.fill.leader_fill_id, cause))
-        self.orders.append(("MISSED_REOFFER", intent.fill.leader_fill_id, now_ms()))
+        self._send_to_wire(intent, "MISSED_REOFFER")
         return {"outcome": "MISSED_ENTRY_RESTED", "notes": "offline order spy",
                 "wallet_alias": intent.fill.leader_wallet}
     def send_if_allowed(self, intent, block=""):
-        self.orders.append(("PHYSICAL_SEND", intent.fill.leader_fill_id, now_ms()))
+        self._send_to_wire(intent, "PHYSICAL_SEND")
         return True, "ORDER_SENT"
-
 
 class Harness:
     pass
