@@ -6,6 +6,11 @@ exchange identity. No replay, mutation, network calls, or synthetic history.
 Missing cert-run evidence makes this test FAIL. Execution remains NOT_RUN until
 build3 supplies all four read-only copies from r3c_20261109/snapshot_20261109T133856Z/state_20261109/append_only.
 The match count is derived strictly from those CSV rows, never a target constant.
+Known unresolved example: intent 7f71ca1390325e8d494e89820ed9ef70
+(reconciliation row 5) has no corresponding captured send_attempts or
+live_fills row, so these four files cannot establish whether its claimed
+fill-level identifier or original intent identifier is authoritative.
+It remains UNPROVEN; a reconciliation row cannot validate itself.
 """
 import csv
 import os
@@ -120,6 +125,22 @@ def test_reconciliation_link_rejects_unrelated_or_unproven_fill():
     assert not _reconciliation_link_is_proven("intent-a", "", intent, related)
 
 
+def test_fill_level_witness_cannot_be_borrowed_across_intents():
+    # The same alternate fill is valid only for its independently recorded
+    # intent; neither a global fill match nor a reconciliation claim suffices.
+    intent = {"intent-a": "fill-original-a", "intent-b": "fill-original-b"}
+    captured_live_fills = [
+        {"intent_id": "intent-a", "leader_fill_id": "fill-later-a"},
+        {"intent_id": "intent-b", "leader_fill_id": "fill-b"},
+    ]
+    related = defaultdict(set)
+    for row in captured_live_fills:
+        related[row["intent_id"]].add(row["leader_fill_id"])
+    assert _reconciliation_link_is_proven("intent-a", "fill-later-a", intent, related)
+    assert not _reconciliation_link_is_proven("intent-b", "fill-later-a", intent, related)
+    assert not _reconciliation_link_is_proven("intent-a", "fill-b", intent, related)
+
+
 def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
     """Fail closed on corrupt captured-snapshot CSVs, report actual OID+CLOID/leader joins.
 
@@ -178,7 +199,11 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
         seen_fills.add(fid)
         iid = _id(row["intent_id"], "fills", i, "intent_id")
         leader = _id(row["leader_fill_id"], "fills", i, "leader_fill_id")
-        assert intent_to_leader.get(iid) == leader, f"R3_UNMATCHED_FILL_INTENT:{i}:{fid}"
+        # live_fills is fill-level evidence: the observed leader fill may be a
+        # later fill for the same intent, not the original intent-level fill.
+        # The independently captured row must still identify a known intent;
+        # reconciliation's own claim never establishes its association.
+        assert iid in intent_to_leader, f"R3_UNMATCHED_FILL_INTENT:{i}:{fid}"
         order = _oid(row["exchange_order_id"], "fills", i)
         try:
             value = float(_id(row["fill_size"], "fills", i, "fill_size"))
@@ -187,9 +212,11 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
         assert 0 < value < float("inf"), f"R3_BAD_FILL_SIZE:{i}:{fid}"
         fill_keys[(iid, leader, order)].add(fid)
 
-    # Only independently captured same-intent fills can establish an
-    # alternate fill-level reconciliation link. A send attempt by itself
-    # identifies an attempted order, not necessarily a realised leader fill.
+    # Reconciliation is FILL-level (writer: fill.fill_id); order_intents
+    # records the original INTENT-level leader_fill_id. A mismatch is valid
+    # only with an independent live_fills row binding that fill to the intent.
+    # An attempted send, an unrelated intent's fill, or the reconciliation
+    # record's own assertion cannot prove that binding.
     related_fills = defaultdict(set)
     for row in fills:
         related_fills[row["intent_id"].strip()].add(row["leader_fill_id"].strip())
