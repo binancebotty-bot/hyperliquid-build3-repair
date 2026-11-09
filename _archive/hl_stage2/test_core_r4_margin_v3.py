@@ -82,7 +82,7 @@ def test_physical_order_has_reservation_after_writeahead_and_final_gates():
     text = ast.get_source_segment(CORE.read_text(encoding="utf-8-sig"), fn)
     # Exact physical call path: pre_send -> final mode/lease/close proof ->
     # durable collateral reservation -> SDK exchange.order.
-    assert text.index("pre_send()") < text.index('":pre_wire"') if False else True
+    assert "pre_send()" in text  # enforce real pre-send hook presence
     assert text.index("pre_send()") < text.index("_reserve_margin_rest_at_wire")
     assert text.index("_final_close_proof") < text.index("_reserve_margin_rest_at_wire")
     assert text.index("_reserve_margin_rest_at_wire") < text.index("exchange.order(")
