@@ -5789,71 +5789,106 @@ class SenderGateway:
     # only in a swallowed exception (Codex fix 4).
     _gate_journal_failures: int = 0
 
+    def _wire_cap_reservation_db(self) -> str:
+        """Shared durable admission database for every SenderGateway process."""
+        return str(Path(os.getenv("HL_LIVE_WIRE_CAP_DB") or
+                        str(AUDIT_DIR / "wire_cap_reservations.sqlite3")))
+
+    def _reconcile_wire_cap_hold(self, intent: Any, proof: str,
+                                 exchange_confirmed: bool = False,
+                                 counted_in_exposure: bool = False) -> bool:
+        """Release only on durable NO_CALL or confirmed exposure observation."""
+        identity = (normalise_wallet(str(intent.fill.leader_wallet or "")),
+                    str(intent.fill.leader_fill_id or ""), str(intent.intent_id or ""))
+        if proof not in {"NO_CALL", "OBSERVED_IN_EXPOSURE"}:
+            return False
+        if proof == "OBSERVED_IN_EXPOSURE" and not (exchange_confirmed and counted_in_exposure):
+            return False
+        import sqlite3
+        try:
+            path = Path(self._wire_cap_reservation_db())
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(str(path), timeout=5, isolation_level=None) as db:
+                db.execute("BEGIN IMMEDIATE")
+                cur = db.execute(
+                    "UPDATE wire_cap_holds SET state=? WHERE wallet=? AND fill_id=? AND intent_id=? AND state='UNKNOWN_UNTIL_PROVEN'",
+                    (proof, *identity))
+                db.commit()
+                return cur.rowcount == 1
+        except (OSError, sqlite3.Error):
+            return False
+
     def _wire_entry_exposure_block(self, intent: Any, size: float, limit_px: float,
                                    reduce_only: bool, entry_leg: bool = False,
                                    reserve: bool = False) -> str:
-        """R5: recheck entry exposure at the physical sender; genuine closes are exempt.
-
-        Count builder in-flight reservations, resting limits and exchange exposure.
-        Missing evidence fails closed for entries, never for closes.
-        """
+        """Shared SQLite transaction serialises physical entry admission across OS processes."""
         if (not entry_leg and reduce_only and classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
                 and self._reduce_only_for_intent(intent)):
             return ""
+        if intent is None or getattr(intent, "fill", None) is None:
+            return "ENTRY_CAP_IDENTITY_MISSING"
         wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
-        wallet_cap = self.cfg.max_wallet_exposure(wallet)
-        total_cap = self.cfg.max_total_exposure()
-        if wallet_cap <= 0 and total_cap <= 0:
-            return ""
-        # Wire reservations are owned by the full attempted intent, never just wallet
-        # or leader fill. A duplicate physical attempt must not buy risk twice.
         fill_id = str(getattr(intent.fill, "leader_fill_id", "") or "")
         intent_id = str(getattr(intent, "intent_id", "") or "")
         identity = (normalise_wallet(wallet), fill_id, intent_id)
-        if reserve and (not fill_id or not intent_id):
+        if not all(identity):
             return "ENTRY_CAP_IDENTITY_MISSING"
-        if identity in self._wire_cap_reservations:
-            return "ENTRY_CAP_ALREADY_RESERVED_NO_SECOND_SEND"
-        notional = abs(float(size) * float(limit_px))
-        if not math.isfinite(notional) or notional <= 0:
-            return "ENTRY_EXPOSURE_UNPRICEABLE"
-        source = self.cap_source
-        if source is None:
-            return "ENTRY_EXPOSURE_SOURCE_MISSING"
-        resting = source._resting()
-        if resting.get("unreadable"):
-            return "ENTRY_RESTING_EXPOSURE_UNREADABLE"
-        now = time.monotonic()
-        ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
-        mine = [e for e in source._exposure_pending if len(e) == 5 and e[4] == fill_id]
-        if len(mine) > 1 or any(len(e) != 5 for e in source._exposure_pending):
-            return "ENTRY_CAP_RESERVATION_AMBIGUOUS"
-        pending = sum(abs(units) * px for _coin, units, px, at, owner
-                      in source._exposure_pending if now - at <= ttl and owner != fill_id)
-        # The physical wire is charged once, independently of builder's reservation.
-        # Holds remain through stale exchange snapshots, uncertain exchange responses and retries.
-        reserved = list(self._wire_cap_reservations.items())
-        reserved_total = sum(r["notional"] for _id, r in reserved)
-        reserved_wallet = sum(r["notional"] for _id, r in reserved if r["wallet"] == identity[0])
-        resting_total = fnum(resting.get("total_usd"), 0.0)
-        if wallet_cap > 0:
-            if self.ledger is None:
-                return "ENTRY_WALLET_LEDGER_MISSING"
-            wallet_exposure = self.ledger.wallet_abs_exposure_usd(wallet, {intent.fill.coin: limit_px})
-            wallet_exposure += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
-            # Pending reservations are not wallet-tagged; assign all to this wallet (conservative).
-            if wallet_exposure + pending + reserved_wallet + notional > wallet_cap + 1e-9:
-                return "ENTRY_WALLET_EXPOSURE_CAP"
-        if total_cap > 0:
-            exchange = source.follower_exposure()
-            if not exchange.get("ok"):
-                return "ENTRY_TOTAL_EXPOSURE_UNREADABLE"
-            if fnum(exchange.get("total_usd")) + resting_total + pending + reserved_total + notional > total_cap + 1e-9:
-                return "ENTRY_TOTAL_EXPOSURE_CAP"
-        if reserve:
-            self._wire_cap_reservations[identity] = {"wallet": identity[0],
-                                                       "notional": notional, "state": "UNKNOWN_UNTIL_PROVEN"}
-        return ""
+        import sqlite3
+        try:
+            notional = abs(float(size) * float(limit_px))
+            if not math.isfinite(notional) or notional <= 0:
+                return "ENTRY_EXPOSURE_UNPRICEABLE"
+            wallet_cap = self.cfg.max_wallet_exposure(wallet)
+            total_cap = self.cfg.max_total_exposure()
+            source = self.cap_source
+            if source is None:
+                return "ENTRY_EXPOSURE_SOURCE_MISSING"
+            path = Path(self._wire_cap_reservation_db())
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(str(path), timeout=5, isolation_level=None) as db:
+                db.execute("BEGIN IMMEDIATE")
+                db.execute("""CREATE TABLE IF NOT EXISTS wire_cap_holds (
+                    wallet TEXT NOT NULL, fill_id TEXT NOT NULL, intent_id TEXT NOT NULL,
+                    notional REAL NOT NULL, state TEXT NOT NULL,
+                    PRIMARY KEY(wallet, fill_id, intent_id))""")
+                rows = db.execute(
+                    "SELECT wallet,fill_id,intent_id,notional FROM wire_cap_holds WHERE state='UNKNOWN_UNTIL_PROVEN'").fetchall()
+                if any((w, fid, iid) == identity for w, fid, iid, amount in rows):
+                    return "ENTRY_CAP_ALREADY_RESERVED_NO_SECOND_SEND"
+                resting = source._resting()
+                if resting.get("unreadable"):
+                    return "ENTRY_RESTING_EXPOSURE_UNREADABLE"
+                now = time.monotonic()
+                ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
+                mine = [e for e in source._exposure_pending if len(e) == 5 and e[4] == fill_id]
+                if len(mine) > 1 or any(len(e) != 5 for e in source._exposure_pending):
+                    return "ENTRY_CAP_RESERVATION_AMBIGUOUS"
+                pending = sum(abs(units) * px for coin, units, px, at, owner
+                              in source._exposure_pending if now - at <= ttl and owner != fill_id)
+                reserved_total = sum(float(r[3]) for r in rows)
+                reserved_wallet = sum(float(r[3]) for r in rows if r[0] == identity[0])
+                if wallet_cap > 0:
+                    if self.ledger is None:
+                        return "ENTRY_WALLET_LEDGER_MISSING"
+                    wallet_exposure = self.ledger.wallet_abs_exposure_usd(wallet, {intent.fill.coin: limit_px})
+                    wallet_exposure += fnum((resting.get("by_wallet_usd") or {}).get(identity[0]), 0.0)
+                    if wallet_exposure + pending + reserved_wallet + notional > wallet_cap + 1e-9:
+                        return "ENTRY_WALLET_EXPOSURE_CAP"
+                if total_cap > 0:
+                    exchange = source.follower_exposure()
+                    if not exchange.get("ok"):
+                        return "ENTRY_TOTAL_EXPOSURE_UNREADABLE"
+                    if fnum(exchange.get("total_usd")) + fnum(resting.get("total_usd")) + pending + reserved_total + notional > total_cap + 1e-9:
+                        return "ENTRY_TOTAL_EXPOSURE_CAP"
+                if reserve:
+                    db.execute("INSERT INTO wire_cap_holds(wallet,fill_id,intent_id,notional,state) VALUES (?,?,?,?,'UNKNOWN_UNTIL_PROVEN')",
+                               (*identity, notional))
+                    db.commit()
+                    self._wire_cap_reservations[identity] = {
+                        "wallet": identity[0], "notional": notional, "state": "UNKNOWN_UNTIL_PROVEN"}
+                return ""
+        except (OSError, sqlite3.Error, ValueError, TypeError):
+            return "ENTRY_CAP_PERSISTENCE_UNAVAILABLE"
 
     def _master_gate_reason(self, intent: Any, path: str = "", entry_leg: bool = False) -> str:
         """Why this order may NOT go to the exchange, or "" when it may.
