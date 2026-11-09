@@ -214,3 +214,26 @@ def test_real_wire_funded_reduce_close_bypasses_entry_margin_gate(tmp_path):
     assert len(calls) == 1
     assert calls[0][1]["reduce_only"] is True
     assert not list(tmp_path.glob("margin_rest_reservations_*.sqlite3"))
+
+
+def test_real_wire_conflicting_attempt_ids_never_send(tmp_path):
+    gateway, _events = make_wire_gateway(tmp_path, [200], {})
+    calls = []
+    exchange = SimpleNamespace(order=lambda *a, **k: calls.append((a, k)))
+    entry = intent("mismatch")
+    entry.reduce_only_intended = False
+    records = {}
+    # Mock terminal writer is exercised even when the timing hint is stale.
+    gateway._terminalise_pending_as_no_call = lambda aid, state, reason: records.update(
+        attempt_id=aid, state=state, reason=reason)
+    response = gateway._place_order(
+        exchange, "BTC", True, 1, 70, "Gtc", False,
+        timing={"margin_rest_physical_admission": entry.intent_id,
+                "send_attempt_id": "stale-attempt"},
+        pre_send=lambda: "durable-attempt",
+        intent=entry, path="missed_entry_rest")
+    assert calls == []
+    assert response["exchange_called"] is False
+    assert records["attempt_id"] == "durable-attempt"
+    assert records["state"] == "SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL"
+    assert not list(tmp_path.glob("margin_rest_reservations_*.sqlite3"))
