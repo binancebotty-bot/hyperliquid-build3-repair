@@ -14597,7 +14597,6 @@ class LiveCopyCore:
                 intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_BEFORE_LIVE_START", terminal_state="PRE_CUTOVER_NOT_SENT",
                 engine_can_send="False", notes=f"leader fill at {fill.timestamp_ms} is older than the saved live start {self.dedupe.live_start_ms}: recorded, not copied")
             return True, "PRE_CUTOVER", intent
-        self._past_send_keys.add(self._guard_key(fill))  # guard precedes any possible missed-entry wire send
         if (classify_send_lifecycle(intent) in {"ENTRY", "ADD"}
                 and utc_now_ms() - int(fnum(fill.timestamp_ms, 0)) > ENTRY_MAX_AGE_MS):
             try:
@@ -14611,6 +14610,9 @@ class LiveCopyCore:
                     leader_fill_id=fill.leader_fill_id, coin=fill.coin,
                     action="MANUAL_REVIEW_NO_RESEND", notes=repr(exc))
                 return False, "QUEUE_STALE_ENTRY_REVIEW", intent
+        # Only mark a normal physical-send attempt AFTER stale-entry recovery.
+        # A failed reoffer must never be mistaken for a completed send.
+        self._past_send_keys.add(self._guard_key(fill))
         try:
             sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
         except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
