@@ -109,3 +109,44 @@ def test_ui_top_consumer_reads_canonical_field():
     assert len(values) == 1
     assert "overall" in ast.unparse(values[0])
     assert "ws_summary.get" not in ast.unparse(values[0])
+
+
+def test_real_write_now_emits_fail_closed_ws_status(tmp_path):
+    """Execute the real writer, not a fabricated service-state dictionary."""
+    import os
+    import sys
+    import threading
+    from dataclasses import asdict as real_asdict
+
+    now = int(time.time() * 1000)
+    saved = {}
+    state_lock = threading.Lock()
+    health = {"ws_summary": {"ws_status": "WS_DISABLED"},
+              "created_at_ms": now - 600000}
+    def read(path, default=None):
+        return health if path == "health" else default
+    env = dict(
+        __builtins__=__builtins__, Any=Any, Dict=Dict, Optional=Optional,
+        os=os, sys=sys, time=time, RUNTIME_STATE_LOCK=state_lock,
+        utc_now_ms=lambda: now, utc_now_iso=lambda: "now",
+        fnum=lambda v, default=0: float(v if v is not None else default),
+        LIVE_WS_HEALTH_FILE="health", SERVICE_STATE_FILE="service",
+        LIVE_CONFIG_FILE=tmp_path / "config", PROCESS_STARTED_AT_MS=now - 10000,
+        PROCESS_STARTED_AT="started", FOLLOWER_NETWORK="testnet",
+        LEADER_NETWORK="testnet", _HOTSWAP=SimpleNamespace(loaded_sha=lambda _: ""),
+        load_json=read, atomic_write_json=lambda key, val: saved.__setitem__(key, val),
+        asdict=lambda summary: summary.__dict__,
+    )
+    cls = method(CORE, "ServiceStateWriter", "ws_summary_from_file", env)
+    cls_write = method(CORE, "ServiceStateWriter", "_write_now", env)
+    writer = cls_write()
+    writer.ws_summary_from_file = cls().ws_summary_from_file
+    writer._write_core_state = lambda *args: None
+    summary = SimpleNamespace(budget_exceeded=False,
+        entry_sends_blocked_reason="", sender_key_invalid="")
+    dedupe = SimpleNamespace(export=lambda: {})
+    writer._write_now(summary, dedupe, None)
+    assert saved["service"]["ws_status"] == "WS_STALE"
+    assert saved["service"]["ws_feature_enabled"] is False
+    assert saved["service"]["ws_transport_healthy"] is False
+
