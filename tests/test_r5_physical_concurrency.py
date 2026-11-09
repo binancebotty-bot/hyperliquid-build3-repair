@@ -16,7 +16,7 @@ methods=[next(x for x in cls.body if isinstance(x,ast.FunctionDef) and x.name==n
          for n in ("_wire_cap_reservation_db","_reconcile_wire_cap_hold","_wire_entry_exposure_block","_place_order","_place_order_impl")]
 scope={
     "Any":Any,"Dict":Dict,"Optional":Optional,"Callable":Callable,
-    "math":math,"os":os,"time":time,"AUDIT_DIR":Path.cwd(),
+    "math":math,"os":os,"time":time,"Path":Path,"AUDIT_DIR":Path.cwd(),
     "FOLLOWER_NETWORK":"testnet","MAINNET_ORDERS_CONFIRMED":False,
     "classify_send_lifecycle":lambda i:i.lifecycle,
     "normalise_wallet":lambda x:str(x).lower(),
