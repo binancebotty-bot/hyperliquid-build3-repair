@@ -7,6 +7,7 @@ physical calls. The durable SQLite reservation is production code, not a toy.
 import importlib.util
 import multiprocessing as mp
 import os
+import queue
 import sqlite3
 from pathlib import Path
 
@@ -49,10 +50,10 @@ def test_two_real_sender_processes_one_wire_restart_and_settlement(tmp_path, mon
         assert p.exitcode == 0
     results = [outcomes.get(timeout=3) for _ in workers]
     assert not any("ERROR:" in result for _, result in results)
-    orders = []
-    while not physical.empty():
-        orders.append(physical.get(timeout=2))
-    assert len(orders) == 1, f"two physical exchange.order calls: {results!r}"
+    orders = [physical.get(timeout=3)]
+    with pytest.raises(queue.Empty):
+        physical.get(timeout=0.3)
+    assert len(orders) == 1, f"unexpected physical exchange.order calls: {results!r}"
 
     with sqlite3.connect(db_path) as con:
         rows = con.execute("SELECT wallet,fill_id,intent_id,notional,state FROM wire_cap_holds").fetchall()
