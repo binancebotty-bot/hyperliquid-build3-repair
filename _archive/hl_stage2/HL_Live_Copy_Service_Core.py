@@ -11644,7 +11644,7 @@ class WSManager:
         elif socket_open and stale_count > 0:
             ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
         else:
-            ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
+            ws_status, worst_grade = "WS_DISCONNECTED", "DEGRADED"
         summary = {
             "wallet_count": len(self.wallets),
             "open_count": 1 if socket_open else 0,
@@ -12854,8 +12854,20 @@ class ServiceStateWriter:
         payload = load_json(LIVE_WS_HEALTH_FILE, {})
         summary = payload.get("ws_summary") if isinstance(payload, dict) else None
         if isinstance(summary, dict):
-            return summary
-        return {"ws_status": "WS_DISABLED", "wallet_count": 0, "open_count": 0, "stale_count": 0, "total_reconnect_count": 0, "worst_health_grade": "DISABLED"}
+            status = str(summary.get("ws_status") or "").upper()
+            allowed = {"WS_OK", "WS_STARTING", "WS_DEGRADED",
+                       "WS_DISCONNECTED", "WS_DISABLED"}
+            stamp = int(fnum(payload.get("created_at_ms"), 0))
+            age = max(0, utc_now_ms() - stamp) if stamp else 10**18
+            max_age = max(1000, int(fnum(os.getenv("HL_LIVE_WS_HEALTH_MAX_AGE_MS"), 180000)))
+            if not stamp or stamp < PROCESS_STARTED_AT_MS or age > max_age:
+                status = "WS_STALE"  # stale health cannot certify an earlier DISABLED status
+            elif status not in allowed:
+                status = "WS_UNKNOWN"
+            return {**summary, "ws_status": status,
+                    "status_source": "live_ws_health.json",
+                    "source_created_at_ms": stamp, "health_age_ms": age}
+        return {"ws_status": "WS_UNKNOWN", "wallet_count": 0, "open_count": 0, "stale_count": 0, "total_reconnect_count": 0, "worst_health_grade": "UNKNOWN"}
 
     def write(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
         self._worker.submit(self._write_now, summary, dedupe, cfg)
@@ -12911,7 +12923,10 @@ class ServiceStateWriter:
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             "entry_sends_blocked_reason": summary.entry_sends_blocked_reason,
             "sender_key_invalid": summary.sender_key_invalid,
-            "ws_status": ws.get("ws_status") or ("WS_DEGRADED" if fnum(ws.get("stale_count"), 0) > 0 else "WS_OK"),
+            "ws_status": ws.get("ws_status") or "WS_UNKNOWN",
+            "ws_feature_enabled": (str(ws.get("ws_status") or "") in {"WS_OK", "WS_STARTING", "WS_DEGRADED", "WS_DISCONNECTED"}),
+            "ws_transport_healthy": str(ws.get("ws_status") or "") == "WS_OK",
+            "ws_status_source": ws.get("status_source", "live_ws_health.json"),
             "ws_wallet_count": ws.get("wallet_count", 0),
             "ws_open_count": ws.get("open_count", 0),
             "ws_stale_count": ws.get("stale_count", 0),
