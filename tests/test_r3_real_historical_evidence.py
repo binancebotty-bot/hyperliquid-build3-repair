@@ -120,6 +120,7 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
         if clo:
             assert CLOID.fullmatch(clo), f"R3_BAD_CLOID:{i}:{aid}"
         _optional_oid(row["exchange_order_id"], "sends", i)
+        assert aid not in latest, f"R3_DUPLICATE_ATTEMPT_ID:{i}:{aid}"
         latest[aid] = row
 
     fill_keys = defaultdict(set)
