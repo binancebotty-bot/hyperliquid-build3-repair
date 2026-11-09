@@ -5656,13 +5656,16 @@ class SenderGateway:
         except Exception:
             return False
 
-    def _reserve_margin_rest_at_wire(self, intent: Intent, size: float, px: float) -> bool:
+    def _reserve_margin_rest_at_wire(self, intent: Intent, size: float, px: float, *,
+                                     attempt_id: str, sdk_coin: str, is_buy: bool,
+                                     tif: str, reduce_only: bool, cloid: Optional[str]) -> bool:
         """Final live proof + durable reservation across processes after pre_send.
 
         Requires a shared AUDIT_DIR for all senders. Unresolved reservations are
         never released automatically: exchange reconciliation is mandatory.
         """
-        if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
+        if (classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}
+                or not str(attempt_id or "").strip() or reduce_only):
             return False
         required = abs(float(size) * float(px))
         if not math.isfinite(required) or required <= 0:
@@ -5679,6 +5682,14 @@ class SenderGateway:
             conn.execute("CREATE TABLE IF NOT EXISTS reservations "
                          "(token TEXT PRIMARY KEY, coin TEXT NOT NULL, notional REAL NOT NULL, "
                          "state TEXT NOT NULL, created_ms INTEGER NOT NULL)")
+            # Persist wire identity with the reservation in the SAME transaction.
+            # Existing unresolved legacy rows still count, but cannot be auto-released.
+            conn.execute("CREATE TABLE IF NOT EXISTS reservation_evidence "
+                         "(token TEXT PRIMARY KEY, attempt_id TEXT NOT NULL UNIQUE, "
+                         "intent_id TEXT NOT NULL, follower TEXT NOT NULL, "
+                         "network TEXT NOT NULL, coin TEXT NOT NULL, sdk_coin TEXT NOT NULL, "
+                         "side TEXT NOT NULL, size REAL NOT NULL, price REAL NOT NULL, "
+                         "tif TEXT NOT NULL, reduce_only INTEGER NOT NULL, cloid TEXT NOT NULL)")
             conn.execute("BEGIN IMMEDIATE")
             if conn.execute("SELECT 1 FROM reservations WHERE token=?", (token,)).fetchone():
                 conn.execute("ROLLBACK")
@@ -5698,6 +5709,11 @@ class SenderGateway:
                 return False
             conn.execute("INSERT INTO reservations VALUES (?,?,?,?,?)",
                          (token, coin, required, "UNRESOLVED", utc_now_ms()))
+            conn.execute("INSERT INTO reservation_evidence VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                         (token, str(attempt_id), str(intent.intent_id),
+                          normalise_wallet(USER_WALLET), FOLLOWER_NETWORK, coin,
+                          str(sdk_coin), "BUY" if is_buy else "SELL", float(size),
+                          float(px), str(tif), int(reduce_only), str(cloid or "")))
             conn.execute("COMMIT")
             return True
         except Exception as exc:
@@ -6097,7 +6113,11 @@ class SenderGateway:
         # Reduce-only CLOSE never enters this entry-only path.
         if (isinstance(timing, dict) and
                 timing.get("margin_rest_physical_admission") == str(getattr(intent, "intent_id", ""))):
-            if not self._reserve_margin_rest_at_wire(intent, size, limit_px):
+            if not self._reserve_margin_rest_at_wire(
+                    intent, size, limit_px,
+                    attempt_id=str(timing.get("send_attempt_id") or _pending_id or ""),
+                    sdk_coin=sdk_coin, is_buy=is_buy, tif=tif,
+                    reduce_only=reduce_only, cloid=cloid):
                 reason = "MARGIN_REST_PHYSICAL_COLLATERAL_OR_RESERVATION_HOLD"
                 self._terminalise_pending_as_no_call(
                     str(timing.get("send_attempt_id") or _pending_id or ""),
