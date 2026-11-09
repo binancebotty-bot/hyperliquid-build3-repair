@@ -6843,8 +6843,8 @@ class SenderGateway:
             rows = [dict(r) for r in self._resting_entries.values() if self._row_open_size(r) > 0]
         if not rows:
             return 0
-        dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
-                        for r in rows})
+        dexes = sorted({str(r.get("dex") or "").strip().lower() for r in rows
+                        if self._resting_send_proven(r)})
         started = utc_now_ms()
         res = periodic_open_orders(dexes)
         open_sz: Dict[str, float] = {}
@@ -6860,7 +6860,10 @@ class SenderGateway:
             for oid, row in self._resting_entries.items():
                 text = str(row.get("coin") or "")
                 dex = text.split(":", 1)[0].strip().lower() if ":" in text else ""
-                if dex not in read_ok or not self._resting_key(row) or self._resting_quarantined(row):
+                if (dex != str(row.get("dex") or "").lower() or dex not in read_ok
+                        or not self._resting_send_proven(row) or self._resting_quarantined(row)):
+                    continue
+                if normalise_wallet(row.get("follower_account")) != normalise_wallet(USER_WALLET):
                     continue
                 oid = str(row.get("oid"))
                 # placed after the read started: the read may predate it, keep the placed size
