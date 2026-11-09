@@ -24,6 +24,9 @@ def files(tmp_path,monkeypatch):
     lock=tmp_path/"engine-global.lock"
     monkeypatch.setenv("HL_LIVE_GLOBAL_LOCK_FILE",str(lock))
     monkeypatch.setenv("HL_LIVE_REPLAY_OFFLINE","1")
+    monkeypatch.setenv("HL_LIVE_REPLAY_NETWORK","testnet")
+    monkeypatch.setenv("HL_LIVE_REPLAY_ACCOUNT","acct-A")
+    monkeypatch.setenv("HL_LIVE_REPLAY_DEX","dex-A")
     sends=tmp_path/"send_attempts.csv"
     with sends.open("w",newline="",encoding="utf-8") as f:
         w=csv.DictWriter(f,fieldnames=FIELDS,lineterminator="\r\n")
@@ -31,7 +34,8 @@ def files(tmp_path,monkeypatch):
         w.writerow({"attempt_id":"a1","cloid":CLOID,"status":"pending_send",
                     "copy_size":"2","leader_fill_id":"L"})
     confirmation=tmp_path/"exchange.jsonl"
-    confirmation.write_text(json.dumps({"cloid":CLOID,"oid":"123","status":"FILLED","filled_size":"2"})+"\n")
+    confirmation.write_text(json.dumps({"cloid":CLOID,"oid":"123","status":"FILLED","filled_size":"2",
+                                        "network":"testnet","account":"acct-A","dex":"dex-A"})+"\n")
     ledger=tmp_path/"live_fills.csv"
     with ledger.open("w",newline="",encoding="utf-8") as f:
         w=csv.DictWriter(f,fieldnames=LEDGER)
@@ -108,3 +112,21 @@ def test_rename_failure_keeps_original(files,monkeypatch):
         r3.apply_locked(s,c,l)
     assert s.read_bytes()==before
     assert not list(s.parent.glob(".r3-*.csv"))
+
+def test_real_apply_locked_refuses_mainnet_before_file_reads(files,monkeypatch):
+    sends, confirmation, ledger, _ = files
+    before = sends.read_bytes()
+    monkeypatch.setenv("HL_LIVE_REPLAY_NETWORK","mainnet")
+    with pytest.raises(RuntimeError,match="R3_TESTNET_ONLY"):
+        r3.apply_locked(sends,confirmation,ledger)
+    assert sends.read_bytes() == before
+
+def test_real_apply_locked_refuses_wrong_account_scope(files):
+    sends, confirmation, ledger, _ = files
+    before = sends.read_bytes()
+    lines = [json.loads(x) for x in confirmation.read_text().splitlines()]
+    lines[0]["account"] = "foreign"
+    confirmation.write_text("\\n".join(json.dumps(x) for x in lines) + "\\n")
+    with pytest.raises(RuntimeError,match="R3_CONFIRMATION_SCOPE_UNVERIFIED"):
+        r3.apply_locked(sends,confirmation,ledger)
+    assert sends.read_bytes() == before
