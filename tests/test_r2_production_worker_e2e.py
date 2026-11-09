@@ -188,6 +188,9 @@ class Journal:
         self.rows.append((event, status, kw))
     def append_order_intent(self, intent):
         self.intents.append(intent)
+    def append_send_attempt(self, row, durable=False):
+        assert durable is True, "pending send must be durable before wire"
+        self.rows.append(("SEND_ATTEMPT", row["status"], row))
     def has_fill_row(self, fid):
         return any(row[2].get("leader_fill_id") == fid for row in self.rows)
 
@@ -259,7 +262,17 @@ class FakeSender:
         self.remedies.append((intent.fill.leader_fill_id, "ORD_010_ENTRY_AGE_OVER_30S"))
         self._wire_label = "MISSED_REOFFER"
         self._current_fill_id = intent.fill.leader_fill_id
-        return "", None
+        def pending_send():
+            # Model the production hook's durable pending-send boundary.
+            attempt_id = "r2-test-" + intent.intent_id
+            self.host.audit.append_send_attempt({
+                "attempt_id": attempt_id, "intent_id": intent.intent_id,
+                "leader_fill_id": intent.fill.leader_fill_id,
+                "status": "pending_send",
+            }, durable=True)
+            timing["send_attempt_id"] = attempt_id
+            return attempt_id
+        return "", pending_send
     def send_if_allowed(self, intent, block=""):
         self._send_to_wire(intent, "PHYSICAL_SEND")
         return True, "ORDER_SENT"
