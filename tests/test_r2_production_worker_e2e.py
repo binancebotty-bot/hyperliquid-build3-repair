@@ -216,6 +216,7 @@ class FakeSender:
 
     def __init__(self, host):
         self.host = host
+        self.cfg = host.cfg
         self._market_halted_until_ms = {}
         self._wire_cap_lock = threading.RLock()
         self.orders = []
@@ -376,6 +377,20 @@ def test_production_worker_stale_entry_reoffers_without_premark(tmp_path, monkey
     assert len(h.sender.orders) == 1 and h.sender.orders[0][:2] == ("MISSED_REOFFER", stale.leader_fill_id)
     assert not h._past_send_keys
     assert len(h.audit.intents) == 1
+
+
+def test_stale_entry_pricing_lookup_failure_is_explicit(tmp_path):
+    h = create_harness(tmp_path / "reconcile.csv")
+    intent = h.intent_builder.build(fill(1, stale=True))
+
+    def unavailable_bps():
+        raise AttributeError("pricing configuration unavailable")
+
+    h.sender.cfg = NS(marketable_bps=unavailable_bps)
+    with pytest.raises(RuntimeError, match="MISSED_ENTRY_PRICING_LOOKUP_FAILED") as exc:
+        h.sender._missed_entry_rest_or_diff(intent, "ORD_010_ENTRY_AGE_OVER_30S")
+    assert isinstance(exc.value.__cause__, AttributeError)
+    assert not h.sender.orders
 
 
 def test_overflow_persisted_and_reoffered_from_fresh_source_reader(tmp_path, monkeypatch):
