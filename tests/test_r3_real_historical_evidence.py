@@ -4,7 +4,7 @@ NOT state.db-backed evidence: no state database existed for this cert run.
 NOT authenticated exchange provenance: four local journals cannot attest
 exchange identity. No replay, mutation, network calls, or synthetic history.
 Missing cert-run evidence makes this test FAIL. Execution remains NOT_RUN until
-build3 supplies all four read-only copies from r3c_20261109/snapshot_20261109T125937Z/state_20261109/append_only.
+build3 supplies all four read-only copies from r3c_20261109/snapshot_20261109T133856Z/state_20261109/append_only.
 The match count is derived strictly from those CSV rows, never a target constant.
 """
 import csv
@@ -29,7 +29,7 @@ HEADERS = {
     "intents": ("created_at", "created_at_ms", "intent_id", "leader_fill_id", "leader_wallet", "source", "coin", "leader_side", "copy_side", "leader_price", "leader_size", "leader_notional", "copy_size", "copy_notional", "wallet_mode", "copy_mode", "decision", "reason", "sleeve_id", "position_id", "position_direction_before", "wallet_position_before", "coin_net_before", "reduce_only_intended", "reduce_only_sent_planned", "marketable_bps", "max_close_adverse_diff_pct", "min_notional", "notes"),
 }
 START_MS = 1794229022124
-END_MS = 1794229177124
+END_MS = 1794231536107
 CLOID = re.compile(r"0x[0-9a-fA-F]{32}\Z")
 OID = re.compile(r"[0-9]+\Z")
 
@@ -63,7 +63,7 @@ def _source(kind):
     assert len(parts) >= 4 and parts[-3:] == (
         "state_20261109", "append_only", filename), (
         f"R3_CERT_RUN_LAYOUT_INVALID:{kind}:{path}")
-    assert parts[-5:-3] == ("r3c_20261109", "snapshot_20261109T125937Z"), (
+    assert parts[-5:-3] == ("r3c_20261109", "snapshot_20261109T133856Z"), (
         f"R3_CERT_RUN_PROVENANCE_PATH_MISSING:{kind}:{path}")
     return path
 
