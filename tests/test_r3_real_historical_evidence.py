@@ -89,6 +89,37 @@ def _read(kind, path):
     return rows
 
 
+
+def _reconciliation_link_is_proven(intent_id, leader_fill_id, intent_to_leader,
+                                  related_fills):
+    """An alternate leader fill requires a recorded same-intent association.
+
+    The UI's intent-first / leader-fill-fallback lookup is a lookup order, not
+    proof that an unrelated fill belongs to this intent. Do not infer ownership
+    from a globally known leader_fill_id or the reconciliation claim itself.
+    """
+    if not intent_id or not leader_fill_id or intent_id not in intent_to_leader:
+        return False
+    return (leader_fill_id == intent_to_leader[intent_id]
+            or leader_fill_id in related_fills.get(intent_id, set()))
+
+
+def test_reconciliation_link_accepts_proven_later_fill():
+    intent = {"intent-a": "fill-original"}
+    related = {"intent-a": {"fill-later"}}
+    assert _reconciliation_link_is_proven("intent-a", "fill-later", intent, related)
+    assert _reconciliation_link_is_proven("intent-a", "fill-original", intent, related)
+
+
+def test_reconciliation_link_rejects_unrelated_or_unproven_fill():
+    intent = {"intent-a": "fill-original", "intent-b": "fill-unrelated"}
+    related = {"intent-a": {"fill-later"}}
+    assert not _reconciliation_link_is_proven("intent-a", "fill-unrelated", intent, related)
+    assert not _reconciliation_link_is_proven("intent-a", "fill-unproven", intent, related)
+    assert not _reconciliation_link_is_proven("missing-intent", "fill-later", intent, related)
+    assert not _reconciliation_link_is_proven("intent-a", "", intent, related)
+
+
 def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
     """Fail closed on corrupt captured-snapshot CSVs, report actual OID+CLOID/leader joins.
 
@@ -156,6 +187,13 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
         assert 0 < value < float("inf"), f"R3_BAD_FILL_SIZE:{i}:{fid}"
         fill_keys[(iid, leader, order)].add(fid)
 
+    # Only independently captured same-intent fills can establish an
+    # alternate fill-level reconciliation link. A send attempt by itself
+    # identifies an attempted order, not necessarily a realised leader fill.
+    related_fills = defaultdict(set)
+    for row in fills:
+        related_fills[row["intent_id"].strip()].add(row["leader_fill_id"].strip())
+
     reconciliation_count = Counter()
     for i, row in enumerate(reconciliations, 2):
         assert _id(row["event"], "reconciliation", i, "event")
@@ -165,7 +203,8 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
         if iid or leader:
             # System-wide reconciliation events without identifiers are allowed
             # but explicitly accounted as non-correlatable, never silently used.
-            assert iid and leader and intent_to_leader.get(iid) == leader, (
+            assert _reconciliation_link_is_proven(
+                iid, leader, intent_to_leader, related_fills), (
                 f"R3_UNMATCHED_RECONCILIATION_LINK:{i}")
             reconciliation_count["linked"] += 1
         else:
