@@ -5590,7 +5590,8 @@ class SenderGateway:
         self._asset_snapshot_loaded: bool = False
         self._suppress_unknown_asset_persist: bool = False
         self._exchange_order_lock = threading.Lock()
-        self._wire_cap_lock = threading.Lock()
+        self._wire_cap_lock = threading.RLock()
+        self._wire_cap_reservations: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
         self.sender_key_invalid: str = ""  # set by a definite exchange rejection of the signing key; stops all sending
         self._resting_entries: Dict[str, Dict[str, Any]] = load_json(RESTING_ENTRY_ORDERS_FILE, {}) or {}
         for _row in self._resting_entries.values():
@@ -5789,7 +5790,8 @@ class SenderGateway:
     _gate_journal_failures: int = 0
 
     def _wire_entry_exposure_block(self, intent: Any, size: float, limit_px: float,
-                                   reduce_only: bool, entry_leg: bool = False) -> str:
+                                   reduce_only: bool, entry_leg: bool = False,
+                                   reserve: bool = False) -> str:
         """R5: recheck entry exposure at the physical sender; genuine closes are exempt.
 
         Count builder in-flight reservations, resting limits and exchange exposure.
@@ -5803,6 +5805,15 @@ class SenderGateway:
         total_cap = self.cfg.max_total_exposure()
         if wallet_cap <= 0 and total_cap <= 0:
             return ""
+        # Wire reservations are owned by the full attempted intent, never just wallet
+        # or leader fill. A duplicate physical attempt must not buy risk twice.
+        fill_id = str(getattr(intent.fill, "leader_fill_id", "") or "")
+        intent_id = str(getattr(intent, "intent_id", "") or "")
+        identity = (normalise_wallet(wallet), fill_id, intent_id)
+        if reserve and (not fill_id or not intent_id):
+            return "ENTRY_CAP_IDENTITY_MISSING"
+        if identity in self._wire_cap_reservations:
+            return "ENTRY_CAP_ALREADY_RESERVED_NO_SECOND_SEND"
         notional = abs(float(size) * float(limit_px))
         if not math.isfinite(notional) or notional <= 0:
             return "ENTRY_EXPOSURE_UNPRICEABLE"
@@ -5814,9 +5825,16 @@ class SenderGateway:
             return "ENTRY_RESTING_EXPOSURE_UNREADABLE"
         now = time.monotonic()
         ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
+        mine = [e for e in source._exposure_pending if len(e) == 5 and e[4] == fill_id]
+        if len(mine) > 1 or any(len(e) != 5 for e in source._exposure_pending):
+            return "ENTRY_CAP_RESERVATION_AMBIGUOUS"
         pending = sum(abs(units) * px for _coin, units, px, at, owner
-                      in source._exposure_pending if now - at <= ttl
-                      and owner != str(intent.fill.leader_fill_id))
+                      in source._exposure_pending if now - at <= ttl and owner != fill_id)
+        # The physical wire is charged once, independently of builder's reservation.
+        # Holds remain through stale exchange snapshots, uncertain exchange responses and retries.
+        reserved = list(self._wire_cap_reservations.items())
+        reserved_total = sum(r["notional"] for _id, r in reserved)
+        reserved_wallet = sum(r["notional"] for _id, r in reserved if r["wallet"] == identity[0])
         resting_total = fnum(resting.get("total_usd"), 0.0)
         if wallet_cap > 0:
             if self.ledger is None:
@@ -5824,14 +5842,17 @@ class SenderGateway:
             wallet_exposure = self.ledger.wallet_abs_exposure_usd(wallet, {intent.fill.coin: limit_px})
             wallet_exposure += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
             # Pending reservations are not wallet-tagged; assign all to this wallet (conservative).
-            if wallet_exposure + pending + notional > wallet_cap + 1e-9:
+            if wallet_exposure + pending + reserved_wallet + notional > wallet_cap + 1e-9:
                 return "ENTRY_WALLET_EXPOSURE_CAP"
         if total_cap > 0:
             exchange = source.follower_exposure()
             if not exchange.get("ok"):
                 return "ENTRY_TOTAL_EXPOSURE_UNREADABLE"
-            if fnum(exchange.get("total_usd")) + resting_total + pending + notional > total_cap + 1e-9:
+            if fnum(exchange.get("total_usd")) + resting_total + pending + reserved_total + notional > total_cap + 1e-9:
                 return "ENTRY_TOTAL_EXPOSURE_CAP"
+        if reserve:
+            self._wire_cap_reservations[identity] = {"wallet": identity[0],
+                                                       "notional": notional, "state": "UNKNOWN_UNTIL_PROVEN"}
         return ""
 
     def _master_gate_reason(self, intent: Any, path: str = "", entry_leg: bool = False) -> str:
@@ -6037,7 +6058,7 @@ class SenderGateway:
                 else:
                     _late_block = self._master_gate_reason(intent, (path or "") + ":pre_wire")
                 if not _late_block:
-                    _late_block = self._wire_entry_exposure_block(intent, size, limit_px, reduce_only, entry_leg)
+                    _late_block = self._wire_entry_exposure_block(intent, size, limit_px, reduce_only, entry_leg, reserve=True)
                 if not _late_block and _is_close:
                     _late_block = self._final_close_proof(intent, size, reduce_only, timing)
         except Exception as exc:
