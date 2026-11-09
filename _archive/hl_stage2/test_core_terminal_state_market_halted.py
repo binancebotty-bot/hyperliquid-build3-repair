@@ -57,6 +57,22 @@ check("NEW_NAME_CLASSIFIES_TERMINAL", C.classify_terminal_row("MISSED_ENTRY_MARK
 same = {classify("MARKET_HALTED") for _ in range(3)}
 check("PURE_FUNCTION_OF_CATEGORY", len(same) == 1, 'got %r' % (same,))
 
+# 6. the ADD lifecycle had the same gap: it must get its own state, never the ENTRY label
+gadd = C.classify_terminal_state("ORDER_REJECTED", "MARKET_HALTED", "ADD")
+check("ADD_MARKET_HALTED_IS_KNOWN", gadd == "MISSED_ADD_MARKET_HALTED", 'got %r' % (gadd,))
+check("ADD_MARKET_HALTED_NOT_UNKNOWN", gadd != "MISSED_ADD_EXCHANGE_REJECTED_UNKNOWN", 'got %r' % (gadd,))
+check("ADD_LABEL_DIFFERS_FROM_ENTRY", gadd != got, 'entry=%r add=%r' % (got, gadd))
+check("ADD_NAME_IN_TERMINAL_SET", "MISSED_ADD_MARKET_HALTED" in C.TERMINAL_ROW_NAMES,
+      'classify_terminal_row -> %r' % (C.classify_terminal_row("MISSED_ADD_MARKET_HALTED"),))
+check("ADD_NAME_CLASSIFIES_TERMINAL", C.classify_terminal_row("MISSED_ADD_MARKET_HALTED") == "TERMINAL",
+      'got %r' % (C.classify_terminal_row("MISSED_ADD_MARKET_HALTED"),))
+
+# 7. why MISSED_* and not SKIPPED_*/SEND_NOT_ATTEMPTED_*: a halt arrives AFTER the exchange call.
+#    With exchange_called=False the function takes the pre-send branch, which never says MISSED_.
+pre = C.classify_terminal_state("ORDER_REJECTED", "MARKET_HALTED", "ENTRY", exchange_called=False)
+check("PRESEND_HALT_IS_NOT_A_MISSED_STATE", not pre.startswith("MISSED_"), 'got %r' % (pre,))
+check("POSTCALL_HALT_IS_A_MISSED_STATE", got.startswith("MISSED_"), 'got %r' % (got,))
+
 failed = [n for n, ok in results if not ok]
 print("SUMMARY %d checks, %d failed%s" % (len(results), len(failed), (' -> ' + ','.join(failed)) if failed else ''))
 sys.exit(1 if failed else 0)
