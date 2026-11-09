@@ -6113,14 +6113,19 @@ class SenderGateway:
         # Reduce-only CLOSE never enters this entry-only path.
         if (isinstance(timing, dict) and
                 timing.get("margin_rest_physical_admission") == str(getattr(intent, "intent_id", ""))):
-            if not self._reserve_margin_rest_at_wire(
+            # Use the actual durable hook receipt, not a possibly stale timing hint.
+            # Conflicting IDs must refuse the wire and reconcile the durable row.
+            _recorded_aid = str(timing.get("send_attempt_id") or "")
+            _wire_aid = str(_pending_id or "")
+            _identity_ok = bool(_wire_aid and (not _recorded_aid or _recorded_aid == _wire_aid))
+            if not _identity_ok or not self._reserve_margin_rest_at_wire(
                     intent, size, limit_px,
-                    attempt_id=str(timing.get("send_attempt_id") or _pending_id or ""),
+                    attempt_id=_wire_aid,
                     sdk_coin=sdk_coin, is_buy=is_buy, tif=tif,
                     reduce_only=reduce_only, cloid=cloid):
                 reason = "MARGIN_REST_PHYSICAL_COLLATERAL_OR_RESERVATION_HOLD"
                 self._terminalise_pending_as_no_call(
-                    str(timing.get("send_attempt_id") or _pending_id or ""),
+                    str(_pending_id or timing.get("send_attempt_id") or ""),
                     "SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL", reason)
                 return {"status": "err", "response": reason, "exchange_called": False,
                         "reject_category": "INSUFFICIENT_MARGIN",
