@@ -104,7 +104,7 @@ def test_ui_top_consumer_reads_canonical_field():
     # The rendered top-status consumer takes canonical 'overall', not
     # uncontrolled per-wallet/raw ws_summary status.
     values = [v for n in ast.walk(fn) if isinstance(n, ast.Assign)
-              for t in n.targets if isinstance(t, ast.Name) and t.id == "ws_raw"
+              for t in n.targets if isinstance(t, ast.Name) and t.id == "ws_status"
               for v in [n.value]]
     assert len(values) == 1
     assert "overall" in ast.unparse(values[0])
