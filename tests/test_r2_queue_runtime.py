@@ -5,7 +5,7 @@ import threading
 import time
 from pathlib import Path
 from types import SimpleNamespace as NS
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Optional
 import hashlib
 import os
 
