@@ -35,6 +35,25 @@ exec(compile(ast.Module(body=[method(n) for n in
     ("_dispatch_fill","_release_queued","hot_backlog","_is_close_fill","_shard")],type_ignores=[]),
     str(CORE),"exec"),scope)
 
+def test_exec_namespace_typing_negative_control():
+    """The production _dispatch_fill annotation must fail without Optional."""
+    node = method("_dispatch_fill")
+    assert any(isinstance(n, ast.Name) and n.id == "Optional"
+               for n in ast.walk(node)), "negative control must target production Optional"
+    code = compile(ast.Module(body=[node], type_ignores=[]), str(CORE), "exec")
+    missing_optional = dict(scope)
+    missing_optional.pop("Optional")
+    try:
+        exec(code, missing_optional)
+    except NameError as exc:
+        assert "Optional" in str(exc)
+    else:
+        raise AssertionError("missing Optional unexpectedly compiled in exec namespace")
+    positive = dict(scope)
+    exec(code, positive)
+    assert callable(positive["_dispatch_fill"])
+
+
 class FakeCore:
     _dispatch_fill=scope["_dispatch_fill"]
     _release_queued=scope["_release_queued"]
