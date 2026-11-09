@@ -139,6 +139,7 @@ def test_real_write_now_emits_fail_closed_ws_status(tmp_path):
         LEADER_NETWORK="testnet", _HOTSWAP=SimpleNamespace(loaded_sha=lambda _: ""),
         FORBIDDEN_LIVE_POSITIONS_FILE=tmp_path / "absent_positions",
         FORBIDDEN_WOULD_SEND_ORDERS_CSV=tmp_path / "absent_would_send",
+        CONVERGENCE_HEARTBEAT_FILE=tmp_path / "absent_heartbeat",
         load_json=read, atomic_write_json=lambda key, val: saved.__setitem__(key, val),
         asdict=lambda summary: summary.__dict__,
     )
