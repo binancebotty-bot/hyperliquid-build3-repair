@@ -6661,6 +6661,31 @@ class SenderGateway:
                            canonical_coin_key(row["coin"]), str(row["oid"]),
                            str(row["cloid"]).strip().lower()], separators=(",", ":"))
 
+    def _resting_send_proven(self, row: Dict[str, Any]) -> bool:
+        """Only a durable send journal can authorize a resting-order cancellation.
+
+        Registry and operator restoration are untrusted claims, not ownership.
+        Missing or ambiguous evidence holds the order for manual reconciliation.
+        """
+        if not self._resting_key(row):
+            return False
+        if normalise_wallet(row.get("follower_account")) != normalise_wallet(USER_WALLET):
+            return False
+        coin = str(row.get("coin") or "")
+        dex = coin.split(":", 1)[0].lower() if ":" in coin else ""
+        if dex != str(row.get("dex") or "").lower():
+            return False
+        if str(row.get("cloid") or "").lower() != generate_cloid(str(row.get("intent_id") or "")).lower():
+            return False
+        matches = []
+        for attempt in read_csv_rows(SEND_ATTEMPTS_CSV):
+            if (str(attempt.get("cloid") or "").lower() == str(row.get("cloid") or "").lower()
+                    and str(attempt.get("exchange_order_id") or "") == str(row.get("oid") or "")
+                    and canonical_coin_key(attempt.get("coin")) == canonical_coin_key(coin)
+                    and str(attempt.get("status") or "").upper() in {"ORDER_RESTING", "ORDER_FILLED", "ORDER_PARTIAL"}):
+                matches.append(attempt)
+        return len(matches) == 1
+
     def _resting_quarantined(self, row: Dict[str, Any]) -> bool:
         key = self._resting_key(row) or ("LEGACY:" + str(row.get("oid") or ""))
         held = self._resting_quarantine.get(key)
@@ -6668,7 +6693,7 @@ class SenderGateway:
 
     def restore_resting_quarantine(self, row: Dict[str, Any], approval: str) -> bool:
         key = self._resting_key(row)
-        if not key or len(str(approval).strip()) < 8:
+        if not key or not self._resting_send_proven(row) or len(str(approval).strip()) < 8:
             return False
         with self._resting_lock:
             held = self._resting_quarantine.get(key)
@@ -7017,7 +7042,7 @@ class SenderGateway:
         claimed = []
         for r in rows:
             key = self._resting_key(r)
-            if not key or self._resting_quarantined(r):
+            if not key or self._resting_quarantined(r) or not self._resting_send_proven(r):
                 continue
             live = self._resting_entries.get(key)
             if live is not None and not live.get("withdrawing"):
@@ -7037,7 +7062,7 @@ class SenderGateway:
         withdrawn: List[Dict[str, Any]] = []
         for row in rows:
             with self._resting_lock:
-                if not self._resting_key(row) or self._resting_quarantined(row):
+                if not self._resting_key(row) or self._resting_quarantined(row) or not self._resting_send_proven(row):
                     continue
             oid, response, error = str(row.get("oid")), {}, ""
             try:
