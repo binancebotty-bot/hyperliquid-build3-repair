@@ -5,7 +5,7 @@ import threading
 import time
 from pathlib import Path
 from types import SimpleNamespace as NS
-from typing import Any, Dict, Tuple, List, Optional
+from typing import Any, Dict, Tuple, List, Optional, Callable
 import hashlib
 import os
 
@@ -21,7 +21,7 @@ def durable_append(path,fields,data,**kw):
     return True
 scope={"queue":queue,"threading":threading,"time":time,"hashlib":hashlib,
        "LeaderFill":NS,
-       "os":os,"Any":Any,"Dict":Dict,"Tuple":Tuple,"List":List,"Optional":Optional,
+       "os":os,"Any":Any,"Dict":Dict,"Tuple":Tuple,"List":List,"Optional":Optional,"Callable":Callable,
        "canonical_coin_key":lambda coin:coin,
        "utc_now_ms":lambda:int(time.time()*1000),
        "utc_now_iso":lambda:"2026-11-08T00:00:00Z",
