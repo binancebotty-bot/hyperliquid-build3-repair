@@ -127,6 +127,7 @@ def test_real_write_now_emits_fail_closed_ws_status(tmp_path):
         return health if path == "health" else default
     env = dict(
         __builtins__=__builtins__, Any=Any, Dict=Dict, Optional=Optional,
+        CycleSummary=object, DedupeStore=object, ConfigManager=object,
         os=os, sys=sys, time=time, RUNTIME_STATE_LOCK=state_lock,
         utc_now_ms=lambda: now, utc_now_iso=lambda: "now",
         fnum=lambda v, default=0: float(v if v is not None else default),
