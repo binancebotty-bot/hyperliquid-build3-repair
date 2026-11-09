@@ -1029,6 +1029,7 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: s
         if lifecycle in {"ENTRY", "UNKNOWN_LIFECYCLE"}:
             mapping = {
                 "IOC_NO_IMMEDIATE_MATCH": "MISSED_ENTRY_IOC_NO_MATCH",
+                "MARKET_HALTED": "SKIPPED_MARKET_HALTED",
                 "INSUFFICIENT_MARGIN": "MISSED_ENTRY_INSUFFICIENT_MARGIN",
                 "PRICE_OR_TICK_REJECTED": "MISSED_ENTRY_PRICE_OR_TICK_REJECTED",
                 "SIZE_OR_NOTIONAL_REJECTED": "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED",
@@ -1039,6 +1040,7 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: s
         if lifecycle == "ADD":
             mapping = {
                 "IOC_NO_IMMEDIATE_MATCH": "MISSED_ADD_IOC_NO_MATCH",
+                "MARKET_HALTED": "SKIPPED_MARKET_HALTED",
                 "INSUFFICIENT_MARGIN": "MISSED_ADD_INSUFFICIENT_MARGIN",
                 "PRICE_OR_TICK_REJECTED": "MISSED_ADD_PRICE_OR_TICK_REJECTED",
                 "SIZE_OR_NOTIONAL_REJECTED": "MISSED_ADD_SIZE_OR_NOTIONAL_REJECTED",
