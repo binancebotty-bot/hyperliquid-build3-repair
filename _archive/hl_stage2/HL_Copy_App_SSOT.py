@@ -1169,15 +1169,16 @@ def _load_live_ws_health() -> Dict[str, Any]:
     max_age = max(1000, int(fnum(os.getenv("HL_SCREEN_ENGINE_STALE_SEC"), 180) * 1000))
     alive = bool(stamp and started and stamp >= started and 0 <= now_ms - stamp <= max_age)
     if not alive:
-        status = "WS_STALE" if status != "WS_DISABLED" else "WS_DISABLED"
+        status = "WS_STALE"  # stale service cannot certify WS_DISABLED
     elif status not in valid:
         status = "WS_UNKNOWN"
     summary = data.get("ws_summary") if isinstance(data.get("ws_summary"), dict) else {}
-    enabled = bool(service.get("ws_feature_enabled", status not in {"WS_DISABLED", "WS_UNKNOWN"}))
+    enabled = bool(service.get("ws_feature_enabled", False)) if alive else False
     return {**data, "ws_summary": {**summary, "ws_status": status,
                                    "socket_open": status == "WS_OK",
                                    "thread_alive": status == "WS_OK"},
             "overall": status, "enabled": enabled,
+            "transport_healthy": alive and status == "WS_OK",
             "status_source": "live_service_state.json",
             "status_age_ms": max(0, now_ms - stamp) if stamp else None}
 
@@ -1256,7 +1257,7 @@ def _engine_ws_enabled(ws_health: Dict[str, Any], service_state: Dict[str, Any])
     """True only when the engine runs a websocket leader feed; False when it polls (the default)."""
     ws_summary = ws_health.get("ws_summary", {}) if isinstance(ws_health.get("ws_summary"), dict) else {}
     status = str(ws_health.get("overall") or "").upper()
-    return bool(ws_health.get("enabled", False)) and status not in {"", "WS_UNKNOWN", "WS_DISABLED"}
+    return bool(ws_health.get("enabled", False)) and bool(ws_health.get("transport_healthy", False)) and status == "WS_OK"
 
 
 ENGINE_STALE_SEC = float(os.getenv("HL_SCREEN_ENGINE_STALE_SEC", "180"))
