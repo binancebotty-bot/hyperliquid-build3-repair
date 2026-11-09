@@ -1155,14 +1155,32 @@ def _enforce_live_copy_cap(config: Dict[str, Any]) -> None:
 
 
 def _load_live_ws_health() -> Dict[str, Any]:
+    """Canonical display is engine service-state with heartbeat freshness."""
     data = load_json(LIVE_COPY_WS_HEALTH_FILE, None)
-    if not isinstance(data, dict):
-        return {"enabled": False, "overall": "OFFLINE", "wallets": {}}
-    if "ws_summary" in data and "overall" not in data:
-        ws_summary = data.get("ws_summary") or {}
-        ws_status = str(ws_summary.get("ws_status", "OFFLINE"))
-        data = {**data, "overall": ws_status, "enabled": ws_status not in {"WS_DISABLED", "OFFLINE", ""}}
-    return data
+    data = data if isinstance(data, dict) else {}
+    service = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    service = service if isinstance(service, dict) else {}
+    status = str(service.get("ws_status") or "").upper()
+    valid = {"WS_OK", "WS_STARTING", "WS_DEGRADED", "WS_DISCONNECTED",
+             "WS_STALE", "WS_DISABLED"}
+    now_ms = int(time.time() * 1000)
+    stamp = int(fnum(service.get("last_state_write_ms"), 0))
+    started = int(fnum(service.get("started_at_ms"), 0))
+    max_age = max(1000, int(fnum(os.getenv("HL_SCREEN_ENGINE_STALE_SEC"), 180) * 1000))
+    alive = bool(stamp and started and stamp >= started and 0 <= now_ms - stamp <= max_age)
+    if not alive:
+        status = "WS_STALE"  # stale service cannot certify WS_DISABLED
+    elif status not in valid:
+        status = "WS_UNKNOWN"
+    summary = data.get("ws_summary") if isinstance(data.get("ws_summary"), dict) else {}
+    enabled = bool(service.get("ws_feature_enabled", False)) if alive else False
+    return {**data, "ws_summary": {**summary, "ws_status": status,
+                                   "socket_open": status == "WS_OK",
+                                   "thread_alive": status == "WS_OK"},
+            "overall": status, "enabled": enabled,
+            "transport_healthy": alive and status == "WS_OK",
+            "status_source": "live_service_state.json",
+            "status_age_ms": max(0, now_ms - stamp) if stamp else None}
 
 
 def _load_clean_core_status() -> Dict[str, Any]:
@@ -1238,10 +1256,8 @@ def _master_switch_on(live_config: Dict[str, Any]) -> bool:
 def _engine_ws_enabled(ws_health: Dict[str, Any], service_state: Dict[str, Any]) -> bool:
     """True only when the engine runs a websocket leader feed; False when it polls (the default)."""
     ws_summary = ws_health.get("ws_summary", {}) if isinstance(ws_health.get("ws_summary"), dict) else {}
-    status = str(ws_summary.get("ws_status") or service_state.get("ws_status") or "").upper()
-    if status in {"", "WS_DISABLED", "OFFLINE"}:
-        return False
-    return True
+    status = str(ws_health.get("overall") or "").upper()
+    return bool(ws_health.get("enabled", False)) and bool(ws_health.get("transport_healthy", False)) and status == "WS_OK"
 
 
 ENGINE_STALE_SEC = float(os.getenv("HL_SCREEN_ENGINE_STALE_SEC", "180"))
@@ -1376,8 +1392,7 @@ def _build_live_top_status(
 ) -> Dict[str, Any]:
     wallets = live_config.get("wallets", {}) if isinstance(live_config.get("wallets"), dict) else {}
     ws_summary = ws_health.get("ws_summary", {}) if isinstance(ws_health.get("ws_summary"), dict) else {}
-    ws_raw = str(ws_summary.get("ws_status") or ws_health.get("overall") or "DOWN").upper()
-    ws_status = "WS_OK" if ws_raw == "WS_OK" and bool(ws_summary.get("socket_open", True)) and bool(ws_summary.get("thread_alive", True)) else "DOWN"
+    ws_status = str(ws_health.get("overall") or "WS_UNKNOWN").upper()
     copy_poll = str(service_state.get("copy_account_status") or service_state.get("last_copy_account_status") or service_state.get("copy_status") or "DOWN").upper()
     if not copy_poll or copy_poll in {"", "NONE", "UNKNOWN"}:
         copy_poll = "DOWN"
@@ -3306,11 +3321,7 @@ def _build_live_wallet_rows(
     exposure_by_coin = manual_summary.get("exposure_by_coin", {}) if isinstance(manual_summary.get("exposure_by_coin"), dict) else {}
     # Detect shared HOT10 WS health from ws_summary (per-wallet rows absent under shared socket)
     _ws_summary = ws_health.get("ws_summary", {}) if isinstance(ws_health.get("ws_summary"), dict) else {}
-    _shared_ws_ok = (
-        str(_ws_summary.get("ws_status", "")).upper() == "WS_OK"
-        and bool(_ws_summary.get("socket_open"))
-        and bool(_ws_summary.get("thread_alive"))
-    )
+    _shared_ws_ok = str(ws_health.get("overall") or "").upper() == "WS_OK"
     _engine_polls = not _engine_ws_enabled(ws_health, {})
     # Pre-build per-wallet manual ledger aggregates from by_wallet sleeves
     _by_wallet_pos: Dict[str, Any] = {}
@@ -3400,6 +3411,9 @@ def _build_live_wallet_rows(
         if mode == "OFF" or not service_eligible:
             conn_status = "COPY DISABLED"
             conn_detail = service_reason if service_reason != "MODE_OFF" else ""
+        elif str(ws_health.get("overall") or "") in {"WS_STALE", "WS_UNKNOWN", "WS_DISCONNECTED", "WS_DEGRADED"}:
+            conn_status = str(ws_health.get("overall"))
+            conn_detail = "websocket unavailable or unverified"
         elif _engine_polls:
             conn_status = "POLLING"
             conn_detail = "engine polls this leader (normal)"
