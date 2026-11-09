@@ -5682,9 +5682,13 @@ class SenderGateway:
                                        else "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED"),
                         notes=(f"named diff: {cause}; _ensure_margin_mode refused "
                                f"({margin_block[2].get('error')}); no order sent or rested"))
-        follower_px = follower_mid(sdk_coin, force=True)
-        market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
-        bps = self.cfg.marketable_bps()
+        try:
+            follower_px = follower_mid(sdk_coin, force=True)
+            market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
+            bps = self.cfg.marketable_bps()
+        except Exception as exc:
+            # The stale-entry caller records an ALERT for this explicit failure.
+            raise RuntimeError("MISSED_ENTRY_PRICING_LOOKUP_FAILED") from exc
         missed = missed_entry_decision(intent.copy_side, leader_px, market_px, follower_px, bps)
         if not missed.get("ok"):
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_FRESH_MID",
