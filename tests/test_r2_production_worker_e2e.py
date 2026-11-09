@@ -95,11 +95,57 @@ scope = {
 }
 exec(compile(ast.Module(body=nodes, type_ignores=[]), str(CORE), "exec"), scope)
 
+# Compile the production IntentBuilder.build and decision methods, not a test
+# lambda that constructs invented intents. Exchange exposure is isolated at its
+# leaf read so production sizing/decision/lifecycle code still executes.
+BUILDER_CLASS = next(n for n in TREE.body
+                     if isinstance(n, ast.ClassDef) and n.name == "IntentBuilder")
+BUILDER_METHODS = ("build", "_decision", "_copy_notional", "_order_value_px",
+                   "_is_leader_close_fill")
+builder_nodes = [next(n for n in BUILDER_CLASS.body
+                      if isinstance(n, ast.FunctionDef) and n.name == name)
+                 for name in BUILDER_METHODS]
+class IntentRecord(NS):
+    @property
+    def lifecycle(self):
+        return "EXIT" if self.reduce_only_intended else (
+            "ADD" if str(self.notes).startswith("lifecycle=ADD") else "ENTRY")
+
+scope["Intent"] = IntentRecord
+scope["_CAP_TLS"] = threading.local()
+scope["POSITION_EPSILON"] = 1e-8
+scope["FOLLOWER_NETWORK"] = "testnet"
+scope["stable_hash"] = lambda fields: "-".join(map(str, fields))
+scope["is_spot_pair"] = lambda coin: False
+scope["bval"] = lambda value, default=False: bool(value) if value is not None else default
+builder_scope = scope
+exec(compile(ast.Module(body=builder_nodes, type_ignores=[]), str(CORE), "exec"), builder_scope)
+
+class ProductionIntentBuilder:
+    _exit_chain_event_target = lambda self, *a: None
+    _leader_close_fraction = lambda self, *a: 1.0
+    build = builder_scope["build"]
+    _decision = builder_scope["_decision"]
+    _copy_notional = builder_scope["_copy_notional"]
+    _order_value_px = builder_scope["_order_value_px"]
+    _is_leader_close_fill = staticmethod(builder_scope["_is_leader_close_fill"])
+    _exposure_cap_block = lambda self, *a, **k: ""
+    _trace_exposure_cap = lambda self, *a, **k: None
+
+    def __init__(self, cfg, ledger):
+        self.cfg, self.ledger = cfg, ledger
+        self._exit_chain = {}
+        self._sizing_block = {}
+        self._coin_activity = {}
+    def blocked_locally(self, fill, entry_block_reason=""):
+        return ""
+
+
 # Use the actual production SenderGateway wire boundary, with a no-network
 # exchange spy. Only external exchange truth/risk collaborators are stubbed.
 SENDER_CLASS = next(n for n in TREE.body
                     if isinstance(n, ast.ClassDef) and n.name == "SenderGateway")
-WIRE_METHODS = ("_place_order", "_place_order_impl")
+WIRE_METHODS = ("_place_order", "_place_order_impl", "_missed_entry_rest_or_diff")
 wire_nodes = [next(n for n in SENDER_CLASS.body
                    if isinstance(n, ast.FunctionDef) and n.name == name)
               for name in WIRE_METHODS]
@@ -113,6 +159,20 @@ wire_scope.update({
     "PendingSendWriteFailed": type("PendingSendWriteFailed", (Exception,), {}),
 })
 exec(compile(ast.Module(body=wire_nodes, type_ignores=[]), str(CORE), "exec"), wire_scope)
+# Production missed-entry policy (not a test-supplied recovery decision).
+RECOVERY_FN = next(n for n in TREE.body
+                   if isinstance(n, ast.FunctionDef) and n.name == "missed_entry_decision")
+wire_scope["FOLLOWER_NETWORK"] = "testnet"
+wire_scope["LEADER_NETWORK"] = "testnet"
+wire_scope["follower_mid"] = lambda coin, force=False: 1.0
+wire_scope["classify_send_lifecycle"] = lambda intent: intent.lifecycle
+wire_scope["json"] = __import__("json")
+wire_scope["sys"] = __import__("sys")
+wire_scope["classify_reject_category"] = lambda *args: ""
+wire_scope["classify_operator_action"] = lambda *args: ""
+wire_scope["update_send_attempt_row"] = lambda *args, **kw: True
+exec(compile(ast.Module(body=[RECOVERY_FN], type_ignores=[]), str(CORE), "exec"), wire_scope)
+
 
 
 class Journal:
@@ -138,6 +198,7 @@ class OrderSpy:
 
 
 class FakeSender:
+    _missed_entry_rest_or_diff = wire_scope["_missed_entry_rest_or_diff"]
     _place_order = wire_scope["_place_order"]
     _place_order_impl = wire_scope["_place_order_impl"]
     _master_gate_reason = lambda self, *a, **kw: ""
@@ -169,13 +230,31 @@ class FakeSender:
         return ""
     def cancel_resting_entries_against(self, fill):
         return []
-    def _missed_entry_rest_or_diff(self, intent, cause):
-        # The real wire call below must not be pre-marked as completed.
-        assert self.host._guard_key(intent.fill) not in self.host._past_send_keys
-        self.remedies.append((intent.fill.leader_fill_id, cause))
-        self._send_to_wire(intent, "MISSED_REOFFER")
-        return {"outcome": "MISSED_ENTRY_RESTED", "notes": "offline order spy",
-                "wallet_alias": intent.fill.leader_wallet}
+    # Only external SDK/metadata/ledger I/O are test doubles. The branch and
+    # _place_order invocation are executed by production missed-entry recovery.
+    _base_timing = lambda self, intent: {}
+    _resolve_coin = lambda self, coin: {
+        "ok": True, "snapshot_only": False, "sdk_order_compatible": True,
+        "sz_decimals": 4, "price_max_decimals": 4}
+    _floor_wire_size = staticmethod(lambda size, decimals: round(size, decimals))
+    resting_entry_for = lambda self, *a: None
+    _exchange_client_for_coin = lambda self, coin: (self._physical_exchange, coin)
+    _ensure_margin_mode = lambda self, *a, **k: None
+    _format_limit_px = staticmethod(lambda px, dec: round(px, dec))
+    _px_passive = staticmethod(lambda px, dec, buy: round(px, dec))
+    _pre_exchange_asset_safety = lambda self, *a: (True, {})
+    _pre_send_ownership_gate = lambda self, *a: (True, {})
+    _parse_hl_response = staticmethod(lambda response: (True, "ORDER_RESTING", "123", ""))
+    _register_resting_entry = lambda self, *a: None
+
+    def _recovery_send_hooks(self, intent, tif, order_type, px, size, reduce_only,
+                             timing, label):
+        assert self.host._guard_key(intent.fill) not in self.host._past_send_keys, (
+            "stale ENTRY marked as a physical send before production recovery")
+        self.remedies.append((intent.fill.leader_fill_id, "ORD_010_ENTRY_AGE_OVER_30S"))
+        self._wire_label = "MISSED_REOFFER"
+        self._current_fill_id = intent.fill.leader_fill_id
+        return "", None
     def send_if_allowed(self, intent, block=""):
         self._send_to_wire(intent, "PHYSICAL_SEND")
         return True, "ORDER_SENT"
@@ -223,17 +302,26 @@ def create_harness(reconciliation, capacity=384):
                marketable_bps=lambda: 100,
                copy_mode=lambda wallet: "fixed",
                wallet_enabled=lambda wallet: True,
-               wallet_mode=lambda wallet: "ON")
+               wallet_mode=lambda wallet: "ON",
+               fixed_notional=lambda wallet: 1.0,
+               min_notional=lambda: 0.1,
+               is_symbol_allowed=lambda coin: (True, ""),
+               max_wallet_exposure=lambda wallet: 0.0,
+               max_total_exposure=lambda: 0.0,
+               max_asset_directional_exposure=lambda: 0.0,
+               auto_send_enabled=False)
     h.ledger = NS(data={}, classify_leader_side_for_wallet=lambda w,c,side:
-                  ("EXIT" if side == "SELL" else "ENTRY", None))
+                  ("EXIT" if side == "SELL" else "ENTRY", side == "SELL"),
+                  sleeve_id=lambda w,c: w + ":" + c,
+                  wallet_coin_position=lambda w,c: 1.0 if c == "C12" else 0.0,
+                  direction_from_size=lambda x: "LONG" if x > 0 else "SHORT" if x < 0 else "FLAT",
+                  signed_delta=lambda side, size: size if side == "BUY" else -size,
+                  position_id=lambda w,c,d,i: "pos-" + i,
+                  coin_net=lambda coin: 0.0,
+                  sleeve=lambda w,c: {"position_id": "pos-previous"},
+                  wallet_abs_exposure_usd=lambda *a: 0.0)
     h.dedupe = NS(live_start_ms=0, processed=set(), accept_leader=lambda fid: True)
-    def build(fill):
-        return NS(fill=fill, intent_id="intent-" + fill.leader_fill_id,
-                  created_at_ms=now_ms(), lifecycle=("EXIT" if fill.side == "SELL" else "ENTRY"),
-                  reason="", copy_size=1.0, send_allowed=True, decision="ALLOW")
-    h.intent_builder = NS(cfg=h.cfg, build=build,
-                          blocked_locally=lambda *a, **k: "",
-                          _copy_notional=lambda *a: 1.0)
+    h.intent_builder = ProductionIntentBuilder(h.cfg, h.ledger)
     h.sender = FakeSender(h)
     h._fill_trace = lambda *a, **k: None
     h._already_handled = lambda f: False
@@ -310,15 +398,30 @@ def test_overflow_persisted_and_reoffered_from_fresh_source_reader(tmp_path, mon
     # Simulate restart: new object and fresh re-read of a real persisted feed.
     restarted = create_harness(audit, capacity=5)
     worker = launch_worker(restarted)
+    # The fsynced retry journal is authoritative: derive retry keys from it
+    # (no hard-coded overflow IDs or guesses from the independent source).
+    retry_ids = [row["leader_fill_id"] for row in durable
+                 if row["status"] == "HOT_QUEUE_CAP_RETRY"]
+    assert retry_ids and len(retry_ids) == len(set(retry_ids))
+    recorded = {}
     with source.open(newline="", encoding="utf-8") as file:
         for row in csv.DictReader(file):
-            i = int(row["id"])
-            if i in (2, 3, 4):
-                assert restarted._dispatch_fill(fill(i, close=i == 4))
+            recorded["fill-" + row["id"]] = (int(row["id"]), row["side"] == "SELL")
+    assert all(key in recorded for key in retry_ids), "retry evidence missing source fill"
+    for key in retry_ids:
+        i, close = recorded[key]
+        assert restarted._dispatch_fill(fill(i, close=close))
+    # Close was admitted to the priority lane rather than overflow. Retain and
+    # replay it independently of the journal's ENTRY retry set.
+    priority_closes = [key for key, (i, close) in recorded.items()
+                       if close and key not in retry_ids]
+    for key in priority_closes:
+        i, close = recorded[key]
+        assert restarted._dispatch_fill(fill(i, close=close))
     assert restarted.drain_startup_hot_queue(timeout_sec=5)
     shutdown(restarted, worker)
     sent = {order[1] for order in restarted.sender.orders}
-    assert {"fill-2", "fill-3", "fill-4"}.issubset(sent)
+    assert set(retry_ids + priority_closes).issubset(sent)
     assert restarted.hot_backlog() == 0
 
 
