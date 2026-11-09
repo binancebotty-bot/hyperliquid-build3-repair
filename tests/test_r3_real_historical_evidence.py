@@ -110,7 +110,11 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
             f"R3_CONFLICTING_INTENT:{i}:{iid}")
         intent_to_leader[iid] = leader
 
-    latest = {}
+    # send_attempts is an append-only lifecycle log. A PENDING_SEND followed
+    # by one terminal row is one attempt; terminal-only attempts are valid too.
+    # Row order is immaterial, but duplicate terminals, orphan pending rows
+    # and three-or-more rows for one attempt must fail closed.
+    attempts = defaultdict(list)
     for i, row in enumerate(sends, 2):
         aid = _id(row["attempt_id"], "sends", i, "attempt_id")
         iid = _id(row["intent_id"], "sends", i, "intent_id")
@@ -120,8 +124,20 @@ def test_r3_cert_run_four_csv_only_derived_leader_fill_oid_cloid_correlations():
         if clo:
             assert CLOID.fullmatch(clo), f"R3_BAD_CLOID:{i}:{aid}"
         _optional_oid(row["exchange_order_id"], "sends", i)
-        assert aid not in latest, f"R3_DUPLICATE_ATTEMPT_ID:{i}:{aid}"
-        latest[aid] = row
+        status = _id(row["status"], "sends", i, "status").upper()
+        attempts[aid].append((status, row))
+        assert len(attempts[aid]) <= 2, f"R3_THREE_OR_MORE_ATTEMPT_ROWS:{i}:{aid}"
+
+    latest = {}
+    for aid, records in attempts.items():
+        pending = [row for status, row in records if status == "PENDING_SEND"]
+        terminal = [row for status, row in records if status != "PENDING_SEND"]
+        assert len(terminal) <= 1, f"R3_DUPLICATE_TERMINAL_ATTEMPT:{aid}"
+        assert terminal, f"R3_ORPHAN_PENDING_SEND:{aid}"
+        assert len(pending) <= 1, f"R3_DUPLICATE_PENDING_SEND:{aid}"
+        latest[aid] = terminal[0]
+    assert sum(len(records) for records in attempts.values()) == len(sends), (
+        "R3_UNACCOUNTED_SEND_LIFECYCLE_ROWS")
 
     fill_keys = defaultdict(set)
     seen_fills = set()
