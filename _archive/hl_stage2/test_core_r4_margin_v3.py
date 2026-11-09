@@ -27,7 +27,7 @@ def make_gateway(root, withdrawable):
         @staticmethod
         def post_many(fetcher, queries, url, timeout):
             return [{"ok": True, "data": {"withdrawable": str(withdrawable)}}]
-    env = dict(__builtins__=__builtins__, sqlite3=sqlite3, json=json, math=math,
+    env = dict(__builtins__=__builtins__, Intent=object, sqlite3=sqlite3, json=json, math=math,
                hashlib=__import__("hashlib"), AUDIT_DIR=Path(root),
                FOLLOWER_NETWORK="testnet", USER_WALLET="0x" + "a"*40,
                normalise_wallet=lambda v: str(v).lower(),
