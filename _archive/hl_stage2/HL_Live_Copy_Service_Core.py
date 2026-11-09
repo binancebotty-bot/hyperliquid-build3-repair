@@ -7069,8 +7069,13 @@ class SenderGateway:
                     continue
             oid, response, error = str(row.get("oid")), {}, ""
             try:
-                exchange, sdk_coin = self._exchange_client_for_coin(str(row.get("coin")))
-                response = self._cancel_order(exchange, sdk_coin or str(row.get("sdk_coin")), oid)
+                # Recheck authoritative journal and registry under the same local lock
+                # held across the external cancel, preventing in-process reassignment.
+                with self._resting_lock:
+                    if not self._resting_send_proven(row) or self._resting_quarantined(row):
+                        continue
+                    exchange, sdk_coin = self._exchange_client_for_coin(str(row.get("coin")))
+                    response = self._cancel_order(exchange, sdk_coin or str(row.get("sdk_coin")), oid)
                 statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
                 first = statuses[0] if statuses else None
                 if first == "success":
