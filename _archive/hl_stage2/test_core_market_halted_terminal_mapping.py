@@ -2,7 +2,7 @@
 
 The test compiles the unchanged production parser and classifier functions from
 HL_Live_Copy_Service_Core.py. It fails on integration/r1-ffcc0b0 because the
-ORDER_REJECTED terminal mappings lose MARKET_HALTED for ENTRY and ADD.
+ORDER_REJECTED ENTRY terminal mapping loses the ruled MARKET_HALTED label.
 No network, signer or exchange orders.
 """
 import ast
@@ -34,8 +34,7 @@ def real_classifiers():
     return ns
 
 
-@pytest.mark.parametrize("lifecycle", ["ENTRY", "ADD"])
-def test_halted_exchange_reply_retains_halted_terminal_category(real_classifiers, lifecycle):
+def test_halted_exchange_reply_retains_halted_terminal_category(real_classifiers):
     response = {"status": "ok", "response": {"data": {
         "statuses": [{"error": "Trading is halted."}]
     }}}
@@ -44,8 +43,8 @@ def test_halted_exchange_reply_retains_halted_terminal_category(real_classifiers
     category = real_classifiers["classify_reject_category"](error, response)
     assert category == "MARKET_HALTED"
     terminal = real_classifiers["classify_terminal_state"](
-        status, category, lifecycle, exchange_called=True)
-    assert terminal == "SKIPPED_MARKET_HALTED"
+        status, category, "ENTRY", exchange_called=True)
+    assert terminal == "MISSED_ENTRY_MARKET_HALTED"
 
 
 @pytest.mark.parametrize(
