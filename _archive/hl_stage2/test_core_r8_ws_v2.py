@@ -71,7 +71,9 @@ def test_engine_writer_to_ui_forced_states(tmp_path):
         ui = load_ui()
         assert ui["overall"] == emitted["ws_status"] == expected
         assert ui["ws_summary"]["ws_status"] == expected
-        assert enabled_ui(ui, storage["service"]) is enabled
+        assert enabled_ui(ui, storage["service"]) is (status == "WS_OK")
+        assert ui["enabled"] is enabled
+        assert ui["transport_healthy"] is (status == "WS_OK")
         assert ui["status_source"] == "live_service_state.json"
 
 
@@ -135,6 +137,8 @@ def test_real_write_now_emits_fail_closed_ws_status(tmp_path):
         LIVE_CONFIG_FILE=tmp_path / "config", PROCESS_STARTED_AT_MS=now - 10000,
         PROCESS_STARTED_AT="started", FOLLOWER_NETWORK="testnet",
         LEADER_NETWORK="testnet", _HOTSWAP=SimpleNamespace(loaded_sha=lambda _: ""),
+        FORBIDDEN_LIVE_POSITIONS_FILE=tmp_path / "absent_positions",
+        FORBIDDEN_WOULD_SEND_ORDERS_CSV=tmp_path / "absent_would_send",
         load_json=read, atomic_write_json=lambda key, val: saved.__setitem__(key, val),
         asdict=lambda summary: summary.__dict__,
     )
