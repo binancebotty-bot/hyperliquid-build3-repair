@@ -231,7 +231,7 @@ def test_production_worker_stale_entry_reoffers_without_premark(tmp_path, monkey
     assert h.drain_startup_hot_queue(timeout_sec=5)
     shutdown(h, worker)
     assert h.sender.remedies == [(stale.leader_fill_id, "ORD_010_ENTRY_AGE_OVER_30S")]
-    assert h.sender.orders == [("MISSED_REOFFER", stale.leader_fill_id, h.sender.orders[0][2])]
+    assert len(h.sender.orders) == 1 and h.sender.orders[0][:2] == ("MISSED_REOFFER", stale.leader_fill_id)
     assert not h._past_send_keys
     assert len(h.audit.intents) == 1
 
@@ -260,10 +260,11 @@ def test_overflow_persisted_and_reoffered_from_fresh_source_reader(tmp_path, mon
     # Simulate restart: new object and fresh re-read of a real persisted feed.
     restarted = create_harness(audit, capacity=5)
     worker = launch_worker(restarted)
-    for row in csv.DictReader(source.open(newline="", encoding="utf-8")):
-        i = int(row["id"])
-        if i in (2, 3, 4):
-            assert restarted._dispatch_fill(fill(i, close=i == 4))
+    with source.open(newline="", encoding="utf-8") as file:
+        for row in csv.DictReader(file):
+            i = int(row["id"])
+            if i in (2, 3, 4):
+                assert restarted._dispatch_fill(fill(i, close=i == 4))
     assert restarted.drain_startup_hot_queue(timeout_sec=5)
     shutdown(restarted, worker)
     sent = {order[1] for order in restarted.sender.orders}
@@ -278,11 +279,19 @@ def test_restart_drain_retains_close_and_reaches_idle(tmp_path, monkeypatch):
     assert old._dispatch_fill(fill(10))
     assert old._dispatch_fill(fill(11))
     assert old._dispatch_fill(fill(12, close=True))
-    # Recreate the feed in a new worker to model an isolated process restart.
+    # Persist the independent source feed, then re-open from disk in a fresh object.
+    source = tmp_path / "restart_source.csv"
+    with source.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=["id", "side"])
+        writer.writeheader()
+        for i in (10, 11, 12):
+            writer.writerow({"id": i, "side": "SELL" if i == 12 else "BUY"})
     new = create_harness(tmp_path / "reconcile.csv", capacity=5)
     worker = launch_worker(new)
-    for i in (10, 11, 12):
-        assert new._dispatch_fill(fill(i, close=i == 12))
+    with source.open(newline="", encoding="utf-8") as file:
+        for row in csv.DictReader(file):
+            i = int(row["id"])
+            assert new._dispatch_fill(fill(i, close=row["side"] == "SELL"))
     assert new.drain_startup_hot_queue(timeout_sec=5)
     shutdown(new, worker)
     assert new.hot_backlog() == 0
