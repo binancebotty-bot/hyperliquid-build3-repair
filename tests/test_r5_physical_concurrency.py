@@ -1,5 +1,6 @@
 """R5 real _place_order -> exchange.order concurrency regression; never uses network."""
 import ast
+import pytest
 import math
 import os
 import threading
@@ -12,10 +13,10 @@ CORE=Path(__file__).resolve().parents[1]/"_archive/hl_stage2/HL_Live_Copy_Servic
 tree=ast.parse(CORE.read_text(encoding="utf-8-sig"))
 cls=next(x for x in tree.body if isinstance(x,ast.ClassDef) and x.name=="SenderGateway")
 methods=[next(x for x in cls.body if isinstance(x,ast.FunctionDef) and x.name==n)
-         for n in ("_wire_entry_exposure_block","_place_order","_place_order_impl")]
+         for n in ("_wire_cap_reservation_db","_reconcile_wire_cap_hold","_wire_entry_exposure_block","_place_order","_place_order_impl")]
 scope={
     "Any":Any,"Dict":Dict,"Optional":Optional,"Callable":Callable,
-    "math":math,"os":os,"time":time,
+    "math":math,"os":os,"time":time,"AUDIT_DIR":Path.cwd(),
     "FOLLOWER_NETWORK":"testnet","MAINNET_ORDERS_CONFIRMED":False,
     "classify_send_lifecycle":lambda i:i.lifecycle,
     "normalise_wallet":lambda x:str(x).lower(),
@@ -38,6 +39,8 @@ class FakeExchange:
         return {"status":"ok","response":{"type":"order","data":{"statuses":[{"resting":{"oid":123}}]}}}
 
 class Gateway:
+    _wire_cap_reservation_db=scope["_wire_cap_reservation_db"]
+    _reconcile_wire_cap_hold=scope["_reconcile_wire_cap_hold"]
     _wire_entry_exposure_block=scope["_wire_entry_exposure_block"]
     _place_order=scope["_place_order"]
     _place_order_impl=scope["_place_order_impl"]
@@ -65,6 +68,10 @@ def intent(fid,lifecycle="ENTRY"):
     return SimpleNamespace(fill=SimpleNamespace(leader_wallet="w",coin="BTC",leader_fill_id=fid),
                            intent_id="intent-"+fid,lifecycle=lifecycle,
                            reduce_only_intended=lifecycle=="EXIT")
+
+@pytest.fixture(autouse=True)
+def _isolated_db(tmp_path,monkeypatch):
+    monkeypatch.setenv("HL_LIVE_WIRE_CAP_DB",str(tmp_path/"wire-cap.sqlite3"))
 
 def test_two_simultaneous_distinct_entries_one_physical_call():
     gw=Gateway();ex=FakeExchange();out=[]
