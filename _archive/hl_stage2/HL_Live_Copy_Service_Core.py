@@ -5658,7 +5658,7 @@ class SenderGateway:
 
     def _reserve_margin_rest_at_wire(self, intent: Intent, size: float, px: float, *,
                                      attempt_id: str, sdk_coin: str, is_buy: bool,
-                                     tif: str, reduce_only: bool, cloid: Optional[str]) -> bool:
+                                     tif: str, reduce_only: bool, cloid: "Optional[str]") -> bool:
         """Final live proof + durable reservation across processes after pre_send.
 
         Requires a shared AUDIT_DIR for all senders. Unresolved reservations are
