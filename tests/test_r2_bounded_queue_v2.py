@@ -17,9 +17,9 @@ def test_overflow_has_durable_retry_evidence():
     assert "durable=True" in s
 def test_slot_kind_pinned_across_ledger_changes():
     assert "_queue_slot_kind.pop(_gk, None)" in source("LiveCopyCore","_release_queued")
-def test_age_gate_follows_idempotency():
+def test_stale_reoffer_precedes_physical_send_key():
     s=source("LiveCopyCore","_process_leader_fill_inner")
-    assert s.index("self._past_send_keys.add(self._guard_key(fill))") < s.index('"QUEUE_STALE_ENTRY"')
+    assert s.index('"QUEUE_STALE_ENTRY"') < s.index("self._past_send_keys.add(self._guard_key(fill))")
 def test_startup_drain_covers_deferred_and_inflight():
     s=source("LiveCopyCore","drain_startup_hot_queue")
     assert "self._deferred" in s and "self._inflight" in s
