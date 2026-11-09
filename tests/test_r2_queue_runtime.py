@@ -20,6 +20,7 @@ def durable_append(path,fields,data,**kw):
     rows.append(data)
     return True
 scope={"queue":queue,"threading":threading,"time":time,"hashlib":hashlib,
+       "LeaderFill":NS,
        "os":os,"Any":Any,"Dict":Dict,"Tuple":Tuple,"List":List,
        "canonical_coin_key":lambda coin:coin,
        "utc_now_ms":lambda:int(time.time()*1000),
