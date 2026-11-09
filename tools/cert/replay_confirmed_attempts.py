@@ -168,18 +168,42 @@ def _sync_parent(path):
             os.close(fd)
 
 
+def _require_testnet_scope():
+    """Fail closed before audit reads; caller-provided metadata is not authenticated exchange evidence."""
+    network = os.getenv("HL_LIVE_REPLAY_NETWORK", "").strip().lower()
+    account = os.getenv("HL_LIVE_REPLAY_ACCOUNT", "").strip().lower()
+    dex = os.getenv("HL_LIVE_REPLAY_DEX", "").strip().lower()
+    if network != "testnet":
+        raise RuntimeError("R3_TESTNET_ONLY")
+    if not account or not dex:
+        raise RuntimeError("R3_AUTHENTICATED_SCOPE_REQUIRED")
+    return network, account, dex
+
+
+def _check_confirmation_scope(confirmations, scope):
+    """Require per-row provenance fields; independent authentication is Runner responsibility."""
+    expected_network, expected_account, expected_dex = scope
+    for item in confirmations:
+        if (str(item.get("network") or "").strip().lower() != expected_network
+            or str(item.get("account") or "").strip().lower() != expected_account
+            or str(item.get("dex") or "").strip().lower() != expected_dex):
+            raise RuntimeError("R3_CONFIRMATION_SCOPE_UNVERIFIED")
+
+
 def apply_locked(sends_path, confirmation_path, ledger_path):
     """Re-read and preflight under engine-wide lease; one same-directory atomic swap.
 
     No state.db transaction is claimed. Non-cooperating writers are unsupported.
     """
     import hashlib
+    scope = _require_testnet_scope()
     sends_path = Path(sends_path)
     lease = _exclusive_engine_lock()
     try:
         # All evidence is read under the lease; never reuse pre-lock snapshots.
         with Path(confirmation_path).open(encoding="utf-8") as fh:
             confirmations = [json.loads(line) for line in fh if line.strip()]
+        _check_confirmation_scope(confirmations, scope)
         sends = read_csv(sends_path)
         ledger = read_csv(ledger_path)
         changes = replay(sends, confirmations, ledger, strict=True)
@@ -246,6 +270,7 @@ def main(argv=None):
     if args.apply and os.getenv("HL_LIVE_REPLAY_OFFLINE") != "1":
         raise RuntimeError("R3_OFFLINE_REQUIRED")
     if args.apply:
+        _require_testnet_scope()
         applied = apply_locked(args.sends, args.confirmations, args.ledger)
         print(json.dumps({"applied": applied, "mode": "APPLY_OFFLINE"}))
         return
