@@ -1,0 +1,10 @@
+# R52(1): LOAD-SENSITIVE tests. A failure on a slow or contended run is NOT counted
+# until it has been re-run once SOLO. The runner retries these alone and reports BOTH results.
+# Measured: each flips PASS->ASSERTION_FAIL only on slow runs (85s outlier / two gates at once),
+# under 30k-row / 30 MiB fill-trace load. The failure is wall-clock, not logic.
+# CC1-B-RULING-2114 item 1a: test_core_send_lock_isolation.py flips SOLO when measured
+# (send-lock isolation is timing-sensitive under gate contention). The gate must re-run it
+# alone and report BOTH verdicts; a solo failure is not counted until it has been re-run.
+test_core_fill_trace_buffering.py
+test_core_no_silent_fill.py
+test_core_send_lock_isolation.py

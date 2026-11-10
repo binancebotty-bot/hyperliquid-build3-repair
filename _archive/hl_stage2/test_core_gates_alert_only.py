@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cycle entry gates are alert-only (Boss 16 Oct, testnet): a would-block writes ONE GATE_WOULD_BLOCK row per minute per
 gate and the entry proceeds; the operator's daily loss limit stays a hard stop; an unreadable-truth fill is held, never
-turned into a terminal block (HL_LIVE_DEFER_MAX_SEC=0 holds without a limit, negative = no hold).
+turned into a terminal block (zero holds indefinitely and alerts after about 300 seconds; negative disables the hold).
 Run: HL_LIVE_ENV_FILE=/nonexistent python test_core_gates_alert_only.py"""
 import os
 import sys
@@ -29,10 +29,12 @@ try:
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)[before:] if r.get("event") == "GATE_WOULD_BLOCK"]
     check("ONE_ROW_PER_GATE_PER_MINUTE", sorted(r.get("status") for r in rows) == ["COPY_POLL_STALE", "WS_FEED_STALE"], [r.get("status") for r in rows])
     check("ROW_SAYS_ENTRIES_PROCEED", all(r.get("action") == "ALERT_ONLY_ENTRIES_PROCEED" for r in rows))
-    # the defer hold: default unlimited, negative = no hold
-    import inspect
-    src = inspect.getsource(c.LiveCopyCore._defer_unreadable_truth)
-    check("DEFER_DEFAULT_UNLIMITED", 'HL_LIVE_DEFER_MAX_SEC"), 0.0)' in src)
+    # a missing/zero defer limit keeps the fill held; negative still disables the hold
+    check("DEFER_DEFAULT_UNBOUNDED", c.deferred_truth_max_seconds() == 0.0)
+    os.environ["HL_LIVE_DEFER_MAX_SEC"] = "0"
+    check("DEFER_ZERO_UNBOUNDED", c.deferred_truth_max_seconds() == 0.0)
+    os.environ["HL_LIVE_DEFER_MAX_SEC"] = "-1"
+    check("DEFER_NEGATIVE_DISALLOWS_HOLD", c.deferred_truth_max_seconds() == -1.0)
 finally:
     core.stop()
 
