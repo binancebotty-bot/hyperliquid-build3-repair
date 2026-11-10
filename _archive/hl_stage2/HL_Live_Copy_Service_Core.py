@@ -37,6 +37,7 @@ import math
 import os
 import re
 import queue
+import sqlite3
 import signal
 import sys
 import threading
@@ -5645,6 +5646,80 @@ class SenderGateway:
                 return status
         return ""
 
+    def _fresh_margin_rest_proof(self, intent: Intent, size: float, px: float) -> bool:
+        """Live collateral proof, never a cached account snapshot."""
+        if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
+            return False
+        coin = str(intent.fill.coin or "")
+        dex = coin.split(":", 1)[0] if ":" in coin else ""
+        query = {"type": "clearinghouseState", "user": USER_WALLET}
+        if dex:
+            query["dex"] = dex
+        try:
+            results = _XNET.post_many(EXPOSURE_FETCHER, [query], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+            data = results[0].get("data") if len(results) == 1 and results[0].get("ok") else None
+            available = float(data["withdrawable"])
+            required = abs(float(size) * float(px))
+            return math.isfinite(available) and math.isfinite(required) and available >= required > 0
+        except Exception:
+            return False
+
+    def _reserve_margin_rest_at_wire(self, intent: Intent, size: float, px: float) -> bool:
+        """Final live proof + durable reservation across processes after pre_send.
+
+        Requires a shared AUDIT_DIR for all senders. Unresolved reservations are
+        never released automatically: exchange reconciliation is mandatory.
+        """
+        if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
+            return False
+        required = abs(float(size) * float(px))
+        if not math.isfinite(required) or required <= 0:
+            return False
+        scope = json.dumps([FOLLOWER_NETWORK, normalise_wallet(USER_WALLET)], separators=(",", ":"))
+        token = hashlib.sha256(json.dumps([scope, str(intent.intent_id)], separators=(",", ":")).encode()).hexdigest()
+        AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+        db = AUDIT_DIR / ("margin_rest_reservations_" + hashlib.sha256(scope.encode()).hexdigest() + ".sqlite3")
+        conn = None
+        try:
+            conn = sqlite3.connect(str(db), timeout=10.0, isolation_level=None)
+            conn.execute("PRAGMA busy_timeout=10000")
+            conn.execute("PRAGMA synchronous=FULL")
+            conn.execute("CREATE TABLE IF NOT EXISTS reservations "
+                         "(token TEXT PRIMARY KEY, coin TEXT NOT NULL, notional REAL NOT NULL, "
+                         "state TEXT NOT NULL, created_ms INTEGER NOT NULL)")
+            conn.execute("BEGIN IMMEDIATE")
+            if conn.execute("SELECT 1 FROM reservations WHERE token=?", (token,)).fetchone():
+                conn.execute("ROLLBACK")
+                return False
+            coin = str(intent.fill.coin or "")
+            dex = coin.split(":", 1)[0] if ":" in coin else ""
+            query = {"type": "clearinghouseState", "user": USER_WALLET}
+            if dex:
+                query["dex"] = dex
+            replies = _XNET.post_many(EXPOSURE_FETCHER, [query], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+            data = replies[0].get("data") if len(replies) == 1 and replies[0].get("ok") else None
+            available = float(data["withdrawable"])
+            reserved = float(conn.execute(
+                "SELECT COALESCE(SUM(notional),0) FROM reservations WHERE state='UNRESOLVED'").fetchone()[0])
+            if not math.isfinite(available) or available < reserved + required:
+                conn.execute("ROLLBACK")
+                return False
+            conn.execute("INSERT INTO reservations VALUES (?,?,?,?,?)",
+                         (token, coin, required, "UNRESOLVED", utc_now_ms()))
+            conn.execute("COMMIT")
+            return True
+        except Exception as exc:
+            if conn is not None and conn.in_transaction:
+                try:
+                    conn.execute("ROLLBACK")
+                except Exception:
+                    pass
+            log_error("margin_rest_final_reservation_failed", exc)
+            return False
+        finally:
+            if conn is not None:
+                conn.close()
+
     def _missed_entry_rest_or_diff(self, intent: Intent, cause: str,
                                    timing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """PART 2 (rev): a REFUSED entry/add is not a lost fill, and it is not priced from scratch here either. The
@@ -5682,14 +5757,23 @@ class SenderGateway:
                                        else "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED"),
                         notes=(f"named diff: {cause}; _ensure_margin_mode refused "
                                f"({margin_block[2].get('error')}); no order sent or rested"))
-        try:
-            follower_px = follower_mid(sdk_coin, force=True)
-            market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
-            bps = self.cfg.marketable_bps()
-        except Exception as exc:
-            # The stale-entry caller records an ALERT for this explicit failure.
-            raise RuntimeError("MISSED_ENTRY_PRICING_LOOKUP_FAILED") from exc
-        missed = missed_entry_decision(intent.copy_side, leader_px, market_px, follower_px, bps)
+        bps = self.cfg.marketable_bps()
+        margin_recovery = cause == "MARGIN_REJECT_AT_REFUSAL"
+        if margin_recovery and not self._fresh_margin_rest_proof(intent, size, leader_px):
+            return dict(base, outcome="MISSED_ENTRY_DIFF_MARGIN_UNPROVEN",
+                        notes="fresh follower withdrawable insufficient for a GTC")
+        if margin_recovery:
+            follower_px = 0.0
+            market_px = leader_px
+            missed = {"ok": True, "take": False, "desired_px": leader_px,
+                      "cap_px": leader_px, "adverse_bps": 0.0}
+        else:
+            try:
+                follower_px = follower_mid(sdk_coin, force=True)
+                market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
+            except Exception as exc:
+                raise RuntimeError("MISSED_ENTRY_PRICING_LOOKUP_FAILED") from exc
+            missed = missed_entry_decision(intent.copy_side, leader_px, market_px, follower_px, bps)
         if not missed.get("ok"):
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_FRESH_MID",
                         notes=(f"named diff: {cause}; no fresh mid (follower={follower_px}, leader_market={market_px}), "
@@ -5725,6 +5809,8 @@ class SenderGateway:
             return dict(base, outcome=_st, exchange_called=False,
                         notes=f"no order: ownership gate refused the remedy ({_st})")
         try:
+            if margin_recovery:
+                timing["margin_rest_physical_admission"] = str(intent.intent_id)
             cloid, pre_send = self._recovery_send_hooks(intent, tif, order_type, px, size, False, timing, label)
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
                                          timing, f"{label}_started_ms", cloid=cloid, pre_send=pre_send, intent=intent, path="missed_entry_rest")
@@ -6144,6 +6230,19 @@ class SenderGateway:
                     "exchange_called": _invoked, "reject_category": status,
                     "terminal_state": status, "operator_action": _op,
                     "notes": ("late gate refusal, no exchange call: " if not _invoked else "late gate refusal after exchange call: ") + _late_block}
+        # Physical-wire collateral admission AFTER write-ahead and final gates.
+        # Reduce-only CLOSE never enters this entry-only path.
+        if (isinstance(timing, dict) and
+                timing.get("margin_rest_physical_admission") == str(getattr(intent, "intent_id", ""))):
+            if not self._reserve_margin_rest_at_wire(intent, size, limit_px):
+                reason = "MARGIN_REST_PHYSICAL_COLLATERAL_OR_RESERVATION_HOLD"
+                self._terminalise_pending_as_no_call(
+                    str(timing.get("send_attempt_id") or _pending_id or ""),
+                    "SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL", reason)
+                return {"status": "err", "response": reason, "exchange_called": False,
+                        "reject_category": "INSUFFICIENT_MARGIN",
+                        "terminal_state": "SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL",
+                        "operator_action": "RECONCILE_RESERVED_MARGIN_BEFORE_RETRY"}
         # Stamp the call time only after the refusal check and durable pending
         # write, never for a known NO_EXCHANGE_CALL (Codex 6406836199).
         if timing is not None and started_key:
@@ -9333,6 +9432,7 @@ class SenderGateway:
             # including ambiguous exceptions, remain held until reconciled.
             if reserved_exit and not (True if timing is None else timing.get("exchange_order_invoked", False)):
                 self._clear_pending_exit(intent)
+        margin_rest_once = False
         if result.get("exchange_called"):
             category = str(result.get("reject_category") or "")
             if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
@@ -9357,8 +9457,11 @@ class SenderGateway:
                         action="RETRY_AFTER_IOC_WINDOW", notes=f"IOC remained IOC; per-coin retry window {window_ms} ms")
             elif category == "INSUFFICIENT_MARGIN" and lifecycle in {"ENTRY", "ADD"}:
                 window_ms = max(1, int(fnum(os.getenv("HL_LIVE_MARGIN_REJECT_RETRY_WINDOW_MS"), 10000)))
+                with self._exchange_order_lock:
+                    now_ms = utc_now_ms()
+                    margin_rest_once = self._margin_reject_until_ms.get(coin_key, 0) <= now_ms
                 self._margin_reject_until_ms[coin_key] = max(
-                    self._margin_reject_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
+                        self._margin_reject_until_ms.get(coin_key, 0), now_ms + window_ms)
             try:
                 try:
                     self._append_real_attempt(intent, send_status, result)
@@ -9396,7 +9499,9 @@ class SenderGateway:
             # No-call exits are already released by the finally block.
             if result.get("write_send_attempt") or result.get("write_reconciliation"):
                 self._append_local_block_reconciliation(intent, send_status, result)
-        return _finish(ok, send_status)
+        return _finish(ok, "MARGIN_REJECT_REST_ONCE"
+                       if margin_rest_once and not ok and send_status == "ORDER_REJECTED"
+                       else send_status)
 
     def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
@@ -14010,6 +14115,8 @@ class LiveCopyCore:
         fill (follower-price freshness gate, margin-mode precondition, snapshot-only metadata, MARKET_HALTED) now run
         the missed-entry rule ONCE, here: a GTC rests at the leader's price when the symbol is tradable, else a named
         diff (or a named skip). The gates themselves are untouched and nothing is retained for a later replay."""
+        if str(send_status) == "SKIPPED_INSUFFICIENT_MARGIN":
+            return None  # never retry on cached refusal
         if str(send_status) == "MASTER_REAL_ORDERS_OFF":
             # A deliberate OFF means do not even try. Returning None leaves the caller to write this fill's
             # ONE terminal row (SEND_BLOCKED / master off) instead of one row per refused attempt: run 11
@@ -14033,8 +14140,7 @@ class LiveCopyCore:
         elif send_status == "SKIPPED_IOC_NO_IMMEDIATE_MATCH":
             # the book was too thin for an IOC; the rule rests a GTC at the leader's price instead of skipping
             cause = "IOC_NO_IMMEDIATE_MATCH_AT_REFUSAL"
-        elif send_status == "SKIPPED_INSUFFICIENT_MARGIN":
-            # margin was short for an IOC; rest instead of dropping the copy (the cap/exposure checks still ran)
+        elif send_status == "MARGIN_REJECT_REST_ONCE":
             cause = "MARGIN_REJECT_AT_REFUSAL"
         elif send_status == "QUEUE_STALE_ENTRY":
             cause = "ORD_010_ENTRY_AGE_OVER_30S"
