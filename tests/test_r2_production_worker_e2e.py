@@ -150,7 +150,7 @@ class ProductionIntentBuilder:
 # exchange spy. Only external exchange truth/risk collaborators are stubbed.
 SENDER_CLASS = next(n for n in TREE.body
                     if isinstance(n, ast.ClassDef) and n.name == "SenderGateway")
-WIRE_METHODS = ("_place_order", "_missed_entry_rest_or_diff")
+WIRE_METHODS = ("_place_order", "_place_order_impl", "_missed_entry_rest_or_diff")
 wire_nodes = [next(n for n in SENDER_CLASS.body
                    if isinstance(n, ast.FunctionDef) and n.name == name)
               for name in WIRE_METHODS]
@@ -208,6 +208,7 @@ class OrderSpy:
 class FakeSender:
     _missed_entry_rest_or_diff = wire_scope["_missed_entry_rest_or_diff"]
     _place_order = wire_scope["_place_order"]
+    _place_order_impl = wire_scope["_place_order_impl"]
     _master_gate_reason = lambda self, *a, **kw: ""
     _wire_entry_exposure_block = lambda self, *a, **kw: ""
     _final_close_proof = lambda self, *a, **kw: ""
