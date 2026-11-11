@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""A failed or short audit append must not leave a half-written row behind (the next append would glue onto it)."""
+"""A failed or short audit append must not:
+  (a) leave a half-written row behind (next append would glue onto it),
+  (b) lose the row (it is spilled to the append-only fallback),
+  (c) raise so the caller's control flow is disrupted.
+The next append after a failure writes a clean row, and the spilled row is
+replayed by replay_audit_fallback."""
 import errno
 import os
 import sys
@@ -17,7 +22,12 @@ def check(n, c_, d=""):
 
 
 tmp = Path(tempfile.mkdtemp(prefix="appendtrunc_"))
-os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LIVE_ENV_FILE": "/nonexistent"})
+os.environ.update({
+    "HL_LIVE_AUDIT_DIR": str(tmp),
+    "HL_LIVE_ENV_FILE": "/nonexistent",
+    "HL_LIVE_APPEND_RETRIES": "2",       # short retry budget for fast test
+    "HL_LIVE_APPEND_BACKOFF_SEC": "0.01",
+})
 import HL_Live_Copy_Service_Core as c
 
 fields = ["a", "b"]
@@ -55,17 +65,35 @@ def fake_open(self, *a, **k):
 
 Path.open = fake_open
 raised = False
+ret = None
 try:
-    c.append_csv(p, fields, {"a": "3", "b": "4"})
+    ret = c.append_csv(p, fields, {"a": "3", "b": "4"})
 except OSError:
     raised = True
 finally:
     Path.open = real_open
-check("APPEND_FAILURE_STILL_RAISES", raised)
+
+check("APPEND_FAILURE_NO_RAISE", not raised, "append_csv should never raise -- it spills")
+check("APPEND_FAILURE_RETURNS_FALSE", ret is False, f"ret={ret!r}")
 check("APPEND_FAILURE_LEAVES_NO_HALF_ROW", p.read_bytes() == good, repr(p.read_bytes()[-20:]))
+
+# the failed row must have been spilled, not dropped
+sp = c._fallback_path(p)
+spilled = c.read_csv_rows(sp) if sp.exists() else []
+check("APPEND_FAILURE_SPILLS_ROW",
+      len(spilled) == 1 and spilled[0]["a"] == "3", str(spilled))
+
+# next append writes a clean row
 c.append_csv(p, fields, {"a": "5", "b": "6"})
 rows = list(c.read_csv_rows(p))
 check("NEXT_APPEND_IS_A_CLEAN_ROW", [r["a"] for r in rows] == ["1", "5"], str(rows))
+
+# spilled row is replayed
+replayed = c.replay_audit_fallback(p, fields)
+rows_after = list(c.read_csv_rows(p))
+check("SPILLED_ROW_REPLAYED",
+      replayed == 1 and [r["a"] for r in rows_after] == ["1", "5", "3"], f"replayed={replayed} rows={rows_after}")
+check("SPILL_FILE_CLEARED", not sp.exists() or len(c.read_csv_rows(sp)) == 0, str(sp))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)
