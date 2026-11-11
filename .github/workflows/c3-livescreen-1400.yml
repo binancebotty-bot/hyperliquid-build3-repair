@@ -1,0 +1,121 @@
+name: C3 live screen 1400 offline before-after
+on:
+  push:
+    branches: [gpt/c3-livescreen-1400-20261101]
+  pull_request:
+    branches: [hermes/integration]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        dependency: [with-fastapi, without-fastapi]
+    env:
+      PINNED_BASE: 0a99d215c99b794717ce5b34f46cc299dae09106
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LEADER_NETWORK: mainnet
+      HL_LIVE_AUTO_SEND_ENABLED: '0'
+      HL_LIVE_POLL_ENABLED: '0'
+      HL_LIVE_WS_ENABLED: '0'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/c3-livescreen-1400-20261101
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Enforce pinned Core and UI source unchanged
+        shell: bash
+        run: |
+          git cat-file -e "$PINNED_BASE^{commit}"
+          test "$(git merge-base HEAD "$PINNED_BASE")" = "$PINNED_BASE"
+          git diff --exit-code "$PINNED_BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/HL_Copy_App_SSOT.py
+          test "$(git rev-parse HEAD:_archive/hl_stage2/HL_Live_Copy_Service_Core.py)" = "e470862a291bbf241e22d8011b757ed9c2b53d68"
+          test "$(git rev-parse HEAD:_archive/hl_stage2/HL_Copy_App_SSOT.py)" = "39358193fbe9aaeca021459b27f9fc070d22c31e"
+          git log -1 --format='%H %P %s'
+      - name: Install pinned test-only FastAPI / HTTPX SDK dependencies
+        if: matrix.dependency == 'with-fastapi'
+        run: |
+          python -m pip install 'fastapi==0.115.12' 'httpx==0.28.1' 'hyperliquid-python-sdk==0.24.0'
+          python -m pip freeze > ci-dependency-freeze.txt
+      - name: No-FastAPI environment proof
+        if: matrix.dependency == 'without-fastapi'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import importlib.util
+          assert importlib.util.find_spec('fastapi') is None, 'no-dependency lane unexpectedly has fastapi'
+          print('NO_DEPENDENCY_FASTAPI_ABSENT_PROVEN')
+          PY
+      - name: Offline test and complete exception / marker capture
+        shell: bash
+        run: |
+          mkdir -p evidence c3_netguard
+          cat > c3_netguard/sitecustomize.py <<'PY'
+          import socket
+          def _offline(*args, **kwargs):
+              raise OSError("C3_OFFLINE_NETWORK_DENIED")
+          socket.socket.connect = _offline
+          socket.socket.connect_ex = _offline
+          socket.create_connection = _offline
+          PY
+          export PYTHONPATH="$PWD/c3_netguard"
+          echo "HEAD=$(git rev-parse HEAD)" | tee evidence/metadata.txt
+          echo "PINNED_BASE=$PINNED_BASE" | tee -a evidence/metadata.txt
+          echo "DEPENDENCY=${{ matrix.dependency }}" | tee -a evidence/metadata.txt
+          python - <<'PY'
+          import importlib.util
+          import pathlib, re, subprocess, sys
+          out = pathlib.Path("evidence")
+          script = "_archive/hl_stage2/test_live_screen_truth.py"
+          print("fastapi_importable=", importlib.util.find_spec("fastapi") is not None)
+          try:
+              p = subprocess.run([sys.executable, "-u", script], capture_output=True, text=True, errors="replace", timeout=90)
+              text = p.stdout + "\n--- STDERR ---\n" + p.stderr + "\nEXIT_CODE=" + str(p.returncode) + "\n"
+              rc = p.returncode
+          except subprocess.TimeoutExpired as exc:
+              text = "TIMEOUT_90_SECONDS\n" + repr(exc)
+              rc = 124
+          (out/"full.log").write_text(text, encoding="utf-8")
+          markers = re.findall(r"(?m)^RESULT::[^\n]+", text)
+          total = re.findall(r"TOTAL=(\d+)\s+FAILED=(\d+)", text)
+          if "SKIP::DEPENDENCY_MISSING fastapi" in text:
+              status = "NOT_RUN"
+              n, f = "-", "-"
+          elif total:
+              n, f = total[-1]
+              status = "PASS" if rc == 0 and int(f) == 0 else "FAIL" if int(f) > 0 else "UNPARSED"
+          else:
+              n, f = "-", "-"
+              status = "UNPARSED"
+          summary = f"STATUS={status} TOTAL={n} FAILED={f} EXIT={rc} MARKERS={len(markers)}\n"
+          (out/"summary.txt").write_text(summary, encoding="utf-8")
+          print(summary.strip())
+          for line in text.splitlines():
+              if line.startswith(("RESULT::", "SKIP::", "Traceback", "ModuleNotFoundError", "AssertionError", "ImportError", "C3_OFFLINE_NETWORK_DENIED")):
+                  print(line[:600])
+          PY
+      - name: Export freeze and raw evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          if test -f ci-dependency-freeze.txt; then cp ci-dependency-freeze.txt evidence/dependencies-freeze.txt; fi
+          git rev-parse HEAD > evidence/head.txt
+          git rev-parse HEAD:_archive/hl_stage2/HL_Live_Copy_Service_Core.py > evidence/core-blob.txt
+          sha256sum evidence/* > evidence/files.sha256 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c3-livescreen-1400-${{ matrix.dependency }}
+          path: evidence/
+          retention-days: 14
+          if-no-files-found: warn
