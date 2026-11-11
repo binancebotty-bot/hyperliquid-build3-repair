@@ -85,6 +85,70 @@ def main():
     ok = core._dispatch_fill(f3)
     check("full_queue_leaves_nothing_pending", ok is False and core.leader_cursor_next(A, now) == now, str(core._pending_ts))
 
+    # A poll result is not protected by the cursor floor until it has been dispatched.
+    poll_fill = [None]
+    poll_starts = []
+    core.sender.refresh_asset_universe = lambda: None
+    core.sender.prune_standing_closes = lambda: None
+    core.sender.resting_entries = lambda: []
+    core.sender.take_withdrawn_late = lambda: []
+    core.ws.write_health = lambda: {"ws_summary": {}}
+    core._daily_loss_block = lambda: ""
+    core._scope_sweep_block = lambda: ""
+    core._leader_poll_due = lambda: True
+    core.poll_wallets = lambda: [A]
+    def poll_fills(wallet, start_ms, end_ms=None):
+        poll_starts.append(start_ms)
+        if poll_fill[0] is None:
+            poll_fill[0] = c.LeaderFill("r1poll", A, "SOL", "BUY", 100.0, 1.0,
+                                        end_ms - c.LEADER_POLL_OVERLAP_MS - 1000,
+                                        "POLL", 0, {"oid": "4", "dir": "Open Long", "startPosition": "0"})
+        fill = poll_fill[0]
+        return ([fill] if start_ms <= fill.timestamp_ms <= end_ms else [], "POLL_OK")
+    core.ingestor.poll_hyperliquid_fills = poll_fills
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {A: c.utc_now_ms() - c.LEADER_POLL_OVERLAP_MS - 5000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    check("poll_queue_fixture_is_saturated", all(q.full() for q in core._hot_queues))
+    first = core.run_cycle(use_source_csv=False, poll_live=True)
+    check("poll_fill_was_rejected_for_queue_saturation", poll_fill[0] is not None and first.leader_fills_queued == 0)
+    saved = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(A, 0)
+    check("poll_queue_full_cursor_holds_unqueued_fill", saved <= poll_fill[0].timestamp_ms,
+          f"cursor={saved} fill={poll_fill[0].timestamp_ms}")
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    check("poll_queue_full_retry_window_includes_fill",
+          len(poll_starts) == 2 and poll_starts[1] <= poll_fill[0].timestamp_ms,
+          f"starts={poll_starts} fill={poll_fill[0].timestamp_ms}")
+
+    # A terminally skipped late entry is handled, not a queue-rejected fill to pin the cursor on.
+    late_fill = c.LeaderFill("r1late", A, "SOL", "BUY", 100.0, 1.0,
+                             c.utc_now_ms() - 15000, "POLL", 0,
+                             {"oid": "5", "dir": "Open Long", "startPosition": "0"})
+    poll_fill[0] = late_fill
+    poll_starts.clear()
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {A: late_fill.timestamp_ms - c.LEADER_POLL_OVERLAP_MS - 5000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    old_late_classifier = c.already_closed_late_entries
+    c.already_closed_late_entries = lambda batch, _now: (
+        {late_fill.leader_fill_id: "leader subsequently closed"}
+        if any(f.leader_fill_id == late_fill.leader_fill_id for f in batch) else {})
+    try:
+        first_late = core.run_cycle(use_source_csv=False, poll_live=True)
+        late_rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                     if r.get("leader_fill_id") == late_fill.leader_fill_id]
+        check("late_closed_fill_writes_terminal_without_queueing",
+              first_late.leader_fills_queued == 0 and core._already_handled(late_fill)
+              and any(r.get("terminal_state") == "MISSED_ENTRY_LEADER_ALREADY_CLOSED" for r in late_rows),
+              f"queued={first_late.leader_fills_queued} handled={core._already_handled(late_fill)} rows={len(late_rows)}")
+        core.run_cycle(use_source_csv=False, poll_live=True)
+        late_saved = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(A, 0)
+        check("late_closed_terminal_does_not_pin_cursor",
+              len(poll_starts) == 2 and late_saved > late_fill.timestamp_ms,
+              f"starts={poll_starts} cursor={late_saved} fill={late_fill.timestamp_ms}")
+    finally:
+        c.already_closed_late_entries = old_late_classifier
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)

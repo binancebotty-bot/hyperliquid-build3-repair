@@ -15,8 +15,8 @@ M4 leader on mainnet, follower on testnet: the leader's market move is measured 
 M5 a resting limit is withdrawn only when the leader reduces/closes/flips that coin (no clock expiry);
    failed withdrawals stay and show as a diff; the list survives a restart.
 M6 catch-up: a late entry the leader already closed again is reported, not traded; exits always run.
-M7 the polling backstop resumes from the last good poll however old (up to 7 days), says when it could not
-   read everything, and reports a gap older than that; the live feed's health gate follows --ws.
+M7 polling caps recovery to its 100-minute retention window, pages fills, advances after partial network errors,
+   and emits one counted OUTAGE_GAP per stale wallet cursor; the live feed's health gate follows --ws.
 
 Run: python test_core_missed_entry_rule.py   # RESULT:: markers, exit 0/1. No network, no orders.
 """
@@ -104,6 +104,9 @@ def main() -> None:
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [
                 {"filled": {"totalSz": str(size), "avgPx": str(px), "oid": 1}}]}}}
 
+        def update_leverage(self, leverage, name, is_cross=True):
+            return {"status": "ok"}   # ENTRY/ADD fail closed without a margin-mode ack
+
         def cancel(self, coin, oid):
             self.cancels.append((coin, oid))
             return self.cancel_reply
@@ -113,6 +116,9 @@ def main() -> None:
 
     def gateway(fake):
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        # sends ON: the gate re-reads the mode at the physical call, so BOTH accessors must say ON
+        gw.cfg.master_switch_now = lambda: True
+        gw.cfg.send_mode_now = lambda: "ON"
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -342,22 +348,51 @@ def main() -> None:
     check("M6_CYCLE_SKIPS_CLOSED_ENTRY_WITH_A_DIFF", handled == [b2.leader_fill_id, e2.leader_fill_id]
           and rows and rows[-1]["status"] == "MISSED_ENTRY_LEADER_ALREADY_CLOSED", f"{handled} {rows[-1:]}")
 
-    # ---- M7: polling backstop ---------------------------------------------------------------------------
+    # ---- M7: bounded retention and progress on a partial network failure ---------------------------------
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "wallets": {
+        LEADER: {"enabled": True, "mode": "ON"}, OTHER: {"enabled": True, "mode": "ON"}}})
     starts = []
-    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append(s) or ([], "POLL_OK")
+    # re-capture now HERE: `now` was captured at the top of main(), and this block asserts poll
+    # starts against now - retention within 60 s. A slow or loaded run drifts past that tolerance
+    # and takes all six M7 checks down together (3 of 30 clean runs). The engine clamps correctly;
+    # the test measured against a stale clock.
+    now = c.utc_now_ms()
+    # The real shared precondition (2026-10-26): state writes are ASYNCHRONOUS (_LatestStatusWriteWorker),
+    # so the previous block's write can land AFTER the cursor seed below and overwrite it with the cursor
+    # it just polled - the poll then starts from that fresh cursor instead of the retention floor and all
+    # six M7 checks fall together. Draining the writer first makes the block deterministic; the clock
+    # re-capture above is only margin for the 60 s tolerance. Test-only: no product change.
+    _w = getattr(core.state_writer, "_worker", None)
+    _t = getattr(_w, "_thread", None)
+    if _t is not None:
+        _t.join(timeout=10.0)
+        # A join that times out returns silently, and the block would then measure a seed the writer may
+        # still be overwriting - the same failure, now invisible. Say so instead (Codex 6406962411).
+        assert not _t.is_alive(), ('the state writer did not finish within 10 s, so the cursor seed below '
+                                   'cannot be trusted as the value the poll reads')
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_NETWORK_ERROR")
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000}
+    state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000, OTHER: now - 3 * 86400000}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
-    check("M7_THREE_DAY_GAP_CAUGHT_UP_FROM_LAST_GOOD_POLL",
-          starts and abs(starts[-1] - (now - 3 * 86400000 - c.LEADER_POLL_OVERLAP_MS)) < 60000, f"{starts} now={now}")
+    check("M7_OLD_CURSORS_CLAMPED_TO_RETENTION_FLOOR_PER_WALLET",
+          len(starts) == 2 and all(abs(start - (now - c.LEADER_POLL_RETENTION_MS)) < 60000 for _w, start in starts),
+          f"{starts} now={now}")
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
+    check("M7_STALE_CURSOR_EMITS_ONE_COUNTED_GAP_PER_WALLET",
+          len(rows) == 2 and {r.get("leader_wallet") for r in rows} == {LEADER, OTHER}, str(rows[-2:]))
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 9 * 86400000}
-    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
+    check("M7_GAP_MARKERS_WRITTEN_FOR_EACH_STALE_WALLET", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
+    core.state_writer._write_core_state({}, core.dedupe, {})
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
+    check("M7_GAP_MARKERS_SURVIVE_CORE_STATE_COMPACTION", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
-    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "LEADER_HISTORY_GAP"]
-    check("M7_GAP_BEYOND_7_DAYS_REPORTED", rows and rows[-1]["event"] == "SEND_TERMINAL"
-          and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
+    check("M7_SAVED_CURSOR_PREVENTS_DUPLICATE_GAP_ROWS", len(rows) == 2, str(len(rows)))
 
     pages = {"n": 0}
 
@@ -383,6 +418,25 @@ def main() -> None:
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
     check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - c.LEADER_POLL_OVERLAP_MS == partial_fills[0].timestamp_ms, f"{cur}")
+
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 60000, OTHER: c.utc_now_ms() - 60000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core._held_read_cursor.clear()
+    partial_cursor_fills = [fill("BUY", ts=c.utc_now_ms() - 5000)]
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: (partial_cursor_fills if w == LEADER else [], "POLL_NETWORK_ERROR")
+    core._last_leader_poll_ms = 0
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_OK")
+    core._last_leader_poll_ms = 0
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    check("M7_NETWORK_ERROR_PARTIAL_PROGRESS_RESUMES_AT_LAST_FILL",
+          cur - c.LEADER_POLL_OVERLAP_MS == partial_cursor_fills[0].timestamp_ms
+          and any(w == LEADER and abs(s - partial_cursor_fills[0].timestamp_ms) < 1000 for w, s in starts),
+          f"cursor={cur} next_starts={starts[-2:]}")
+    rows_after_error = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
+    check("M7_NETWORK_ERROR_ALONE_DOES_NOT_EMIT_OUTAGE_GAP", len(rows_after_error) == 2, str(len(rows_after_error)))
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     check("M7_FEED_HEALTH_GATE_UNCHANGED_FILL_SILENCE_NEVER_BLOCKS_ALL_ENTRIES",
@@ -593,14 +647,23 @@ def main() -> None:
 
     # B while sending is stopped for a bad key the leader cursors stay put, so a restart replays the exits
     st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    st["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 3600000}
+    # a seed fixed against the retention floor, not a wall-clock offset: half the window can never be
+    # clamped by the cycle, so the hold assertion below does not depend on when the suite runs
+    seed = c.utc_now_ms() - c.LEADER_POLL_RETENTION_MS // 2
+    st["last_leader_poll_cursor_ms"] = {LEADER: seed}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
     before = st["last_leader_poll_cursor_ms"][LEADER]
+    check("R7_CURSOR_SEED_IS_INSIDE_THE_RETENTION_WINDOW", before > c.utc_now_ms() - c.LEADER_POLL_RETENTION_MS,
+          "%s %s" % (before, c.LEADER_POLL_RETENTION_MS))
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([], "POLL_OK")
     core.sender.sender_key_invalid = "User or API Wallet does not exist"
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
-    check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before, f"{cur} {before}")
+    # instrumented so a rare failure says WHY: was the flag still set, and what did the hold branch keep
+    check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before,
+          f"{cur} {before} flag={bool(core.sender.sender_key_invalid)!r} "
+          f"held={dict(getattr(core, '_held_read_cursor', {}))} "
+          f"sender_is_same={core.sender is core.sender}")
     core.sender.sender_key_invalid = ""
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
@@ -644,6 +707,27 @@ def main() -> None:
           and c.classify_reject_category("User or API Wallet 0xabc does not exist.") == "SENDER_KEY_NOT_VALID")
     open_orders["rows"] = [{"coin": "BTC", "side": "B", "limitPx": "100.0", "sz": "0.4", "origSz": "1.0", "oid": 605}]
     check("R7_PART_FILLED_LIMIT_FOUND_BY_ORIGINAL_SIZE", gw9.find_open_entry_order("BTC", "BTC", "BUY", 100.0, 1.0) == "605")
+
+    # ---- GUARD (controller 6406078216 / review 6406031822): with PRODUCTION sends-off, the rest path
+    # must place nothing and journal the refusal. This case deliberately does NOT stub the switch - the
+    # gateway above sets master_switch_now/send_mode_now to ON, which is what made this suite unable to
+    # tell "the operator armed it" from "production says OFF".
+    config()                                        # auto_send_enabled False, no send_mode key -> OFF
+    fake_off = FakeExchange()
+    gw_off = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw_off._resolve_coin = lambda coin: dict(resolved)
+    gw_off._exchange_client_for_coin = lambda coin: (fake_off, "BTC")
+    gw_off._ensure_margin_mode = lambda *a, **k: None
+    old_fill = fill("BUY", ts=c.utc_now_ms() - 600000)      # >30 s: routes into the rest path
+    off_intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "off1.json")).build(old_fill)
+    outcome = gw_off._missed_entry_rest_or_diff(off_intent, "ORD_010_ENTRY_AGE_OVER_30S")
+    check("GUARD_SENDS_OFF_REST_PATH_MAKES_ZERO_EXCHANGE_CALLS", fake_off.calls == [], str(fake_off.calls))
+    # the remedy now re-runs the ownership gate immediately before the order, so with sends OFF the refusal
+    # arrives there first and is named OWNERSHIP_GATE_*; either way: ZERO exchange calls and a NAMED refusal
+    check("GUARD_SENDS_OFF_REST_PATH_JOURNALS_THE_REFUSAL",
+          str(outcome.get("outcome") or "").startswith(("BLOCKED_AT_PLACE_ORDER", "OWNERSHIP_GATE_"))
+          and outcome.get("exchange_called") is False,
+          str(outcome)[:300])
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
