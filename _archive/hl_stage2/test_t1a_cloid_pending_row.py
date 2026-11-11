@@ -84,6 +84,8 @@ def main() -> None:
         def __init__(self, replies=None):
             self.calls, self.replies = [], list(replies or [])
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
             self.calls.append({"coin": coin, "px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size,
                                "reduce_only": reduce_only, "cloid": (str(cloid) if cloid is not None else None)})

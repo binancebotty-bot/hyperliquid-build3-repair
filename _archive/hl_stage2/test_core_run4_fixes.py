@@ -82,6 +82,8 @@ def main() -> None:
         def __init__(self, replies=None):
             self.calls, self.replies = [], list(replies or [])
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
             if self.replies:
@@ -284,6 +286,8 @@ def main() -> None:
             super().__init__(replies)
             self.cancels, self.cancel_reply = [], cancel_reply
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             if tif["limit"]["tif"] == "Gtc" and not self.replies:   # a fresh order id per standing close
                 self.calls.append({"px": px, "tif": "Gtc", "buy": is_buy, "size": size, "reduce_only": reduce_only})
@@ -443,6 +447,7 @@ def main() -> None:
     check("C5_OPEN_SIZE_READ_FROM_THE_EXCHANGE_FILLED_ONES_DROP_OUT",
           still == 2 and abs(exp["total_usd"] - 100.0) < 1e-9 and exp["buy_units"] == {"BTC": 0.5}
           and exp["sell_units"] == {"ETH": 1.0} and exp["by_wallet_usd"] == {A: 50.0, B: 50.0}, f"{still} {exp}")
+    c.invalidate_open_orders_cache()  # the first read is inside the 15 s periodic cache; the unreadable read must be a real one
     c.OPEN_ORDERS_FETCHER = lambda p: (_ for _ in ()).throw(RuntimeError("unreadable"))
     g._resting_entries["4"] = {"oid": "4", "leader_wallet": A, "coin": "ETH", "side": "BUY", "limit_px": 10.0, "size": 3.0, "placed_ms": 1}
     g.refresh_resting_open_sizes()
