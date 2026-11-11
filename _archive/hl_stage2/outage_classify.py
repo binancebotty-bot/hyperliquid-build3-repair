@@ -49,7 +49,11 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
     def own(fid: str) -> str:
         if sent_by_fill.get(fid):
             return "SENT"
+        # a waiting marker lives in STATUS now (it must never fill terminal_state), so read both columns or the
+        # classifier loses sight of a fill that is visibly waiting and reports it MISSING instead of DEFERRED_OPEN
         terms = [str(r.get("terminal_state", "")) for r in recon.get(fid, []) if r.get("terminal_state")]
+        terms += [str(r.get("status", "")) for r in recon.get(fid, [])
+                  if r.get("status") and not r.get("terminal_state")]
         for t in reversed(terms):
             if t.startswith(("REPLAY_DEFERRED", "FILL_PENDING")):
                 continue
