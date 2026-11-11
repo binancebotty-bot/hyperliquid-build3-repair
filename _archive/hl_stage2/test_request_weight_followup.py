@@ -13,8 +13,11 @@ _TEST_DIR = Path(tempfile.mkdtemp(prefix="request_weight_followup_"))
 os.environ["HL_LIVE_AUDIT_DIR"] = str(_TEST_DIR / "audit")
 os.environ["HL_LIVE_ENV_FILE"] = str(_TEST_DIR / "missing.env")
 os.environ["HL_FOLLOWER_NETWORK"] = "testnet"
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(_TEST_DIR / "sender.lock")
 
 import HL_Live_Copy_Service_Core as core  # noqa: E402
+core.acquire_global_instance_lock(_TEST_DIR / "instance")
+assert core._sender_lease_owned(), "isolated sender lease required for physical fake-wire tests"
 
 
 LIVE = "0x0000000000000000000000000000000000000001"
@@ -35,6 +38,9 @@ class FakeConfig:
 
     def wallet_mode(self, wallet):
         return self.modes.get(wallet, "OFF")
+
+    def stream_wallets(self):
+        return [w for w, mode in self.modes.items() if mode == "ON"][:core.MAX_WALLETS]
 
     def wallet_enabled(self, wallet):
         return wallet in self.modes
@@ -72,7 +78,17 @@ def sender_gateway():
     gateway._exchange_rate_limit_cooldown_until_ms = 0
     gateway.sender_key_invalid = ""
     gateway._note_sender_key_rejection = lambda _response: None
+    gateway.cfg = FakeConfig({LIVE: "ON"})
+    gateway.cfg.send_mode_now = lambda: "ON"
+    gateway.audit = mock.Mock()
     return gateway
+
+
+def valid_entry():
+    fill = core.LeaderFill("rw13-entry", LIVE, "BTC", "BUY", 100.0, 1.0, 100_000, "TEST")
+    return core.Intent("rw13-entry", fill, "BUY", 1.0, 100.0, "ON", "fixed",
+                       "ENTRY_ALLOWED", "ENTRY", "rw13-sleeve", "", "FLAT",
+                       0.0, 0.0, False, False)
 
 
 class RequestWeightFollowupTests(unittest.TestCase):
@@ -235,7 +251,7 @@ class RequestWeightFollowupTests(unittest.TestCase):
         self.assertIn("lifecycle=EXIT", intent.notes)
         self.assertEqual(intent.copy_size, 2.0)
 
-    def test_exit_bypasses_rate_limit_cooldown_but_entry_does_not(self):
+    def test_429_does_not_pause_entries_beyond_short_slot_pacing(self):
         sleeps = []
         now_ms = 100_000
         current_ms = [now_ms]
@@ -249,16 +265,27 @@ class RequestWeightFollowupTests(unittest.TestCase):
               mock.patch.object(core.time, "sleep", side_effect=virtual_sleep)):
             exit_gateway = sender_gateway()
             exit_gateway._exchange_rate_limit_cooldown_until_ms = now_ms + 8_000
-            exit_gateway._place_order(FakeExchange(), "BTC", False, 1.0, 100.0, "Ioc", False,
-                                      bypass_rate_limit_cooldown=True)
-            self.assertEqual(exit_gateway._last_exchange_order_ms, now_ms)
-            self.assertEqual(sleeps, [])
+            self.assertEqual(exit_gateway._reserve_exchange_order_slot(wait_for_cooldown=False), now_ms)
+            self.assertEqual(sleeps, [], "EXIT slot skips 429 delay")
 
             entry_gateway = sender_gateway()
             entry_gateway._exchange_rate_limit_cooldown_until_ms = now_ms + 8_000
-            entry_gateway._place_order(FakeExchange(), "BTC", True, 1.0, 100.0, "Ioc", False)
-            self.assertEqual(entry_gateway._last_exchange_order_ms, now_ms + 8_000)
-            self.assertEqual(sleeps, [5.0, 3.0])
+            fake = FakeExchange()
+            intent = valid_entry()
+            response = entry_gateway._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+                                                  intent=intent)
+            self.assertEqual(response.get("status"), "ok")
+            self.assertEqual(len(fake.calls), 1, "same fixture must have a positive physical fake send")
+            entry_gateway.cfg.send_mode_now = lambda: "OFF"
+            blocked = entry_gateway._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False,
+                                                  intent=intent)
+            self.assertIn("MASTER_REAL_ORDERS_OFF", str(blocked))
+            self.assertEqual(len(fake.calls), 1, "OFF negative must prevent another physical call")
+            # Assert the ruled pacing after both positive and OFF negative are exercised:
+            # a 429 delay must still fail this case, never conceal the real wire proof.
+            self.assertEqual(entry_gateway._last_exchange_order_ms, now_ms,
+                             "429 must not defer an ENTRY beyond the short slot pacing")
+            self.assertEqual(sleeps, [], "8 second HTTP429 cooldown violates Boss's no-entry-pause rule")
 
 
 if __name__ == "__main__":
