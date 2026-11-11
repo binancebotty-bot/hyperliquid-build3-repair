@@ -42,6 +42,7 @@ import threading
 import time
 import traceback
 import tempfile
+import uuid
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 import collections
@@ -120,6 +121,7 @@ PROCESS_STARTED_AT_MS = int(time.time() * 1000)
 ENGINE_OUTPUT_DIR = BASE_DIR / "hl_copy_output"
 AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR") or str(_NETWORK_AUDIT_DIR))
 APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
+FALLBACK_DIR = APPEND_ONLY_DIR / "fallback"  # append-only spill: rows that could not be appended after retries
 
 LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
 SERVICE_STATE_FILE = AUDIT_DIR / "live_service_state.json"
@@ -973,6 +975,7 @@ def stale_snapshot_replay_reason(fill: "LeaderFill", core_started_at_ms: int = P
 def ensure_dirs() -> None:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     APPEND_ONLY_DIR.mkdir(parents=True, exist_ok=True)
+    FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _attribution_json_safe(value: Any) -> Any:
@@ -1291,6 +1294,11 @@ AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 
 AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_ROTATE_KEEP", "10"))
 AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv"}  # the two that grew 0.1-0.2 GB/h under 10 leaders
 
+# Append retry + spill config: a transient file lock / sharing violation triggers a short backoff retry;
+# if every retry fails the row is spilled to FALLBACK_DIR and replayed later -- it is never lost.
+_AUDIT_APPEND_RETRIES = max(1, int(os.getenv("HL_LIVE_APPEND_RETRIES", "3")))
+_AUDIT_APPEND_BACKOFF_SEC = float(os.getenv("HL_LIVE_APPEND_BACKOFF_SEC", "0.05"))
+
 
 def rotated_audit_paths(path: Path) -> List[Path]:
     """Rotated copies of an audit CSV (name.UTCdate.n.csv), oldest first."""
@@ -1373,10 +1381,257 @@ def audit_write_failure_count() -> int:
     return n
 
 
-def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
-    ensure_csv_header(path, fieldnames)
+def _fallback_path(path: Path) -> Path:
+    """Fallback spill file for *path*: rows that survived every retry land here and are replayed at startup."""
+    return FALLBACK_DIR / (path.name + ".spill")
+
+
+def _spill_journal_path(path: Path) -> Path:
+    return _fallback_path(path).with_name(_fallback_path(path).name + ".replay.jsonl")
+
+
+def _audit_row_data(fieldnames: List[str], row: Dict[str, Any]) -> Dict[str, str]:
+    return {k: "" if row.get(k) is None else str(row.get(k, "")) for k in fieldnames}
+
+
+def _audit_row_payload(fieldnames: List[str], row: Dict[str, Any]) -> str:
     buf = io.StringIO()
-    csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    csv.DictWriter(buf, fieldnames=fieldnames).writerow(_audit_row_data(fieldnames, row))
+    return buf.getvalue()
+
+
+def _append_spill_journal(path: Path, event: Dict[str, Any]) -> None:
+    journal = _spill_journal_path(path)
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
+    before = journal.stat().st_size if journal.exists() else 0
+    try:
+        with journal.open("a", encoding="utf-8", newline="") as f:
+            written = f.write(line)
+            f.flush()
+            os.fsync(f.fileno())
+        if written != len(line):
+            raise OSError("short audit spill journal append")
+    except Exception:
+        try:
+            os.truncate(journal, before)
+        except OSError:
+            pass
+        raise
+
+
+def _read_spill_journal(path: Path) -> Dict[str, Dict[str, Any]]:
+    journal = _spill_journal_path(path)
+    states: Dict[str, Dict[str, Any]] = {}
+    if not journal.exists() or journal.stat().st_size == 0:
+        return states
+    with journal.open("r", encoding="utf-8") as f:
+        for line_number, line in enumerate(f, 1):
+            try:
+                event = json.loads(line)
+            except Exception as exc:
+                raise OSError(f"invalid audit spill replay journal at line {line_number}") from exc
+            event_type = event.get("event")
+            row_id = str(event.get("id") or "")
+            if not row_id:
+                raise OSError(f"missing audit spill replay ID at line {line_number}")
+            if event_type == "SPILL_ROW":
+                if row_id in states:
+                    raise OSError(f"duplicate audit spill replay ID at line {line_number}")
+                row_index = event.get("row_index")
+                row = event.get("row")
+                if type(row_index) is not int or row_index < 0 or not isinstance(row, dict):
+                    raise OSError(f"invalid audit spill row record at line {line_number}")
+                states[row_id] = {"row_index": row_index, "row": row, "intent": None, "done": False}
+            elif event_type == "REPLAY_INTENT":
+                if row_id not in states or states[row_id]["intent"] is not None:
+                    raise OSError(f"orphan or duplicate audit replay intent at line {line_number}")
+                if type(event.get("offset")) is not int or event["offset"] < 0 or not isinstance(event.get("target"), str):
+                    raise OSError(f"invalid audit replay intent at line {line_number}")
+                states[row_id]["intent"] = event
+            elif event_type == "REPLAYED":
+                if row_id not in states or states[row_id]["done"] or states[row_id]["intent"] is None:
+                    raise OSError(f"orphan or duplicate audit replay completion at line {line_number}")
+                states[row_id]["done"] = True
+            else:
+                raise OSError(f"unknown audit spill replay event at line {line_number}")
+    return states
+
+
+def _spill_rows(path: Path, fieldnames: List[str]) -> List[Dict[str, str]]:
+    sp = _fallback_path(path)
+    if not sp.exists() or sp.stat().st_size == 0:
+        return []
+    with sp.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        if f.read(1) != b"\n":
+            raise OSError(f"incomplete audit spill tail for {path.name}")
+    with sp.open("r", newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames != fieldnames:
+            raise OSError(f"unexpected audit spill header for {path.name}")
+        return [_audit_row_data(fieldnames, row) for row in reader]
+
+
+def _spill_pending(path: Path) -> bool:
+    return any(not state["done"] for state in _read_spill_journal(path).values())
+
+
+def _replay_payload_present(path: Path, offset: int, payload: bytes) -> bool:
+    for history_path in audit_history_paths(path):
+        try:
+            with history_path.open("rb") as f:
+                f.seek(offset)
+                if f.read(len(payload)) == payload:
+                    return True
+        except OSError:
+            raise OSError(f"cannot read audit history while replaying {path.name}")
+    current_size = path.stat().st_size if path.exists() else 0
+    if current_size == offset:
+        return False
+    raise OSError(f"cannot prove audit replay outcome for {path.name} at byte {offset}")
+
+
+def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
+    """Write a single row to the append-only fallback so replay_audit_fallback can recover it.
+    Return False if the fallback could not preserve the complete row."""
+    sp = _fallback_path(path)
+    before = 0
+    try:
+        FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
+        with _lock_for(path):
+            row_index = len(_spill_rows(path, fieldnames))
+            need_header = not sp.exists() or sp.stat().st_size == 0
+            before = sp.stat().st_size if sp.exists() else 0
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames)
+            if need_header:
+                writer.writeheader()
+            writer.writerow(_audit_row_data(fieldnames, row))
+            payload = buf.getvalue()
+            with sp.open("a", newline="", encoding="utf-8") as f:
+                written = f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+            if written != len(payload):
+                raise OSError(f"short audit spill: wrote {written} of {len(payload)} characters")
+            try:
+                _append_spill_journal(path, {
+                    "event": "SPILL_ROW", "id": uuid.uuid4().hex,
+                    "row_index": row_index, "row": _audit_row_data(fieldnames, row),
+                })
+            except Exception as exc:
+                # The CSV spill remains the recovery source if its ID sidecar cannot be updated.
+                note_audit_write_failure(path, f"spill replay record deferred: {exc!r}")
+        note_audit_write_failure(path, "row preserved in fallback after append retries")
+        return True
+    except Exception as exc:
+        try:
+            if sp.exists() and sp.stat().st_size > before:
+                os.truncate(sp, before)
+        except Exception:
+            pass
+        note_audit_write_failure(path, f"fallback write failed: {exc!r}")
+        return False
+
+
+def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
+    """Replay identified spill rows exactly once without changing the CSV schema."""
+    sp = _fallback_path(path)
+    journal = _spill_journal_path(path)
+    if (not sp.exists() or sp.stat().st_size == 0) and (not journal.exists() or journal.stat().st_size == 0):
+        return 0
+    try:
+        rows = _spill_rows(path, fieldnames)
+        states = _read_spill_journal(path)
+    except Exception as exc:
+        log_error("audit_replay_read", exc)
+        raise OSError(f"unable to read audit spill for {path.name}") from exc
+    by_index: Dict[int, Tuple[str, Dict[str, Any]]] = {}
+    for row_id, state in states.items():
+        row_index = state["row_index"]
+        if row_index in by_index:
+            raise OSError(f"duplicate audit spill row index for {path.name}")
+        by_index[row_index] = (row_id, state["row"])
+    for row_index, row in enumerate(rows):
+        existing = by_index.get(row_index)
+        if existing:
+            if _audit_row_data(fieldnames, existing[1]) != row:
+                raise OSError(f"audit spill row does not match replay record for {path.name}")
+        else:
+            row_id = uuid.uuid4().hex
+            state = {"row_index": row_index, "row": row, "intent": None, "done": False}
+            _append_spill_journal(path, {
+                "event": "SPILL_ROW", "id": row_id,
+                "row_index": row_index, "row": row,
+            })
+            states[row_id] = state
+            by_index[row_index] = (row_id, row)
+    replayed = 0
+    for row_id, state in states.items():
+        if state["done"]:
+            continue
+        if set(state["row"]) != set(fieldnames) or any(not isinstance(state["row"][k], str) for k in fieldnames):
+            raise OSError(f"invalid audit spill row data for {path.name}")
+        row = _audit_row_data(fieldnames, state["row"])
+        payload = _audit_row_payload(fieldnames, row).encode("utf-8")
+        lock = _lock_for(path)
+        with lock:
+            intent = state["intent"]
+            if intent is not None:
+                if intent["target"] != path.name or intent.get("payload_sha256") != hashlib.sha256(payload).hexdigest():
+                    raise OSError(f"audit replay intent does not match spill row for {path.name}")
+                offset = int(intent["offset"])
+                if _replay_payload_present(path, offset, payload):
+                    _append_spill_journal(path, {"event": "REPLAYED", "id": row_id})
+                    state["done"] = True
+                    continue
+            else:
+                ensure_csv_header(path, fieldnames)
+                offset = path.stat().st_size if path.exists() else 0
+                _append_spill_journal(path, {
+                    "event": "REPLAY_INTENT", "id": row_id, "target": path.name,
+                    "offset": offset, "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                })
+                state["intent"] = {
+                    "target": path.name, "offset": offset,
+                    "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                }
+            try:
+                if not append_csv(path, fieldnames, row, spill_on_failure=False, durable=True):
+                    break
+                if not _replay_payload_present(path, offset, payload):
+                    raise OSError(f"audit replay append is not verifiable for {path.name}")
+                _append_spill_journal(path, {"event": "REPLAYED", "id": row_id})
+            except Exception as exc:
+                log_error("audit_replay_append", exc)
+                break
+            state["done"] = True
+            replayed += 1
+    if all(state["done"] for state in states.values()):
+        try:
+            if sp.exists():
+                with sp.open("wb") as f:
+                    f.flush()
+                    os.fsync(f.fileno())
+            if journal.exists():
+                with journal.open("wb") as f:
+                    f.flush()
+                    os.fsync(f.fileno())
+        except Exception as exc:
+            log_error("audit_replay_clear", exc)
+    return replayed
+
+
+def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False) -> bool:
+    """Append one audit row with retry and fallback; raise only if neither store preserves it.
+
+    A transient failure is retried with backoff; spilled rows are replayed at startup.
+    Returns True on a live append, False when replay must retain its existing spill row.
+    durable=True flushes the append before the replay journal records completion.
+    """
+    ensure_csv_header(path, fieldnames)
+    payload = _audit_row_payload(fieldnames, row)
     lock = _lock_for(path)
     with prof("file_lock_wait"):
         _t0 = time.monotonic()
@@ -1389,20 +1644,35 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
             ensure_csv_header(path, fieldnames)
         size_before = path.stat().st_size if path.exists() else 0
-        try:
-            with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
-                written = f.write(buf.getvalue())
-                f.flush()
-            if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
-                raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
-        except OSError as exc:
+        last_exc: Optional[Exception] = None
+        for _attempt in range(_AUDIT_APPEND_RETRIES):
             try:
-                if path.exists() and path.stat().st_size > size_before:
-                    os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
-            except Exception:
-                pass
-            note_audit_write_failure(path, exc)  # durable + loud; the caller still sees the failure
-            raise
+                with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
+                    written = f.write(payload)
+                    f.flush()
+                    if durable:
+                        os.fsync(f.fileno())
+                if written != len(payload):  # a short write stores fewer bytes and does NOT raise
+                    raise OSError(f"short audit append: wrote {written} of {len(payload)} bytes")
+                break  # success
+            except OSError as exc:
+                last_exc = exc
+                try:
+                    if path.exists() and path.stat().st_size > size_before:
+                        os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
+                except Exception:
+                    pass
+                note_audit_write_failure(path, exc)
+                # Under-lock sleep is capped at backoff * retries * (retries - 1) / 2.
+                if _attempt + 1 < _AUDIT_APPEND_RETRIES:
+                    time.sleep(_AUDIT_APPEND_BACKOFF_SEC * (_attempt + 1))
+        else:  # all retries exhausted -- preserve in the fallback before allowing work to continue
+            if not spill_on_failure:
+                return False
+            if not _spill_row(path, fieldnames, row):
+                raise OSError("audit row could not be persisted to the live file or fallback")
+            return False
+        # success path
         _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
         if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
             _owned_note(row)  # keeps the per-order owned-size totals current (never a whole-file scan)
@@ -1412,10 +1682,9 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
                     _rotate_audit_file(path)
             except Exception as exc:
                 log_error("audit_rotate", exc)
+        return True
     finally:
         lock.release()
-
-
 def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
@@ -3814,6 +4083,32 @@ class AuditLogWriter:
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
         self._note_fill_row(kwargs.get("leader_fill_id"), kwargs.get("terminal_state") or status)
 
+    def replay_all_fallbacks(self) -> int:
+        """Replay every spilled audit row into its live CSV.  Called once at startup so
+        that REPLAY_DEFERRED records (and any other spilled row) are recovered.  An
+        unresolved spill prevents startup, since sends cannot safely ignore its rows."""
+        total = 0
+        for path, fields in [
+            (ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS),
+            (SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS),
+            (LIVE_FILLS_CSV, LIVE_FILL_FIELDS),
+            (RECONCILIATION_CSV, RECONCILIATION_FIELDS),
+            (ERRORS_CSV, ERROR_FIELDS),
+        ]:
+            try:
+                total += replay_audit_fallback(path, fields)
+                sp = _fallback_path(path)
+                if sp.exists() and sp.stat().st_size > 0:
+                    raise OSError(f"audit fallback still has rows for {path.name}; refusing startup")
+                if _spill_pending(path):
+                    raise OSError(f"audit fallback replay remains unresolved for {path.name}; refusing startup")
+                journal = _spill_journal_path(path)
+                if journal.exists() and journal.stat().st_size > 0:
+                    raise OSError(f"audit fallback replay journal was not cleared for {path.name}; refusing startup")
+            except Exception as exc:
+                log_error("audit_replay", exc)
+                raise
+        return total
 
 class IntentBuilder:
     def __init__(self, cfg: ConfigManager, ledger: ManualLedger):
@@ -9136,6 +9431,7 @@ class LiveCopyCore:
         self.cfg = ConfigManager()
         self.ledger = ManualLedger()
         self.audit = AuditLogWriter()
+        self.audit.replay_all_fallbacks()  # recover any rows spilled on a previous crash
         self.ingestor = LeaderFillIngestor()
         service_state = load_json(SERVICE_STATE_FILE, {})
         core_state = load_json(CORE_RUNTIME_STATE_FILE, {})
@@ -9953,19 +10249,24 @@ class LiveCopyCore:
                 self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
             with self.dedupe._lock:
                 self.dedupe.processed.discard(fill.leader_fill_id)
-            if first == now:  # one row per fill, not one per retry
-                self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
-                self.audit.append_reconciliation(
-                    "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
-                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
-                    terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
-                    notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
             delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
             with self._deferred_lock:
                 self._deferred[key] = (fill, time.monotonic() + delay)
-                if self._deferred_thread is None or not self._deferred_thread.is_alive():
-                    self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name="HLCore-deferred")
-                    self._deferred_thread.start()
+            try:
+                if first == now:  # one row per fill, not one per retry
+                    self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
+                    self.audit.append_reconciliation(
+                        "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
+                        leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
+                        terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
+                        notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
+            finally:
+                # The retry stays queued even when every durable audit store is unavailable.
+                with self._deferred_lock:
+                    if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                        self._deferred_thread = threading.Thread(
+                            target=self._deferred_loop, daemon=True, name="HLCore-deferred")
+                        self._deferred_thread.start()
             return
         firsts.pop(key, None)
         for fid in [str(fill.leader_fill_id), *merged_ids]:  # gave up, or the error came after the order call: a row for every fill
