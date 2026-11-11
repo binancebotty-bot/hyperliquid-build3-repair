@@ -1,0 +1,70 @@
+name: Coder One OFFFIX-1400 paired hermetic gate
+on:
+  push:
+    branches: [gpt/coder1-offfix-1400-20261101]
+  pull_request:
+    branches: [hermes/integration]
+permissions:
+  contents: read
+jobs:
+  paired-four:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HL_LIVE_ENV_FILE: /nonexistent
+      HL_LEADER_NETWORK: testnet
+      HL_FOLLOWER_NETWORK: testnet
+      HL_LIVE_AUTO_SEND_ENABLED: "0"
+      HL_LIVE_POLL_ENABLED: "0"
+      HL_LIVE_SCOPE_SWEEP_THREAD: "0"
+      HL_LIVE_HL_PRIVATE_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gpt/coder1-offfix-1400-20261101
+          fetch-depth: 0
+      - name: Verify immutable Core and prepare baseline worktree
+        shell: bash
+        run: |
+          BASE=0a99d215c99b794717ce5b34f46cc299dae09106
+          git diff --exit-code "$BASE" HEAD -- _archive/hl_stage2/HL_Live_Copy_Service_Core.py
+          git worktree add --detach "$RUNNER_TEMP/offfix_base" "$BASE"
+          mkdir -p evidence/coder1_offfix_1400
+          printf 'BASE=%s\nHEAD=%s\n' "$BASE" "$(git rev-parse HEAD)" > evidence/coder1_offfix_1400/environment.txt
+          python3 --version >> evidence/coder1_offfix_1400/environment.txt
+      - name: Execute original and candidate with identical bounded offline env
+        shell: bash
+        run: |
+          set +e
+          for phase in before after; do
+            if [ "$phase" = before ]; then src="$RUNNER_TEMP/offfix_base/_archive/hl_stage2"; else src="$GITHUB_WORKSPACE/_archive/hl_stage2"; fi
+            mkdir -p "evidence/coder1_offfix_1400/$phase"
+            for test in test_t1a_cloid_pending_row test_readiness1_ambiguous_timeout_no_blind_resend test_core_rw13_recovery_reconcile test_core_rw13_universe_refresh; do
+              log="$GITHUB_WORKSPACE/evidence/coder1_offfix_1400/$phase/$test.log"
+              (cd "$src" && timeout --signal=TERM --kill-after=5s 120s python3 -u "$test.py") > "$log" 2>&1
+              rc=$?
+              printf '%s\t%s\t%s\n' "$phase" "$test" "$rc" >> evidence/coder1_offfix_1400/exit-codes.tsv
+              echo "== $phase $test exit=$rc =="
+              grep -E 'RESULT::|TOTAL=|FAILED=|Traceback|Exception|Error:|AssertionError|AttributeError' "$log" | tail -n 60 || true
+            done
+          done
+          python3 - <<'PY'
+          import pathlib,csv,re
+          root=pathlib.Path('evidence/coder1_offfix_1400')
+          output=['# Four-file offline before/after','', '| Phase | Test | Exit | Total / failed | Failed named observations |', '|---|---|---:|---|---|']
+          for phase,name,exitcode in csv.reader((root/'exit-codes.tsv').open(),delimiter='\t'):
+              lines=(root/phase/(name+'.log')).read_text(errors='replace').splitlines()
+              totals=[x for x in lines if re.search(r'TOTAL=\d+ FAILED=\d+',x)]
+              failed=[x.strip() for x in lines if 'RESULT::' in x and '_FAIL' in x]
+              if not totals: failed.extend(x.strip() for x in lines if 'Traceback' in x or x.strip().startswith(('AttributeError:', 'TypeError:', 'AssertionError:')))
+              output.append('| '+ ' | '.join([phase,name,exitcode,totals[-1] if totals else 'NO_TOTAL_CRASH_OR_TIMEOUT','<newline>'.join(x.replace('|',r'\|') for x in failed)[:8000] or '(no failure labels)'])+' |')
+          (root/'paired-results.md').write_text('\n'.join(output)+'\n')
+          PY
+          (cd evidence/coder1_offfix_1400 && sha256sum environment.txt exit-codes.tsv paired-results.md before/*.log after/*.log > SHA256SUMS.txt)
+          cat evidence/coder1_offfix_1400/paired-results.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coder1-offfix-1400-four-paired-logs
+          path: evidence/coder1_offfix_1400/
+          if-no-files-found: warn
