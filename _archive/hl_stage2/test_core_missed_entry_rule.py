@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Boss's missed-entry rule (2026-10-09) and the polling backstop that catches missed trades of any age.
 
 "If we have the same price or better we take the entry that we missed, or in tolerance; otherwise a diff is
@@ -392,7 +392,7 @@ def main() -> None:
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
     check("M7_GAP_MARKERS_WRITTEN_FOR_EACH_STALE_WALLET", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
-    core.state_writer._write_core_state({}, core.dedupe, {})
+    core.state_writer._write_core_state({}, core.dedupe, {})  # exercise the compaction writer that runs after polling
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
     check("M7_GAP_MARKERS_SURVIVE_CORE_STATE_COMPACTION", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
