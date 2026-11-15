@@ -8477,7 +8477,8 @@ class SenderGateway:
             except Exception as exc:
                 log_error("close_escalation_write_failed", exc)
             state["close_verified_sz_decimals"] = sz_dec
-            return decide("SEND", amount, False)
+            # a close sized from our owned amount must stay reduce-only: reduce-only cannot open a position
+            return decide("SEND", amount, True)
         # item 4: foreign/USER units are never consumed by our close. The hold is named explicitly
         # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led
