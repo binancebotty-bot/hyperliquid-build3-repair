@@ -71,9 +71,10 @@ check("HEADER_CLOSE_ONLY_CLOSE_STILL_NEVER_EXCEEDS_THE_LEADER_CLOSE", plan("SELL
 check("HEADER_CLOSE_ONLY_DUST_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True, gmode="CLOSE") == (True, 0.01, ""))
 check("DUST_WHOLE_POSITION_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True) == (True, 0.01, ""))
 r = plan("SELL", 10, 10, 10, readable=False)
-check("UNREADABLE_NET_SENDS_OWNED_NOT_REDUCE_ONLY", r == (False, 10.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
+# 129d744 deliberately made the unreadable-net fallback reduce_only=True (was False); expectation updated to match.
+check("UNREADABLE_NET_SENDS_OWNED_IS_REDUCE_ONLY", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, readable=False, owned=5)
-check("UNREADABLE_NET_SENDS_OWNED_WITH_NO_NET_CLAMP", r == (False, 5.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
+check("UNREADABLE_NET_SENDS_OWNED_WITH_NO_NET_CLAMP", r == (True, 5.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, readable=False, owned=0)
 check("UNREADABLE_NO_OWNED_SLEEVE_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and WIRES == [] and ESC == [], str((r, ESC)))
 check("ENTRY_IS_UNCHANGED", plan("BUY", 10, 0, 0, lifecycle_exit=False) == (False, 10, ""))
