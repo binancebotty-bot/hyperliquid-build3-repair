@@ -8557,7 +8557,7 @@ class SenderGateway:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
         if not math.isfinite(requested) or requested <= 0:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
-        owned = self._lag_owned_now(intent)
+        owned = SenderGateway._lag_owned_now(self, intent)
         side = ManualLedger.signed_delta(intent.copy_side, 1.0)
         tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(owned) if math.isfinite(owned) else 0.0, requested))
         unproven = not math.isfinite(owned) or abs(owned) <= tol
@@ -8573,9 +8573,9 @@ class SenderGateway:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
         if unproven:
             # The ledger may lag the fill: hold a bounded window re-checking the owned proof before anything is sent.
-            owned = self._close_lag_hold_for_owned(intent, tol)
+            owned = SenderGateway._close_lag_hold_for_owned(self, intent, tol)
             if abs(owned) <= tol:
-                return self._close_lag_window_expired(intent, requested, sz_dec, side, tol, decide)
+                return SenderGateway._close_lag_window_expired(self, intent, requested, sz_dec, side, tol, decide)
             if owned * side >= 0:
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
             tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(owned), requested))
@@ -8647,7 +8647,7 @@ class SenderGateway:
         """Re-check the fill-proven owned size until it appears or CLOSE_LAG_HOLD_SEC passes; 0.0 when it never does."""
         deadline = _CLOSE_LAG_CLOCK() + CLOSE_LAG_HOLD_SEC
         while True:
-            owned = self._lag_owned_now(intent)
+            owned = SenderGateway._lag_owned_now(self, intent)
             if math.isfinite(owned) and abs(owned) > tol:
                 return owned
             left = deadline - _CLOSE_LAG_CLOCK()

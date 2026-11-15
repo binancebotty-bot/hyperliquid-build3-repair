@@ -10,6 +10,9 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("HL_USER_WALLET", "0x" + "c" * 40)
 import HL_Live_Copy_Service_Core as c
+_T = [0.0]  # fake clock: the lag hold window never really sleeps
+c._CLOSE_LAG_CLOCK = lambda: _T[0]
+c._CLOSE_LAG_SLEEP = lambda s: _T.__setitem__(0, _T[0] + s)
 
 R = []
 def check(n, ok, d=""):
@@ -98,15 +101,15 @@ check("LAG_CLAMPS_TO_PROVEN_OWNED", r == (True, 5.0, ""), str(r))
 r = plan("BUY", 10, -10, -10, lag=True, owned=-10)
 check("LAG_SHORT_SLEEVE_BUY_CLOSE", r == (True, 10.0, ""), str(r))
 r = plan("SELL", 10, 10, 10, lag=True, owned=0)
-check("LAG_ZERO_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and ESC == [] and WIRES == [], str((r, ESC)))
+check("LAG_ZERO_OWNED_HOLDS_NOW_REDUCE_ONLY_AFTER_WINDOW", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY"] and WIRES == [10.0], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, lag=True, owned="UNPROVABLE")
-check("LAG_UNPROVABLE_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and ESC == [] and WIRES == [], str((r, ESC)))
+check("LAG_UNPROVABLE_OWNED_HOLDS_NOW_REDUCE_ONLY_AFTER_WINDOW", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY"] and WIRES == [10.0], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, no_ledger=True)
 check("NO_LEDGER_OBJECT_SENDS_REDUCE_ONLY", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_SAFE_REDUCE_ONLY"], str((r, ESC)))
 r = plan("SELL", 10, 10, 4, no_ledger=True)
 check("NO_LEDGER_OBJECT_NO_ABS_NET_CAP", r == (False, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_READABLE_NOT_REDUCE_ONLY"], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, no_ledger=True, owned=0)
-check("NO_LEDGER_OBJECT_ZERO_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and ESC == [] and WIRES == [], str((r, ESC)))
+check("NO_LEDGER_OBJECT_ZERO_OWNED_HOLDS_NOW_REDUCE_ONLY_AFTER_WINDOW", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY"] and WIRES == [10.0], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, lag=True, readable=False)
 check("LAG_NET_UNREADABLE_SENDS_OWNED_REDUCE_ONLY_FALSE", r == (False, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_NET_UNREADABLE_RESTING"], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, lag=True, readable=False, owned=5)
