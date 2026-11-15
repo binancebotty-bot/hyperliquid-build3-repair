@@ -58,6 +58,9 @@ c.HLAccount, c.HLExchange = object, object
 c.MIDS_FETCHER = lambda p: [] if isinstance(p, dict) and p.get("type") == "perpDexs" else {"BTC": str(PX)}
 c.LEADER_MIDS_FETCHER = c.MIDS_FETCHER
 
+_T_PORT = [0.0]
+c._CLOSE_LAG_CLOCK = lambda: _T_PORT[0]
+c._CLOSE_LAG_SLEEP = lambda s: _T_PORT.__setitem__(0, _T_PORT[0] + s)
 RESULTS = []
 
 
@@ -228,5 +231,5 @@ def lag_plan(side, size, ex, lag, mode="ON"):
 check("PORT_LAG_SIZES_FROM_EXCHANGE_ONLY", lag_plan("SELL", 6.0, 4.0, True) == (True, 4.0, ""), str(lag_plan("SELL", 6.0, 4.0, True)))
 check("PORT_LAG_NOTHING_TO_CLOSE_SKIPS", lag_plan("SELL", 6.0, 0.0, True)[1] == 0.0 and lag_plan("SELL", 6.0, -3.0, True)[1] == 0.0)
 check("PORT_LAG_FULL_POSITION_KEEPS_ORDER_SIZE", lag_plan("SELL", 6.0, 9.0, True) == (True, 6.0, ""), str(lag_plan("SELL", 6.0, 9.0, True)))
-check("PORT_LAG_WALLET_CLOSE_ONLY_IS_NOT_REDUCE_ONLY", lag_plan("SELL", 6.0, 9.0, True, mode="CLO") == (True, 6.0, ""), str(lag_plan("SELL", 6.0, 9.0, True, mode="CLO")))
+check("PORT_LAG_WALLET_CLOSE_ONLY_IS_REDUCE_ONLY", lag_plan("SELL", 6.0, 9.0, True, mode="CLO") == (True, 6.0, ""), str(lag_plan("SELL", 6.0, 9.0, True, mode="CLO")))
 print("PORT_TOTAL=%d FAILED=%d" % (len(RESULTS), sum(1 for _, ok in RESULTS if not ok)), flush=True)

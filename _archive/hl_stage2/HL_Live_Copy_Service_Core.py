@@ -747,6 +747,12 @@ POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "
 LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
 MAX_WALLETS = 10  # hard cap: exchange limits userFills WS subscriptions per connection
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
+# Ledger-lag close: hold up to CLOSE_LAG_HOLD_SEC re-checking the fill-proven owned size before the bounded
+# reduce_only fallback. Clock and sleep are module seams so tests run without real sleeps.
+CLOSE_LAG_HOLD_SEC = 5.0
+CLOSE_LAG_POLL_SEC = 0.25
+_CLOSE_LAG_CLOCK = time.monotonic
+_CLOSE_LAG_SLEEP = time.sleep
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
 FILE_LOCK = threading.RLock()
@@ -8551,18 +8557,11 @@ class SenderGateway:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
         if not math.isfinite(requested) or requested <= 0:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
-        try:
-            proven_owned_lag, _ = self._proven_owned_for_sleeve(intent.fill.leader_wallet, intent.fill.coin)
-            owned = float(proven_owned_lag)
-        except (TypeError, ValueError, OverflowError):
-            owned = float("nan")
-        if not math.isfinite(owned) or abs(owned) <= 0:
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
-        tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(owned), requested))
-        if abs(owned) <= tol:
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+        owned = self._lag_owned_now(intent)
         side = ManualLedger.signed_delta(intent.copy_side, 1.0)
-        if owned * side >= 0:
+        tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(owned) if math.isfinite(owned) else 0.0, requested))
+        unproven = not math.isfinite(owned) or abs(owned) <= tol
+        if not unproven and owned * side >= 0:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
         if not self._close_proof_account_ok():
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH")
@@ -8572,6 +8571,14 @@ class SenderGateway:
             signer = ""
         if not is_valid_wallet(signer) or signer != normalise_wallet(USER_WALLET):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_ORDER_ACCOUNT_MISMATCH")
+        if unproven:
+            # The ledger may lag the fill: hold a bounded window re-checking the owned proof before anything is sent.
+            owned = self._close_lag_hold_for_owned(intent, tol)
+            if abs(owned) <= tol:
+                return self._close_lag_window_expired(intent, requested, sz_dec, side, tol, decide)
+            if owned * side >= 0:
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE")
+            tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(owned), requested))
         # class-qualified: also exercised unbound against a fake self
         net = SenderGateway._close_net_with_reread(self, intent.fill.coin)
         if net is not None:
@@ -8629,6 +8636,41 @@ class SenderGateway:
         except Exception as exc:
             log_error("close_escalation_write_failed", exc)
         return decide("SEND", amount, False)  # unreadable net: never force reduce_only
+
+    def _lag_owned_now(self, intent: Intent) -> float:
+        try:
+            return float(self._proven_owned_for_sleeve(intent.fill.leader_wallet, intent.fill.coin)[0])
+        except (TypeError, ValueError, OverflowError):
+            return float("nan")
+
+    def _close_lag_hold_for_owned(self, intent: Intent, tol: float) -> float:
+        """Re-check the fill-proven owned size until it appears or CLOSE_LAG_HOLD_SEC passes; 0.0 when it never does."""
+        deadline = _CLOSE_LAG_CLOCK() + CLOSE_LAG_HOLD_SEC
+        while True:
+            owned = self._lag_owned_now(intent)
+            if math.isfinite(owned) and abs(owned) > tol:
+                return owned
+            left = deadline - _CLOSE_LAG_CLOCK()
+            if left <= 0:
+                return 0.0
+            _CLOSE_LAG_SLEEP(min(CLOSE_LAG_POLL_SEC, left))
+
+    def _close_lag_window_expired(self, intent: Intent, requested: float, sz_dec: Optional[int], side: float,
+                                  tol: float, decide: Any) -> Tuple[bool, float, str]:
+        """Owned still unproven after the hold: reduce_only close sized from the exchange net, only if it opposes."""
+        net = SenderGateway._close_net_with_reread(self, intent.fill.coin)
+        if net is None or not math.isfinite(net) or abs(net) <= tol:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")  # unreadable or flat: nothing to reduce
+        if net * side >= 0:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_NOT_OPPOSING")
+        amount = self._floor_wire_size(round(min(requested, abs(net)), 10), sz_dec)
+        if amount <= tol:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+        try:
+            self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY")
+        except Exception as exc:
+            log_error("close_escalation_write_failed", exc)
+        return decide("SEND", amount, True)
 
     def _close_net_with_reread(self, coin: str) -> Optional[float]:
         """CC1-B-CONSOLIDATED-2310 item 3: one bounded fresh read; still unreadable -> ONE re-read.
