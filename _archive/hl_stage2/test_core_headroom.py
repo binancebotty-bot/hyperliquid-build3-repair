@@ -81,15 +81,73 @@ check("state_file", state.get("worst") == "CRITICAL" and "levels" in state)
 calls = []
 fake_real = SimpleNamespace(post=lambda url, *a, **k: calls.append(url) or SimpleNamespace(status_code=200, json=lambda: [1] * 45), other=7)
 m2 = h.HeadroomMonitor(alerts_dir=tmp / "b", clock=ck)
-cr = h.CountingRequests(fake_real, m2, ["https://api.hl/info"])
-cr.post("https://api.hl/info", json={"type": "userFillsByTime"})
+cr = h.CountingRequests(fake_real, m2, ["https://api.hyperliquid.xyz/info"])
+with h.request_lane("poll"):
+    cr.post("https://api.hyperliquid.xyz/info", json={"type": "userFillsByTime"})
 cr.post("https://other.example/x", json={"type": "meta"})
-check("proxy_counts_info_only", m2.info_used("api.hl") == 22 and len(calls) == 2 and cr.other == 7, str(m2.info_used("api.hl")))
+check("proxy_counts_info_only", m2.info_used("api.hyperliquid.xyz") == 22 and len(calls) == 2 and cr.other == 7, str(m2.info_used("api.hyperliquid.xyz")))
 fake_real.post = lambda url, *a, **k: SimpleNamespace(status_code=429, json=lambda: {})
-cr.post("https://api.hl/info", json={"type": "meta"})
+with h.request_lane("back-poll"):
+    cr.post("https://api.hyperliquid.xyz/info", json={"type": "meta"})
 check("429_is_refusal", any(r["resource"].startswith("info:") for r in m2.refusals))
 cr.post = lambda *a, **k: "patched"      # tests patch requests.post on the proxy: must work
 check("proxy_patchable", cr.post("u") == "patched")
+
+counts = m2.http_requests_by_minute()
+check("request_counts_have_lane_network_endpoint_status", any(
+    r.get("endpoint") == "userFillsByTime" and r.get("lane") == "poll"
+    and r.get("network") == "mainnet_read" and r.get("status") == "200" and r.get("count") == 1
+    for r in counts
+) and any(r.get("endpoint") == "meta" and r.get("lane") == "back-poll" and r.get("status") == "429" for r in counts), str(counts))
+
+import requests
+import exchange_truth as xt  # noqa: E402
+real_send, old_session, old_request = requests.adapters.HTTPAdapter.send, xt._SESSION, requests.Session.request
+old_getenv = xt.os.getenv
+session = requests.Session()
+def fake_send(adapter, request, **_kwargs):
+    response = requests.Response()
+    response.status_code = 429
+    response._content = b"{}"
+    response.url = request.url
+    response.request = request
+    return response
+try:
+    h.install_session_counter(m2)
+    requests.adapters.HTTPAdapter.send = fake_send
+    xt._SESSION = session
+    session.post("https://api.hyperliquid-testnet.xyz/exchange", json={"action": {"type": "order"}})
+    with h.request_lane("catch-up"):
+        xt.http_post("https://api.hyperliquid-testnet.xyz/info", {"type": "userFillsByTime"}, 1.0)
+    xt._SESSION = None
+    xt.os.getenv = lambda name, default=None: "0" if name == "HL_LIVE_HTTP_SESSION" else default
+    with h.request_lane("back-poll"):
+        xt.http_post("https://api.hyperliquid-testnet.xyz/info", {"type": "clearinghouseState"}, 1.0)
+finally:
+    requests.adapters.HTTPAdapter.send = real_send
+    requests.Session.request = old_request
+    xt.os.getenv = old_getenv
+    xt._SESSION = old_session
+    session.close()
+counts = m2.http_requests_by_minute()
+check("sdk_session_records_hot_send_status", any(
+    r.get("endpoint") == "order" and r.get("lane") == "hot-send"
+    and r.get("network") == "testnet_exchange" and r.get("status") == "429"
+    for r in counts
+), str(counts))
+check("shared_http_path_records_lane_once", any(
+    r.get("endpoint") == "userFillsByTime" and r.get("lane") == "catch-up"
+    and r.get("network") == "testnet_read" and r.get("status") == "429" and r.get("count") == 1
+    for r in counts
+), str(counts))
+check("disabled_session_fallback_is_counted", any(
+    r.get("endpoint") == "clearinghouseState" and r.get("lane") == "back-poll"
+    and r.get("network") == "testnet_read" and r.get("status") == "429"
+    for r in counts
+), str(counts))
+m2.evaluate()
+saved_counts = json.loads((tmp / "b" / "headroom_state.json").read_text()).get("http_requests_by_minute")
+check("request_counts_written_to_state", saved_counts == m2.http_requests_by_minute(), str(saved_counts))
 
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
