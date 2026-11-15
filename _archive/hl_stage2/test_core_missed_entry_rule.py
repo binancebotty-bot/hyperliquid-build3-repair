@@ -197,8 +197,8 @@ def main() -> None:
               f"{status} {pxs}")
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
         check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
-        check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
+        # M3 exits moved to test_r4_m3_exit.py (owned exit sent reduce_only; unowned exit held with no call).
+        # The old check here expected an exit to be sent with no owned sleeve; R4 holds that close on purpose.
     finally:
         c.LEADER_NETWORK = saved_leader
 
