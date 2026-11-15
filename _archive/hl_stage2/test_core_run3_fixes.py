@@ -317,10 +317,12 @@ def main() -> None:
     led = ledger(a=2.0)
     snapshot(2.0)
     g = gateway(FakeExchange(), led)
+    g._fresh_exchange_net = lambda coin: 2.0
     check("N2_SINGLE_LEADER_CLOSE_STAYS_REDUCE_ONLY", g._reduce_only_on_wire(exit_intent(led, A, "SELL", 2.0), 2.0) is True)
     led = ledger(a=447.0, b=-447.0)
     snapshot(447.0)   # records and exchange disagree: never open what the records don't explain
     g = gateway(FakeExchange(), led)
+    g._fresh_exchange_net = lambda coin: 447.0
     check("N3_RECORDS_DISAGREE_STAYS_REDUCE_ONLY", g._reduce_only_on_wire(exit_intent(led, A, "SELL", 447.0), 447.0) is True)
     led = ledger(a=1.0, b=-3.0)
     snapshot(-2.0)
