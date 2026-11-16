@@ -486,10 +486,21 @@ def main() -> None:
     led = ledger(a=1.0)
     g = gateway(FakeExchange(), led)
     it = exit_intent(led, A, "SELL", 1.0)
-    snapshot(1.5)   # 0.5 that no sleeve explains (e.g. the mainnet leftovers)
+    snapshot(1.5)   # 0.5 no sleeve explains (e.g. the mainnet leftovers), held on A's own side
     ok, block = g._pre_send_ownership_gate(it)
-    check("G3_CLOSE_BLOCKED_WHEN_EXCHANGE_HOLDS_MORE", not ok and block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
-          and "MANUAL_REVIEW" in block.get("operator_action", ""), str(block.get("status")))
+    # 0ea3766 (R1): same-side foreign excess on an owned close is ALLOWED; the final fresh proof clamps it.
+    check("G3_CLOSE_ALLOWED_SAME_SIDE_EXCESS_R1", ok, str(block.get("status")))
+    # the clamp is proven on the wire: a close sized 1.5 (bigger than the 1.0 sleeve) goes out at the sleeve
+    fake = FakeExchange()
+    send_real(gateway(fake, led), exit_intent(led, A, "SELL", 1.5))
+    check("G3_CLOSE_SAME_SIDE_EXCESS_IS_CLAMPED_TO_OWNED",
+          fake.calls and fake.calls[0]["reduce_only"] and fake.calls[0]["size"] <= 1.0 + 1e-9, str(fake.calls))
+    # R1 keeps the wrong-sign block: exchange -0.5 against A's +1.0 sleeve for a SELL close
+    led_sc = ledger(a=1.0)
+    snapshot(-0.5)
+    ok_sc, block_sc = gateway(FakeExchange(), led_sc)._pre_send_ownership_gate(exit_intent(led_sc, A, "SELL", 1.0))
+    check("G3_SIGN_CONFLICT_STILL_BLOCKED", not ok_sc and block_sc.get("status") == "OWNERSHIP_GATE_SIGN_CONFLICT",
+          str(block_sc.get("status")))
     snapshot(1.0)
     check("G3_CLOSE_ALLOWED_WHEN_SLEEVES_EXPLAIN_IT", g._pre_send_ownership_gate(it)[0])
     snapshot(0.5)   # the exchange holds less (our own close/fill not seen yet): a reduce-only close can't touch others
@@ -497,7 +508,9 @@ def main() -> None:
     led2 = ledger(a=1.0, b=-1.0)
     snapshot(0.7)
     g2 = gateway(FakeExchange(), led2)
-    check("G3_NETTED_LEADERS_WITH_A_RESIDUAL_BLOCKED", not g2._pre_send_ownership_gate(exit_intent(led2, A, "SELL", 1.0))[0])
+    # 0ea3766 (R1): the netted account's +0.7 residual sits on the same side as A's owned sleeve -> allowed, clamped.
+    check("G3_NETTED_LEADERS_WITH_A_RESIDUAL_ALLOWED_R1",
+          g2._pre_send_ownership_gate(exit_intent(led2, A, "SELL", 1.0))[0])
     entry_it = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", wallet=B))
     snapshot(1.0)
     check("G3_ENTRIES_ALLOWED_WHEN_EXPLAINED", c.classify_send_lifecycle(entry_it) == "ENTRY" and g._pre_send_ownership_gate(entry_it)[0])
@@ -518,18 +531,22 @@ def main() -> None:
     g = gateway(FakeExchange(), led)
     it = exit_intent(led, A, "SELL", 1.0)
     it.decision = "EXIT_ALLOWED"
+    # 0ea3766 (R1): exchange +2.0 against ledger +1.0 is same-side excess, so the gate allows at once and never
+    # waits; the catch-up write is bound to THIS ledger, so it cannot land on a later fixture's ledger.
+    lag_led = led
 
     def ledger_catches_up():
         time.sleep(0.6)
-        led.sleeve(A, "BTC")["signed_size"] = 2.0
-        led._recompute_net(led.data)
+        lag_led.sleeve(A, "BTC")["signed_size"] = 2.0
+        lag_led._recompute_net(lag_led.data)
     threading.Thread(target=ledger_catches_up).start()
     ok, status = g.send_if_allowed(it)
     check("G3_LAGGING_RECORDS_WAITED_FOR_NOT_BLOCKED", ok and status == "MOCK_ORDER_SENT", status)
-    # a stale exchange snapshot (leader A's close already in the ledger, not yet in the snapshot): the gate asks for
-    # fresh truth instead of dropping B's close; works in --once mode too (nothing else would refresh it)
+    # a stale exchange snapshot (the sign the account had before B's sleeve opened, not yet refreshed): the gate
+    # asks for fresh truth instead of dropping B's close; works in --once mode too (nothing else would refresh it).
+    # Under R1 (0ea3766) only an opposite-sign reading still needs that refresh; same-side excess is allowed at once.
     led = ledger(b=1.0)
-    snapshot(2.0)
+    snapshot(-1.0)
     g = gateway(FakeExchange(), led)
     it = exit_intent(led, B, "SELL", 1.0)
     it.decision = "EXIT_ALLOWED"
@@ -553,9 +570,11 @@ def main() -> None:
     g.truth_refresh = a_close_reaches_ledger
     ok, status = g.send_if_allowed(it)
     check("G3_SIGN_CONFLICT_FROM_LAG_WAITED_FOR", ok and status == "MOCK_ORDER_SENT", status)
-    # a real unexplained position survives fresh truth: blocked, with refreshes bounded
-    led = ledger(a=1.0)
-    snapshot(1.5)
+    # a real unexplained position survives fresh truth: blocked, with refreshes bounded.
+    # 0ea3766 (R1) allows only same-side foreign excess on an owned close: the exchange holding -0.7 while the
+    # netted sleeves are flat and A owns +1.0 is an opposite-sign residual -> still refused.
+    led = ledger(a=1.0, b=-1.0)
+    snapshot(-0.7)
     g = gateway(FakeExchange(), led)
     it = exit_intent(led, A, "SELL", 1.0)
     it.decision = "EXIT_ALLOWED"
