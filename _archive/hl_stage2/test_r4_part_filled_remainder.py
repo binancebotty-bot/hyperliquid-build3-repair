@@ -274,6 +274,46 @@ def pf7():
         'ok=%r status=%r calls=%r' % (ok, status, ex.calls)
 
 
+# ============================== PF8 the precision is the exchange's, never a local default
+def pf8():
+    """No szDecimals in the metadata: the close must fail closed, not round on an invented precision."""
+    clear_state()
+    led, ex, net = new_ledger(), FakeExchange(replies=[filled(0.5, PX, oid=1)]), [2.0]
+    gw = make_gateway(ex, led, net)
+    gw._meta_cache = {'BTC': {'canonical_coin': 'BTC', 'sdk_coin': 'BTC', 'symbol_source': 'core_meta',
+                              'perp_dex': '', 'tradable_by_sender': True}}   # NO szDecimals
+    gw._meta_fetched = True
+    gw._core_meta_fetched = True
+    gw._asset_snapshot_loaded = True
+    del gw._resolve_coin                    # the REAL resolver, not the fixture stub: the metadata is the witness
+    res = gw._resolve_coin(COIN)
+    it = exit_intent(led, A, 'SELL', 2.0, 'pf8-f', 2.0)
+    ok, status = gw.send_if_allowed(it)
+    return (not res.get('ok') and res.get('status') == 'SYMBOL_PRECISION_UNRESOLVED'
+            and not ex.calls and not ok), \
+        'res=%r ok=%r status=%r calls=%r' % (res, ok, status, ex.calls)
+
+
+# ============================== PF9 szDecimals=0 is a real precision, not a missing one
+def pf9():
+    clear_state()
+    led, ex, net = new_ledger(), FakeExchange(replies=[filled(0.5, PX, oid=1)]), [2.0]
+    gw = make_gateway(ex, led, net)
+    gw._meta_cache = {'BTC': {'canonical_coin': 'BTC', 'sdk_coin': 'BTC', 'symbol_source': 'core_meta',
+                              'perp_dex': '', 'tradable_by_sender': True, 'szDecimals': 0}}
+    gw._meta_fetched = True
+    gw._core_meta_fetched = True
+    gw._asset_snapshot_loaded = True
+    del gw._resolve_coin
+    res = gw._resolve_coin(COIN)
+    it = exit_intent(led, A, 'SELL', 2.0, 'pf9-f', 2.0)
+    ok, status = gw.send_if_allowed(it)
+    rem = ex.calls[1:]
+    return (res.get('ok') and res.get('sz_decimals') == 0 and ok and len(ex.calls) == 2
+            and abs(rem[0]['size'] - 1.0) < 1e-9 and rem[0]['reduce_only'] is True), \
+        'res=%r ok=%r status=%r calls=%r' % (res, ok, status, ex.calls)
+
+
 def main():
     witnesses = [
         ('PF1_PART_FILLED_CLOSE_SENDS_ITS_REMAINDER_REDUCE_ONLY', pf1),
@@ -283,6 +323,8 @@ def main():
         ('PF5_FULL_FILL_OWES_NO_REMAINDER', pf5),
         ('PF6_SAME_SIDE_FOREIGN_EXCESS_REMAINDER_IS_CLAMPED_TO_THE_COPY_OWNED_SLEEVE', pf6),
         ('PF7_ENGINE_NEVER_CLOSES_A_POSITION_IT_DID_NOT_OPEN', pf7),
+        ('PF8_CLOSE_PRECISION_IS_EXCHANGE_PROVEN_NOT_A_LOCAL_DEFAULT', pf8),
+        ('PF9_ZERO_SZ_DECIMALS_IS_HONOURED_NOT_TREATED_AS_MISSING', pf9),
     ]
     for nm, fn in witnesses:
         case(nm, fn)
