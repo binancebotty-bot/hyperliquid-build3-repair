@@ -76,8 +76,9 @@ def main() -> None:
     calls = re.findall(r"exchange\.order\((?!\))", src)
     body = src.split("def _place_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_ORDER_CALL", len(calls) == 1 and "exchange.order(" in body, str(len(calls)))
-    # six sites: IOC/GTC, entry IOC retry, missed-entry limit, netting close resend, exit recovery, rate-limit recovery
-    check("O1_ALL_PLACE_ORDER_SITES_USE_THE_GUARDED_HELPER", src.count("self._place_order(") == 7, str(src.count("self._place_order(")))
+    # eight sites: IOC/GTC, entry IOC retry, missed-entry limit, netting close resend, exit recovery, rate-limit
+    # recovery, ceiling-excess entry (CC1-B-SPLIT). All ride the ONE guarded helper.
+    check("O1_ALL_PLACE_ORDER_SITES_USE_THE_GUARDED_HELPER", src.count("self._place_order(") == 8, str(src.count("self._place_order(")))
     cancel_body = src.split("def _cancel_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL", len(re.findall(r"exchange\.cancel\(", src)) == 1
           and "exchange.cancel(" in cancel_body and "_reserve_exchange_order_slot(" in cancel_body)
@@ -115,7 +116,14 @@ def main() -> None:
     intent = c.IntentBuilder(c.ConfigManager(), gw.ledger).build(fill("SELL"))
     fake = FakeExchange()
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER   # CS-I3: close proof must name the account the SDK signs for; self-signed follower
     gw.cfg.master_switch_now = lambda: True   # sending on: a standing close is never placed while it is off (run 4)
+    gw.cfg.send_mode_now = lambda: "ON"       # the physical gate re-reads the three-state switch at the one call site
+    gw.cfg.wallet_enabled = lambda w: True    # the close is a REAL close: exits ride the wallet as enabled
+    gw.cfg.wallet_mode = lambda w: "ON"
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "engine-global.lock")
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
     gw._queue_exit_recovery_if_needed(fake, "BTC", intent, 99.0, 2.0, {}, "could not immediately match")
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
