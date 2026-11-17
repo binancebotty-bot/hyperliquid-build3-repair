@@ -1,7 +1,7 @@
 {
   "row": "ENG-INV-08",
   "head_sha": "b3c090b0f53d2b6989a4850914d711271ffbe209",
-  "evidence_commit": "the commit on r4-v2-inv08 that adds this file; resolve with git log --diff-filter=A --format=%H -- certification/results/ENG_INV_08_all_scope_b3c090b.json",
+  "evidence_commit": "c2b8f0476a3654ce8784e77ff42ed5314ec3992a",
   "instrument": {
     "harness": "_archive/hl_stage2/test_inv08_all_scope_startup.py",
     "harness_sha256": "82f50ffa48436f075d5157ca9305a7590f691cd6d1e52aa9fd9b91522984bd49",
@@ -217,7 +217,7 @@
     "evidence_ref": "certification/results/ENG_INV_08_all_scope_b3c090b.json",
     "tested_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
     "tested_at_utc": "2026-11-17T18:44:56Z",
-    "notes": "PASS on an OFFLINE instrument at b3c090b. Harness _archive/hl_stage2/test_inv08_all_scope_startup.py: 32 checks / 0 failed / exit 0. S1: the startup/recovery read enumerates the default DEX plus every HIP-3/builder DEX the account holds (4 scopes), READS all of them, and the truth rows carry all of them (sweep result, scope_sweep_state.json, follower_dex_scope, master_account_net.scopes, master_exposure.by_coin). S2: one unreadable required scope gives a NAMED SCOPE_UNAVAILABLE with the ABSENCE of green truth - no held, the earlier green truth withdrawn, the state row not green with held_count 0, the entry gate and the cycle publish the refusal, and the truth reads publish no net. S3: non-vacuity proven by two source-level mutants of the production predicates (weakened enumeration, fail-open truth read) that turn S1/S2 red in-process AND make the suite exit 1 when installed live (INV08_SELFMUTANT=M1|M2). S4 restart mid-sequence: an aborted sweep leaves scopes unproven, a new process declares no green startup truth, re-reads only the unproven scopes and goes green only then. proof_network=OFFLINE: NO testnet read happened this cycle (every read was an injected fetcher), so the row's testnet end-to-end execution_proof and its testnet independent_oracle read remain OUTSTANDING. The eight requested harnesses: 94 checks / 0 failed / all exit 0, but 2 are PARTIAL and 6 NO_COVERAGE for this invariant; the unit-level truth-read half was already covered by test_g3_exchange_truth.py (48 checks, 15 G3 results) - the G3 unit PASS prior_evidence cites. Caveat: with HL_LIVE_GATES_ALERT_ONLY=1 (the operator default) the cycle publishes the scope refusal as an ALERT row and entries proceed (Boss rule 16 Oct); the strict refusal asserted here is with the gate at its blocking setting. Evidence commit: the commit on r4-v2-inv08 that adds certification/results/ENG_INV_08_all_scope_b3c090b.json.",
+    "notes": "PASS on an OFFLINE instrument at b3c090b. Harness _archive/hl_stage2/test_inv08_all_scope_startup.py: 32 checks / 0 failed / exit 0. S1: the startup/recovery read enumerates the default DEX plus every HIP-3/builder DEX the account holds (4 scopes), READS all of them, and the truth rows carry all of them (sweep result, scope_sweep_state.json, follower_dex_scope, master_account_net.scopes, master_exposure.by_coin). S2: one unreadable required scope gives a NAMED SCOPE_UNAVAILABLE with the ABSENCE of green truth - no held, the earlier green truth withdrawn, the state row not green with held_count 0, the entry gate and the cycle publish the refusal, and the truth reads publish no net. S3: non-vacuity proven by two source-level mutants of the production predicates (weakened enumeration, fail-open truth read) that turn S1/S2 red in-process AND make the suite exit 1 when installed live (INV08_SELFMUTANT=M1|M2). S4 restart mid-sequence: an aborted sweep leaves scopes unproven, a new process declares no green startup truth, re-reads only the unproven scopes and goes green only then. proof_network=OFFLINE: NO testnet read happened this cycle (every read was an injected fetcher), so the row's testnet end-to-end execution_proof and its testnet independent_oracle read remain OUTSTANDING. The eight requested harnesses: 94 checks / 0 failed / all exit 0, but 3 are PARTIAL and 5 NO_COVERAGE for this invariant; the unit-level truth-read half was already covered by test_g3_exchange_truth.py (48 checks, 15 G3 results) - the G3 unit PASS prior_evidence cites. Caveat: with HL_LIVE_GATES_ALERT_ONLY=1 (the operator default) the cycle publishes the scope refusal as an ALERT row and entries proceed (Boss rule 16 Oct); the strict refusal asserted here is with the gate at its blocking setting. Evidence commit: the commit on r4-v2-inv08 that adds certification/results/ENG_INV_08_all_scope_b3c090b.json.",
     "proof_network": "OFFLINE",
     "verified": null,
     "verifier": null,
@@ -233,5 +233,6 @@
     "result",
     "tested_at_utc",
     "tested_commit"
-  ]
+  ],
+  "tested_commit_choice": "tested_commit is the ENGINE revision under test (b3c090b): git diff b3c090b c2b8f0476a3654ce8784e77ff42ed5314ec3992a -- '*.py' shows only this new test file, so no production byte changed. A single commit cannot contain its own SHA, so the evidence commit (which carries the harness and this artifact) is named explicitly in evidence_commit."
 }
