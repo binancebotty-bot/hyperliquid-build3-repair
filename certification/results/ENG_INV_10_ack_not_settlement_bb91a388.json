@@ -1,0 +1,97 @@
+{
+  "base_rev": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+  "cases": {
+    "S1": "ack {\"status\":\"ok\", \"resting\":{\"oid\":9001}} with MASTER flat: send_attempts status ORDER_RESTING, in_flight_terminals empty, reservation still blocking with settle_status UNSETTLED, no position entry, exactly one physical send. PASS.",
+    "S2": "ack filled (oid 9002) with MASTER clearinghouseState flat: no settled ledger row, recorded settle status UNSETTLED, NO position adopted (the check that was RED before the fix), one physical send. PASS at the evaluated rev.",
+    "S3": "ack filled plus MASTER userFillsByTime fill and clearinghouseState position: in_flight_terminals[ETH]=SETTLED_FULL, reservation cleared, position recorded 0.008. Positive leg: the gate is not always-red. PASS.",
+    "S4": "no ack (timeout) with MASTER openOrders showing the order resting: status ORDER_UNKNOWN, no settled row, reservation still blocking across three further reconciles, no position, physical send count stays 1 (no second send). PASS.",
+    "S5": "MUTATION CONTROL in a scratch copy: exchange_truth.resolve_settlement degraded so an intent carrying an ack oid returns settled/SETTLED_FULL. The child harness exits 1 and reddens S1 twice and S2 three times. PASS (non-vacuous)."
+  },
+  "claim_scope": "OFFLINE instrument only. Proves the settlement/position layer at this rev. Does NOT prove the live testnet single-sender leg (see not_covered_offline).",
+  "defect_found": {
+    "failing_check": "S2 MASTER flat => no position adopted from the ack",
+    "fix_commit": "bb91a388fe900c5f9b0a65cfd111f33f352236c2",
+    "fix_diff_stat": "1 file changed, 6 insertions(+), 2 deletions(-)",
+    "fix_rule": "the ack-driven position write is gated on the verdict of the settlement reconcile that already follows the send: the ledger adopts a fill only when independent MASTER evidence settled this reservation; truth unavailable => fail closed (no position, reservation keeps blocking)",
+    "what": "an ORDER_FILLED ack alone wrote manual_live_positions[ETH].signed_size=0.008 while MASTER clearinghouseState showed no position and the reservation recorded settle_status=UNSETTLED; the follower ledger followed the ack, not the truth.",
+    "where": "_archive/hl_stage2/HL_Live_Copy_Service.py :: manual_send_one_intent"
+  },
+  "evaluated_rev": "bb91a388fe900c5f9b0a65cfd111f33f352236c2",
+  "green": {
+    "run1": {
+      "log": "certification/results/ENG_INV_10_commit2_green.log",
+      "result": [
+        "24",
+        "24",
+        "0"
+      ],
+      "verdict": "GREEN"
+    },
+    "run2": {
+      "log": "certification/results/ENG_INV_10_run2_green.log",
+      "result": [
+        "24",
+        "24",
+        "0"
+      ],
+      "verdict": "GREEN"
+    },
+    "two_runs_agree": true
+  },
+  "harness": {
+    "command": "cd C:/Users/wigmore/oc-runs/r4-v2-inv10/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv10_ack_is_not_settlement.py",
+    "network": "none: injected /info fetcher double (perpDexs, clearinghouseState, userFillsByTime, openOrders) plus injected exchange order double; the engine's real parse_hl_order_status and exchange_truth.resolve_settlement run unchanged",
+    "path": "_archive/hl_stage2/test_inv10_ack_is_not_settlement.py",
+    "sha256": "29a93d61f617bc5777186519c4d445608bb5888d84ea4d201e64b89ebaceca7e"
+  },
+  "invariant": "ENG-INV-10",
+  "invariants": {
+    "closes_sacred": "no close path touched by this diff.",
+    "never_adopts_a_position_it_did_not_open": "S1/S2 evidence: with MASTER flat there is no settled ledger row and no position entry; the ack row is a RECORD of the acknowledgement, never settlement.",
+    "same_side_foreign_excess_close_clamped": "not exercised by this instrument; unchanged by this diff.",
+    "send_off_sends_nothing": "not exercised by this instrument; unchanged by this diff."
+  },
+  "mutation_control": {
+    "child_exit": "1",
+    "mutation": "an intent carrying an ack oid is treated as settled (SETTLED_FULL)",
+    "note": "the real tree was never mutated; nothing was written outside the scratch copy",
+    "reddened_checks": [
+      "S1 no settled ledger row (in_flight_terminals has no ETH)",
+      "S1 reservation still blocking (settlement not granted)",
+      "S2 MASTER flat => no settled ledger row",
+      "S2 status recorded for the unresolvable ack is UNSETTLED",
+      "S2 MASTER flat => no position adopted from the ack"
+    ],
+    "scratch_copy": "system temp inv10_s5_*/tree (copy of exchange_truth.py, HL_Live_Copy_Service.py and this harness only)"
+  },
+  "not_covered_offline": "LIVE TESTNET SINGLE-SENDER LEG: this instrument never contacts an exchange, so it cannot prove that a real testnet order whose ack says filled and whose MASTER account shows the fill settles end to end with a real oid/fill id, nor that the single-sender fence holds across a real mid-send restart. That execution proof is NOT covered by this artifact and must not be read into it.",
+  "not_promoted": "certification/certification_matrix.json row ENG-INV-10 is NOT edited by this card; the reviewer writes that row.",
+  "quoted_rows_at_evaluated_rev": [
+    "S1 send_attempts row={\"coin\": \"ETH\", \"confirmed\": \"True\", \"copy_size\": \"0.008\", \"side\": \"BUY\", \"status\": \"ORDER_RESTING\"}",
+    "S1 in_flight_unresolved[ETH]={\"coin\": \"ETH\", \"exchange_status\": \"ORDER_RESTING\", \"intent_id\": \"INV10-S1\", \"oid\": \"9001\", \"pre_send_master_net\": 0.0, \"reduce_only\": false, \"remaining\": 0.008, \"responded_ms\": 1794943258050, \"settle_status\": \"UNSETTLED\", \"side\": \"BUY\", \"size\": 0.008, \"started_ms\": 1794943258047}",
+    "S1 in_flight_terminals={}",
+    "S2 send_attempts row (ack only)={\"coin\": \"ETH\", \"copy_size\": \"0.008\", \"side\": \"BUY\", \"status\": \"ORDER_FILLED\"}",
+    "S2 settle status recorded={\"remaining\": 0.008, \"settle_status\": \"UNSETTLED\"}",
+    "S2 in_flight_terminals={}",
+    "S2 manual_live_positions={}",
+    "S3 in_flight_terminals={\"ETH\": \"SETTLED_FULL\"}",
+    "S3 manual_live_positions={\"ETH\": {\"last_intent_id\": \"INV10-S3\", \"last_oid\": \"9003\", \"last_updated_at\": \"2026-11-17T19:20:58.085326+00:00\", \"leader_wallet\": \"0xw1\", \"signed_size\": 0.008}}",
+    "S4 send_attempts row (no ack)={\"coin\": \"ETH\", \"error\": \"exchange timeout: no acknowledgement\", \"side\": \"BUY\", \"status\": \"ORDER_UNKNOWN\"}",
+    "S4 MASTER openOrders (order is resting at the exchange)=[{\"coin\": \"ETH\", \"limitPx\": \"2500.0\", \"oid\": 9004, \"side\": \"B\", \"sz\": \"0.008\"}]",
+    "S4 reservation after 3 reconciles={\"coin\": \"ETH\", \"exchange_status\": \"ORDER_UNKNOWN\", \"intent_id\": \"INV10-S4\", \"oid\": \"\", \"pre_send_master_net\": 0.0, \"reduce_only\": false, \"remaining\": 0.008, \"responded_ms\": 1794943258097, \"settle_status\": \"UNSETTLED\", \"side\": \"BUY\", \"size\": 0.008, \"started_ms\": 1794943258095}"
+  ],
+  "red_first": {
+    "commit": "f00bfb4b1904a57f27b6cf461bab274f7afc65b2",
+    "failed_checks": [
+      "S2 MASTER flat => no position adopted from the ack"
+    ],
+    "log": "certification/results/ENG_INV_10_commit1_red.log",
+    "result": [
+      "24",
+      "23",
+      "1"
+    ],
+    "verdict": "RED"
+  },
+  "statement": "API acknowledgement is not settlement; a physical send is settled only from independent MASTER fill/position truth (clearinghouseState / openOrders / userFillsByTime)."
+}
