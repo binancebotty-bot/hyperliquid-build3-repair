@@ -698,21 +698,21 @@
    "negative_tests": [
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
-   "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
-   "tested_at_utc": "2026-10-17T11:15:00Z",
-   "notes": "Independently reviewed (t_03123cb4). Row-bound predicate re-run by the reviewer on a clean worktree at 43731b4: the mutation reddens exactly this row while both siblings stay green, so the predicate is non-vacuous and the control is disjoint. Reviewer sha256-matched oracle 811287ac and artifact 86afb9b5 against the committed blobs. Previously: NOT_TESTED.",
+   "prior_evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG_INV_04_store_truth_b3c090b.json",
+   "tested_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+   "tested_at_utc": "2026-11-17T18:31:54Z",
+   "notes": "FAIL - CORRECTED BY MEASUREMENT at 2026-11-17T18:31:54Z (card t_88efb231, evidence author; independent review pending on child card, so verified stays null). The previous PASS was TRUE AT ITS OWN TESTED COMMIT, not a fabrication: re-running certification/results/rowbound_oracle.py against a git archive of 43731b4 gives ENG-INV-04 violations=0, and git grep sqlite3 at 43731b4 across _archive/hl_stage2 returns no matches. The row is STALE: at HEAD b3c090b0f53d2b6989a4850914d711271ffbe209 the same instrument reports ENG-INV-04 violations=12, drivers=16, exit 1, row_verdicts ENG-INV-03 FAIL / ENG-INV-04 FAIL / ENG-INV-05 PASS. All 12 are classified in certification/results/ENG_INV_04_store_truth_b3c090b.json with a quoted excerpt and a stated predicate: 12/12 GENUINE_DEFECT, 0 APPROVED_SINK. They are ONE logical store (site-level count 12 = 1 sqlite3 driver import at HL_Live_Copy_Service_Core.py:40 + 11 conn.execute sites at :5683 :5684 :5685 :5688 :5689 :5690 :5700 :5703 :5705 :5707 :5712, all inside SenderGateway._reserve_margin_rest_at_wire). The store is AUDIT_DIR/margin_rest_reservations_<sha256>.sqlite3; despite living under AUDIT_DIR it is authoritative, not an audit sink: :5689 reads a persisted token to REFUSE a duplicate order, :5700 sums every UNRESOLVED row and :5702 subtracts it from live withdrawable, :5705 inserts the reservation before the wire and :5707 commits it with synchronous=FULL, and :6106 terminalises the send when the method returns False. Restart authority is executed evidence, not a source read: the engine own suite _archive/hl_stage2/test_core_r4_margin_v3.py passes 4/4 (4 passed in 1.52s), including test_restart_still_reserves_collateral (a SECOND gateway instance on the same AUDIT_DIR refuses intent-2 because intent-1 reservation holds the collateral) and test_parallel_processes_cannot_double_spend. The store was introduced AFTER the certified baseline by 9e376bc candidate(R4): classify margin refusal and reserve collateral at physical wire (635 commits after 43731b4), so it is NEW authoritative persistent trading-state relative to the baseline the row was certified on. RESIDUE 1: the oracle whole-file verdict stays FAIL while rows 03/05 are scored on their own verdicts. RESIDUE 2: no code path in the closure ever writes state other than UNRESOLVED and no code deletes the ledger or its rows, so reservations accumulate permanently and only operator reconciliation clears them - an engineering concern recorded here, NOT fixed here (a separate card; no engine bytes touched by this commit). RESIDUE 3: rows ENG-INV-03 and ENG-INV-05 are untouched by this change. Fixing the engine to satisfy row 04 is out of scope for an evidence author.",
    "proof_network": "TESTNET",
-   "verified": true,
+   "verified": null,
    "verifier": "custom:deepseek-v4-flash-thinking-nosearch (task t_03123cb4)",
    "review_ref": "certification/results/review_ENG-INV-04_t_03123cb4.json",
    "cert_claimed": "PASS",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "cert_evidence": "certification/results/ENG-INV-03-05_43731b4f.json",
    "tier": 1,
-   "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json"
+   "evidence": "certification/results/ENG_INV_04_store_truth_b3c090b.json"
   },
   {
    "id": "ENG-INV-05",

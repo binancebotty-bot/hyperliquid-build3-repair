@@ -1,0 +1,261 @@
+{
+  "card": "t_88efb231",
+  "row": "ENG-INV-04",
+  "invariant": "No new authoritative persistent trading-state store. (ARCHITECTURE.md:49; scope budget new authoritative persistent state: 0, ARCHITECTURE.md:66-73)",
+  "head_sha": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+  "head_sha7": "b3c090b",
+  "branch": "r4-v2-inv04",
+  "tested_at_utc": "2026-11-17T18:31:54Z",
+  "oracle_sha256": "343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133",
+  "matrix_sha256_before": "410c8a36411e15a2c3aaac435ba4905701179d070f23ba2de23bf1ac98450e4d",
+  "matrix_sha256_after": "9d7b3df472062b3e7d78a9186da8876e245554538201e2cc4edab72631ad7512",
+  "predicate": "AUTHORITATIVE = (i) the engine READS the store to make or refuse a trading decision on the physical-send path, AND (ii) the state survives process restart and is trusted afterwards (cross-process/cross-restart durability, asserted by the engine own tests). NON_AUTHORITATIVE = audit log / cache / metrics / telemetry that no trading decision reads. Path or directory name is NOT part of the predicate.",
+  "re_run": {
+    "command": "cd C:/Users/wigmore/oc-runs/r4-v2-inv04 && HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/rowbound_oracle.py C:/Users/wigmore/oc-runs/r4-v2-inv04 --mutate",
+    "exit_code": 1,
+    "quote": "row_verdicts={\"ENG-INV-03\":\"FAIL\",\"ENG-INV-04\":\"FAIL\",\"ENG-INV-05\":\"PASS\"} verdict=FAIL ENG-INV-04 violations=12 drivers=16 scope_ok=True files_parsed=12 engine_closure=8",
+    "counts": {
+      "ENG-INV-03": 1,
+      "ENG-INV-04": 12,
+      "ENG-INV-05": 0
+    },
+    "engine_closure": [
+      "HL_Copy_App_SSOT.py",
+      "HL_Live_Copy_Service.py",
+      "HL_Live_Copy_Service_Core.py",
+      "convergence_shadow.py",
+      "exchange_truth.py",
+      "follower_volume.py",
+      "headroom.py",
+      "hotswap.py"
+    ],
+    "red_pre_existed": true,
+    "red_note": "exit 1 was observed BEFORE any edit by this author; it was also observed on the card reference tree r4-v2-inv03. This commit records an existing RED, it does not create one."
+  },
+  "baseline_at_cert_ref": {
+    "ref": "43731b4f1f19a56e835032dabf608a550f925717",
+    "method": "git archive 43731b4 extracted to scratch (no engine byte touched), rowbound_oracle.py copied in, current certification/approved_dependencies.json copied in because that record does not exist at 43731b4 and the oracle aborts without it (row04 counting does not consult approvals)",
+    "ENG-INV-04_violations": 0,
+    "ENG-INV-03_violations": 0,
+    "ENG-INV-05_violations": 0,
+    "git_grep_sqlite3_at_cert_ref": "(no matches)",
+    "is_ancestor_of_head": true,
+    "commits_since": "635",
+    "introducing_commits": [
+      "9e376bc candidate(R4): classify margin refusal and reserve collateral at physical wire"
+    ],
+    "conclusion": "The store is NEW relative to the certified baseline; the previous PASS was true at 43731b4 and is false at HEAD."
+  },
+  "restart_authority_proof": {
+    "test_file": "_archive/hl_stage2/test_core_r4_margin_v3.py",
+    "command": "cd _archive/hl_stage2 && python -m pytest test_core_r4_margin_v3.py -q",
+    "exit_code": 0,
+    "quote": "4 passed in 1.52s",
+    "decisive_assertions": [
+      "test_restart_still_reserves_collateral: make_gateway(tmp) reserves intent-1; a SECOND gateway restarted on the same AUDIT_DIR is then refused for intent-2 and for intent-1 (lines 62-67).",
+      "test_parallel_processes_cannot_double_spend: two spawned processes contend on the same sqlite file, exactly one wins (lines 53-59)."
+    ]
+  },
+  "send_path_binding": {
+    "site": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py:6104-6114",
+    "excerpt": "if not self._reserve_margin_rest_at_wire(intent, size, limit_px): | return {\"status\": \"err\", \"response\": \"MARGIN_REST_PHYSICAL_COLLATERAL_OR_RESERVATION_HOLD\", ...}",
+    "meaning": "A False from _reserve_margin_rest_at_wire terminalises the send as SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL with exchange_called False: the ledger decides whether a physical order is placed."
+  },
+  "violations": [
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 40,
+      "module": "sqlite3",
+      "kind": "driver-import",
+      "excerpt": "import sqlite3",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "The driver import for the only sqlite3 connection in the engine closure (grep sqlite3 in this file: 3 hits, all at 40/5679/5682; 0 hits in the other 7 closure modules). It exists solely to open the margin-rest reservation ledger at :5682, so it is classified with the store it enables, not as a bare import.",
+      "lines_spanned": [
+        40
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5683,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"PRAGMA busy_timeout=10000\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "PRAGMA busy_timeout on the reservation-ledger connection opened at :5682: concurrent senders BLOCK on the ledger instead of failing, which is what makes the cross-process reservation atomic. Persists no row by itself, but it is a site on the authoritative ledger.",
+      "lines_spanned": [
+        5683
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5684,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"PRAGMA synchronous=FULL\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "PRAGMA synchronous=FULL: forces each committed reservation to be written through to disk. This is the durability property of the authoritative store, not a tuning nicety - without it the ledger would not survive the crash it exists to survive.",
+      "lines_spanned": [
+        5684
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5685,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"CREATE TABLE IF NOT EXISTS reservations \" |                          \"(token TEXT PRIMARY KEY, coin TEXT NOT NULL, notional REAL NOT NULL, \" |                          \"state TEXT NOT NULL, created_ms INTEGER NOT NULL)\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "CREATE TABLE IF NOT EXISTS reservations (token TEXT PRIMARY KEY, coin, notional, state, created_ms): the schema of the persistent trading-state record - one row per reserved margin claim keyed by sha256(scope,intent_id). This is the store itself.",
+      "lines_spanned": [
+        5685,
+        5686,
+        5687
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5688,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"BEGIN IMMEDIATE\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "BEGIN IMMEDIATE takes the write lock BEFORE the collateral read, making check-then-insert atomic across processes. That atomicity is the engine own tested property (test_parallel_processes_cannot_double_spend).",
+      "lines_spanned": [
+        5688
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5705,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"INSERT INTO reservations VALUES (?,?,?,?,?)\",",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "The durable WRITE: INSERT (token, coin, required, UNRESOLVED, utc_now_ms()) before the order reaches the wire. This row is the persistent trading state - it is what constrains every later send, in this process and after restart, until exchange reconciliation.",
+      "lines_spanned": [
+        5705
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5707,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"COMMIT\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "COMMIT of the reservation. After this the engine treats the margin as spent even if the process dies immediately (made durable by synchronous=FULL at :5684).",
+      "lines_spanned": [
+        5707
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5690,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"ROLLBACK\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "ROLLBACK on the duplicate-guard hit path (:5689): releases the write lock without inserting. Persists nothing itself, but it is the abort half of the same authoritative transaction.",
+      "lines_spanned": [
+        5690
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5703,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"ROLLBACK\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "ROLLBACK when live withdrawable < reserved + required (:5702): the insufficient-collateral refusal path. Persists nothing; abort half of the same transaction.",
+      "lines_spanned": [
+        5703
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5689,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "if conn.execute(\"SELECT 1 FROM reservations WHERE token=?\", (token,)).fetchone():",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "Durable READ of authoritative state: if this (scope,intent) token already holds a reservation, the method returns False at :5691, and :6106 then terminalises the send as SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL with no exchange call. A persisted row here suppresses a real order after restart.",
+      "lines_spanned": [
+        5689
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5712,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "conn.execute(\"ROLLBACK\")",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "ROLLBACK in the except branch: an exception (including the ledger being unwritable) leaves no partial reservation and the send is refused (:5709-5716, log_error margin_rest_final_reservation_failed). Persists nothing; abort half of the same transaction.",
+      "lines_spanned": [
+        5712
+      ]
+    },
+    {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 5700,
+      "module": "<sink:conn.execute>",
+      "kind": "store-sink",
+      "excerpt": "reserved = float(conn.execute( |                 \"SELECT COALESCE(SUM(notional),0) FROM reservations WHERE state='UNRESOLVED'\").fetchone()[0])",
+      "class": "AUTHORITATIVE",
+      "verdict": "GENUINE_DEFECT",
+      "reason": "SELECT COALESCE(SUM(notional),0) FROM reservations WHERE state=UNRESOLVED: the committed-exposure figure. Every landed-but-unresolved reservation from ANY earlier process is summed and then subtracted from live withdrawable at :5702 - a restart-visible ledger read that decides admission.",
+      "lines_spanned": [
+        5700,
+        5701
+      ]
+    }
+  ],
+  "violation_tally": {
+    "total": 12,
+    "GENUINE_DEFECT": 12,
+    "APPROVED_SINK": 0,
+    "distinct_logical_stores": 1
+  },
+  "row_before": {
+    "result": "PASS",
+    "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "tested_at_utc": "2026-10-17T11:15:00Z",
+    "verified": true,
+    "prior_evidence": "",
+    "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+    "notes": "Independently reviewed (t_03123cb4). Row-bound predicate re-run by the reviewer on a clean worktree at 43731b4: the mutation reddens exactly this row while both siblings stay green, so the predicate is non-vacuous and the control is disjoint. Reviewer sha256-matched oracle 811287ac and artifact 86afb9b5 against the committed blobs. Previously: NOT_TESTED."
+  },
+  "row_after": {
+    "result": "FAIL",
+    "evidence_ref": "certification/results/ENG_INV_04_store_truth_b3c090b.json",
+    "tested_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+    "tested_at_utc": "2026-11-17T18:31:54Z",
+    "verified": null,
+    "prior_evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+    "evidence": "certification/results/ENG_INV_04_store_truth_b3c090b.json",
+    "notes": "FAIL - CORRECTED BY MEASUREMENT at 2026-11-17T18:31:54Z (card t_88efb231, evidence author; independent review pending on child card, so verified stays null). The previous PASS was TRUE AT ITS OWN TESTED COMMIT, not a fabrication: re-running certification/results/rowbound_oracle.py against a git archive of 43731b4 gives ENG-INV-04 violations=0, and git grep sqlite3 at 43731b4 across _archive/hl_stage2 returns no matches. The row is STALE: at HEAD b3c090b0f53d2b6989a4850914d711271ffbe209 the same instrument reports ENG-INV-04 violations=12, drivers=16, exit 1, row_verdicts ENG-INV-03 FAIL / ENG-INV-04 FAIL / ENG-INV-05 PASS. All 12 are classified in certification/results/ENG_INV_04_store_truth_b3c090b.json with a quoted excerpt and a stated predicate: 12/12 GENUINE_DEFECT, 0 APPROVED_SINK. They are ONE logical store (site-level count 12 = 1 sqlite3 driver import at HL_Live_Copy_Service_Core.py:40 + 11 conn.execute sites at :5683 :5684 :5685 :5688 :5689 :5690 :5700 :5703 :5705 :5707 :5712, all inside SenderGateway._reserve_margin_rest_at_wire). The store is AUDIT_DIR/margin_rest_reservations_<sha256>.sqlite3; despite living under AUDIT_DIR it is authoritative, not an audit sink: :5689 reads a persisted token to REFUSE a duplicate order, :5700 sums every UNRESOLVED row and :5702 subtracts it from live withdrawable, :5705 inserts the reservation before the wire and :5707 commits it with synchronous=FULL, and :6106 terminalises the send when the method returns False. Restart authority is executed evidence, not a source read: the engine own suite _archive/hl_stage2/test_core_r4_margin_v3.py passes 4/4 (4 passed in 1.52s), including test_restart_still_reserves_collateral (a SECOND gateway instance on the same AUDIT_DIR refuses intent-2 because intent-1 reservation holds the collateral) and test_parallel_processes_cannot_double_spend. The store was introduced AFTER the certified baseline by 9e376bc candidate(R4): classify margin refusal and reserve collateral at physical wire (635 commits after 43731b4), so it is NEW authoritative persistent trading-state relative to the baseline the row was certified on. RESIDUE 1: the oracle whole-file verdict stays FAIL while rows 03/05 are scored on their own verdicts. RESIDUE 2: no code path in the closure ever writes state other than UNRESOLVED and no code deletes the ledger or its rows, so reservations accumulate permanently and only operator reconciliation clears them - an engineering concern recorded here, NOT fixed here (a separate card; no engine bytes touched by this commit). RESIDUE 3: rows ENG-INV-03 and ENG-INV-05 are untouched by this change. Fixing the engine to satisfy row 04 is out of scope for an evidence author."
+  },
+  "row_decision": "FAIL",
+  "residues": [
+    "Row corrected on measurement, not on assertion: 12/12 sites classified GENUINE_DEFECT, 0 APPROVED_SINK.",
+    "Site-level violation count is 12 but the defect is ONE logical store; the oracle counts call sites.",
+    "The store sits under AUDIT_DIR by path but is authoritative by behaviour; the path name is misleading and must not be used as the classifier.",
+    "No closure code ever resolves or deletes a reservation row: UNRESOLVED rows accumulate until operator reconciliation. Engineering card needed; not fixed here.",
+    "Rows ENG-INV-03 and ENG-INV-05 were not modified (whole-matrix record equality asserted in the generator).",
+    "rowbound_oracle.py was NOT edited; its rowbound predicate is absolute (any store driver/sink in the engine closure) and was left as the current instrument.",
+    "The previous PASS is preserved as history: it was true at 43731b4 and became false when 9e376bc candidate(R4): classify margin refusal and reserve collateral at physical wire introduced the ledger."
+  ]
+}
