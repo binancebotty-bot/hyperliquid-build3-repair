@@ -27,7 +27,8 @@ def check(name: str, cond: bool, detail: str = "") -> None:
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
 
 
-def main() -> None:
+def _group() -> Path:
+    """The group's RESULT:: checks. Holds the machine-wide sender lease while it runs."""
     tmp = Path(tempfile.mkdtemp(prefix="t1a_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
@@ -209,6 +210,44 @@ def main() -> None:
     ok3, status3, res3, intent3 = send(fake3, follower=100.0)
     check("A13_PENDING_WRITE_FAILURE_SENDS_NOTHING", (not ok3) and not fake3.calls
           and "AUDIT_WRITE_FAILED" in str(status3), f"{ok3} {status3} {fake3.calls}")
+
+    # ---- A14: the send switch OFF must send NOTHING (assert the ABSENCE of the exchange call) --------
+    # The switch is set OFF on disk and the group's own fixture is used unchanged: if the fixture forces
+    # the send path open, this check fails, and that failure IS the point - a group whose fixture forces
+    # the gate open can never see a "send OFF sends nothing" regression.
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False,
+                                             "global_controls": {"marketable_bps": 20, "send_mode": "OFF"},
+                                             "wallets": {LEADER: {"enabled": True, "mode": "ON",
+                                                                  "copy_mode": "fixed", "fixed_notional": 1000}}})
+    fake_off = FakeExchange()
+    gw = gateway(fake_off)  # send() drives this binding, exactly as the A13 case does
+    ok_off, status_off, res_off, intent_off = send(fake_off, follower=100.0)
+    named_off = str((res_off or {}).get("notes") or "") + "|" + str((res_off or {}).get("error") or "")
+    check("A14_SEND_OFF_SENDS_NOTHING",
+          (not ok_off) and fake_off.calls == [] and (res_off or {}).get("exchange_called") is False
+          and "MASTER_REAL_ORDERS_OFF" in named_off,
+          f"ok={ok_off} status={status_off} exchange_called={(res_off or {}).get('exchange_called')} "
+          f"exchange_calls={fake_off.calls} error={(res_off or {}).get('error')}")
+
+    return tmp
+
+
+def main() -> None:
+    """Run the group, then prove the machine-wide sender lease cannot leak into a later test."""
+    tmp = _group()
+    import HL_Live_Copy_Service_Core as c  # already imported by _group(); bind the module here too
+    # A15: the one sender lease is process-global. If the group leaves it held, the NEXT test in this
+    # process is refused as "another engine" - so re-acquire after the group and require it to work.
+    lease_free = True
+    try:
+        c.acquire_global_instance_lock(tmp / "state")
+    except SystemExit as exc:
+        lease_free = False
+        print("A15_DETAIL::%s" % (str(exc)[:200],))
+    check("A15_SENDER_LEASE_RELEASED_AFTER_RUN", lease_free,
+          "the machine-wide engine lock is still held after the group finished")
+    if lease_free:
+        c.release_global_instance_lock()
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
