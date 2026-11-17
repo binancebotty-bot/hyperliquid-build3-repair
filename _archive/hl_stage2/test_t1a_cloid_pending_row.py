@@ -215,5 +215,18 @@ def main() -> None:
     sys.exit(1 if failed else 0)
 
 
+def test_t1a_cloid_pending_row_group():
+    """pytest entry point for the t1a cloid/pending-send group.
+
+    The group's 14 RESULT:: checks live in main(); this wrapper makes the file
+    collectable by pytest (the acceptance requires a collectable test, not a
+    bare script). It asserts the group's own exit status: 0 == all checks pass.
+    """
+    try:
+        main()
+    except SystemExit as exc:
+        assert exc.code == 0, "t1a cloid/pending-send group failed (exit %s)" % (exc.code,)
+
+
 if __name__ == "__main__":
     main()
