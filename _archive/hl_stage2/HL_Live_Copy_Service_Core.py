@@ -7600,6 +7600,16 @@ class SenderGateway:
     ) -> None:
         if not self.ledger or not intent.reduce_only_intended or self._exit_recovery_exists(intent):
             return
+        if sz_dec is None:
+            # Precision is the exchange's szDecimals for this coin, read from the same resolver the send path uses.
+            # Never a silent default (a guessed 4 can size a close wrong); if the exchange does not prove it, the
+            # plan below holds with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION and the reconciliation row names it.
+            try:
+                _res = self._resolve_coin(intent.fill.coin)
+                if _res.get("ok") and _res.get("sz_decimals") is not None:
+                    sz_dec = int(_res["sz_decimals"])
+            except Exception as exc:
+                log_error("recovery_precision_resolve", exc)
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
         wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
         close_size = min(abs(wallet_pos), abs(wire_size), abs(intent.copy_size))
