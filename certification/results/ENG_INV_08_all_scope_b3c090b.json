@@ -1,0 +1,237 @@
+{
+  "row": "ENG-INV-08",
+  "head_sha": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+  "evidence_commit": "the commit on r4-v2-inv08 that adds this file; resolve with git log --diff-filter=A --format=%H -- certification/results/ENG_INV_08_all_scope_b3c090b.json",
+  "instrument": {
+    "harness": "_archive/hl_stage2/test_inv08_all_scope_startup.py",
+    "harness_sha256": "82f50ffa48436f075d5157ca9305a7590f691cd6d1e52aa9fd9b91522984bd49",
+    "harness_bytes": 25254,
+    "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv08_all_scope_startup.py",
+    "mutant_runs": [
+      "INV08_SELFMUTANT=M1 HL_LIVE_ENV_FILE=/nonexistent python -u test_inv08_all_scope_startup.py",
+      "INV08_SELFMUTANT=M2 HL_LIVE_ENV_FILE=/nonexistent python -u test_inv08_all_scope_startup.py"
+    ],
+    "network": "OFFLINE - every /info read is an injected fetcher; requests.post is replaced with a raiser and the run asserts NO perpDexs/clearinghouseState read reached it",
+    "engine_bytes_changed": false,
+    "suite": {
+      "total": 32,
+      "failed": 0,
+      "exit_code": 0
+    }
+  },
+  "coverage_map": [
+    {
+      "harness": "test_core_all_mids_dex_isolation.py",
+      "total": 9,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "NO_COVERAGE",
+      "quote": "PASS the dex after the failing one is still read | PASS the failure was logged through log_error",
+      "proves": "Proves the per-DEX allMids PRICE reader keeps going when one DEX read fails (it deliberately continues past a failed DEX, logging it) and that the cache keeps the successful DEXes. That is the opposite of the scope-truth fail-closed rule and says nothing about startup/recovery scope coverage."
+    },
+    {
+      "harness": "test_core_all_mids_dex_keys.py",
+      "total": 8,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "NO_COVERAGE",
+      "quote": "PASS named DEX bare mid is namespaced | PASS reader resolves bare AMD to the default DEX",
+      "proves": "Proves the allMids cache key shape per DEX (namespaced for a HIP-3 DEX, bare for the default). Key naming only: no startup truth read, no fail-closed."
+    },
+    {
+      "harness": "test_core_dex_scope_and_ui_truth.py",
+      "total": 41,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PARTIAL",
+      "quote": "RESULT::S6_SWEEP_READS_EVERY_DEX_OUTSIDE_SCOPE_PASS | RESULT::S6_HELD_DEX_JOINS_SCOPE_PASS | RESULT::S6_UNREADABLE_SWEEP_FAILS_CLOSED_PASS | RESULT::S6_STALE_SWEEP_FAILS_CLOSED_PASS | RESULT::S7_CYCLE_PUBLISHES_SCOPE_BLOCK_PASS",
+      "proves": "Strongest pre-existing engine coverage of the SWEEP half: every enumerated DEX outside the scope is read, a held DEX joins the scope, a failed/stale sweep blocks entries and the cycle publishes the block. It does NOT prove the requirement's truth-read half (exchange_truth master_account_net/master_exposure over all scopes), never asserts the ABSENCE of a published position truth, has no restart-mid-sequence case, no non-vacuity control, and its 'unreadable' case is an enumeration outage or a stale window - not one required named scope failing while the others read fine."
+    },
+    {
+      "harness": "test_core_follower_dex_exists.py",
+      "total": 6,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "NO_COVERAGE",
+      "quote": "RESULT::MISSING_DEX_DROPPED_REAL_ONE_KEPT_PASS | RESULT::EMPTY_ANSWER_IS_UNKNOWN_PASS",
+      "proves": "Proves scope PRUNING (a learned DEX the follower network does not list is dropped; an empty answer keeps everything). It is the inverse direction of inv-8: nothing about reading every scope or failing closed."
+    },
+    {
+      "harness": "test_core_follower_mid_dex_keys.py",
+      "total": 8,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "NO_COVERAGE",
+      "quote": "PASS leader_mid resolves a namespaced xyz coin | PASS leader_mid keeps the default DEX price bare",
+      "proves": "Proves leader_mid price resolution across DEX-namespaced keys. Price lookup only."
+    },
+    {
+      "harness": "test_core_scope_sweep_resilience.py",
+      "total": 10,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PARTIAL",
+      "quote": "RESULT::DEAD_DEX_FAILS_CLOSED_AND_IS_NAMED_PASS | RESULT::BLOCK_SAYS_SCOPE_UNAVAILABLE_PASS | RESULT::RESTART_KEEPS_RECENT_READINGS_PASS | RESULT::SHRUNK_DEX_LIST_IS_NOT_TRUSTED_PASS",
+      "proves": "Proves per-DEX retry, that ONE unreadable named DEX fails the sweep closed and is named, that the entry gate closes, and that a restart keeps readings still inside the window. It does NOT assert the absence of a green truth row, has no restart MID-SEQUENCE case (its restart starts from complete readings), does not touch the exchange_truth truth reads, and has no non-vacuity control."
+    },
+    {
+      "harness": "test_core_snapshot_reads_every_dex.py",
+      "total": 9,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PARTIAL",
+      "quote": "PASS a clearinghouseState call was made for the xyz dex | PASS the default dex is still read | PASS raw_by_dex has the xyz dex",
+      "proves": "Proves an exposure SNAPSHOT issues one single-object clearinghouseState read per DEX (default + a named HIP-3 DEX) and keeps a per-DEX raw map. Adjacent, not the invariant: no enumeration of every builder scope the account holds, no startup/recovery truth row, no fail-closed assertion."
+    },
+    {
+      "harness": "test_core_warm_dex_clients.py",
+      "total": 3,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "NO_COVERAGE",
+      "quote": "RESULT::W1_SEND_PATH_KEYS_ALL_PREBUILT_PASS | RESULT::W2_ONE_CLIENT_PER_KEY_PASS",
+      "proves": "Proves send-path client/key prebuild per DEX. Transport plumbing only."
+    },
+    {
+      "harness": "test_g3_exchange_truth.py",
+      "total": 48,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PARTIAL",
+      "quote": "RESULT::G3_MULTIDEX_HIP3_AGGREGATE_PASS | RESULT::G3_SCOPE_UNAVAILABLE_FAIL_CLOSED_PASS",
+      "proves": "SUPPLEMENTARY (not in the requested list of eight). The unit-level truth-read half of inv-8: MASTER net aggregated over every perp DEX scope and a missing scope failing closed. It is the 'G3 PASS at unit level' the row's prior_evidence cites. It does not exercise the engine's startup/recovery read, publishes no engine truth row, and has no non-vacuity control."
+    }
+  ],
+  "coverage_note": "The requested eight harnesses all pass (0 failed, exit 0) but none proves inv-8 end to end: three are PARTIAL (the sweep, the sweep-resilience restart, and the per-DEX snapshot) and five are NO_COVERAGE. The unit-level truth-read half already had coverage in test_g3_exchange_truth.py (48 checks), recorded as the supplementary entry - that is the 'G3 PASS at unit level' prior_evidence names.",
+  "s1": {
+    "quote": "RESULT::S1_SCOPE_STARTS_AT_DEFAULT_ONLY_PASS\nRESULT::S1_SWEEP_READS_EVERY_BUILDER_SCOPE_PASS\nRESULT::S1_SWEEP_ENUMERATION_COUNTS_ALL_SCOPES_PASS\nRESULT::S1_TRUTH_CARRIES_A_HOLDING_FROM_EVERY_BUILDER_SCOPE_PASS\nRESULT::S1_SCOPE_NOW_COVERS_DEFAULT_AND_EVERY_HIP3_PASS\nRESULT::S1_STARTUP_TRUTH_ROW_CARRIES_THE_SCOPES_PASS\nRESULT::S1_ENUM_HAS_DEFAULT_AND_EVERY_HIP3_PASS\nRESULT::S1_TRUTH_ROW_CARRIES_ALL_SCOPES_PASS\nRESULT::S1_SCOPED_EXPOSURE_COVERS_DEFAULT_AND_HIP3_PASS",
+    "exit_code": 0,
+    "checks": 9,
+    "proves": "startup/recovery read enumerates the default DEX + every HIP-3/builder DEX the account holds (4 scopes), READS all of them, the sweep truth and scope_sweep_state.json carry them, follower_dex_scope() ends up covering all of them, and the exchange_truth rows (master_account_net.scopes / master_exposure.by_coin) carry a value for every scope"
+  },
+  "s2": {
+    "quote": "RESULT::S2_NAMED_REFUSAL_FOR_THE_MISSING_SCOPE_PASS\nRESULT::S2_NO_POSITION_TRUTH_PUBLISHED_PASS\nRESULT::S2_EARLIER_GREEN_TRUTH_IS_WITHDRAWN_PASS\nRESULT::S2_STATE_ROW_IS_NOT_GREEN_PASS\nRESULT::S2_ENTRY_GATE_REFUSES_THE_TRUTH_PASS\nRESULT::S2_CYCLE_PUBLISHES_THE_SCOPE_REFUSAL_PASS\nRESULT::S2_TRUTH_READ_FAILS_CLOSED_ON_MISSING_SCOPE_PASS\nRESULT::S2_SCOPED_EXPOSURE_FAILS_CLOSED_ON_AN_UNREADABLE_SCOPE_MEMBER_PASS\nRESULT::S2_SCOPED_COIN_NET_FAILS_CLOSED_AND_PUBLISHES_NO_NET_PASS\nRESULT::S2_UNAVAILABLE_ENUMERATION_FAILS_CLOSED_PASS\nRESULT::S2_TRUTH_READ_FAILS_CLOSED_ON_UNAVAILABLE_ENUMERATION_PASS",
+    "exit_code": 0,
+    "checks": 11,
+    "proves": "one required scope unreadable => NAMED refusal (SCOPE_UNAVAILABLE naming the dex, with the read error in detail) and the ABSENCE of green truth: no 'held' in the result, the earlier green truth object is withdrawn (_scope_sweep_ok None), the state row is not green with held_count 0, the entry gate and the cycle both publish the refusal, and the truth reads publish no net"
+  },
+  "s3": {
+    "quote": "RESULT::S3_M1_MUTATION_APPLIED_PASS\nRESULT::S3_M1_IS_WORKING_BUT_WEAKER_PASS\nRED_QUOTE::M1 S1_ENUM_HAS_DEFAULT_AND_EVERY_HIP3, S1_TRUTH_ROW_CARRIES_ALL_SCOPES\nRESULT::S3_M1_MAKES_S1_RED_PASS\nRESULT::S3_M2_MUTATION_APPLIED_PASS\nRESULT::S3_M2_IS_WORKING_BUT_FAIL_OPEN_PASS\nRED_QUOTE::M2 S2_TRUTH_READ_FAILS_CLOSED_ON_MISSING_SCOPE | {'ok': True, 'status': 'OK', 'net': 1.0, 'scopes': [{'dex': '(default)', 'signed': 1.0}, {'dex': 'flx', 'signed': 0.0}, {'dex': 'io', 'signed': 0.0}, {'dex': 'xyz', 'signed': 0.0}], 'dex_count': 4}\nRESULT::S3_M2_MAKES_S2_RED_PASS\nRESULT::S3_PREDICATES_RESTORED_S1_GREEN_AGAIN_PASS",
+    "exit_code": 0,
+    "checks": 7,
+    "proves": "non-vacuity: two source-level mutants of the production predicates, each shown WORKING but weaker, turn S1 / S2 RED inside the same run; and the same mutants installed as the LIVE predicate make the harness EXIT 1 (mutant runs below)"
+  },
+  "s4": {
+    "quote": "RESULT::S4_ABORTED_MID_SEQUENCE_LEAVES_SCOPES_UNPROVEN_PASS\nRESULT::S4_RESTART_DECLARES_NO_GREEN_STARTUP_TRUTH_PASS\nRESULT::S4_RESTART_REREADS_ONLY_THE_UNPROVEN_SCOPES_PASS\nRESULT::S4_TRUTH_GOES_GREEN_ONLY_AFTER_EVERY_SCOPE_READ_PASS",
+    "exit_code": 0,
+    "checks": 4,
+    "proves": "negative test 'restart mid-sequence': a sweep aborted after the first scope leaves the rest unproven; a NEW process over the same state dir declares NO green startup truth, re-reads ONLY the unproven scopes, and goes green only once every scope has a reading"
+  },
+  "non_vacuity": {
+    "in_process": {
+      "red_quote_m1": [
+        "RED_QUOTE::M1 S1_ENUM_HAS_DEFAULT_AND_EVERY_HIP3, S1_TRUTH_ROW_CARRIES_ALL_SCOPES"
+      ],
+      "red_quote_m2": [
+        "RED_QUOTE::M2 S2_TRUTH_READ_FAILS_CLOSED_ON_MISSING_SCOPE | {'ok': True, 'status': 'OK', 'net': 1.0, 'scopes': [{'dex': '(default)', 'signed': 1.0}, {'dex': 'flx', 'signed': 0.0}, {'dex': 'io', 'signed': 0.0}, {'dex': 'xyz', 'signed': 0.0}], 'dex_count': 4}"
+      ],
+      "predicate_restored_green_again": [
+        "RESULT::S3_PREDICATES_RESTORED_S1_GREEN_AGAIN_PASS"
+      ]
+    },
+    "live_mutant_run": {
+      "M1": {
+        "what": "exchange_truth.list_perp_dexes with the HIP-3/builder names dropped (weakened copy)",
+        "summary": "RED_QUOTE::SELF_M1 the LIVE scope-enumeration predicate is the mutant (builder scopes dropped)\nRESULT::MUT_M1_S1_SWEEP_READS_EVERY_BUILDER_SCOPE_FAIL | reads=[] res={'ok': True, 'held': [], 'dex_count': 1, 'outside_count': 0, 'ms': 1794940970047, 'duration_ms': 4, 'retried_failures': 0}\nRESULT::MUT_M1_ENUM_HAS_DEFAULT_AND_EVERY_HIP3_FAIL | {'ok': True, 'status': 'OK', 'dexes': ['']}\nRESULT::MUT_M1_TRUTH_ROW_CARRIES_ALL_SCOPES_FAIL | {'ok': True, 'status': 'OK', 'net': 1.0, 'scopes': [{'dex': '(default)', 'signed': 1.0}], 'dex_count': 1}\nRESULT::MUT_M1_SCOPED_EXPOSURE_COVERS_DEFAULT_AND_HIP3_PASS\nSELF_MUTANT=M1 (the live predicate is the MUTANT: this run MUST fail)\nTOTAL=4 FAILED=3",
+        "exit_code": 1
+      },
+      "M2": {
+        "what": "exchange_truth.master_account_net with a missing scope SKIPPED instead of failing closed (fail-open copy)",
+        "summary": "RED_QUOTE::SELF_M2 the LIVE truth read is the fail-open mutant (a missing scope is skipped)\nRESULT::MUT_M2_TRUTH_READ_FAILS_CLOSED_ON_MISSING_SCOPE_FAIL | {'ok': True, 'status': 'OK', 'net': 1.0, 'scopes': [{'dex': '(default)', 'signed': 1.0}, {'dex': 'flx', 'signed': 0.0}, {'dex': 'io', 'signed': 0.0}, {'dex': 'xyz', 'signed': 0.0}], 'dex_count': 5}\nSELF_MUTANT=M2 (the live predicate is the MUTANT: this run MUST fail)\nTOTAL=1 FAILED=1",
+        "exit_code": 1
+      }
+    }
+  },
+  "offline_control": {
+    "quote": "RESULT::S0_OFFLINE_NO_NETWORK_READ_PASS\nNET_ATTEMPTS::[('https://api.hyperliquid-testnet.xyz/info', 'meta'), ('https://api.hyperliquid-testnet.xyz/info', 'meta')]",
+    "exit_code": 0,
+    "note": "the only requests.post attempts in the whole run were two 'meta' asset-universe reads issued by run_cycle's own warm path (they raise on the offline stub and are handled); ZERO perpDexs/clearinghouseState reads touched the network"
+  },
+  "proof_network": "OFFLINE",
+  "proof_network_basis": "No testnet read happened in this cycle: every scope-truth read came from an injected fetcher. The row's TESTNET/MAINNET axis describes the plane a PASS needs; this PASS rests on an offline instrument and no network plane was exercised, so the honest value is OFFLINE and the testnet end-to-end execution_proof remains outstanding.",
+  "row_before": {
+    "id": "ENG-INV-08",
+    "area": "ENGINE",
+    "feature": "Build 3 invariant 8",
+    "expected_behaviour": "Startup/recovery truth includes all relevant perp DEX scopes (default + HIP-3/builder); missing required scope fails closed.",
+    "sources": [
+      "hyperliquid-build3-repair/ARCHITECTURE.md",
+      "ARCH inv8",
+      "CONTROL_STATE required_semantics[1]"
+    ],
+    "applicability": "APPLIES",
+    "open_decisions": [],
+    "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+    "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+    "negative_tests": [
+      "restart mid-sequence",
+      "stale leader snapshot",
+      "API 429/timeout",
+      "duplicate/reordered event"
+    ],
+    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
+    "result": "BLOCKED",
+    "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+    "tested_commit": "",
+    "tested_at_utc": "",
+    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+    "proof_network": "TESTNET",
+    "verified": null,
+    "verifier": null,
+    "review_ref": null,
+    "tier": 1,
+    "evidence": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
+  },
+  "row_after": {
+    "id": "ENG-INV-08",
+    "area": "ENGINE",
+    "feature": "Build 3 invariant 8",
+    "expected_behaviour": "Startup/recovery truth includes all relevant perp DEX scopes (default + HIP-3/builder); missing required scope fails closed.",
+    "sources": [
+      "hyperliquid-build3-repair/ARCHITECTURE.md",
+      "ARCH inv8",
+      "CONTROL_STATE required_semantics[1]"
+    ],
+    "applicability": "APPLIES",
+    "open_decisions": [],
+    "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+    "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+    "negative_tests": [
+      "restart mid-sequence",
+      "stale leader snapshot",
+      "API 429/timeout",
+      "duplicate/reordered event"
+    ],
+    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
+    "result": "PASS",
+    "evidence_ref": "certification/results/ENG_INV_08_all_scope_b3c090b.json",
+    "tested_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+    "tested_at_utc": "2026-11-17T18:44:56Z",
+    "notes": "PASS on an OFFLINE instrument at b3c090b. Harness _archive/hl_stage2/test_inv08_all_scope_startup.py: 32 checks / 0 failed / exit 0. S1: the startup/recovery read enumerates the default DEX plus every HIP-3/builder DEX the account holds (4 scopes), READS all of them, and the truth rows carry all of them (sweep result, scope_sweep_state.json, follower_dex_scope, master_account_net.scopes, master_exposure.by_coin). S2: one unreadable required scope gives a NAMED SCOPE_UNAVAILABLE with the ABSENCE of green truth - no held, the earlier green truth withdrawn, the state row not green with held_count 0, the entry gate and the cycle publish the refusal, and the truth reads publish no net. S3: non-vacuity proven by two source-level mutants of the production predicates (weakened enumeration, fail-open truth read) that turn S1/S2 red in-process AND make the suite exit 1 when installed live (INV08_SELFMUTANT=M1|M2). S4 restart mid-sequence: an aborted sweep leaves scopes unproven, a new process declares no green startup truth, re-reads only the unproven scopes and goes green only then. proof_network=OFFLINE: NO testnet read happened this cycle (every read was an injected fetcher), so the row's testnet end-to-end execution_proof and its testnet independent_oracle read remain OUTSTANDING. The eight requested harnesses: 94 checks / 0 failed / all exit 0, but 2 are PARTIAL and 6 NO_COVERAGE for this invariant; the unit-level truth-read half was already covered by test_g3_exchange_truth.py (48 checks, 15 G3 results) - the G3 unit PASS prior_evidence cites. Caveat: with HL_LIVE_GATES_ALERT_ONLY=1 (the operator default) the cycle publishes the scope refusal as an ALERT row and entries proceed (Boss rule 16 Oct); the strict refusal asserted here is with the gate at its blocking setting. Evidence commit: the commit on r4-v2-inv08 that adds certification/results/ENG_INV_08_all_scope_b3c090b.json.",
+    "proof_network": "OFFLINE",
+    "verified": null,
+    "verifier": null,
+    "review_ref": null,
+    "tier": 1,
+    "evidence": "certification/results/ENG_INV_08_all_scope_b3c090b.json"
+  },
+  "row_change_fields": [
+    "evidence",
+    "evidence_ref",
+    "notes",
+    "proof_network",
+    "result",
+    "tested_at_utc",
+    "tested_commit"
+  ]
+}
