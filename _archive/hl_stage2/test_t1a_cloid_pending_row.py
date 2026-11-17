@@ -31,14 +31,25 @@ def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="t1a_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
-                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0",
+                       # isolated machine-wide lock: the physical sender refuses SEND_BLOCKED_NO_SENDER_LEASE unless
+                       # the engine already owns the sender lease (as test_r4_standing_port.py does)
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock"),
+                       # isolated intent-durable barrier dir
+                       "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000"})
+    for _k in ("HL_LIVE_HL_PRIVATE_KEY", "HL_LIVE_HL_ACCOUNT_ADDRESS"):
+        os.environ.pop(_k, None)
     import requests
     import HL_Live_Copy_Service_Core as c
+    # the physical sender requires the engine's machine-wide sender lease before it may touch the exchange
+    c.acquire_global_instance_lock(tmp / "state")
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
     requests.post = offline
     c.requests.post = offline
+    os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64    # placeholder; the fake exchange never signs
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = "0x" + "c" * 40
     c.USER_WALLET = FOLLOWER
     mid = {"f": 100.0, "l": 100.0}
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else ({"BTC": str(mid["f"])} if mid["f"] else {})
@@ -107,6 +118,19 @@ def main() -> None:
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        # the R4 send switch / wallet state / sender lease the physical call requires (run3 fixture seams)
+        gw.cfg.send_mode_now = lambda: "ON"
+        gw.cfg.master_switch_now = lambda: True
+        gw.cfg.wallet_enabled = lambda w: True
+        gw.cfg.wallet_mode = lambda w: "ON"
+        gw.leader_reduced_since = lambda f: 0
+        gw._margin_mode_done = {"BTC"}
+        gw._fresh_exchange_net = lambda coin: 0.0
+        gw._persisted_exchange_positions = lambda: ({"BTC": 0.0}, "")
+        gw._follower_order_account_for_proof = lambda *a, **k: FOLLOWER
+        gw.liq_parity_enabled = lambda: False
+        gw._exchange_rate_limit_cooldown_until_ms = 0
+        gw._last_exchange_order_ms = 0
         return gw
 
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
