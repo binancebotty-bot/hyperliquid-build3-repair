@@ -1486,7 +1486,9 @@ def _exchange_slow_refresh() -> None:
 
 
 def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
-    """Last-good exchange figures plus their age. Reads files and memory only; never the network."""
+    """Last-good exchange figures plus their age. Reads files and memory; on a COLD cache only, it primes
+    the follower account value with one bounded /info read, so a first consumer sees a figure or a stated
+    reason - never an empty object."""
     now = time.time()
     kick = False
     with _SLOW_EXCHANGE_LOCK:
