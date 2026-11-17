@@ -111,7 +111,12 @@ def _group() -> Path:
     resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
-    def gateway(fake):
+    def gateway(fake, send_mode="ON"):
+        # FIX 1: the R4 send switch is written to disk and read back through ConfigManager, so the ON case and
+        # the OFF case both exercise the REAL gate at the physical call - never a stub that forces the path open.
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {
+            "global_controls": {"marketable_bps": 20, "send_mode": send_mode},
+            "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
@@ -119,9 +124,8 @@ def _group() -> Path:
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-        # the R4 send switch / wallet state / sender lease the physical call requires (run3 fixture seams)
-        gw.cfg.send_mode_now = lambda: "ON"
-        gw.cfg.master_switch_now = lambda: True
+        # the wallet state / sender lease the physical call requires (run3 fixture seams). The R4 send switch
+        # is NOT stubbed any more: gateway() writes it to disk and the real ConfigManager reads it (FIX 1).
         gw.cfg.wallet_enabled = lambda w: True
         gw.cfg.wallet_mode = lambda w: "ON"
         gw.leader_reduced_since = lambda f: 0
@@ -134,9 +138,8 @@ def _group() -> Path:
         gw._last_exchange_order_ms = 0
         return gw
 
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
-                                             "wallets": {LEADER: {"enabled": True, "mode": "ON",
-                                                                  "copy_mode": "fixed", "fixed_notional": 1000}}})
+    # the live config (marketable bps, the wallet row and the R4 send switch) is written by gateway() per case,
+    # so the switch each case sends under is the REAL one on disk (FIX 1)
     seq = [0]
 
     def fill(side="BUY", price=100.0, size=1.0):
@@ -212,15 +215,10 @@ def _group() -> Path:
           and "AUDIT_WRITE_FAILED" in str(status3), f"{ok3} {status3} {fake3.calls}")
 
     # ---- A14: the send switch OFF must send NOTHING (assert the ABSENCE of the exchange call) --------
-    # The switch is set OFF on disk and the group's own fixture is used unchanged: if the fixture forces
-    # the send path open, this check fails, and that failure IS the point - a group whose fixture forces
-    # the gate open can never see a "send OFF sends nothing" regression.
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False,
-                                             "global_controls": {"marketable_bps": 20, "send_mode": "OFF"},
-                                             "wallets": {LEADER: {"enabled": True, "mode": "ON",
-                                                                  "copy_mode": "fixed", "fixed_notional": 1000}}})
+    # The switch goes OFF on disk and through the real ConfigManager; if the gate ever stops consulting it, this
+    # case fails on the exchange call itself, not on a status string.
     fake_off = FakeExchange()
-    gw = gateway(fake_off)  # send() drives this binding, exactly as the A13 case does
+    gw = gateway(fake_off, send_mode="OFF")  # send() drives this binding, exactly as the A13 case does
     ok_off, status_off, res_off, intent_off = send(fake_off, follower=100.0)
     named_off = str((res_off or {}).get("notes") or "") + "|" + str((res_off or {}).get("error") or "")
     check("A14_SEND_OFF_SENDS_NOTHING",
@@ -234,8 +232,16 @@ def _group() -> Path:
 
 def main() -> None:
     """Run the group, then prove the machine-wide sender lease cannot leak into a later test."""
-    tmp = _group()
-    import HL_Live_Copy_Service_Core as c  # already imported by _group(); bind the module here too
+    try:
+        tmp = _group()
+    finally:
+        # FIX 2: the machine-wide sender lease is process-global; it must never outlive the run, or the next
+        # test in this process is refused as "another engine". Look the module up instead of importing it
+        # here: if _group died before its own import, the environment is not isolated yet.
+        _core = sys.modules.get("HL_Live_Copy_Service_Core")
+        if _core is not None:
+            _core.release_global_instance_lock()
+    import HL_Live_Copy_Service_Core as c  # already imported by _group(); the same cached module
     # A15: the one sender lease is process-global. If the group leaves it held, the NEXT test in this
     # process is refused as "another engine" - so re-acquire after the group and require it to work.
     lease_free = True
@@ -257,7 +263,7 @@ def main() -> None:
 def test_t1a_cloid_pending_row_group():
     """pytest entry point for the t1a cloid/pending-send group.
 
-    The group's 14 RESULT:: checks live in main(); this wrapper makes the file
+    The group's 16 RESULT:: checks live in _group(); this wrapper makes the file
     collectable by pytest (the acceptance requires a collectable test, not a
     bare script). It asserts the group's own exit status: 0 == all checks pass.
     """
