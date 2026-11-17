@@ -1,0 +1,231 @@
+{
+  "card": "t_6d09b4b5",
+  "subject": "R4 v2 t1a - per-invariant coverage map with real harness output at 4881ee1",
+  "generated_at_utc": "2026-11-17T18:02:19Z",
+  "tree": "C:/Users/wigmore/oc-runs/r4-v2-t1a",
+  "branch": "r4-v2-t1a",
+  "git_rev_parse_HEAD": "4881ee109780cc028a3e8bf9382058b390653b97",
+  "git_status_porcelain": "",
+  "tree_clean": true,
+  "instrument": {
+    "python": "Python 3.14.9 (the python on PATH for this shell)",
+    "cwd": "C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2",
+    "runner": "HL_LIVE_ENV_FILE=/nonexistent python -u <harness>.py (offline, testnet env vars set inside the harness)",
+    "wall_clock_guard": "timeout 300",
+    "network": "none - every harness builds its own temp state dir and fakes only DATA sources"
+  },
+  "invariants": {
+    "1_CLOSES_SACRED": {
+      "harness": "test_core_c7_close_must_send.py",
+      "path": "_archive/hl_stage2/test_core_c7_close_must_send.py",
+      "sha256": "5e4c877c685bdb5873cac4414af3304454bcfd0979d9c5d6646464babcb30102",
+      "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_c7_close_must_send.py",
+      "total": 17,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PASS",
+      "proves": "A close of an OPEN engine sleeve always reaches the wire (W3A, B_REAL_SEND exchange_called True); the ONLY no-send for an exit/reduce intent is the named SEND_NOT_ATTEMPTED_STALE_OR_CONSUMED_FLAT_SLEEVE status, and only when the sleeve is PROVEN flat AND the fill is proven stale or terminally consumed (W1, RESTART). An unreadable exchange never claims flat (W6A), so it cannot silently drop a close either.",
+      "quote": [
+        "RESULT::W1_STALE_REPLAY_ON_FLAT_SLEEVE_IS_A_NAMED_NO_SEND_WITH_ONE_DURABLE_ROW_PASS",
+        "RESULT::W3A_LIVE_SLEEVE_CLOSE_SENDS_REDUCE_ONLY_PASS",
+        "RESULT::W3B_USER_RESIDUAL_ON_THE_COIN_ENGINE_CLOSE_OF_ITS_OWN_SLEEVE_STILL_SENDS_PASS",
+        "RESULT::B_REAL_SEND_A_REDUCE_ONLY_CLOSE_REACHES_THE_SDK_EXCHANGE_CALLED_TRUE_PASS",
+        "RESULT::W6A_UNREADABLE_EXCHANGE_NEVER_CLAIMS_FLAT_PASS",
+        "RESULT::RESTART_CONSUMED_EXIT_INTENT_AGAINST_FLAT_LEDGER_AND_FLAT_EXCHANGE_OPENS_NOTHING_PASS",
+        "TOTAL=17 FAILED=0"
+      ],
+      "note": "Chosen over test_core_close_proof_signer.py: that harness proves the close-PROOF signer/account resolution, not that a close is never dropped. It is green anyway (see alternates)."
+    },
+    "2_ENGINE_NEVER_ADOPTS_OR_CLOSES_A_POSITION_IT_DID_NOT_OPEN": {
+      "harness": "test_core_adopt_oid.py",
+      "path": "_archive/hl_stage2/test_core_adopt_oid.py",
+      "sha256": "9632f14c3b9a50104164f3b7a873f3337f55592d0893d1918e55aa5ab5c5930d",
+      "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_adopt_oid.py",
+      "total": 18,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PASS",
+      "proves": "Adoption is refuse-by-default: no exchange fill, no send row, no ledger row or no matching intent -> the orphan oid is REFUSED and left untouched (F1-F4, F7), only an explicitly flagged adoption books it (F5), adoption performs no exchange write at all (N1), and a second run finds it already owned (D3). The close/entry half - never touching a position the sleeves do not explain - is witnessed separately, see corroboration.",
+      "quote": [
+        "RESULT::F5_ADOPTION_REFUSES_WITHOUT_THE_FLAG_PASS",
+        "RESULT::F1_NO_EXCHANGE_FILL_REFUSED_PASS",
+        "RESULT::F2_ALREADY_IN_A_SEND_ROW_REFUSED_PASS",
+        "RESULT::F3_ALREADY_IN_THE_LEDGER_REFUSED_PASS",
+        "RESULT::F4_NO_MATCHING_INTENT_REFUSED_PASS",
+        "RESULT::D3_SECOND_RUN_FINDS_IT_ALREADY_OWNED_PASS",
+        "RESULT::N1_ADOPTION_HAS_NO_EXCHANGE_WRITE_PASS",
+        "TOTAL=18 FAILED=0"
+      ],
+      "note": "Corroboration for the CLOSE half, same tree, same SHA: test_core_refusal_remedy_ownership.py (TOTAL=8 FAILED=0 exit 0 - no remedy order for an unowned coin) and the G3 gate witnesses in test_core_run3_fixes.py (G3_REAL_UNEXPLAINED_STILL_BLOCKED, G3_NO_ENTRIES_IN_A_COIN_IT_COULD_NOT_CLOSE, G3_NO_ENTRIES_AGAINST_AN_OPPOSITE_UNEXPLAINED_POSITION, G3_SIGN_CONFLICT_STILL_BLOCKED - all PASS in that run)."
+    },
+    "3_SEND_OFF_SENDS_NOTHING": {
+      "verdict": "PASS",
+      "proves": "Two layers. (a) Config layer: an OFF/invalid/missing/corrupt send switch never arms real orders (master_real_orders_enabled is False) and the switch round-trips reload. (b) Wire layer: A14 in the t1a group sets the switch OFF and asserts NO exchange call is made at all.",
+      "harnesses": [
+        {
+          "harness": "test_core_send_mode_fails_closed.py",
+          "path": "_archive/hl_stage2/test_core_send_mode_fails_closed.py",
+          "sha256": "fc5b297c67324f1d9a7ddf5b7fed8cb951cbac918a713c3f96f48c4445e08a2b",
+          "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_send_mode_fails_closed.py",
+          "total": 13,
+          "failed": 0,
+          "exit_code": 0,
+          "verdict": "PASS",
+          "proves": "Config cannot be tricked into arming: invalid send_mode, invalid auto_send_enabled, missing mode with the legacy env switch ON, and corrupt JSON all leave real orders DISARMED; send_mode OFF arms=False while CLOSE/ON arm=True, and the value survives reload.",
+          "quote": [
+            "PASS invalid send_mode does not arm sending",
+            "PASS missing mode + legacy env ON sends nothing",
+            "PASS corrupt config + legacy env ON sends nothing",
+            "PASS send_mode OFF arms=False",
+            "TOTAL=13 FAILED=0"
+          ]
+        },
+        {
+          "harness": "test_t1a_cloid_pending_row.py",
+          "path": "_archive/hl_stage2/test_t1a_cloid_pending_row.py",
+          "sha256": "a5ff69ae53d1f6f38190a2132e38be4cbde26f4e0c6825c75e213abf69192389",
+          "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_t1a_cloid_pending_row.py",
+          "total": 16,
+          "failed": 0,
+          "exit_code": 0,
+          "verdict": "PASS",
+          "proves": "Wire layer: with send_mode OFF, A14 drives the send seam and asserts nothing reaches the exchange; A13 (pending-write failure sends nothing) and A15 (sender lease released) are the neighbouring guards in the same group.",
+          "quote": [
+            "RESULT::A13_PENDING_WRITE_FAILURE_SENDS_NOTHING_PASS",
+            "RESULT::A14_SEND_OFF_SENDS_NOTHING_PASS",
+            "RESULT::A15_SENDER_LEASE_RELEASED_AFTER_RUN_PASS",
+            "TOTAL=16 FAILED=0"
+          ]
+        }
+      ],
+      "note": "The t1a group is pytest-collectable as well; see pytest record below."
+    },
+    "4_SAME_SIDE_FOREIGN_EXCESS_CLOSE_CLAMPED_TO_THE_COPY_OWNED_SLEEVE": {
+      "harness": "test_c1_close_scopes_r2.py",
+      "path": "_archive/hl_stage2/test_c1_close_scopes_r2.py",
+      "sha256": "1d0f679ee2aa74273a296588791f91bef8cc8b7505c8ea390fa45788ba483bdc",
+      "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_c1_close_scopes_r2.py",
+      "total": 31,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PASS",
+      "proves": "The close scope is bounded by the copy-owned sleeve on the PHYSICAL WIRE: the wire order is asserted for exact size/reduce_only/account route, the foreign/user residual is asserted untouched, a foreign misroute is detected by the negative twin, and the mutant oracle proves the clamp is load-bearing (a clamp-less or exchange-net-sized close is scored RED).",
+      "quote": [
+        "RESULT::A1_WALLET_CLO_FLIP_PHYSICAL_WIRE_PASS | ok=True status='ORDER_FILLED' calls=[{'coin': 'BTC', 'is_buy': False, 'size': 1.0, 'px': 99.8, 'reduce_only': False, 'cloid': '0x7c943d41494beffe1076fc1dd9f41f7b'}]",
+        "RESULT::A2_GLOBAL_CLOSE_CLAMP_OWED_PHYSICAL_WIRE_PASS | ok=True status='ORDER_FILLED' calls=[{'coin': 'BTC', 'is_buy': False, 'size': 1.5, 'px': 99.8, 'reduce_only': True, 'cloid': '0x95072f33607c10c0cc1c3c335bfc23ae'}]",
+        "RESULT::A2_GLOBAL_CLOSE_CLAMP_OWED_EXCHANGE_NET_PASS | actual_exchange=0.0 expected=0.0",
+        "RESULT::A2_GLOBAL_CLOSE_CLAMP_OWED_DURABLE_OWED_REMAINDER_PASS | owed=0.5 entries=[{'coin': 'BTC', 'first_seen_ms': 1794938339297, 'intent_id': 'c1-r2-A2_GLOBAL_CLOSE_CLAMP_OWED', 'last_seen_ms': 1794938339297, 'leader_fill_id': 'c1-r2-A2_GLOBAL_CLOSE_CLAMP_OWED', 'reason': 'CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED', 'state': 'OPEN', 'terminal_rule': 'ENGINE_SLEEVE_AND_FRESH_EXCHANGE_NET_BOTH_FLAT', 'wallet': '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}]",
+        "RESULT::C_USER_RESIDUAL_USER_AND_FOREIGN_UNTOUCHED_PASS | owned=0.3 exchange=4.8 user=4.5 foreign_calls=[] foreign_net=7.0",
+        "RESULT::C_FOREIGN_MISROUTE_NEGATIVE_DETECTED_PASS | send=True/'ORDER_FILLED' foreign_calls=[{'coin': 'BTC', 'is_buy': False, 'size': 0.5, 'px': 99.8, 'reduce_only': True, 'cloid': '0x36ed1e3a9cab4ebc116228a80fdea7e7'}] follower_calls=[]",
+        "RESULT::MUTANT_ORACLE_B_CLAMP_PASS | [{'is_buy': False, 'size': 1.5, 'reduce_only': True}]",
+        "RESULT::MUTANT_ORACLE_C_USE_EXCHANGE_NET_PASS | [{'is_buy': False, 'size': 5.3, 'reduce_only': True}]",
+        "TOTAL=31 FAILED=0"
+      ],
+      "note": "Corroborated in the same tree/SHA by test_core_run3_fixes.py: G3_CLOSE_ALLOWED_SAME_SIDE_EXCESS_R1_PASS and G3_CLOSE_SAME_SIDE_EXCESS_IS_CLAMPED_TO_OWNED_PASS (a close sized 1.5 against a 1.0 sleeve goes out at the 1.0 sleeve on the wire). That harness exits 1 overall because of N9_NO_CATCH_UP_NO_BLIND_RESEND - proven pre-existing at the base commit b3c090b with identical output (see evidence_limits), unrelated to this invariant; the two clamp witnesses themselves PASS in the same run."
+    }
+  },
+  "candidates_examined_but_off_topic": {
+    "test_core_pair_anchor_clamp": {
+      "sha256": "93cbd0967758f763d260648578d453008b911d9808d53c6be3d501856133c1fd",
+      "total": 17,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "NO_COVERAGE_FOR_EITHER_LISTED_INVARIANT",
+      "actually_proves": "The fill-polling CURSOR anchor in the dedupe store (fresh seed never reads before the anchor, cursor never decreases / never falls below the anchor, restart reaches back past live start, retention floor includes the anchor). This is a poll-position anchor, NOT a position-size clamp.",
+      "quote": [
+        "RESULT::FRESH_SEED_NEVER_READS_BEFORE_THE_ANCHOR_PASS",
+        "RESULT::CURSOR_NEVER_FALLS_BELOW_THE_ANCHOR_PASS",
+        "RESULT::RETENTION_FLOOR_INCLUDES_THE_ANCHOR_PASS",
+        "TOTAL=17 FAILED=0"
+      ]
+    },
+    "test_flat_clear_global_close_clamped": {
+      "sha256": "6d3bcd99b30e6b3bdce1da9899c183c687c1586aeb52431b34520706bbe6c461",
+      "total": 3,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "PARTIAL_ONLY_FOR_INVARIANT_4_LIFECYCLE_NOT_THE_CLAMP",
+      "actually_proves": "The lifecycle of a CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED owed row: it clears on position flat (engine sleeve AND fresh same-account exchange net both flat), and does NOT clear on a stale or unreadable exchange read. It exercises the clamp row AFTER the clamp already happened; it never sizes a close or shows the wire order.",
+      "quote": [
+        "RESULT::FLAT_CLEARS_PASS  cleared=1 after={}",
+        "RESULT::STALE_NO_CLEAR_PASS  cleared=0 after={'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::BTC': {'coin': 'BTC', 'reason': 'CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED', 'state': 'OPEN', 'terminal_rule': 'ENGINE_SLEEVE_AND_FRESH_EXCHANGE_NET_BOTH_FLAT', 'wallet': '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}}",
+        "RESULT::UNREADABLE_NO_CLEAR_PASS  cleared=0 after={'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::BTC': {'coin': 'BTC', 'reason': 'CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED', 'state': 'OPEN', 'terminal_rule': 'ENGINE_SLEEVE_AND_FRESH_EXCHANGE_NET_BOTH_FLAT', 'wallet': '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}}",
+        "TOTAL=3 FAILED=0"
+      ]
+    },
+    "test_core_close_proof_signer": {
+      "sha256": "b0a3bb9bfbd386c085bf1cf5fa1c2b2aa6cee6ff455b771a4a9daca36d73340f",
+      "total": 3,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "GREEN_BUT_PROVES_THE_PROOF_SIGNER_NOT_THE_MUST_SEND_RULE",
+      "actually_proves": "The close prover names the account the SDK actually signs for (agent-signed and self-signed both send; env naming a different account still HOLDS with no wire call).",
+      "quote": [
+        "RESULT::CS_I3_F1_AGENT_SIGNED_PROVES_ENV_ACCOUNT_AND_SENDS_PASS",
+        "RESULT::CS_I3_F3_NEGATIVE_ENV_OTHER_ACCOUNT_STILL_HOLDS_PASS",
+        "TOTAL=3 FAILED=0"
+      ]
+    },
+    "test_core_refusal_remedy_ownership": {
+      "sha256": "23b1f05b93453751a224ff9c581b867000eabd3927fa2f6d26d2759abb2c967d",
+      "total": 8,
+      "failed": 0,
+      "exit_code": 0,
+      "verdict": "SUPPORTS_INVARIANT_2",
+      "actually_proves": "The refusal remedy never places an order from a stale intent for a coin the engine does not own, while a legitimate remedy still runs.",
+      "quote": [
+        "RESULT::NO_ORDER_FOR_UNOWNED_BTC_PASS",
+        "RESULT::NO_ORDER_FOR_UNOWNED_CRCL_PASS",
+        "RESULT::NO_ORDER_FOR_UNOWNED_ORCL_PASS",
+        "RESULT::NO_ORDER_FOR_UNOWNED_LLY_PASS",
+        "RESULT::A_LEGITIMATE_REMEDY_STILL_RUNS_PASS",
+        "TOTAL=8 FAILED=0"
+      ]
+    }
+  },
+  "harness_sha256": {
+    "test_c1_close_scopes_r2.py": "1d0f679ee2aa74273a296588791f91bef8cc8b7505c8ea390fa45788ba483bdc",
+    "test_core_adopt_oid.py": "9632f14c3b9a50104164f3b7a873f3337f55592d0893d1918e55aa5ab5c5930d",
+    "test_core_c7_close_must_send.py": "5e4c877c685bdb5873cac4414af3304454bcfd0979d9c5d6646464babcb30102",
+    "test_core_close_proof_signer.py": "b0a3bb9bfbd386c085bf1cf5fa1c2b2aa6cee6ff455b771a4a9daca36d73340f",
+    "test_core_pair_anchor_clamp.py": "93cbd0967758f763d260648578d453008b911d9808d53c6be3d501856133c1fd",
+    "test_core_refusal_remedy_ownership.py": "23b1f05b93453751a224ff9c581b867000eabd3927fa2f6d26d2759abb2c967d",
+    "test_core_run3_fixes.py": "7b75038d63171f5caf14bb4b9a62da26de8d9cf42e88984ed0bd9ed2ce4af211",
+    "test_core_send_mode_fails_closed.py": "fc5b297c67324f1d9a7ddf5b7fed8cb951cbac918a713c3f96f48c4445e08a2b",
+    "test_flat_clear_global_close_clamped.py": "6d3bcd99b30e6b3bdce1da9899c183c687c1586aeb52431b34520706bbe6c461",
+    "test_t1a_cloid_pending_row.py": "a5ff69ae53d1f6f38190a2132e38be4cbde26f4e0c6825c75e213abf69192389"
+  },
+  "evidence_limits": [
+    "test_core_run3_fixes.py is RED at this SHA (TOTAL=63 FAILED=1, exit 1). Its single failure N9_NO_CATCH_UP_NO_BLIND_RESEND was re-run at the base commit b3c090b in a throwaway worktree and reproduced identically there (TOTAL=63 FAILED=1, same N9 line, exit 1), so it is pre-existing and not caused by the t1a test-only commits. It is outside the four invariants; this card does not fix it.",
+    "test_core_c7_close_must_send.py and test_c1_close_scopes_r2.py are standalone (non-pytest) harnesses that print RESULT:: markers and a TOTAL line - pytest collection of them is not claimed here.",
+    "All four verdicts rest on synthetic/fake DATA sources with the real sender and ownership gates: no mainnet, no network, no live exchange. They prove the ENGINE predicates, not a live-account certification."
+  ],
+  "corroborating_harness_red_overall": {
+    "harness": "test_core_run3_fixes.py",
+    "path": "_archive/hl_stage2/test_core_run3_fixes.py",
+    "sha256": "7b75038d63171f5caf14bb4b9a62da26de8d9cf42e88984ed0bd9ed2ce4af211",
+    "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_run3_fixes.py",
+    "total": 63,
+    "failed": 1,
+    "exit_code": 1,
+    "verdict": "RED_OVERALL_ONE_UNRELATED_PRE_EXISTING_FAILURE",
+    "relevant_witnesses_verdict": "PASS",
+    "quote": [
+      "RESULT::N9_NO_CATCH_UP_NO_BLIND_RESEND_FAIL | SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD []",
+      "RESULT::G3_CLOSE_ALLOWED_SAME_SIDE_EXCESS_R1_PASS",
+      "RESULT::G3_CLOSE_SAME_SIDE_EXCESS_IS_CLAMPED_TO_OWNED_PASS",
+      "RESULT::G3_NO_ENTRIES_IN_A_COIN_IT_COULD_NOT_CLOSE_PASS",
+      "RESULT::G3_NO_ENTRIES_AGAINST_AN_OPPOSITE_UNEXPLAINED_POSITION_PASS",
+      "RESULT::G3_REAL_UNEXPLAINED_STILL_BLOCKED_PASS",
+      "TOTAL=63 FAILED=1"
+    ],
+    "the_one_failure": "N9_NO_CATCH_UP_NO_BLIND_RESEND_FAIL | SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD [] - the catch-up / no-blind-resend case, unrelated to the four invariants."
+  },
+  "pytest_record": {
+    "command": "cd C:/Users/wigmore/oc-runs/r4-v2-t1a && HL_LIVE_ENV_FILE=/nonexistent python -m pytest -q _archive/hl_stage2/test_t1a_cloid_pending_row.py",
+    "output": [
+      ".                                                                        [100%]",
+      "1 passed in 3.88s"
+    ]
+  }
+}
