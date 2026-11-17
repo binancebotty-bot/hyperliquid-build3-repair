@@ -1,0 +1,104 @@
+{
+ "row_id": "ENG-INV-07",
+ "invariant_text": "Leader mutable state is isolated by (wallet, coin).",
+ "head_sha": "07eca432154673ed639b6fda6553d6355d820735",
+ "evaluated_commit": "07eca432154673ed639b6fda6553d6355d820735",
+ "harness_path": "_archive/hl_stage2/test_inv07_wallet_coin_isolation.py",
+ "harness_sha256": "2c2c649be00832e1db6db060261415a8742f731762950daf6c9667af904afb97",
+ "harness_bytes": 26095,
+ "harness_engine_modules_imported": [
+  "HL_Live_Copy_Service_Core (ManualLedger, IntentBuilder)",
+  "HL_Live_Copy_Service (pure per-wallet sizing helpers)"
+ ],
+ "harness_mocks": "none - real ManualLedger(path=...) and IntentBuilder(CFG, ledger) instances are constructed",
+ "tested_at_utc": "2026-11-17T18:36:51Z",
+ "run1": {
+  "command": "cd C:/Users/wigmore/oc-runs/r4-v2-inv07/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv07_wallet_coin_isolation.py",
+  "cwd": "C:/Users/wigmore/oc-runs/r4-v2-inv07/_archive/hl_stage2",
+  "exit_code": 0,
+  "total": 36,
+  "failed": 0,
+  "log_sha256": "74f89535c3b04207fc6a85e1772f9c065090e5d42a221cdf9af4ca1b0ca79932",
+  "quote": "ENG-INV-07 controlled two-leader (wallet, coin) isolation proof\ntree=C:\\Users\\wigmore\\oc-runs\\r4-v2-inv07\\_archive\\hl_stage2 ledger_keys=sleeve_id/position_id/by_wallet\nwallets A=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa fixed=100.0  B=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb fixed=250.0  prices={'BTC': 100.0, 'ETH': 50.0}\nRESULT::I1_SLEEVE_IDS_WALLET_SCOPED_PASS\nRESULT::I1_SLEEVE_ROWS_ARE_DISTINCT_OBJECTS_PASS\nRESULT::I1_A1_SIZES_A_SLEEVE_AND_LEAVES_B_UNTOUCHED_PASS\nRESULT::I1_B1_SIZES_B_SLEEVE_AND_LEAVES_A_UNTOUCHED_PASS\nRESULT::I1_A2_ADDS_TO_A_ONLY_PASS\nRESULT::I1_B2_ADDS_TO_B_ONLY_PASS\nRESULT::I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE_PASS\nRESULT::I1_POSITION_IDS_ARE_WALLET_SCOPED_AND_DISTINCT_PASS\nRESULT::I1_DESIRED_NET_PER_SLEEVE_IS_ITS_OWN_PASS\nRESULT::I1_DESIRED_NET_A_UNMOVED_BY_B_LEADERS_SIGN_FLIP_PASS\nRESULT::I1_ACCOUNT_COIN_NET_IS_THE_SUM_OF_THE_TWO_SLEEVES_PASS\nRESULT::I2_SLEEVE_IDS_COIN_SCOPED_PASS\nRESULT::I2_BTC_FILL_NEVER_MOVES_THE_ETH_SLEEVE_PASS\nRESULT::I2_ETH_FILL_NEVER_MOVES_THE_BTC_SLEEVE_PASS\nRESULT::I2_SECOND_BTC_FILL_STILL_LEAVES_ETH_ALONE_PASS\nRESULT::I2_PER_COIN_NETS_ARE_SEPARATE_PASS\nRESULT::I2_POSITION_IDS_DIFFER_ACROSS_COINS_PASS\nRESULT::I3_PRECONDITION_A_FLAT_B_LONG_PASS\nRESULT::I3_CLOSE_FOR_B_READS_B_SLEEVE_ONLY_PASS\nRESULT::I3_BUILDING_B_CLOSE_DOES_NOT_WRITE_A_SLEEVE_PASS\nRESULT::I3_FLAT_WALLET_CLOSE_EVENT_IS_REFUSED_NOT_ADOPTED_PASS\nRESULT::I3_B_CLOSE_NEVER_ADOPTS_INTO_A_PASS\nRESULT::I3_CLOSE_SIZE_COMES_FROM_ITS_OWN_ANCHOR_PASS\nRESULT::I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET_PASS\nRESULT::I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED_PASS\nRESULT::I3_B_CLOSE_SHRANK_B_ONLY_PASS\nRESULT::I4_REBUILD_FROM_OWN_ROWS_REPRODUCES_EVERY_SLEEVE_PASS\nRESULT::I4_LEDGER_KEYED_BY_WALLET_THEN_COIN_PASS\nRESULT::I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD_PASS\nRESULT::I4_UNKNOWN_WALLET_READS_FLAT_NOT_ANOTHER_WALLET_PASS\nRESULT::I4_NO_SHARED_MUTABLE_DEFAULT_BETWEEN_SLEEVES_PASS\nRESULT::I4_SEPARATE_SLEEVE_ROWS_PER_WALLET_AND_COIN_PASS\nRESULT::I4_TWO_LEDGER_INSTANCES_DO_NOT_SHARE_STATE_PASS\nRESULT::I5_MUTATION_APPLIED_TO_THE_SCRATCH_COPY_PASS\nMUTATION::child_rc=1 reddened=5 checks log=C:\\Users\\wigmore\\AppData\\Local\\Temp\\inv07_xujz8ih6\\i5_mutation_child.log\nMUTATION::RED::I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE\nMUTATION::RED::I1_SLEEVE_IDS_WALLET_SCOPED\nMUTATION::RED::I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET\nMUTATION::RED::I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED\nMUTATION::RED::I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD\nMUTATION::child_TOTAL=33 FAILED=5\nRESULT::I5_MUTATED_TREE_FAILS_THE_HARNESS_PASS\nRESULT::I5_MUTATION_REDDENS_THE_ISOLATION_CHECKS_PASS\nTOTAL=36 FAILED=0\n"
+ },
+ "run2": {
+  "command": "cd C:/Users/wigmore/oc-runs/r4-v2-inv07/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv07_wallet_coin_isolation.py",
+  "cwd": "C:/Users/wigmore/oc-runs/r4-v2-inv07/_archive/hl_stage2",
+  "exit_code": 0,
+  "total": 36,
+  "failed": 0,
+  "log_sha256": "2c819ce61b976dd63a3f8f31f7203ac335dad90bef6366a2e2df966846fa0ad3",
+  "quote": "ENG-INV-07 controlled two-leader (wallet, coin) isolation proof\ntree=C:\\Users\\wigmore\\oc-runs\\r4-v2-inv07\\_archive\\hl_stage2 ledger_keys=sleeve_id/position_id/by_wallet\nwallets A=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa fixed=100.0  B=0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb fixed=250.0  prices={'BTC': 100.0, 'ETH': 50.0}\nRESULT::I1_SLEEVE_IDS_WALLET_SCOPED_PASS\nRESULT::I1_SLEEVE_ROWS_ARE_DISTINCT_OBJECTS_PASS\nRESULT::I1_A1_SIZES_A_SLEEVE_AND_LEAVES_B_UNTOUCHED_PASS\nRESULT::I1_B1_SIZES_B_SLEEVE_AND_LEAVES_A_UNTOUCHED_PASS\nRESULT::I1_A2_ADDS_TO_A_ONLY_PASS\nRESULT::I1_B2_ADDS_TO_B_ONLY_PASS\nRESULT::I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE_PASS\nRESULT::I1_POSITION_IDS_ARE_WALLET_SCOPED_AND_DISTINCT_PASS\nRESULT::I1_DESIRED_NET_PER_SLEEVE_IS_ITS_OWN_PASS\nRESULT::I1_DESIRED_NET_A_UNMOVED_BY_B_LEADERS_SIGN_FLIP_PASS\nRESULT::I1_ACCOUNT_COIN_NET_IS_THE_SUM_OF_THE_TWO_SLEEVES_PASS\nRESULT::I2_SLEEVE_IDS_COIN_SCOPED_PASS\nRESULT::I2_BTC_FILL_NEVER_MOVES_THE_ETH_SLEEVE_PASS\nRESULT::I2_ETH_FILL_NEVER_MOVES_THE_BTC_SLEEVE_PASS\nRESULT::I2_SECOND_BTC_FILL_STILL_LEAVES_ETH_ALONE_PASS\nRESULT::I2_PER_COIN_NETS_ARE_SEPARATE_PASS\nRESULT::I2_POSITION_IDS_DIFFER_ACROSS_COINS_PASS\nRESULT::I3_PRECONDITION_A_FLAT_B_LONG_PASS\nRESULT::I3_CLOSE_FOR_B_READS_B_SLEEVE_ONLY_PASS\nRESULT::I3_BUILDING_B_CLOSE_DOES_NOT_WRITE_A_SLEEVE_PASS\nRESULT::I3_FLAT_WALLET_CLOSE_EVENT_IS_REFUSED_NOT_ADOPTED_PASS\nRESULT::I3_B_CLOSE_NEVER_ADOPTS_INTO_A_PASS\nRESULT::I3_CLOSE_SIZE_COMES_FROM_ITS_OWN_ANCHOR_PASS\nRESULT::I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET_PASS\nRESULT::I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED_PASS\nRESULT::I3_B_CLOSE_SHRANK_B_ONLY_PASS\nRESULT::I4_REBUILD_FROM_OWN_ROWS_REPRODUCES_EVERY_SLEEVE_PASS\nRESULT::I4_LEDGER_KEYED_BY_WALLET_THEN_COIN_PASS\nRESULT::I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD_PASS\nRESULT::I4_UNKNOWN_WALLET_READS_FLAT_NOT_ANOTHER_WALLET_PASS\nRESULT::I4_NO_SHARED_MUTABLE_DEFAULT_BETWEEN_SLEEVES_PASS\nRESULT::I4_SEPARATE_SLEEVE_ROWS_PER_WALLET_AND_COIN_PASS\nRESULT::I4_TWO_LEDGER_INSTANCES_DO_NOT_SHARE_STATE_PASS\nRESULT::I5_MUTATION_APPLIED_TO_THE_SCRATCH_COPY_PASS\nMUTATION::child_rc=1 reddened=5 checks log=C:\\Users\\wigmore\\AppData\\Local\\Temp\\inv07_hwbor5qd\\i5_mutation_child.log\nMUTATION::RED::I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE\nMUTATION::RED::I1_SLEEVE_IDS_WALLET_SCOPED\nMUTATION::RED::I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET\nMUTATION::RED::I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED\nMUTATION::RED::I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD\nMUTATION::child_TOTAL=33 FAILED=5\nRESULT::I5_MUTATED_TREE_FAILS_THE_HARNESS_PASS\nRESULT::I5_MUTATION_REDDENS_THE_ISOLATION_CHECKS_PASS\nTOTAL=36 FAILED=0\n"
+ },
+ "run_equivalence": {
+  "method": "byte diff of both logs after normalising only the mutation child temp dir (inv07_<rand> -> inv07_TMP)",
+  "identical": true,
+  "note": "the only per-run variance is the tempdir name of the mutation child copy"
+ },
+ "mutation_control": {
+  "command": "cd C:/Users/wigmore/oc-runs/r4-v2-inv07/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv07_wallet_coin_isolation.py",
+  "description": "the harness copies the engine to a scratch tree, applies a coin-only (sleeve-key) mutation, and re-runs the same checks in a child process",
+  "exit_code": 1,
+  "exit_code_meaning": "the MUTATION child process exit code (rc=1 = the mutated tree is caught)",
+  "parent_exit_code": 0,
+  "total": 33,
+  "failed": 5,
+  "reddened_checks": [
+   "I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE",
+   "I1_SLEEVE_IDS_WALLET_SCOPED",
+   "I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET",
+   "I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED",
+   "I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD"
+  ],
+  "quote": "RESULT::I5_MUTATION_APPLIED_TO_THE_SCRATCH_COPY_PASS\nMUTATION::child_rc=1 reddened=5 checks log=C:\\Users\\wigmore\\AppData\\Local\\Temp\\inv07_xujz8ih6\\i5_mutation_child.log\nMUTATION::RED::I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE\nMUTATION::RED::I1_SLEEVE_IDS_WALLET_SCOPED\nMUTATION::RED::I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET\nMUTATION::RED::I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED\nMUTATION::RED::I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD\nMUTATION::child_TOTAL=33 FAILED=5\nRESULT::I5_MUTATED_TREE_FAILS_THE_HARNESS_PASS\nRESULT::I5_MUTATION_REDDENS_THE_ISOLATION_CHECKS_PASS",
+  "run2_same": true
+ },
+ "non_vacuity": {
+  "claim": "the green run is not vacuous: a single coin-only mutation of the sleeve keying reddens 5 isolation checks and returns child rc=1",
+  "reddened_count": 5
+ },
+ "row_verdict_before": {
+  "result": "FAIL",
+  "tested_commit": "",
+  "evidence_ref": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json"
+ },
+ "row_verdict_after": {
+  "result": "PASS",
+  "tested_commit": "07eca432154673ed639b6fda6553d6355d820735",
+  "tested_at_utc": "2026-11-17T18:36:51Z",
+  "evidence_ref": "certification/results/ENG_INV_07_promotion_07eca43.json",
+  "evidence": "certification/results/ENG_INV_07_promotion_07eca43.json",
+  "prior_evidence": "certification/results/ENG_INV_07_wallet_coin_isolation_c8528f900d8fac646c14ded200ac7a4d8c6174e9.json",
+  "verified": null,
+  "verifier": null,
+  "review_ref": null
+ },
+ "matrix_diff": "diff --git a/certification/certification_matrix.json b/certification/certification_matrix.json\nindex e9c8a1e..80c0c11 100644\n--- a/certification/certification_matrix.json\n+++ b/certification/certification_matrix.json\n@@ -794,12 +794,12 @@\n     \"API 429/timeout\",\n     \"duplicate/reordered event\"\n    ],\n-   \"prior_evidence\": \"\",\n-   \"result\": \"FAIL\",\n-   \"evidence_ref\": \"certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json\",\n-   \"tested_commit\": \"\",\n-   \"tested_at_utc\": \"\",\n-   \"notes\": \"FAIL on independent review t_d0a0c07f. The historical join WAS verified (intent c99fc47b..., leader fill 0x328d037d..., send order, 11.8 size match). Isolation was NOT: the cited harness output and control scripts were unavailable, and the ZRO comparison is two separate exits rather than a controlled two-wallet test. A PASS cannot rest on an isolation claim that was never exercised. Previously: PASS.\",\n+   \"prior_evidence\": \"certification/results/ENG_INV_07_wallet_coin_isolation_c8528f900d8fac646c14ded200ac7a4d8c6174e9.json\",\n+   \"result\": \"PASS\",\n+   \"evidence_ref\": \"certification/results/ENG_INV_07_promotion_07eca43.json\",\n+   \"tested_commit\": \"07eca432154673ed639b6fda6553d6355d820735\",\n+   \"tested_at_utc\": \"2026-11-17T18:36:51Z\",\n+   \"notes\": \"PASS (scoped; evidence author, not self-verified) at 07eca432154673ed639b6fda6553d6355d820735. A two-leader/one-coin in-process test through the real ManualLedger + IntentBuilder (_archive/hl_stage2/test_inv07_wallet_coin_isolation.py, sha256 2c2c649be00832e1db6db060261415a8742f731762950daf6c9667af904afb97) ran TOTAL=36 FAILED=0 rc=0 in two independent processes, and the non-vacuity control reddened 5 isolation checks (MUTATION::child_TOTAL=33 FAILED=5, child rc=1). Residue (i): \\\"TESTNET/runtime leg is NOT covered: this artifact does not prove single sender -> testnet order -> MASTER fill/position. It proves only the in-process (wallet, coin) isolation of leader mutable state.\\\" Residue (ii): row ENG-INV-07's execution_proof in the same register still describes the runtime chain (leader event -> testnet order -> MASTER fill/position); this PASS is scoped to the in-process isolation half and does not discharge that chain. Previously: FAIL - isolation never exercised (independent review t_d0a0c07f).\",\n    \"proof_network\": \"TESTNET\",\n    \"verified\": null,\n    \"verifier\": null,\n@@ -807,7 +807,7 @@\n    \"cert_claimed\": \"BLOCKED\",\n    \"cert_ref\": \"origin/cert/local-main-b142cf8\",\n    \"tier\": 1,\n-   \"evidence\": \"certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json\"\n+   \"evidence\": \"certification/results/ENG_INV_07_promotion_07eca43.json\"\n   },\n   {\n    \"id\": \"ENG-INV-08\",\n",
+ "matrix_edit_scope": {
+  "file": "certification/certification_matrix.json",
+  "bytes_before": 1283885,
+  "lines_changed": "7 in / 7 out (git diff --numstat)",
+  "records_in_register": 832,
+  "records_changed": [
+   "ENG-INV-07"
+  ],
+  "method": "byte-scoped line replacement inside the single ENG-INV-07 record; no json.dump round-trip, no reformat, line count preserved"
+ },
+ "residues": [
+  "TESTNET/runtime leg is NOT covered: this artifact does not prove single sender -> testnet order -> MASTER fill/position. It proves only the in-process (wallet, coin) isolation of leader mutable state.",
+  "row ENG-INV-07's execution_proof in the same register still describes the runtime chain (leader event -> testnet order -> MASTER fill/position); this PASS is scoped to the in-process isolation half and does not discharge that chain."
+ ],
+ "verified": null,
+ "verification_note": "the evidence author does not verify its own work; independent review is the child card",
+ "git_status_porcelain_pre_commit": "M certification/certification_matrix.json",
+ "tree_clean": {
+  "pre_commit_status_porcelain": " M certification/certification_matrix.json\n?? certification/results/ENG_INV_07_promotion_07eca43.json\n",
+  "pre_commit_paths": [
+   "certification/certification_matrix.json",
+   "certification/results/ENG_INV_07_promotion_07eca43.json"
+  ],
+  "only_intended_paths_modified": true,
+  "engine_bytes_changed_under_archive_hl_stage2": false,
+  "post_commit_check": "git status --porcelain re-run after the commit; the empty result is recorded in the task report and completion metadata"
+ }
+}

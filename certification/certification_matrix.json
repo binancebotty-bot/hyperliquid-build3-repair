@@ -794,12 +794,12 @@
     "API 429/timeout",
     "duplicate/reordered event"
    ],
-   "prior_evidence": "",
-   "result": "FAIL",
-   "evidence_ref": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "FAIL on independent review t_d0a0c07f. The historical join WAS verified (intent c99fc47b..., leader fill 0x328d037d..., send order, 11.8 size match). Isolation was NOT: the cited harness output and control scripts were unavailable, and the ZRO comparison is two separate exits rather than a controlled two-wallet test. A PASS cannot rest on an isolation claim that was never exercised. Previously: PASS.",
+   "prior_evidence": "certification/results/ENG_INV_07_wallet_coin_isolation_c8528f900d8fac646c14ded200ac7a4d8c6174e9.json",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG_INV_07_promotion_07eca43.json",
+   "tested_commit": "07eca432154673ed639b6fda6553d6355d820735",
+   "tested_at_utc": "2026-11-17T18:36:51Z",
+   "notes": "PASS (scoped; evidence author, not self-verified) at 07eca432154673ed639b6fda6553d6355d820735. A two-leader/one-coin in-process test through the real ManualLedger + IntentBuilder (_archive/hl_stage2/test_inv07_wallet_coin_isolation.py, sha256 2c2c649be00832e1db6db060261415a8742f731762950daf6c9667af904afb97) ran TOTAL=36 FAILED=0 rc=0 in two independent processes, and the non-vacuity control reddened 5 isolation checks (MUTATION::child_TOTAL=33 FAILED=5, child rc=1). Residue (i): \"TESTNET/runtime leg is NOT covered: this artifact does not prove single sender -> testnet order -> MASTER fill/position. It proves only the in-process (wallet, coin) isolation of leader mutable state.\" Residue (ii): row ENG-INV-07's execution_proof in the same register still describes the runtime chain (leader event -> testnet order -> MASTER fill/position); this PASS is scoped to the in-process isolation half and does not discharge that chain. Previously: FAIL - isolation never exercised (independent review t_d0a0c07f).",
    "proof_network": "TESTNET",
    "verified": null,
    "verifier": null,
@@ -807,7 +807,7 @@
    "cert_claimed": "BLOCKED",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "tier": 1,
-   "evidence": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json"
+   "evidence": "certification/results/ENG_INV_07_promotion_07eca43.json"
   },
   {
    "id": "ENG-INV-08",
