@@ -898,6 +898,31 @@ def bval(value: Any, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def exchange_sz_decimals(item: Any) -> Optional[int]:
+    """The size precision the EXCHANGE published for a symbol - never a local default.
+
+    R4 v2: a close rounds its wire size at this value, so a missing or malformed szDecimals must not be
+    replaced by a guess. Returning None makes resolution fail closed (SYMBOL_PRECISION_UNRESOLVED)
+    instead of rounding a remainder at an invented precision.
+    """
+    if not isinstance(item, dict):
+        return None
+    for key_name in ("szDecimals", "sz_decimals"):
+        raw = item.get(key_name)
+        if raw is None or raw == "":
+            continue
+        if isinstance(raw, bool):
+            return None
+        try:
+            if isinstance(raw, float) and not raw.is_integer():
+                return None
+            value = int(str(raw).strip())
+        except (TypeError, ValueError, OverflowError):
+            return None
+        return value if value >= 0 else None
+    return None
+
+
 def _response_text(exchange_response: Any) -> str:
     if exchange_response in (None, ""):
         return ""
@@ -1006,6 +1031,7 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: s
             "META_UNAVAILABLE": "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED",
             "SYMBOL_CACHE_MISS": "SYMBOL_CACHE_MISS_NEEDS_REFRESH",
             "SYMBOL_CACHE_MISS_NEEDS_REFRESH": "SYMBOL_CACHE_MISS_NEEDS_REFRESH",
+            "SYMBOL_PRECISION_UNRESOLVED": "SYMBOL_PRECISION_UNRESOLVED",
             "SYMBOL_NOT_TRADABLE_BY_SENDER": "SYMBOL_NOT_TRADABLE_BY_SENDER",
             "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE": "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
             "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
@@ -1107,6 +1133,8 @@ def classify_operator_action(status: str, reject_category: str = "", lifecycle: 
         return "COPY_NOTIONAL_TOO_SMALL_FOR_SYMBOL"
     if terminal_state == "SYMBOL_CACHE_MISS_NEEDS_REFRESH":
         return "REFRESH_ASSET_UNIVERSE_CACHE"
+    if terminal_state == "SYMBOL_PRECISION_UNRESOLVED":
+        return "REFRESH_ASSET_UNIVERSE_CACHE"
     if terminal_state in {"SYMBOL_NOT_TRADABLE_BY_SENDER", "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE"}:
         return "REFRESH_ASSET_UNIVERSE_CACHE"
     if terminal_state == "INVALID_WIRE_SIZE":
@@ -1140,6 +1168,8 @@ TERMINAL_ROW_NAMES = frozenset({
     "SEND_OUTCOME_DEFERRED_RESOLVED", "SEND_OUTCOME_REVIEW_REQUIRED", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
     "SKIPPED_MARKET_HALTED", "SPOT_MARKET_SKIPPED", "SUPERSEDED_BY_RETRY", "UNSUPPORTED_SYMBOL_OR_METADATA",
     "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", "MARGIN_MODE_UNSET",
+    # R4 v2: a send refused because the metadata carries no szDecimals: terminal, no exchange call.
+    "SYMBOL_PRECISION_UNRESOLVED",
     "MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
     "MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING", "MARGIN_MODE_SETUP_PENDING",
     # Named pre-send blocks the writer emits through a variable, not a literal at the call.
@@ -9387,9 +9417,14 @@ class SenderGateway:
                     "operator_action": "NO_ACTION_SPOT_SKIP",
                     "timing": timing,
                 }
-            if status_code in {"SYMBOL_CACHE_MISS", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "PERP_INDEX_MAPPING_UNVERIFIED", "SYMBOL_NOT_COPYABLE", "SYMBOL_NOT_TRADABLE_BY_SENDER"}:
+            if status_code in {"SYMBOL_CACHE_MISS", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "SYMBOL_PRECISION_UNRESOLVED", "PERP_INDEX_MAPPING_UNVERIFIED", "SYMBOL_NOT_COPYABLE", "SYMBOL_NOT_TRADABLE_BY_SENDER"}:
                 if status_code == "PERP_INDEX_MAPPING_UNVERIFIED":
                     terminal = "PERP_INDEX_MAPPING_UNVERIFIED"
+                    action = "REFRESH_ASSET_UNIVERSE_CACHE"
+                elif status_code == "SYMBOL_PRECISION_UNRESOLVED":
+                    # R4 v2: no exchange-proven size precision -> NO order, a close included. It is a metadata
+                    # gap, not a market fact: the refresh cycle is the remedy and the row says so.
+                    terminal = "SYMBOL_PRECISION_UNRESOLVED"
                     action = "REFRESH_ASSET_UNIVERSE_CACHE"
                 else:
                     terminal = "SYMBOL_CACHE_MISS_NEEDS_REFRESH" if "CACHE_MISS" in status_code else "SYMBOL_NOT_TRADABLE_BY_SENDER"
@@ -10130,8 +10165,8 @@ class SenderGateway:
                 canonical = str(item.get("canonical_coin") or key)
                 source_name = str(item.get("symbol_source") or "core_meta")
                 perp_dex = str(item.get("perp_dex") or "")
-                sz_dec = int(item.get("szDecimals", item.get("sz_decimals", 4)))
-                price_max_dec = max(0, 6 - sz_dec)
+                sz_dec = exchange_sz_decimals(item)  # R4 v2: absent stays absent; the reader fails closed
+                price_max_dec = max(0, 6 - sz_dec) if sz_dec is not None else 6
                 if source_name == "builder_meta":
                     suffix = canonical.split(":", 1)[1] if ":" in canonical else canonical
                     dex_lc = perp_dex.lower()
@@ -10218,7 +10253,7 @@ class SenderGateway:
                 meta_item = dict(row)
                 meta_item.update({
                     "canonical_coin": canonical_for_row,
-                    "szDecimals": int(fnum(row.get("sz_decimals", row.get("szDecimals", 4)), 4)),
+                    "szDecimals": exchange_sz_decimals(row),  # R4 v2: a row without precision stays without it
                     "symbol_source": source_name,
                     "perp_dex": str(row.get("perp_dex") or ""),
                     "tradable_by_sender": bool(row.get("tradable_by_sender", True)),
@@ -10246,7 +10281,9 @@ class SenderGateway:
                 if name and name.upper() not in self._meta_cache:
                     self._meta_cache[name.upper()] = {
                         "canonical_coin": name,
-                        "szDecimals": 4,
+                        # R4 v2: the index map carries no size precision, so none is invented here; a send on
+                        # this entry resolves SYMBOL_PRECISION_UNRESOLVED until authoritative meta lands.
+                        "szDecimals": None,
                         "symbol_source": "core_meta",
                         "perp_dex": "",
                         "tradable_by_sender": True,
@@ -10294,7 +10331,7 @@ class SenderGateway:
                     continue
                 new_meta[name.upper()] = {
                     "canonical_coin": name,
-                    "szDecimals": int(asset.get("szDecimals", 4)),
+                    "szDecimals": exchange_sz_decimals(asset),  # R4 v2: no default precision
                     "symbol_source": "core_meta",
                     "perp_dex": "",
                     "maxLeverage": fnum(asset.get("maxLeverage"), 0.0),  # kept across refreshes: the margin mode and parity gate need them
@@ -10427,7 +10464,7 @@ class SenderGateway:
                     continue
                 new_meta[name.upper()] = {
                     "canonical_coin": name,
-                    "szDecimals": int(asset.get("szDecimals", 4)),
+                    "szDecimals": exchange_sz_decimals(asset),  # R4 v2: no default precision
                     "symbol_source": "core_meta",
                     "perp_dex": "",
                     "maxLeverage": fnum(asset.get("maxLeverage"), 0.0),
@@ -10476,7 +10513,7 @@ class SenderGateway:
                 new_rows[b_key] = {
                     "canonical_coin": b_key,
                     "sdk_coin": sdk_coin,
-                    "szDecimals": int(b_asset.get("szDecimals", 0)),
+                    "szDecimals": exchange_sz_decimals(b_asset),  # R4 v2: no default precision
                     "maxLeverage": fnum(b_asset.get("maxLeverage"), 0.0),
                     "onlyIsolated": True,  # builder-dex (HIP-3) assets trade isolated margin only
                     "symbol_source": "builder_meta",
@@ -10579,7 +10616,9 @@ class SenderGateway:
             pass
 
     @staticmethod
-    def _ceil_wire_size(size: float, sz_decimals: int) -> float:
+    def _ceil_wire_size(size: float, sz_decimals: Optional[int]) -> float:
+        if sz_decimals is None:  # R4 v2: no exchange-proven precision -> no size; the caller holds
+            return 0.0
         if not math.isfinite(size) or size <= 0:
             return 0.0
         dec = max(0, int(sz_decimals))
@@ -10591,7 +10630,9 @@ class SenderGateway:
             return math.ceil(size * factor - 1e-12) / factor
 
     @staticmethod
-    def _floor_wire_size(size: float, sz_decimals: int) -> float:
+    def _floor_wire_size(size: float, sz_decimals: Optional[int]) -> float:
+        if sz_decimals is None:  # R4 v2: no exchange-proven precision -> no size; the caller holds
+            return 0.0
         if not math.isfinite(size) or size <= 0:
             return 0.0
         dec = max(0, int(sz_decimals))
@@ -11013,7 +11054,14 @@ class SenderGateway:
                     "error": str(item.get("reason") or f"{key} marked not tradable by sender"),
                     "exchange_called": False}
         canonical = str(item.get("canonical_coin") or item.get("canonical_symbol") or key)
-        sz_dec = int(item.get("szDecimals", 4))
+        sz_dec = exchange_sz_decimals(item)
+        if sz_dec is None:
+            # R4 v2: the precision a close rounds at must be the exchange's own. There is NO default: a symbol
+            # whose metadata carries no szDecimals resolves as a named refusal, so no wire size (a close
+            # included) is computed from a locally invented precision. The refresh cycle is the remedy.
+            return {"ok": False, "raw_coin": raw, "status": "SYMBOL_PRECISION_UNRESOLVED",
+                    "error": f"{key} metadata carries no szDecimals; size precision is not exchange-proven",
+                    "exchange_called": False}
         price_max_dec = int(fnum(item.get("price_max_decimals", item.get("max_decimals", max(0, 6 - sz_dec))), max(0, 6 - sz_dec)))
         sdk_from_cache = str(item.get("sdk_coin") or "").strip()
         perp_from_cache = item.get("perp_dexs")
