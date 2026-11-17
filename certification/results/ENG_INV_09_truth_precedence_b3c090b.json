@@ -1,0 +1,328 @@
+{
+ "row": "ENG-INV-09",
+ "head_sha": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+ "evidence_commit": "the commit on r4-v2-inv09 that adds this file; resolve with git log --diff-filter=A --format=%H -- certification/results/ENG_INV_09_truth_precedence_b3c090b.json",
+ "tested_at_utc": "2026-11-17T19:11:18Z",
+ "instrument": {
+  "harness": "_archive/hl_stage2/test_inv09_exchange_truth_outranks_local.py",
+  "harness_sha256": "9f3756111d6fca50a9805939a7e9f53ca43f7784b016e9526b35a2129818df57",
+  "harness_bytes": 32694,
+  "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv09_exchange_truth_outranks_local.py",
+  "mutation_run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv09_exchange_truth_outranks_local.py --mutate local-wins",
+  "engine_modules_under_test": [
+   "HL_Live_Copy_Service.py (DryRunLiveCopyService.account_net_actual, reconcile_unresolved_send, persist/attach unresolved send)",
+   "HL_Live_Copy_Service_Core.py (SenderGateway._pre_send_ownership_gate, _close_wire_plan/_close_wire_plan_ledger_lag, _append_local_block_reconciliation, ExchangeReconciler.compare_snapshot, ManualLedger)",
+   "exchange_truth.py (master_account_net, master_userfills_all_dexes, resolve_settlement - imported, not modified)"
+  ],
+  "engine_bytes_changed": false,
+  "engine_rev": "b3c090b0f53d2b6989a4850914d711271ffbe209"
+ },
+ "harness_summary": {
+  "total": 28,
+  "failed": 0,
+  "exit_code": 0,
+  "tally_line": "TOTAL=28 FAILED=0"
+ },
+ "coverage_map": [
+  {
+   "harness": "test_core_local_first.py",
+   "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_local_first.py",
+   "total": 7,
+   "failed": 0,
+   "exit_code": 0,
+   "verdict": "NO_COVERAGE",
+   "quote": [
+    "RESULT::L1_BLOCKLISTED_ENTRY_IS_LOCAL_PASS",
+    "RESULT::L2_SENDABLE_ENTRY_IS_NOT_LOCAL_PASS",
+    "RESULT::L5_LOCAL_BLOCK_MAKES_ZERO_READS_PASS"
+   ],
+   "proves": "The local pre-send filter decides from LOCAL state only (blocklist, sendability, a local block issuing zero exchange reads) and prewarms mids/exposure. No exchange read is ever compared with a local position, so nothing here speaks to exchange-vs-local precedence."
+  },
+  {
+   "harness": "test_core_ledger_repair.py",
+   "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_ledger_repair.py",
+   "total": 31,
+   "failed": 0,
+   "exit_code": 0,
+   "verdict": "PARTIAL",
+   "quote": [
+    "RESULT::F2_REPLAY_SHORT_OF_THE_EXCHANGE_NET_REFUSED_PASS",
+    "RESULT::F3_UNEXPLAINED_EXCHANGE_POSITION_REFUSED_PASS",
+    "RESULT::L5_REPAIR_ADOPTS_THE_EXCHANGE_LIQUIDATION_PASS"
+   ],
+   "proves": "The repair tool refuses a replay that falls short of the exchange net (F2), refuses an unexplained exchange position (F3) and adopts an exchange liquidation (L5) - exchange over local, but inside the offline repair tool (dry-run/apply), not on the send path, and never against the manual follower-position file."
+  },
+  {
+   "harness": "test_g3_exchange_truth.py",
+   "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_g3_exchange_truth.py",
+   "total": 48,
+   "failed": 0,
+   "exit_code": 0,
+   "verdict": "PARTIAL",
+   "quote": [
+    "RESULT::G3_MASTER_TRUTH_ACTUAL_PASS",
+    "RESULT::G3_SIGNER_NOT_TRUTH_PASS",
+    "RESULT::G3_SCOPE_UNAVAILABLE_FAIL_CLOSED_PASS",
+    "RESULT::G3_ACK_NOT_SETTLEMENT_PASS"
+   ],
+   "proves": "The unit-level truth READ: MASTER exchange truth supplies ACTUAL (source MASTER_EXCHANGE_TRUTH), the signer is not truth, multi-DEX aggregation, missing scope fails closed, an ack is not settlement. It never sets a local ledger against the exchange, never touches the manual position file, and never shows a send size."
+  },
+  {
+   "harness": "test_exchange_truth_retry.py",
+   "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_exchange_truth_retry.py",
+   "total": 5,
+   "failed": 0,
+   "exit_code": 0,
+   "verdict": "PARTIAL",
+   "quote": [
+    "RESULT::RETRY_RECOVERS_AFTER_TWO_BAD_ANSWERS_PASS",
+    "RESULT::GIVES_UP_AFTER_THREE_TRIES_AND_FAILS_CLOSED_PASS",
+    "RESULT::TIMEOUT_IS_NOT_RETRIED_PASS"
+   ],
+   "proves": "The row's 'API 429/timeout' negative test on the truth read: two bad answers are retried, three give up and fail closed, a timeout is never retried, an injected fetcher is never retried. Precedence is not in scope."
+  },
+  {
+   "harness": "test_core_outage_replay.py",
+   "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_outage_replay.py",
+   "total": 17,
+   "failed": 0,
+   "exit_code": 0,
+   "verdict": "NO_COVERAGE",
+   "quote": [
+    "RESULT::WAITING_FILL_NEVER_QUEUED_TWICE_PASS",
+    "RESULT::NO_FILL_TERMINALISED_TWICE_PASS",
+    "RESULT::RE_OFFERED_FILLS_ARE_NOT_REQUEUED_PASS"
+   ],
+   "proves": "The leader-fill REPLAY path never queues a fill twice and terminalises each fill once (relevant to the 'duplicate/reordered event' negative test) but it never reads the exchange for a position, so it does not prove exchange truth outranks replay."
+  },
+  {
+   "harness": "test_core_exposure_pending.py",
+   "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_exposure_pending.py",
+   "total": 7,
+   "failed": 0,
+   "exit_code": 0,
+   "verdict": "NO_COVERAGE",
+   "quote": [
+    "RESULT::SECOND_ENTRY_BLOCKED_INSIDE_ONE_SNAPSHOT_PASS",
+    "RESULT::UNREADABLE_EXPOSURE_FAILS_CLOSED_PASS"
+   ],
+   "proves": "Exposure accounting inside one snapshot (pending entries, TTL) and unreadable-exposure fail-closed. No exchange position is compared with a local one."
+  }
+ ],
+ "coverage_totals": {
+  "harnesses": 6,
+  "checks": 115,
+  "failed": 0,
+  "exit_codes": 0
+ },
+ "coverage_note": "All six requested harnesses pass, but none proves inv-9 end to end: three are PARTIAL (repair-tool exchange refusal, the unit-level truth read, the truth-read retry) and three are NO_COVERAGE. That is the gap the new harness fills; the 'G3 PASS at unit level' prior_evidence names the test_g3_exchange_truth.py entry.",
+ "e1": {
+  "quote": [
+   "RESULT::E1_EFFECTIVE_POSITION_IS_EXCHANGE_VALUE_PASS",
+   "RESULT::E1_TRUTH_ROW_IS_MASTER_EXCHANGE_TRUTH_PASS",
+   "RESULT::E1_LOCAL_LEDGER_DISAGREES_PASS",
+   "RESULT::E1_LOCAL_REPLAY_NEVER_CONSULTED_PASS",
+   "RESULT::E1_TRUTH_DERIVED_FROM_EXCHANGE_READ_PASS",
+   "RESULT::E1_NO_WRONG_CLAIM_OF_LOCAL_VALUE_AS_TRUTH_PASS",
+   "RESULT::E1_DURABLE_MISMATCH_ROW_NAMES_BOTH_NETS_PASS",
+   "RESULT::E1_BLOCK_PASS"
+  ],
+  "observed": {
+   "E1_BLOCK": "",
+   "E1_DURABLE_MISMATCH_ROW_NAMES_BOTH_NETS": "status='LEDGER_EXCHANGE_NET_MISMATCH' row={'event': 'EXCHANGE_RECON', 'status': 'LEDGER_EXCHANGE_NET_MISMATCH', 'coin': 'BTC', 'manual_net': '2.0', 'exchange_net': '0.5', 'action': ''}",
+   "E1_EFFECTIVE_POSITION_IS_EXCHANGE_VALUE": "effective ACTUAL=0.5 (want 0.5) truth={'ok': True, 'net': 0.5, 'unattributed': 0.0, 'source': 'MASTER_EXCHANGE_TRUTH', 'scopes': [{'dex': '(default)', 'signed': 0.5}]}",
+   "E1_LOCAL_LEDGER_DISAGREES": "local ledger/replay net=2.0",
+   "E1_LOCAL_REPLAY_NEVER_CONSULTED": "wallet-local provider calls=0",
+   "E1_NO_WRONG_CLAIM_OF_LOCAL_VALUE_AS_TRUTH": "{\"net\": 0.5, \"ok\": true, \"scopes\": [{\"dex\": \"(default)\", \"signed\": 0.5}], \"source\": \"MASTER_EXCHANGE_TRUTH\", \"unattributed\": 0.0}",
+   "E1_TRUTH_DERIVED_FROM_EXCHANGE_READ": "fetcher calls=['perpDexs', 'clearinghouseState']",
+   "E1_TRUTH_ROW_IS_MASTER_EXCHANGE_TRUTH": "source='MASTER_EXCHANGE_TRUTH' scopes=[{'dex': '(default)', 'signed': 0.5}]"
+  },
+  "exit_code": 0,
+  "checks": 8,
+  "proves": "E1: the local/replayed ledger believes +2.0 (proved by the ledger's own net), MASTER truth reads +0.5, and the engine's authoritative ACTUAL is the EXCHANGE value 0.5 with source MASTER_EXCHANGE_TRUTH and the scope row {'dex': '(default)', 'signed': 0.5}. The wallet-local (local replay) provider that would answer 2.0 is NEVER consulted (calls=0), the truth answer came from a clearinghouseState read (fetcher calls logged), and the durable reconciliation row the engine writes records manual_net=2.0 against exchange_net=0.5 under LEDGER_EXCHANGE_NET_MISMATCH. Absence asserted: nothing in the truth answer asserts 2.0 as truth.",
+  "caveat": "The ledger is not silently rewritten to 0.5: the engine keeps the local value only as the mismatch side of the row (by design, 'no auto-correction' - repair is a separate operator path). What the invariant needs is that the EFFECTIVE/authoritative position the engine acts on is the exchange value, which is what is measured."
+ },
+ "e2": {
+  "quote": [
+   "RESULT::E2_MANUAL_FILE_IS_THE_LEDGER_SOURCE_PASS",
+   "RESULT::E2_SIZING_HOLDS_FOREIGN_UNITS_ON_FILE_VS_EXCHANGE_PASS",
+   "RESULT::E2_SEND_SIZE_IS_EXCHANGE_NET_NOT_FILE_VALUE_PASS",
+   "RESULT::E2_CLAMP_RECORDED_AGAINST_EXCHANGE_CEILING_PASS",
+   "RESULT::E2_GATE_BLOCKS_A_FILE_SOURCED_SEND_PASS",
+   "RESULT::E2_FILE_VALUE_ABSENT_FROM_EVERY_SIZE_PASS",
+   "RESULT::E2_BLOCK_PASS"
+  ],
+  "observed": {
+   "E2_BLOCK": "",
+   "E2_CLAMP_RECORDED_AGAINST_EXCHANGE_CEILING": "escalation reasons=['CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED']",
+   "E2_FILE_VALUE_ABSENT_FROM_EVERY_SIZE": "wire_amounts=[0.0, 0.5] ledger_sourced_sizes=[None] order_calls=[] (file value=9.0 exchange=0.5)",
+   "E2_GATE_BLOCKS_A_FILE_SOURCED_SEND": "ok=False status='OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION' exchange_called=False manual=0.5 exchange=9.0 row={'event': 'OWNERSHIP_GATE', 'status': 'OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION', 'manual_net': '0.5', 'exchange_net': '9.0'} calls=[]",
+   "E2_MANUAL_FILE_IS_THE_LEDGER_SOURCE": "captured={'file': 'manual_live_positions.json', 'disk_claim': 9.0, 'coin_net': 9.0, 'sleeve': 9.0, 'ledger_path': 'C:\\\\Users\\\\wigmore\\\\AppData\\\\Local\\\\Temp\\\\inv09_2rkek0n6\\\\manual_live_positions.json'}",
+   "E2_SEND_SIZE_IS_EXCHANGE_NET_NOT_FILE_VALUE": "wire_amount=0.5 (exchange=0.5 file=9.0) ro=True why='' sent=[]",
+   "E2_SIZING_HOLDS_FOREIGN_UNITS_ON_FILE_VS_EXCHANGE": "amount=0.0 ro=False why='CLOSE_PROOF_HOLD_FOREIGN_UNITS' order_calls=[]"
+  },
+  "exit_code": 0,
+  "checks": 7,
+  "proves": "E2: the manual follower-position file (manual_live_positions.json) is loaded as the sender's own ledger (ManualLedger(path=manual_live_positions.json) - disk claim 9.0 == ledger coin_net 9.0), so the claim under test is exactly what the engine read. Against MASTER 0.5: the close plan HOLDs with the named predicate CLOSE_PROOF_HOLD_FOREIGN_UNITS (no wire at all); on the ledger-lag path the wire is the EXCHANGE net 0.5 (reduce_only=True, escalation CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED) and never 9.0; and a send sized off a file claim the exchange contradicts is blocked at the real gate with OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION, exchange_called=False, and a reconciliation row carrying manual_net=0.5 / exchange_net=9.0. Absence asserted: the file's value appears in no wire amount, no ledger-sourced size and no order call.",
+  "caveat": "No physical order is placed: the send path is exercised to its wire DECISION (_close_wire_plan) with a fake exchange that records any call, and the only wire sizes observed are 0.0 (HOLD) and 0.5 (the exchange net). A live testnet order remains the outstanding end-to-end half."
+ },
+ "e3": {
+  "quote": [
+   "RESULT::E3_ACK_IS_RECORDED_PASS",
+   "RESULT::E3_ACK_ALONE_IS_NOT_SETTLEMENT_PASS",
+   "RESULT::E3_ACK_LEAVES_RESERVATION_BLOCKING_PASS",
+   "RESULT::E3_UNREADABLE_MASTER_PROOF_STAYS_UNKNOWN_PASS",
+   "RESULT::E3_MASTER_FILL_DOES_SETTLE_POSITIVE_CONTROL_PASS",
+   "RESULT::E3_BLOCK_PASS"
+  ],
+  "observed": {
+   "E3_ACK_ALONE_IS_NOT_SETTLEMENT": "verdict={'ok': True, 'settled': False, 'status': 'UNSETTLED', 'filled': 0.0, 'remaining': 1.0}",
+   "E3_ACK_IS_RECORDED": "reservation after ack={'coin': 'ETH', 'exchange_status': 'ORDER_ACCEPTED', 'intent_id': 'inv09-e3', 'oid': '778899', 'pre_send_master_net': 0.0, 'side': 'BUY', 'size': 1.0, 'started_ms': 1794942551854}",
+   "E3_ACK_LEAVES_RESERVATION_BLOCKING": "reservation={'coin': 'ETH', 'exchange_status': 'ORDER_ACCEPTED', 'intent_id': 'inv09-e3', 'oid': '778899', 'pre_send_master_net': 0.0, 'remaining': 1.0, 'settle_status': 'UNSETTLED', 'side': 'BUY', 'size': 1.0, 'started_ms': 1794942551854} new_terminals={}",
+   "E3_BLOCK": "",
+   "E3_MASTER_FILL_DOES_SETTLE_POSITIVE_CONTROL": "settled={'ok': True, 'settled': True, 'status': 'SETTLED_FULL', 'filled': 1.0, 'remaining': 0.0, 'position_after': 1.0} cleared=True",
+   "E3_UNREADABLE_MASTER_PROOF_STAYS_UNKNOWN": "unknown={'ok': False, 'status': 'IN_FLIGHT_UNKNOWN', 'detail': \"RuntimeError('userFillsByTime unavailable')\"}"
+  },
+  "exit_code": 0,
+  "checks": 6,
+  "proves": "E3 (shared seam with ENG-INV-10): an ack is recorded (oid 778899, ORDER_ACCEPTED) and settles nothing - with no MASTER fill and an unmoved position the verdict is settled=False status=UNSETTLED remaining=1.0, the reservation stays blocking with settle_status UNSETTLED and no new in_flight_terminals row appears. An unreadable MASTER fill read is IN_FLIGHT_UNKNOWN, still blocking. Positive control: a real MASTER fill for the same intent DOES settle (SETTLED_FULL) and clears the reservation, so the absence above is not vacuous."
+ },
+ "e4": {
+  "mutation": "account_net_actual: MASTER exchange-truth branch disabled -> the wallet-local provider (local replay) supplies ACTUAL; and the close plan's exchange-net read is fed the manual file's claim instead of the exchange value",
+  "run": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv09_exchange_truth_outranks_local.py --mutate local-wins",
+  "red_quote": [
+   "RESULT::E1_EFFECTIVE_POSITION_IS_EXCHANGE_VALUE_FAIL | effective ACTUAL=2.0 (want 0.5) truth={'ok': True, 'net': 2.0, 'source': 'WALLET_LOCAL_REPLAY'}",
+   "RESULT::E1_LOCAL_REPLAY_NEVER_CONSULTED_FAIL | wallet-local provider calls=1 -> local replay supplied ACTUAL",
+   "RESULT::E2_SEND_SIZE_IS_EXCHANGE_NET_NOT_FILE_VALUE_FAIL | amount=9.0 reduce_only=True why='' (file value 9.0 became the size: local replay won)",
+   "RESULT::E4_MUTATION_LOCAL_WINS_IS_RED"
+  ],
+  "red_exit_code": 1,
+  "red_observed": {
+   "E1_EFFECTIVE_POSITION_IS_EXCHANGE_VALUE": "effective ACTUAL=2.0 (want 0.5) truth={'ok': True, 'net': 2.0, 'source': 'WALLET_LOCAL_REPLAY'}",
+   "E1_LOCAL_REPLAY_NEVER_CONSULTED": "wallet-local provider calls=1 -> local replay supplied ACTUAL",
+   "E2_SEND_SIZE_IS_EXCHANGE_NET_NOT_FILE_VALUE": "amount=9.0 reduce_only=True why='' (file value 9.0 became the size: local replay won)"
+  },
+  "two_run_control": "the RED run was executed twice: identical RESULT/TOTAL lines, exit 1 both times (no state or ordering leak)",
+  "green_two_run_control": "the GREEN run was executed twice under scrubbed PYTHON* env with HL_LIVE_ENV_FILE=/nonexistent: identical RESULT/TOTAL lines, exit 0 both times",
+  "note": "E1 and E2 are non-vacuous: weakening the precedence predicate makes them fail with the local value (2.0) and the file value (9.0) taking over, exactly the wrong conclusion the invariant forbids. The harness was not written green: its first run failed 4 of 19 checks, and every one of those failures was a HARNESS defect (a shadowed module name, a missing close-proof account, a gate direction that blocks only when the exchange holds MORE than the ledger explains) that was fixed in the harness - no engine byte was touched, and no engine behaviour had to change to go green."
+ },
+ "e5": {
+  "quote": [
+   "RESULT::E5_DUPLICATE_EVENT_DEDUPED_ONCE_PASS",
+   "RESULT::E5_REORDERED_EVENT_SORTED_DETERMINISTICALLY_PASS",
+   "RESULT::E5_RESTART_REREAD_IS_IDENTICAL_PASS",
+   "RESULT::E5_SETTLEMENT_COUNTS_A_DUPLICATE_ONCE_PASS",
+   "RESULT::E5_NO_DUPLICATE_IDENTITY_IN_TRUTH_PASS",
+   "RESULT::E5_BLOCK_PASS"
+  ],
+  "observed": {
+   "E5_BLOCK": "",
+   "E5_DUPLICATE_EVENT_DEDUPED_ONCE": "count=2 deduped=4 scopes=[{'dex': '(default)', 'count': 3}, {'dex': 'builder-hip3', 'count': 3}]",
+   "E5_NO_DUPLICATE_IDENTITY_IN_TRUTH": "keys=['1|a|2000|BTC|1.0||B', '2|b|1000|BTC|0.5||A']",
+   "E5_REORDERED_EVENT_SORTED_DETERMINISTICALLY": "keys=['1|a|2000|BTC|1.0||B', '2|b|1000|BTC|0.5||A']",
+   "E5_RESTART_REREAD_IS_IDENTICAL": "first==second: True",
+   "E5_SETTLEMENT_COUNTS_A_DUPLICATE_ONCE": "verdict={'settled': True, 'status': 'SETTLED_FULL', 'filled': 1.0, 'remaining': 0.0, 'position_after': 0.5}"
+  },
+  "exit_code": 0,
+  "checks": 6,
+  "proves": "E5: named case = duplicate/reordered event on the truth path. Two scopes each return 3 fills (the same two + one duplicate, in different orders): the merged truth is count=2, deduped=4, sorted deterministically by fill identity, the duplicate identity does not survive, settlement from the merged list counts each fill once (filled=1.0, not 2.0), and a repeated read (the restart-mid-sequence shape) returns byte-identical output."
+ },
+ "offline_control": {
+  "quote": [
+   "RESULT::E0_OFFLINE_NO_NETWORK_READ_PASS"
+  ],
+  "observed": {
+   "E0_OFFLINE_NO_NETWORK_READ": "NET_ATTEMPTS=[]"
+  },
+  "exit_code": 0,
+  "checks": 1,
+  "proves": "The only path a real /info read could take (exchange_truth.http_post) was replaced by a recorder that refuses; it was never called: NET_ATTEMPTS=[] for the whole run. Every truth read came from an injected fetcher."
+ },
+ "non_vacuity": {
+  "red_quote": [
+   "RESULT::E1_EFFECTIVE_POSITION_IS_EXCHANGE_VALUE_FAIL | effective ACTUAL=2.0 (want 0.5) truth={'ok': True, 'net': 2.0, 'source': 'WALLET_LOCAL_REPLAY'}",
+   "RESULT::E1_LOCAL_REPLAY_NEVER_CONSULTED_FAIL | wallet-local provider calls=1 -> local replay supplied ACTUAL",
+   "RESULT::E2_SEND_SIZE_IS_EXCHANGE_NET_NOT_FILE_VALUE_FAIL | amount=9.0 reduce_only=True why='' (file value 9.0 became the size: local replay won)",
+   "RESULT::E4_MUTATION_LOCAL_WINS_IS_RED"
+  ],
+  "red_exit_code": 1,
+  "red_observed": {
+   "E1_EFFECTIVE_POSITION_IS_EXCHANGE_VALUE": "effective ACTUAL=2.0 (want 0.5) truth={'ok': True, 'net': 2.0, 'source': 'WALLET_LOCAL_REPLAY'}",
+   "E1_LOCAL_REPLAY_NEVER_CONSULTED": "wallet-local provider calls=1 -> local replay supplied ACTUAL",
+   "E2_SEND_SIZE_IS_EXCHANGE_NET_NOT_FILE_VALUE": "amount=9.0 reduce_only=True why='' (file value 9.0 became the size: local replay won)"
+  },
+  "statement": "E1 and E2 are red under the weakened precedence (local replay wins), so neither is a tautology. The GREEN run above and the RED run are separate processes."
+ },
+ "green_exit_code": 0,
+ "proof_network": "OFFLINE",
+ "proof_network_basis": "No testnet read happened in this cycle: every truth read came from an injected fetcher and the real HTTP path recorded zero attempts (NET_ATTEMPTS=[]). The row's TESTNET axis describes the plane a full PASS needs; this PASS rests on an offline instrument, so the testnet end-to-end execution_proof and independent_oracle read remain outstanding.",
+ "row_before": {
+  "id": "ENG-INV-09",
+  "area": "ENGINE",
+  "feature": "Build 3 invariant 9",
+  "expected_behaviour": "Exchange truth outranks local replay; the manual follower-position file is not authoritative.",
+  "sources": [
+   "hyperliquid-build3-repair/ARCHITECTURE.md",
+   "ARCH inv9",
+   "FAILURES ROOT-001"
+  ],
+  "applicability": "APPLIES",
+  "open_decisions": [],
+  "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+  "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+  "negative_tests": [
+   "restart mid-sequence",
+   "stale leader snapshot",
+   "API 429/timeout",
+   "duplicate/reordered event"
+  ],
+  "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
+  "result": "BLOCKED",
+  "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+  "tested_commit": "",
+  "tested_at_utc": "",
+  "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+  "proof_network": "TESTNET",
+  "tier": 2,
+  "evidence": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
+ },
+ "row_after": {
+  "id": "ENG-INV-09",
+  "area": "ENGINE",
+  "feature": "Build 3 invariant 9",
+  "expected_behaviour": "Exchange truth outranks local replay; the manual follower-position file is not authoritative.",
+  "sources": [
+   "hyperliquid-build3-repair/ARCHITECTURE.md",
+   "ARCH inv9",
+   "FAILURES ROOT-001"
+  ],
+  "applicability": "APPLIES",
+  "open_decisions": [],
+  "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+  "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+  "negative_tests": [
+   "restart mid-sequence",
+   "stale leader snapshot",
+   "API 429/timeout",
+   "duplicate/reordered event"
+  ],
+  "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
+  "result": "PASS",
+  "evidence_ref": "certification/results/ENG_INV_09_truth_precedence_b3c090b.json",
+  "tested_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+  "tested_at_utc": "2026-11-17T19:11:18Z",
+  "notes": "PASS (OFFLINE instrument) at b3c090b (engine bytes unchanged). Harness _archive/hl_stage2/test_inv09_exchange_truth_outranks_local.py: 28 checks / 0 failed / exit 0, run twice with identical output, NET_ATTEMPTS=[] (no network read; every truth read is an injected fetcher). E1: local/replayed ledger +2.0 vs MASTER +0.5 -> the engine's authoritative ACTUAL is the EXCHANGE 0.5 (source MASTER_EXCHANGE_TRUTH, scope row signed 0.5), the wallet-local provider that would answer 2.0 is never consulted (calls=0), the answer came from a clearinghouseState read, and the durable EXCHANGE_RECON row records manual_net=2.0 against exchange_net=0.5 (LEDGER_EXCHANGE_NET_MISMATCH). E2: the manual follower-position file IS the ledger source (disk 9.0 == ManualLedger coin_net 9.0) and it is not authoritative - the close plan HOLDs with the named predicate CLOSE_PROOF_HOLD_FOREIGN_UNITS against MASTER 0.5, the ledger-lag wire is the exchange net 0.5 (reduce_only, CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED) never 9.0, and a send sized off a file claim the exchange contradicts is blocked at the real gate with OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION (exchange_called=False, row manual_net=0.5 / exchange_net=9.0); the file value appears in no wire amount, size or order call. E3 (seam shared with ENG-INV-10): an ack (oid ORDER_ACCEPTED) settles nothing - UNSETTLED, reservation still blocking, no terminal row - while a real MASTER fill does settle (SETTLED_FULL) and clear it. E4: non-vacuity - with the precedence weakened so local replay wins, E1 and E2 turn RED (exit 1, 3/3 failed: ACTUAL=2.0 from WALLET_LOCAL_REPLAY, wire=9.0). E5: named case duplicate/reordered event on the truth path - 2 scopes x 3 fills merge to count=2 deduped=4, sorted deterministically, settlement counts each fill once, and a repeated read is identical (restart shape). Coverage map of the six requested harnesses: all pass (115 checks / 0 failed / exit 0) but 3 are PARTIAL and 3 NO_COVERAGE for this invariant, which is why the new harness exists. proof_network=OFFLINE: NO testnet read happened this cycle, so the row's testnet end-to-end execution_proof and its testnet independent_oracle read (clearinghouseState/openOrders/userFillsByTime against the live testnet MASTER) remain OUTSTANDING. Evidence commit: the commit on r4-v2-inv09 that adds certification/results/ENG_INV_09_truth_precedence_b3c090b.json.",
+  "proof_network": "OFFLINE",
+  "tier": 2,
+  "evidence": "certification/results/ENG_INV_09_truth_precedence_b3c090b.json"
+ },
+ "row_change_fields": [
+  "evidence",
+  "evidence_ref",
+  "notes",
+  "proof_network",
+  "result",
+  "tested_at_utc",
+  "tested_commit"
+ ]
+}

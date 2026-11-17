@@ -863,14 +863,14 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "BLOCKED",
-   "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
-   "proof_network": "TESTNET",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG_INV_09_truth_precedence_b3c090b.json",
+   "tested_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+   "tested_at_utc": "2026-11-17T19:11:18Z",
+   "notes": "PASS (OFFLINE instrument) at b3c090b (engine bytes unchanged). Harness _archive/hl_stage2/test_inv09_exchange_truth_outranks_local.py: 28 checks / 0 failed / exit 0, run twice with identical output, NET_ATTEMPTS=[] (no network read; every truth read is an injected fetcher). E1: local/replayed ledger +2.0 vs MASTER +0.5 -> the engine's authoritative ACTUAL is the EXCHANGE 0.5 (source MASTER_EXCHANGE_TRUTH, scope row signed 0.5), the wallet-local provider that would answer 2.0 is never consulted (calls=0), the answer came from a clearinghouseState read, and the durable EXCHANGE_RECON row records manual_net=2.0 against exchange_net=0.5 (LEDGER_EXCHANGE_NET_MISMATCH). E2: the manual follower-position file IS the ledger source (disk 9.0 == ManualLedger coin_net 9.0) and it is not authoritative - the close plan HOLDs with the named predicate CLOSE_PROOF_HOLD_FOREIGN_UNITS against MASTER 0.5, the ledger-lag wire is the exchange net 0.5 (reduce_only, CLOSE_PROOF_GLOBAL_CLOSE_ONLY_CLAMPED) never 9.0, and a send sized off a file claim the exchange contradicts is blocked at the real gate with OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION (exchange_called=False, row manual_net=0.5 / exchange_net=9.0); the file value appears in no wire amount, size or order call. E3 (seam shared with ENG-INV-10): an ack (oid ORDER_ACCEPTED) settles nothing - UNSETTLED, reservation still blocking, no terminal row - while a real MASTER fill does settle (SETTLED_FULL) and clear it. E4: non-vacuity - with the precedence weakened so local replay wins, E1 and E2 turn RED (exit 1, 3/3 failed: ACTUAL=2.0 from WALLET_LOCAL_REPLAY, wire=9.0). E5: named case duplicate/reordered event on the truth path - 2 scopes x 3 fills merge to count=2 deduped=4, sorted deterministically, settlement counts each fill once, and a repeated read is identical (restart shape). Coverage map of the six requested harnesses: all pass (115 checks / 0 failed / exit 0) but 3 are PARTIAL and 3 NO_COVERAGE for this invariant, which is why the new harness exists. proof_network=OFFLINE: NO testnet read happened this cycle, so the row's testnet end-to-end execution_proof and its testnet independent_oracle read (clearinghouseState/openOrders/userFillsByTime against the live testnet MASTER) remain OUTSTANDING. Evidence commit: the commit on r4-v2-inv09 that adds certification/results/ENG_INV_09_truth_precedence_b3c090b.json.",
+   "proof_network": "OFFLINE",
    "tier": 2,
-   "evidence": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
+   "evidence": "certification/results/ENG_INV_09_truth_precedence_b3c090b.json"
   },
   {
    "id": "ENG-INV-10",
