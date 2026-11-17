@@ -1,0 +1,229 @@
+{
+ "task": "t_9a6d3e89",
+ "subject": "ENG-INV-03 dependency-census row promoted on its own verdict + non-vacuity control",
+ "role": "EVIDENCE AUTHOR (self-authored PASS; independent review is the child card)",
+ "head_sha": "49f300b2cfb5a5c7cbbe02067f6cee9f7280b0e0",
+ "parent_sha": "058f85782e80cfdea0c337ae46424fd6eba44422",
+ "base_sha": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+ "tree": "C:/Users/wigmore/oc-runs/r4-v2-inv03",
+ "branch": "r4-v2-inv03-oracle",
+ "generated_utc": "2026-11-17T18:24:51Z",
+ "red": {
+  "why": "control harness at the PARENT commit, where the oracle still scores optional imports as required ones: the C2 positive control cannot hold, so the row predicate is red",
+  "cwd": "C:/Users/wigmore/.hermes/cache/scratch/inv03_parent_058f857",
+  "worktree": "git worktree add --detach C:/Users/wigmore/.hermes/cache/scratch/inv03_parent_058f857 058f857 (throwaway, outside the repo)",
+  "command": "HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/eng_inv_03_required_vs_optional_controls.py C:/Users/wigmore/.hermes/cache/scratch/inv03_parent_058f857",
+  "exit_code": 1,
+  "result_line": "CONTROLS FAIL",
+  "verdict": "FAIL",
+  "control_verdicts": {
+   "C1": true,
+   "C2": false,
+   "C3": true
+  },
+  "failed_control": "C2",
+  "quote": "{\n    \"injection\": \"try/except ImportError guarded `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py\",\n    \"expected_import_line\": 18226,\n    \"ENG-INV-03\": false,\n    \"new_unapproved\": [\n      \"psutil\",\n      \"yaml\"\n    ],\n    \"yaml_flagged\": true,\n    \"violations\": [\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 18226,\n        \"module\": \"yaml\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"headroom.py\",\n        \"line\": 79,\n        \"module\": \"psutil\",\n        \"kind\": \"import\"\n      }\n    ],\n    \"exit_code\": 1,\n    \"PASS\": false\n  }\nCONTROLS FAIL",
+  "quote_C2": "{\n    \"injection\": \"try/except ImportError guarded `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py\",\n    \"expected_import_line\": 18226,\n    \"ENG-INV-03\": false,\n    \"new_unapproved\": [\n      \"psutil\",\n      \"yaml\"\n    ],\n    \"yaml_flagged\": true,\n    \"violations\": [\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 18226,\n        \"module\": \"yaml\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"headroom.py\",\n        \"line\": 79,\n        \"module\": \"psutil\",\n        \"kind\": \"import\"\n      }\n    ],\n    \"exit_code\": 1,\n    \"PASS\": false\n  }",
+  "quote_row03_on_tree": "{\n    \"ENG-INV-03\": false,\n    \"new_unapproved\": [\n      \"psutil\"\n    ],\n    \"violations\": [\n      {\n        \"file\": \"headroom.py\",\n        \"line\": 79,\n        \"module\": \"psutil\",\n        \"kind\": \"import\"\n      }\n    ],\n    \"optional\": \"KEY_ABSENT\"\n  }",
+  "note": "C2 fails because the pre-change predicate treats the try/except-ImportError guarded `import yaml` at HL_Live_Copy_Service_Core.py:18226 as a NEW dependency (ENG-INV-03=false, yaml_flagged=true); C1 and C3 already hold at the parent, which is what makes the HEAD delta attributable to the predicate change and nothing else."
+ },
+ "green": {
+  "why": "same harness, same tree, at HEAD 49f300b2: all three controls hold",
+  "cwd": "C:/Users/wigmore/oc-runs/r4-v2-inv03",
+  "command": "HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/eng_inv_03_required_vs_optional_controls.py C:/Users/wigmore/oc-runs/r4-v2-inv03",
+  "exit_code": 0,
+  "result_line": "CONTROLS PASS",
+  "verdict": "PASS",
+  "control_verdicts": {
+   "C1": true,
+   "C2": true,
+   "C3": true
+  },
+  "quote": "{\n    \"injection\": \"bare `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py\",\n    \"expected_import_line\": 18225,\n    \"ENG-INV-03\": false,\n    \"new_unapproved\": [\n      \"yaml\"\n    ],\n    \"violations\": [\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 18225,\n        \"module\": \"yaml\",\n        \"kind\": \"import\"\n      }\n    ],\n    \"exit_code\": 1,\n    \"names_file_line_module\": true,\n    \"PASS\": true\n  }\nCONTROLS PASS"
+ },
+ "controls": {
+  "C1": {
+   "kind": "NEGATIVE - bare required unapproved import must redden row 03 naming file:line:module",
+   "at": "HEAD 49f300b2",
+   "quote": "{\n    \"injection\": \"bare `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py\",\n    \"expected_import_line\": 18225,\n    \"ENG-INV-03\": false,\n    \"new_unapproved\": [\n      \"yaml\"\n    ],\n    \"violations\": [\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 18225,\n        \"module\": \"yaml\",\n        \"kind\": \"import\"\n      }\n    ],\n    \"exit_code\": 1,\n    \"names_file_line_module\": true,\n    \"PASS\": true\n  }",
+   "detail": {
+    "injection": "bare `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "expected_import_line": 18225,
+    "ENG-INV-03": false,
+    "new_unapproved": [
+     "yaml"
+    ],
+    "violations": [
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 18225,
+      "module": "yaml",
+      "kind": "import"
+     }
+    ],
+    "exit_code": 1,
+    "names_file_line_module": true,
+    "PASS": true
+   },
+   "PASS": true,
+   "note": "inner oracle exit_code is 1 in the mutated copy because the aggregate verdict spans three rows (row 04 is independently red); the control assertion is on the row check, not on the aggregate - ENG-INV-03=False and the violation names HL_Live_Copy_Service_Core.py:18225:yaml."
+  },
+  "C2": {
+   "kind": "POSITIVE - the SAME import, guarded by try/except ImportError, must stay green",
+   "at": "HEAD 49f300b2",
+   "quote": "{\n    \"injection\": \"try/except ImportError guarded `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py\",\n    \"expected_import_line\": 18226,\n    \"ENG-INV-03\": true,\n    \"new_unapproved\": [],\n    \"yaml_flagged\": false,\n    \"violations\": [],\n    \"exit_code\": 1,\n    \"PASS\": true\n  }",
+   "detail": {
+    "injection": "try/except ImportError guarded `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "expected_import_line": 18226,
+    "ENG-INV-03": true,
+    "new_unapproved": [],
+    "yaml_flagged": false,
+    "violations": [],
+    "exit_code": 1,
+    "PASS": true
+   },
+   "PASS": true
+  },
+  "C3": {
+   "kind": "SIBLINGS - rows ENG-INV-04/ENG-INV-05 verdicts identical between the pre-change oracle (b3c090b) and the current oracle on the same tree",
+   "at": "HEAD 49f300b2",
+   "quote": "{\n    \"pre_oracle_source\": \"git show b3c090b0f53d2b6989a4850914d711271ffbe209:certification/results/rowbound_oracle.py (sha256 343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133)\",\n    \"siblings\": {\n      \"ENG-INV-04\": {\n        \"pre\": false,\n        \"post\": false\n      },\n      \"ENG-INV-05\": {\n        \"pre\": true,\n        \"post\": true\n      }\n    },\n    \"differs\": [],\n    \"PASS\": true\n  }",
+   "detail": {
+    "pre_oracle_source": "git show b3c090b0f53d2b6989a4850914d711271ffbe209:certification/results/rowbound_oracle.py (sha256 343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133)",
+    "siblings": {
+     "ENG-INV-04": {
+      "pre": false,
+      "post": false
+     },
+     "ENG-INV-05": {
+      "pre": true,
+      "post": true
+     }
+    },
+    "differs": [],
+    "PASS": true
+   },
+   "PASS": true
+  },
+  "row03_on_tree_unchanged_at_head": "{\n    \"ENG-INV-03\": true,\n    \"new_unapproved\": [],\n    \"violations\": [],\n    \"optional\": [\n      {\n        \"file\": \"HL_Copy_App_SSOT.py\",\n        \"line\": 44,\n        \"module\": \"uvicorn\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service.py\",\n        \"line\": 39,\n        \"module\": \"requests\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service.py\",\n        \"line\": 44,\n        \"module\": \"websocket\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service.py\",\n        \"line\": 530,\n        \"module\": \"hyperliquid\",\n        \"kind\": \"from\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service.py\",\n        \"line\": 703,\n        \"module\": \"hyperliquid\",\n        \"kind\": \"from\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 56,\n        \"module\": \"requests\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 61,\n        \"module\": \"websocket\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 66,\n        \"module\": \"eth_account\",\n        \"kind\": \"from\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 67,\n        \"module\": \"hyperliquid\",\n        \"kind\": \"from\"\n      },\n      {\n        \"file\": \"HL_Live_Copy_Service_Core.py\",\n        \"line\": 3820,\n        \"module\": \"hyperliquid\",\n        \"kind\": \"from\"\n      },\n      {\n        \"file\": \"exchange_truth.py\",\n        \"line\": 192,\n        \"module\": \"requests\",\n        \"kind\": \"import\"\n      },\n      {\n        \"file\": \"exchange_truth.py\",\n        \"line\": 491,\n        \"module\": \"eth_account\",\n        \"kind\": \"from\"\n      },\n      {\n        \"file\": \"headroom.py\",\n        \"line\": 79,\n        \"module\": \"psutil\",\n        \"kind\": \"import\"\n      }\n    ]\n  }",
+  "controls_verdict": "PASS"
+ },
+ "oracle_head_mutate": {
+  "why": "row verdict + mutation control for row 03 at the promoted commit (aggregate verdict is reported too, and is FAIL for a reason outside this row)",
+  "cwd": "C:/Users/wigmore/oc-runs/r4-v2-inv03",
+  "command": "HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/rowbound_oracle.py C:/Users/wigmore/oc-runs/r4-v2-inv03 --mutate",
+  "exit_code": 1,
+  "oracle_verdict": "FAIL",
+  "row_verdicts": {
+   "ENG-INV-03": "PASS",
+   "ENG-INV-04": "FAIL",
+   "ENG-INV-05": "PASS"
+  },
+  "checks": {
+   "ENG-INV-03": true,
+   "ENG-INV-04": false,
+   "ENG-INV-05": true
+  },
+  "scope_ok": true,
+  "files_parsed": 12,
+  "row03": {
+   "present": [
+    "fastapi",
+    "requests"
+   ],
+   "new_unapproved": [],
+   "violations": [],
+   "optional_count": 13
+  },
+  "row04_violations": 12,
+  "row05_violations": 0,
+  "mutation_control_row03": {
+   "row": "ENG-INV-03",
+   "mutation": "import totally_unapproved_new_package",
+   "baseline_results_all_rows": {
+    "ENG-INV-03": true,
+    "ENG-INV-04": false,
+    "ENG-INV-05": true
+   },
+   "results_all_rows": {
+    "ENG-INV-03": false,
+    "ENG-INV-04": false,
+    "ENG-INV-05": true
+   },
+   "this_row_red": true,
+   "siblings_unchanged_from_baseline": true,
+   "siblings_green": false,
+   "sibling_detail": {
+    "ENG-INV-04": false,
+    "ENG-INV-05": true
+   },
+   "non_vacuous": true
+  },
+  "quote": "{\n    \"ENG-INV-03\": \"PASS\",\n    \"ENG-INV-04\": \"FAIL\",\n    \"ENG-INV-05\": \"PASS\"\n  }\n{\n      \"row\": \"ENG-INV-03\",\n      \"mutation\": \"import totally_unapproved_new_package\",\n      \"baseline_results_all_rows\": {\n        \"ENG-INV-03\": true,\n        \"ENG-INV-04\": false,\n        \"ENG-INV-05\": true\n      },\n      \"results_all_rows\": {\n        \"ENG-INV-03\": false,\n        \"ENG-INV-04\": false,\n        \"ENG-INV-05\": true\n      },\n      \"this_row_red\": true,\n      \"siblings_unchanged_from_baseline\": true,\n      \"siblings_green\": false,\n      \"sibling_detail\": {\n        \"ENG-INV-04\": false,\n        \"ENG-INV-05\": true\n      },\n      \"non_vacuous\": true\n    }",
+  "note": "the aggregate FAIL is entirely row ENG-INV-04 (12 engine-level sink violations). That is residue 1 below, tracked on card t_88efb231, and is NOT the subject of this row."
+ },
+ "row_verdict_before": {
+  "source": "git show HEAD:certification/certification_matrix.json (row ENG-INV-03)",
+  "result": "FAIL",
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-17T11:15:00Z",
+  "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+  "verified": null
+ },
+ "row_verdict_after": {
+  "result": "PASS",
+  "tested_commit": "49f300b2cfb5a5c7cbbe02067f6cee9f7280b0e0",
+  "tested_at_utc": "2026-11-17T18:22:20Z",
+  "evidence_ref": "certification/results/ENG_INV_03_promotion_49f300b2.json",
+  "prior_evidence": "certification/results/ENG_INV_03_required_vs_optional_40d5a70.json",
+  "verified": null,
+  "verified_note": "left null on purpose: this author does not verify its own work; the child review card t_58113631 sets it."
+ },
+ "sibling_rows_untouched": {
+  "ENG-INV-04": {
+   "equal_before_after": true,
+   "result": "PASS",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+  },
+  "ENG-INV-05": {
+   "equal_before_after": true,
+   "result": "PASS",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+  },
+  "records_equal": "both records compare equal as parsed objects before/after the edit"
+ },
+ "matrix_diff": "diff --git a/certification/certification_matrix.json b/certification/certification_matrix.json\nindex e9c8a1e..f6b0da5 100644\n--- a/certification/certification_matrix.json\n+++ b/certification/certification_matrix.json\n@@ -665,12 +665,12 @@\n    \"negative_tests\": [\n     \"census run against a deliberately mutated copy must FAIL (non-vacuous)\"\n    ],\n-   \"prior_evidence\": \"\",\n-   \"result\": \"FAIL\",\n-   \"evidence_ref\": \"certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json\",\n-   \"tested_commit\": \"43731b4f1f19a56e835032dabf608a550f925717\",\n-   \"tested_at_utc\": \"2026-10-17T11:15:00Z\",\n-   \"notes\": \"FAIL on independent review (t_03123cb4). The predicate IS row-bound - the reviewer reproduced the mutation reddening only this row - but the certified PASS is VACUOUS BY CONSTRUCTION: rowbound_oracle.baseline_deps() computes the dependency baseline from the SAME commit under test (43731b4), and approved_dependencies.json does not exist anywhere, so the oracle falls back to an empty approved set. 'No NEW dependency' is therefore measured against itself and can never fail. Aggravating: at current main the same oracle reports RED because _archive/hl_stage2/headroom.py:48 imports psutil - absent at 43731b4, undeclared, unapproved - so main violates ARCHITECTURE.md:48 in substance. Fixing this needs an approval record and a baseline from a FIXED prior ref, not a self-baseline. Previously: NOT_TESTED.\",\n+   \"prior_evidence\": \"certification/results/ENG_INV_03_required_vs_optional_40d5a70.json\",\n+   \"result\": \"PASS\",\n+   \"evidence_ref\": \"certification/results/ENG_INV_03_promotion_49f300b2.json\",\n+   \"tested_commit\": \"49f300b2cfb5a5c7cbbe02067f6cee9f7280b0e0\",\n+   \"tested_at_utc\": \"2026-11-17T18:22:20Z\",\n+   \"notes\": \"Promoted on ROW ENG-INV-03's own verdict plus a non-vacuous mutation control, NOT on the oracle's three-row aggregate (task t_9a6d3e89, evidence author; independent review pending on child card t_58113631, so verified stays null). Controls re-run by this author, not copied: PARENT 058f857 control harness -> CONTROLS FAIL, exit 1 (C2 injected a try/except ImportError guarded `import yaml` at HL_Live_Copy_Service_Core.py:18226 and the pre-change predicate still scored it as a new dependency: ENG-INV-03=false, yaml_flagged=true); HEAD 49f300b2 -> CONTROLS PASS, exit 0 (C1 bare `import yaml` at :18225 reddens the row naming file:line:module; C2 the same import guarded stays green, yaml not flagged; C3 rows ENG-INV-04/ENG-INV-05 identical between the b3c090b oracle sha256 343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133 and the current oracle, differs []). Oracle at HEAD with --mutate: exit 1, row_verdicts ENG-INV-03 PASS / ENG-INV-04 FAIL / ENG-INV-05 PASS, ENG-INV-03 present ['fastapi','requests'] with new_unapproved [] and 13 optional facts, mutation control this_row_red=true non_vacuous=true. RESIDUE 1: row ENG-INV-04 is red inside the same oracle for 12 engine-level sink violations (driver-import sqlite3 + <sink:conn.execute> store-sinks) - tracked separately on card t_88efb231 (its review t_afc8986b) and not this row's subject. RESIDUE 2: the oracle's whole-file verdict remains FAIL while row 03 is PASS. Evidence: certification/results/ENG_INV_03_required_vs_optional_40d5a70.json (required-vs-optional census at 40d5a70) and certification/results/ENG_INV_03_promotion_49f300b2.json (this promotion's runs at 49f300b2).\",\n    \"proof_network\": \"TESTNET\",\n    \"verified\": null,\n    \"verifier\": \"custom:deepseek-v4-flash-thinking-nosearch (task t_03123cb4)\",\n@@ -679,7 +679,7 @@\n    \"cert_ref\": \"origin/cert/local-main-b142cf8\",\n    \"cert_evidence\": \"certification/results/ENG-INV-03-05_43731b4f.json\",\n    \"tier\": 1,\n-   \"evidence\": \"certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json\"\n+   \"evidence\": \"certification/results/ENG_INV_03_promotion_49f300b2.json\"\n   },\n   {\n    \"id\": \"ENG-INV-04\",\n",
+ "matrix_sha256": {
+  "before": "410c8a36411e15a2c3aaac435ba4905701179d070f23ba2de23bf1ac98450e4d",
+  "after": "83eaefdc2a86fc94a1715b730bce2c13bdb44d223b20162bc13796e1d5918b6a",
+  "definition": "sha256 over the exact file bytes"
+ },
+ "artifacts_sha256": {
+  "rowbound_oracle.py@HEAD": "d7317b7b8e327ae80b1831757186c1fd2730b128c13b79a12a4cd4077180870c",
+  "rowbound_oracle.py@parent058f857": "343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133",
+  "rowbound_oracle.py@b3c090b (pre-change, per C3)": "343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133",
+  "eng_inv_03_required_vs_optional_controls.py": "a172cf7757e9d5f779c25f7f3a2bb34194188b3a7c48964c0a6a89bffd35f0c5",
+  "eng_inv_03_required_vs_optional_controls.py@parent058f857": "a172cf7757e9d5f779c25f7f3a2bb34194188b3a7c48964c0a6a89bffd35f0c5"
+ },
+ "engine_bytes_changed": false,
+ "engine_bytes_note": "_archive/hl_stage2 untouched: this commit changes only certification/certification_matrix.json and this evidence file",
+ "residues": [
+  "RESIDUE 1: row ENG-INV-04 is red inside the same oracle for 12 engine-level sink violations (driver-import sqlite3 + <sink:conn.execute> store-sinks) - tracked separately on card t_88efb231 (review t_afc8986b), not this row.",
+  "RESIDUE 2: the oracle whole-file verdict remains FAIL while row ENG-INV-03 is PASS."
+ ],
+ "promotion_rule_applied": "row promoted on its OWN row verdict plus a non-vacuous mutation control, not on the three-row aggregate verdict",
+ "tree_clean": {
+  "command": "git status --porcelain",
+  "at_build_output": [
+   " M certification/certification_matrix.json",
+   "?? certification/results/ENG_INV_03_promotion_49f300b2.json"
+  ],
+  "basis": "at build time the only entries are this commit's two paths (the matrix edit and this file); no other tracked or untracked path differs from HEAD, so the committed tree is clean (empty output) once this commit lands",
+  "post_commit_expected_output": ""
+ },
+ "commands_run": [
+  "HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/rowbound_oracle.py C:/Users/wigmore/oc-runs/r4-v2-inv03 --mutate   (HEAD, exit 1)",
+  "HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/eng_inv_03_required_vs_optional_controls.py C:/Users/wigmore/oc-runs/r4-v2-inv03   (HEAD, exit 0)",
+  "HL_LIVE_ENV_FILE=/nonexistent python -u certification/results/eng_inv_03_required_vs_optional_controls.py C:/Users/wigmore/.hermes/cache/scratch/inv03_parent_058f857   (parent 058f857, exit 1)"
+ ]
+}
