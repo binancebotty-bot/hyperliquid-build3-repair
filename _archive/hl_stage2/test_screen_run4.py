@@ -158,7 +158,7 @@ def main() -> None:
     check("S1_LIVE_WALLET_COUNT_SEPARATE", top["live_wallets"] == 2, str(top["live_wallets"]))
     check("S1_ONE_LABEL_ON_SCREEN", "REAL ORDERS:" not in panel and "lcAutoSend" not in panel and "Real order sending" not in panel
           and "MASTER REAL ORDERS" not in panel and "const armed=lcAudit.master_real_orders_enabled===true" in panel
-          and ">Sending<" in panel and "Live wallets: ${liveCount}" in panel)
+          and ">Sending<" in panel and "${liveCount} live" in panel)
 
     # ---- S2 calm health ---------------------------------------------------------------------------------
     H = ui._build_health_summary
@@ -298,6 +298,11 @@ def main() -> None:
     ui.atomic_write_json(ui.LIVE_COPY_SERVICE_STATE_FILE, fresh_state(resting_entry_limits=2))
     ui._AUDIT_SUMMARY_CACHE.clear()
     summary = client.get("/api/live-audit-summary").json()
+    # The FIRST summary read (no warm cache) must already carry the follower's whole-account value:
+    # the screen cannot show a correct P&L tally or banner if it waits for a background refresh.
+    check("S11_FIRST_SUMMARY_HAS_ACCOUNT_VALUE", (summary.get("follower_account") or {}).get("ok") is True
+          and abs((summary.get("follower_account") or {}).get("value", 0) - 1418.0) < 1e-9,
+          str(summary.get("follower_account")))
     tally = summary.get("pnl_tally") or {}
     closed = round(sum(float(f["closedPnl"]) for f in FILLS), 2)
     fees = round(sum(float(f["fee"]) for f in FILLS), 2)
