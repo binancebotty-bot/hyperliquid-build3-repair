@@ -8408,6 +8408,12 @@ class SenderGateway:
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
         state = timing if isinstance(timing, dict) else {}
+        if sz_dec is not None:
+            # R4 v2: the proven precision is recorded HERE so the late wire gate (_final_close_proof), which
+            # re-decides the close from timing["close_verified_sz_decimals"], sees it on every plan path -
+            # the ledger-lag path used by a part-filled remainder never recorded it, so the remainder was
+            # refused with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION and never sent.
+            state["close_verified_sz_decimals"] = sz_dec
         def decide(kind: str, amount: float = 0.0, ro: bool = False, why: str = "") -> Tuple[bool, float, str]:
             state["close_decision"] = kind
             return ro, amount, why
