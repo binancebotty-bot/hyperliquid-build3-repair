@@ -1,0 +1,324 @@
+{
+  "task": "t_34136107",
+  "requirement": {
+    "id": "ENG-INV-03",
+    "text": "No new dependency without Architect approval.",
+    "source": "ARCHITECTURE.md \"ARCH inv3\"; row ENG-INV-03 in certification/certification_matrix.json",
+    "authority_for_new": {
+      "approved_record": "certification/approved_dependencies.json",
+      "pinned_baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "note": "the dependency baseline is never derived from the evaluated commit"
+    }
+  },
+  "evaluated_rev": "40d5a7015fdee64493415f6bd369e36c0d475f3c",
+  "branch": "r4-v2-inv03-oracle",
+  "base_rev": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+  "generated_utc": "17 Nov 2026 17:51:28",
+  "oracle": {
+    "path": "certification/results/rowbound_oracle.py",
+    "sha256_before": "343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133",
+    "sha256_after": "d7317b7b8e327ae80b1831757186c1fd2730b128c13b79a12a4cd4077180870c",
+    "sha256_definition": "sha256 over the exact oracle bytes as executed (git blobs; worktree bytes verified identical to the HEAD blob, no newline normalisation)",
+    "before_source": "git show b3c090b0f53d2b6989a4850914d711271ffbe209:certification/results/rowbound_oracle.py"
+  },
+  "harness": {
+    "path": "certification/results/eng_inv_03_required_vs_optional_controls.py",
+    "sha256": "a172cf7757e9d5f779c25f7f3a2bb34194188b3a7c48964c0a6a89bffd35f0c5"
+  },
+  "commands_run": [
+    "python certification/results/rowbound_oracle.py .                              # BEFORE (pre-change oracle)",
+    "python certification/results/rowbound_oracle.py .                              # AFTER  (evaluated rev 40d5a70)",
+    "python certification/results/eng_inv_03_required_vs_optional_controls.py .      # C1/C2/C3"
+  ],
+  "row03_before": {
+    "verdict": "FAIL",
+    "present": [
+      "eth_account",
+      "fastapi",
+      "hyperliquid",
+      "psutil",
+      "requests",
+      "uvicorn",
+      "websocket"
+    ],
+    "new_unapproved": [
+      "psutil"
+    ],
+    "violations": [
+      {
+        "file": "headroom.py",
+        "line": 79,
+        "module": "psutil",
+        "kind": "import"
+      }
+    ],
+    "at_baseline": [
+      "eth_account",
+      "fastapi",
+      "hyperliquid",
+      "requests",
+      "uvicorn",
+      "websocket"
+    ]
+  },
+  "row03_after": {
+    "verdict": "PASS",
+    "present_required": [
+      "fastapi",
+      "requests"
+    ],
+    "new_unapproved": [],
+    "violations": [],
+    "at_baseline": [
+      "fastapi"
+    ],
+    "optional_count": 13,
+    "optional": [
+      {
+        "file": "HL_Copy_App_SSOT.py",
+        "line": 44,
+        "module": "uvicorn",
+        "kind": "import"
+      },
+      {
+        "file": "HL_Live_Copy_Service.py",
+        "line": 39,
+        "module": "requests",
+        "kind": "import"
+      },
+      {
+        "file": "HL_Live_Copy_Service.py",
+        "line": 44,
+        "module": "websocket",
+        "kind": "import"
+      },
+      {
+        "file": "HL_Live_Copy_Service.py",
+        "line": 530,
+        "module": "hyperliquid",
+        "kind": "from"
+      },
+      {
+        "file": "HL_Live_Copy_Service.py",
+        "line": 703,
+        "module": "hyperliquid",
+        "kind": "from"
+      },
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 56,
+        "module": "requests",
+        "kind": "import"
+      },
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 61,
+        "module": "websocket",
+        "kind": "import"
+      },
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 66,
+        "module": "eth_account",
+        "kind": "from"
+      },
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 67,
+        "module": "hyperliquid",
+        "kind": "from"
+      },
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 3820,
+        "module": "hyperliquid",
+        "kind": "from"
+      },
+      {
+        "file": "exchange_truth.py",
+        "line": 192,
+        "module": "requests",
+        "kind": "import"
+      },
+      {
+        "file": "exchange_truth.py",
+        "line": 491,
+        "module": "eth_account",
+        "kind": "from"
+      },
+      {
+        "file": "headroom.py",
+        "line": 79,
+        "module": "psutil",
+        "kind": "import"
+      }
+    ]
+  },
+  "sibling_rows": {
+    "control": "C3",
+    "rows": {
+      "ENG-INV-04": {
+        "before": false,
+        "after": false
+      },
+      "ENG-INV-05": {
+        "before": true,
+        "after": true
+      }
+    },
+    "identical": true,
+    "note": "imports_of() was left untouched; rows 04/05 read the same triples as before."
+  },
+  "controls": {
+    "RED_pre_change": {
+      "exit_code": 1,
+      "C1": {
+        "injection": "bare `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+        "expected_import_line": 18225,
+        "ENG-INV-03": false,
+        "new_unapproved": [
+          "psutil",
+          "yaml"
+        ],
+        "violations": [
+          {
+            "file": "HL_Live_Copy_Service_Core.py",
+            "line": 18225,
+            "module": "yaml",
+            "kind": "import"
+          },
+          {
+            "file": "headroom.py",
+            "line": 79,
+            "module": "psutil",
+            "kind": "import"
+          }
+        ],
+        "exit_code": 1,
+        "names_file_line_module": true,
+        "PASS": true
+      },
+      "C2": {
+        "injection": "try/except ImportError guarded `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+        "expected_import_line": 18226,
+        "ENG-INV-03": false,
+        "new_unapproved": [
+          "psutil",
+          "yaml"
+        ],
+        "yaml_flagged": true,
+        "violations": [
+          {
+            "file": "HL_Live_Copy_Service_Core.py",
+            "line": 18226,
+            "module": "yaml",
+            "kind": "import"
+          },
+          {
+            "file": "headroom.py",
+            "line": 79,
+            "module": "psutil",
+            "kind": "import"
+          }
+        ],
+        "exit_code": 1,
+        "PASS": false
+      },
+      "C3": {
+        "pre_oracle_source": "git show b3c090b0f53d2b6989a4850914d711271ffbe209:certification/results/rowbound_oracle.py (sha256 343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133)",
+        "siblings": {
+          "ENG-INV-04": {
+            "pre": false,
+            "post": false
+          },
+          "ENG-INV-05": {
+            "pre": true,
+            "post": true
+          }
+        },
+        "differs": [],
+        "PASS": true
+      },
+      "verdict": "FAIL",
+      "expectation": "harness must FAIL against the pre-change predicate on C2"
+    },
+    "GREEN_post_change": {
+      "exit_code": 0,
+      "C1": {
+        "injection": "bare `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+        "expected_import_line": 18225,
+        "ENG-INV-03": false,
+        "new_unapproved": [
+          "yaml"
+        ],
+        "violations": [
+          {
+            "file": "HL_Live_Copy_Service_Core.py",
+            "line": 18225,
+            "module": "yaml",
+            "kind": "import"
+          }
+        ],
+        "exit_code": 1,
+        "names_file_line_module": true,
+        "PASS": true
+      },
+      "C2": {
+        "injection": "try/except ImportError guarded `import yaml` appended to _archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+        "expected_import_line": 18226,
+        "ENG-INV-03": true,
+        "new_unapproved": [],
+        "yaml_flagged": false,
+        "violations": [],
+        "exit_code": 1,
+        "PASS": true
+      },
+      "C3": {
+        "pre_oracle_source": "git show b3c090b0f53d2b6989a4850914d711271ffbe209:certification/results/rowbound_oracle.py (sha256 343fa2d8d250740a8a053837d0676f00c47cd44012c9970bd933e67c07b57133)",
+        "siblings": {
+          "ENG-INV-04": {
+            "pre": false,
+            "post": false
+          },
+          "ENG-INV-05": {
+            "pre": true,
+            "post": true
+          }
+        },
+        "differs": [],
+        "PASS": true
+      },
+      "verdict": "PASS",
+      "expectation": "harness must PASS: C1 RED, C2 GREEN, C3 unchanged"
+    }
+  },
+  "row04_out_of_scope": {
+    "verdict_at_rev": "FAIL",
+    "violation_count": 12,
+    "note": "A row-04 divergence at this rev is EXPECTED and out of scope for this card: reported, not fixed. The oracle-level verdict stays FAIL for that reason alone (row 03 = PASS, row 05 = PASS)."
+  },
+  "engine_bytes_changed": false,
+  "scope": {
+    "files_in_dir": 12,
+    "files_parsed": 12,
+    "engine_closure": [
+      "HL_Copy_App_SSOT.py",
+      "HL_Live_Copy_Service.py",
+      "HL_Live_Copy_Service_Core.py",
+      "convergence_shadow.py",
+      "exchange_truth.py",
+      "follower_volume.py",
+      "headroom.py",
+      "hotswap.py"
+    ],
+    "scope_ok": true
+  },
+  "invariants_upheld": [
+    "closes sacred",
+    "the engine never adopts or closes a position it did not open",
+    "send OFF sends nothing",
+    "same-side foreign excess close is clamped to the copy-owned sleeve"
+  ],
+  "invariants_note": "This card changes no engine behaviour: the diff is confined to the certification oracle (AST-only, never imports the engine). Engine bytes are unmodified at this rev.",
+  "verdict": "PASS"
+}
