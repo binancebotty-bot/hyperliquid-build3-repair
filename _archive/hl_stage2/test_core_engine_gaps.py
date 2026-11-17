@@ -128,6 +128,43 @@ def main() -> None:
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
 
+    # ---- O1-REACH: the same close decision reached the way PRODUCTION reaches it -------------
+    # Production enters the close proof at the physical wire, _final_close_proof(intent, size,
+    # reduce_only, timing), and the timing dict it hands over does NOT carry
+    # "close_verified_sz_decimals": that key is written only by a plan that already ran, so the first
+    # pass plans with a sz_dec of None. Drive that exact entry point with a production-shaped timing
+    # dict, a sleeve the engine legitimately OWNS (fill-proven through the ledger, no fills rows) and a
+    # fresh exposure read equal to it: the close must reach _close_wire_plan and SEND at a precision
+    # derived from the owned amount, not HOLD with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION. No exchange
+    # call: nothing in this block touches an exchange client.
+    owned = 0.25
+    reach = c.ManualLedger(path=tmp / "reach.json")
+    reach.sleeve(LEADER, "BTC")["signed_size"] = owned
+    reach._recompute_net(reach.data)
+
+    def reach_positions(payload):
+        if payload.get("type") != "clearinghouseState":
+            return []
+        return {"assetPositions": [{"position": {"coin": "BTC", "szi": str(owned), "positionValue": "25"}}],
+                "marginSummary": {"accountValue": "1000"}}
+    c.EXPOSURE_FETCHER = reach_positions
+    rgw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), reach)
+    rgw.cfg.send_mode_now = lambda: "ON"
+    reach_intent = c.IntentBuilder(c.ConfigManager(), reach).build(fill("SELL", price=100.0, size=owned))
+    timing = {}   # production shape: no "close_verified_sz_decimals" key yet
+    assert "close_verified_sz_decimals" not in timing, "HARNESS: the timing dict must start without the key"
+    proof = rgw._final_close_proof(reach_intent, owned, True, timing)
+    # The plan must have RESOLVED a precision for itself (the key it starts without is written by the plan
+    # it reaches) and SEND; the check pins no particular derivation mechanism, only that no precision key
+    # arrives and the close is not held for want of one.
+    check("O1_FINAL_CLOSE_PROOF_DERIVES_THE_PRECISION_WITHOUT_THE_TIMING_KEY",
+          proof == "" and timing.get("close_decision") == "SEND"
+          and isinstance(timing.get("close_verified_sz_decimals"), int)
+          and timing.get("close_verified_sz_decimals") >= 0
+          and timing.get("close_proven_from") == "ledger_sleeve_no_fills",
+          f"proof={proof!r} timing={timing!r}")
+    c.EXPOSURE_FETCHER = None   # the D section installs its own portfolio/positions fetcher
+
     # ---- D: daily loss limit --------------------------------------------------------------
     pnl = {"rows": None, "reads": 0}
 
