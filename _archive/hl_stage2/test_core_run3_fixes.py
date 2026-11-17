@@ -391,13 +391,20 @@ def main() -> None:
           and res.get("reduce_only_sent") is False and "net on one account" in res.get("notes", ""),
           f"{status} {fake.calls} {res.get('notes', '')[:120]}")
     led = ledger(a=447.0)
-    snapshot(0.0)     # records never catch up: stays reduce-only, gives up after the wait, diff as usual
+    snapshot(0.0)     # records never catch up: the account net holds none of the units this close would touch
     fake = FakeExchange([RO_REJECT])
     g = gateway(fake, led)
     os.environ["HL_LIVE_NETTING_RETRY_WAIT_SEC"] = "0.6"
     ok, status, res = send_real(g, exit_intent(led, A, "SELL", 447.0))
-    check("N9_NO_CATCH_UP_NO_BLIND_RESEND", not ok and len(fake.calls) == 1 and res.get("reject_category") == "REDUCE_ONLY_REJECTED",
-          f"{status} {fake.calls}")
+    # CONTROLLER RULING 1220Z (option b): owner unproven on a flat net HOLDS with ZERO physical sends.
+    # Reduce-only is not proof of ownership, so nothing may reach the exchange here and nothing may be
+    # resent once the netting-retry window has passed. The catch-up case above keeps resend coverage.
+    time.sleep(0.7)
+    check("N9_NO_CATCH_UP_NO_BLIND_RESEND",
+          not ok and not fake.calls and res.get("exchange_called") is False
+          and res.get("reject_category") == "CLOSE_PROOF_HOLD"
+          and res.get("error") == "CLOSE_PROOF_HOLD_FOREIGN_UNITS",
+          f"{status} {fake.calls} {res.get('error')} {res.get('reject_category')}")
 
     # ---- N10: the screen shows each coin's net and which leader holds what --------------------------------------
     ui = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8-sig")
