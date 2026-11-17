@@ -1,0 +1,464 @@
+{
+  "requirement": "ENG-INV-07",
+  "claim": "Leader mutable state is isolated by (wallet, coin): two leaders trading the same coin inside one process cannot read, move, adopt or close each other's sleeve.",
+  "sources": [
+    "ARCHITECTURE.md \"ARCH inv7\"",
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py:4595 ManualLedger.sleeve_id",
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py:4598 ManualLedger.position_id"
+  ],
+  "scope": "OFFLINE, in-process, controller-free. Two leaders (A, B) and one follower ledger exercised together in one Python process through the real ManualLedger + real IntentBuilder. Only data sources replaced: price mids (deterministic dict) and the live env file (pointed at /nonexistent). No network, no exchange client, no send path, no live state dir, no CONTROL_STATE.json.",
+  "evaluated_rev": "c8528f900d8fac646c14ded200ac7a4d8c6174e9",
+  "evaluated_ref": "r4-v2-inv07",
+  "tree": "C:/Users/wigmore/oc-runs/r4-v2-inv07",
+  "base_commit": "b3c090b0f53d2b6989a4850914d711271ffbe209",
+  "harness": {
+    "path": "_archive/hl_stage2/test_inv07_wallet_coin_isolation.py",
+    "sha256": "2c2c649be00832e1db6db060261415a8742f731762950daf6c9667af904afb97",
+    "bytes": 26095,
+    "commit": "c8528f900d8fac646c14ded200ac7a4d8c6174e9",
+    "test_only": true
+  },
+  "engine_under_test": {
+    "path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "sha256": "cf693e1fc7193bf0c9c7b7b39d5da02a552c6f86bf807cf1ad2de5c07b69c343",
+    "changed_by_this_card": false,
+    "note": "engine bytes are unchanged: the harness passes against the engine as committed at the base rev, so no isolation fix was required"
+  },
+  "commands": {
+    "harness": "cd C:/Users/wigmore/oc-runs/r4-v2-inv07/_archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_inv07_wallet_coin_isolation.py",
+    "harness_exit_code": 0,
+    "repeat_run": "run twice (two independent processes): identical result 36/0, exit 0",
+    "mutation_control": "performed inside the harness as case I5 (cd <scratch copy> && HL_LIVE_ENV_FILE=/nonexistent INV07_MUTATION_CHILD=1 python -u test_inv07_wallet_coin_isolation.py)"
+  },
+  "results": {
+    "total": 36,
+    "failed": 0,
+    "exit_code": 0,
+    "per_case": {
+      "I1": [
+        {
+          "name": "I1_SLEEVE_IDS_WALLET_SCOPED",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_SLEEVE_ROWS_ARE_DISTINCT_OBJECTS",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_A1_SIZES_A_SLEEVE_AND_LEAVES_B_UNTOUCHED",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_B1_SIZES_B_SLEEVE_AND_LEAVES_A_UNTOUCHED",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_A2_ADDS_TO_A_ONLY",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_B2_ADDS_TO_B_ONLY",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_POSITION_IDS_ARE_WALLET_SCOPED_AND_DISTINCT",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_DESIRED_NET_PER_SLEEVE_IS_ITS_OWN",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_DESIRED_NET_A_UNMOVED_BY_B_LEADERS_SIGN_FLIP",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I1_ACCOUNT_COIN_NET_IS_THE_SUM_OF_THE_TWO_SLEEVES",
+          "status": "PASS",
+          "detail": null
+        }
+      ],
+      "I2": [
+        {
+          "name": "I2_SLEEVE_IDS_COIN_SCOPED",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I2_BTC_FILL_NEVER_MOVES_THE_ETH_SLEEVE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I2_ETH_FILL_NEVER_MOVES_THE_BTC_SLEEVE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I2_SECOND_BTC_FILL_STILL_LEAVES_ETH_ALONE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I2_PER_COIN_NETS_ARE_SEPARATE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I2_POSITION_IDS_DIFFER_ACROSS_COINS",
+          "status": "PASS",
+          "detail": null
+        }
+      ],
+      "I3": [
+        {
+          "name": "I3_PRECONDITION_A_FLAT_B_LONG",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_CLOSE_FOR_B_READS_B_SLEEVE_ONLY",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_BUILDING_B_CLOSE_DOES_NOT_WRITE_A_SLEEVE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_FLAT_WALLET_CLOSE_EVENT_IS_REFUSED_NOT_ADOPTED",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_B_CLOSE_NEVER_ADOPTS_INTO_A",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_CLOSE_SIZE_COMES_FROM_ITS_OWN_ANCHOR",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I3_B_CLOSE_SHRANK_B_ONLY",
+          "status": "PASS",
+          "detail": null
+        }
+      ],
+      "I4": [
+        {
+          "name": "I4_REBUILD_FROM_OWN_ROWS_REPRODUCES_EVERY_SLEEVE",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I4_LEDGER_KEYED_BY_WALLET_THEN_COIN",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I4_UNKNOWN_WALLET_READS_FLAT_NOT_ANOTHER_WALLET",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I4_NO_SHARED_MUTABLE_DEFAULT_BETWEEN_SLEEVES",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I4_SEPARATE_SLEEVE_ROWS_PER_WALLET_AND_COIN",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I4_TWO_LEDGER_INSTANCES_DO_NOT_SHARE_STATE",
+          "status": "PASS",
+          "detail": null
+        }
+      ],
+      "I5": [
+        {
+          "name": "I5_MUTATION_APPLIED_TO_THE_SCRATCH_COPY",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I5_MUTATED_TREE_FAILS_THE_HARNESS",
+          "status": "PASS",
+          "detail": null
+        },
+        {
+          "name": "I5_MUTATION_REDDENS_THE_ISOLATION_CHECKS",
+          "status": "PASS",
+          "detail": null
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "name": "I1_SLEEVE_IDS_WALLET_SCOPED",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_SLEEVE_ROWS_ARE_DISTINCT_OBJECTS",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_A1_SIZES_A_SLEEVE_AND_LEAVES_B_UNTOUCHED",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_B1_SIZES_B_SLEEVE_AND_LEAVES_A_UNTOUCHED",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_A2_ADDS_TO_A_ONLY",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_B2_ADDS_TO_B_ONLY",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_POSITION_IDS_ARE_WALLET_SCOPED_AND_DISTINCT",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_DESIRED_NET_PER_SLEEVE_IS_ITS_OWN",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_DESIRED_NET_A_UNMOVED_BY_B_LEADERS_SIGN_FLIP",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I1_ACCOUNT_COIN_NET_IS_THE_SUM_OF_THE_TWO_SLEEVES",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I2_SLEEVE_IDS_COIN_SCOPED",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I2_BTC_FILL_NEVER_MOVES_THE_ETH_SLEEVE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I2_ETH_FILL_NEVER_MOVES_THE_BTC_SLEEVE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I2_SECOND_BTC_FILL_STILL_LEAVES_ETH_ALONE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I2_PER_COIN_NETS_ARE_SEPARATE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I2_POSITION_IDS_DIFFER_ACROSS_COINS",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_PRECONDITION_A_FLAT_B_LONG",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_CLOSE_FOR_B_READS_B_SLEEVE_ONLY",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_BUILDING_B_CLOSE_DOES_NOT_WRITE_A_SLEEVE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_FLAT_WALLET_CLOSE_EVENT_IS_REFUSED_NOT_ADOPTED",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_B_CLOSE_NEVER_ADOPTS_INTO_A",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_CLOSE_SIZE_COMES_FROM_ITS_OWN_ANCHOR",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I3_B_CLOSE_SHRANK_B_ONLY",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_REBUILD_FROM_OWN_ROWS_REPRODUCES_EVERY_SLEEVE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_LEDGER_KEYED_BY_WALLET_THEN_COIN",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_UNKNOWN_WALLET_READS_FLAT_NOT_ANOTHER_WALLET",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_NO_SHARED_MUTABLE_DEFAULT_BETWEEN_SLEEVES",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_SEPARATE_SLEEVE_ROWS_PER_WALLET_AND_COIN",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I4_TWO_LEDGER_INSTANCES_DO_NOT_SHARE_STATE",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I5_MUTATION_APPLIED_TO_THE_SCRATCH_COPY",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I5_MUTATED_TREE_FAILS_THE_HARNESS",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "I5_MUTATION_REDDENS_THE_ISOLATION_CHECKS",
+      "status": "PASS",
+      "detail": null
+    }
+  ],
+  "case_coverage": {
+    "I1": "two wallets, one coin: interleaved fills A1 B1 A2 B2; each sleeve's signed_size / position_id / desired net stays its own, the other wallet's row is byte-identical after every fill, no intent carries the other wallet's size, B's leader sign flip leaves A's desired net unmoved",
+    "I2": "one wallet, two coins: a BTC fill never moves the ETH sleeve and vice versa; per-coin nets and position ids stay separate",
+    "I3": "flat-vs-long collision: A flat, B long on the same coin; B's close reads B's sleeve/position id only; a close-shaped event for flat A is REFUSED (SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION, send_allowed False) and never adopts B's position; exit-chain heads are per-sleeve so B's close size (1.25) can never be clamped by A's sleeve (1.0)",
+    "I4": "restart-independence: ledger rebuilt from its own rows reproduces every per-sleeve value; by_wallet[wallet][coin] keying verified; no shared mutable default between sleeves, wallets or ledger instances; unknown wallet reads flat",
+    "I5": "mutation control (non-vacuity): sleeve_id degraded to coin-only in a scratch copy -> harness FAILS there"
+  },
+  "i5_mutation_control": {
+    "applied_to": "scratch copy of _archive/hl_stage2 (shutil.copytree into a temp dir); nothing outside the copy written",
+    "degradation_one_line": {
+      "file": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+      "old": "return f\"{normalise_wallet(wallet)}::{canonical_coin_key(coin)}\"",
+      "new": "return f\"{canonical_coin_key(coin)}\""
+    },
+    "child_command": "cd <scratch copy> && HL_LIVE_ENV_FILE=/nonexistent INV07_MUTATION_CHILD=1 python -u test_inv07_wallet_coin_isolation.py",
+    "child_exit_code": 1,
+    "reddened_check_count": 5,
+    "reddened_checks": [
+      "I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE",
+      "I1_SLEEVE_IDS_WALLET_SCOPED",
+      "I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET",
+      "I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED",
+      "I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD"
+    ],
+    "child_total_checks": 33,
+    "child_failed_checks": 5,
+    "reddened_details": {
+      "I1_NO_INTENT_CARRIES_THE_OTHER_WALLETS_SIZE": "sizes=[1.0, 2.5, 1.0, 2.5] sleeve_ids=['BTC', 'BTC', 'BTC', 'BTC']",
+      "I1_SLEEVE_IDS_WALLET_SCOPED": "'BTC' vs 'BTC'",
+      "I3_EXIT_CHAIN_HEAD_ISOLATED_FROM_THE_OTHER_WALLET": "A head before B open={'head_leader': 4.0, 'copy_sleeve': 1.0, 'cursor': 3.0} after={}",
+      "I3_EXIT_CHAIN_KEYS_ARE_WALLET_SCOPED": "keys=['BTC']",
+      "I4_SLEEVE_ROW_IDENTITIES_SURVIVE_THE_REBUILD": "A='BTC' B='BTC'"
+    }
+  },
+  "invariants_evidence": {
+    "never_adopt_or_close_a_position_we_did_not_open": [
+      "I3_FLAT_WALLET_CLOSE_EVENT_IS_REFUSED_NOT_ADOPTED",
+      "I3_B_CLOSE_NEVER_ADOPTS_INTO_A",
+      "I3_CLOSE_FOR_B_READS_B_SLEEVE_ONLY",
+      "I3_BUILDING_B_CLOSE_DOES_NOT_WRITE_A_SLEEVE"
+    ],
+    "closes_are_sacred_note": "no close-path bytes were touched by this card; I3 exercises the decision stage only (no exchange send)",
+    "not_exercised_here": [
+      "send OFF sends nothing (no send path is reached in this harness)",
+      "same-side foreign excess close clamp (covered by other cards)"
+    ]
+  },
+  "not_covered_by_this_card": [
+    "TESTNET/runtime leg is NOT covered: this artifact does not prove single sender -> testnet order -> MASTER fill/position. It proves only the in-process (wallet, coin) isolation of leader mutable state.",
+    "The certification matrix row ENG-INV-07 is NOT written and NOT claimed PASS here; the independent reviewer owns that row."
+  ],
+  "verdict": "HARNESS GREEN at evaluated_rev (36 checks, 0 failed, exit 0) and RED under the coin-only mutation (33 checks, 5 failed, exit 1). This is evidence for the in-process isolation half of ENG-INV-07 only."
+}
