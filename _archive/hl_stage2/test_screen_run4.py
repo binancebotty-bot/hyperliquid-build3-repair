@@ -290,7 +290,7 @@ def main() -> None:
     ui.atomic_write_json(ui.EXCHANGE_ACCOUNT_HISTORY_FILE, [
         {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 7200_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1300, "unified_portfolio_value": 1440.0, "open_position_count": 0},
         {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS - 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1310, "unified_portfolio_value": 1449.0, "open_position_count": 0},
-        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "open_position_count": 1},
+        {"timestamp": ui.datetime.fromtimestamp((RUN_START_MS + 60_000) / 1000, tz=ui.timezone.utc).isoformat(), "account_value": 1320, "unified_portfolio_value": 1447.0, "open_position_count": 1, "portfolio_value": 1418.0, "unrealized_pnl": 6.6},
     ])
     EXCHANGE["positions"] = [{"coin": "BTC", "szi": 0.3, "mark": 120.0, "entry": 98.0, "upnl": 6.6}]
     ui._ACCOUNT_VALUE_CACHE.clear()

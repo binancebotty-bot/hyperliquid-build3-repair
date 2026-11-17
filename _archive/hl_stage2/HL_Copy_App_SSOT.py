@@ -1507,7 +1507,14 @@ def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
             kick = True
         snapshot = dict(_SLOW_EXCHANGE["snapshot"] or {})
         follower = dict(_SLOW_EXCHANGE["follower"] or {})
-    if kick:
+    if kick and (not snapshot or not follower):
+        # First load (no warm cache): compute synchronously so the screen shows real
+        # figures on the very first summary read instead of empty until the thread lands.
+        _exchange_slow_refresh()
+        with _SLOW_EXCHANGE_LOCK:
+            snapshot = dict(_SLOW_EXCHANGE["snapshot"] or {})
+            follower = dict(_SLOW_EXCHANGE["follower"] or {})
+    elif kick:
         threading.Thread(target=_exchange_slow_refresh, name="hl-exchange-slow", daemon=True).start()
     return snapshot, follower, (round(max(0.0, age), 1) if age is not None else None)
 
