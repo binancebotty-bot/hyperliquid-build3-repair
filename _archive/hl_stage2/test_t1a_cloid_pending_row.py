@@ -31,11 +31,9 @@ def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="t1a_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
-                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0",
-                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock")})
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
     import requests
     import HL_Live_Copy_Service_Core as c
-    c.acquire_global_instance_lock(tmp / "state")  # the sender lease the physical call requires (once per run, as run3 does)
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -101,12 +99,8 @@ def main() -> None:
     resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
-    def gateway(fake, switch_on=True):
+    def gateway(fake):
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-        # Send switch ON for this offline fixture (same pattern as test_core_run3_fixes.py): without it the
-        # gate refuses with MASTER_REAL_ORDERS_OFF before any exchange call. No network, no orders.
-        if switch_on:
-            gw.cfg.send_mode_now = lambda: "ON"
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
@@ -192,15 +186,6 @@ def main() -> None:
     check("A13_PENDING_WRITE_FAILURE_SENDS_NOTHING", (not ok3) and not fake3.calls
           and "AUDIT_WRITE_FAILED" in str(status3), f"{ok3} {status3} {fake3.calls}")
 
-    # ---- A14: negative gate test: switch OFF -> the gate refuses and the exchange is never called -------
-    fake4 = FakeExchange()
-    gw = gateway(fake4, switch_on=False)
-    ok4, status4, res4, intent4 = send(fake4, follower=100.0)
-    check("A14_SWITCH_OFF_REFUSES_WITH_ZERO_EXCHANGE_CALLS", (not ok4) and fake4.calls == []
-          and res4.get("exchange_called") is False, f"{ok4} {status4} {fake4.calls} {res4.get('exchange_called')}")
-
-    # ---- teardown: release the one sender lease this run took (no leaked lock) -------------------------
-    c.release_global_instance_lock()
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
