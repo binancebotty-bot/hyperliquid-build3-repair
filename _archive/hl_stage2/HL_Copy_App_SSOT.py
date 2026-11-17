@@ -1509,6 +1509,16 @@ def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
         follower = dict(_SLOW_EXCHANGE["follower"] or {})
     if kick:
         threading.Thread(target=_exchange_slow_refresh, name="hl-exchange-slow", daemon=True).start()
+    if not follower:
+        # FIRST LOAD. There is no last-good figure yet, so `{}` used to go out as if it were data: the card
+        # rendered UNAVAILABLE with no reason and every consumer saw a blank object. The follower account
+        # value is ONE bounded /info read with its own 15 s cache - the same read the account tile already
+        # makes on this thread - so ask for it once here. A failed read is reported as {ok: False, reason},
+        # never as absence, and the background refresh takes over as soon as it lands.
+        follower = _follower_account_value_safe()
+        if follower.get("ok"):
+            with _SLOW_EXCHANGE_LOCK:
+                _SLOW_EXCHANGE["follower"] = dict(follower)
     return snapshot, follower, (round(max(0.0, age), 1) if age is not None else None)
 
 
