@@ -31,9 +31,11 @@ def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="t1a_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
-                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0",
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock")})
     import requests
     import HL_Live_Copy_Service_Core as c
+    c.acquire_global_instance_lock(tmp / "state")  # the sender lease the physical call requires (once per run, as run3 does)
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -101,6 +103,9 @@ def main() -> None:
 
     def gateway(fake):
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        # Send switch ON for this offline fixture (same pattern as test_core_run3_fixes.py): without it the
+        # gate refuses with MASTER_REAL_ORDERS_OFF before any exchange call. No network, no orders.
+        gw.cfg.send_mode_now = lambda: "ON"
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
