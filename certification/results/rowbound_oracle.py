@@ -3,6 +3,7 @@ ENTRY = ('HL_Live_Copy_Service_Core', 'HL_Live_Copy_Service', 'HL_Copy_App_SSOT'
 # Fixed, reviewed historical certification baseline; never derive this from the evaluated revision.
 DEPENDENCY_BASELINE_REF = '43731b4f1f19a56e835032dabf608a550f925717'
 DEFAULT_BASELINE = DEPENDENCY_BASELINE_REF
+GUARD_HANDLERS = {'ImportError', 'ModuleNotFoundError', 'Exception'}
 STORES = {'sqlite3','psycopg','psycopg2','pymysql','MySQLdb','redis','shelve','dbm','sqlalchemy','peewee','pymongo','motor','lmdb','rocksdb','tinydb','zodb'}
 B4 = {'build4','b4','mission_control','missioncontrol','control_plane','controlplane','gate_root','b4_gate','hl_prod_base','hyperliquid_build4'}
 B4_PREFIX = ('build4_','b4_','mission_control_')
@@ -30,6 +31,61 @@ def imports_of(tree):
                 continue
             out.append((n.lineno, n.module.split('.')[0], 'from'))
     return out
+
+def _node_imports(node):
+    if isinstance(node, ast.Import):
+        return [(node.lineno, a.name.split('.')[0]) for a in node.names]
+    if node.level or not node.module:
+        return []
+    return [(node.lineno, node.module.split('.')[0])]
+
+def _handler_guards_import(handler):
+    t = handler.type
+    if t is None:                                  # bare `except:` catches ImportError too
+        return True
+    for e in (t.elts if isinstance(t, ast.Tuple) else [t]):
+        nm = e.id if isinstance(e, ast.Name) else getattr(e, 'attr', '')
+        if nm in GUARD_HANDLERS:
+            return True
+    return False
+
+def optional_imports_of(tree):
+    """(lineno, module) pairs NOT required at import time.
+
+    An import sitting in the body of a ``try`` whose handlers catch ImportError /
+    ModuleNotFoundError / Exception is optional: a missing module is handled by the
+    fallback path and the engine still runs, so it is not a dependency. This is the
+    false RED on headroom.py:79 `import psutil` (except ImportError -> netstat).
+    """
+    out = set()
+    def walk(node, guarded):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if guarded:
+                for ln, mod in _node_imports(node):
+                    out.add((ln, mod))
+            return
+        if isinstance(node, ast.Try):
+            g = any(_handler_guards_import(h) for h in node.handlers)
+            for s in node.body:
+                walk(s, guarded or g)
+            for h in node.handlers:
+                for s in h.body:
+                    walk(s, guarded)
+            for s in list(getattr(node, 'orelse', [])) + list(getattr(node, 'finalbody', [])):
+                walk(s, guarded)
+            return
+        for ch in ast.iter_child_nodes(node):
+            walk(ch, guarded)
+    walk(tree, False)
+    return out
+
+def split_imports(tree):
+    """(required, optional) import triples; optional = not required at import time."""
+    guard = optional_imports_of(tree)
+    req, opt = [], []
+    for item in imports_of(tree):
+        (opt if (item[0], item[1]) in guard else req).append(item)
+    return req, opt
 
 def dyn_imports(tree):
     out = []
@@ -87,18 +143,24 @@ def closure(stems, trees, seeds):
     return seen
 
 def row03(trees, names, stdlib, approved, base_deps, local=frozenset()):
-    v, present = [], set()
+    v, present, optional = [], set(), []
     for fn in names:
-        for ln, mod, kind in imports_of(trees[fn]):
+        req, opt = split_imports(trees[fn])
+        for ln, mod, kind in req:
             if mod in stdlib or is_b4(mod) or mod in STORES or mod in local:
                 continue
             present.add(mod)
             if mod in approved or mod in base_deps:
                 continue
             v.append({'file': fn, 'line': ln, 'module': mod, 'kind': kind})
+        for ln, mod, kind in opt:
+            if mod in stdlib or is_b4(mod) or mod in STORES or mod in local:
+                continue
+            optional.append({'file': fn, 'line': ln, 'module': mod, 'kind': kind})
     return v, {'present': sorted(present), 'approved': sorted(approved),
                'at_baseline': sorted(base_deps),
-               'new_unapproved': sorted(present - base_deps - approved)}
+               'new_unapproved': sorted(present - base_deps - approved),
+               'optional': optional}
 
 def row04(trees, names):
     v = []
@@ -166,7 +228,7 @@ def baseline_deps(root, rev, stdlib):
             continue
     deps = set()
     for fn in closure(stems, trees, ENTRY):
-        for _l, mod, _k in imports_of(trees[fn]):
+        for _l, mod, _k in split_imports(trees[fn])[0]:
             if mod in stdlib or mod in STORES or is_b4(mod) or mod in stems:
                 continue
             deps.add(mod)
