@@ -105,5 +105,14 @@ def main() -> None:
     raise SystemExit(1 if failed else 0)
 
 
+
+
+def test_live_screen_truth():
+    """Pytest entry point: run the script's main() and require zero failures."""
+    try:
+        main()
+    except SystemExit as exc:
+        assert (exc.code or 0) == 0, "live_screen truth checks failed"
+
 if __name__ == "__main__":
     main()
