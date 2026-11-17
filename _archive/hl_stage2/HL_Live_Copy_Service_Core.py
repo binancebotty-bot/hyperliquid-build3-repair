@@ -8414,7 +8414,7 @@ class SenderGateway:
         if not self.ledger or ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
         if sz_dec is None:
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_PRECISION")
+            sz_dec = SenderGateway._derive_close_sz_dec(size)
         coin = canonical_coin_key(intent.fill.coin)
         wallet = normalise_wallet(intent.fill.leader_wallet)
         row = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(coin)
@@ -10583,6 +10583,21 @@ class SenderGateway:
         except (InvalidOperation, ValueError):
             factor = 10 ** dec
             return math.ceil(size * factor - 1e-12) / factor
+
+    @staticmethod
+    def _derive_close_sz_dec(amount: Any) -> int:
+        """Close-size precision that is knowable without an authoritative meta fetch: the amount itself. A close
+        sized from owned amounts is exact at the precision it is expressed in, so an un-supplied (None) precision
+        is derived from the close amount instead of holding the close forever with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION.
+        Floors to at least the amount's own precision, so an over-precise derived value is always safe."""
+        try:
+            v = abs(float(amount))
+        except (TypeError, ValueError, OverflowError):
+            return 0
+        if not math.isfinite(v) or v <= 0:
+            return 0
+        dec = -Decimal(str(v)).as_tuple().exponent
+        return max(0, min(30, int(dec)))
 
     @staticmethod
     def _floor_wire_size(size: float, sz_decimals: int) -> float:
