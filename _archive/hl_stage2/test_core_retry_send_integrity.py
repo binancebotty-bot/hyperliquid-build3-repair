@@ -137,10 +137,21 @@ def main() -> None:
     modes_after = dict(__import__("json").loads(c.LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig")).get("wallets", {}).get(A, {}))
     check("S2_429_NEVER_CHANGES_WALLET_MODE", modes_before.get("mode") == modes_after.get("mode") == "ON")
 
-    # ---- S3: standing close (opposes and fits inside the net => reduce-only; never blocked)
+    # ---- S3: standing close (the exchange holds LESS than we own: the leader's close is copied at the owned size,
+    # never reduce-only, never clamped to the exchange net -- Boss 18 Nov 13:10Z "WE COPY THE LEADER")
     ex = Ex("s3", [RESTING])
     g = gw(ex)
+    # Root cause of the old red (18 Nov): the fixture moved the sleeve to 2.0 but left by_coin_net at 0 and let the
+    # fresh exchange read come back flat, so the plan held CLOSE_PROOF_HOLD_EXCHANGE_FLAT_LEDGER_NET_STALE and sent
+    # nothing. Supply what the plan legitimately needs - a consistent ledger (sleeve == coin net) with the real fill
+    # behind the ownership, and a fresh exchange net of 1.0: the follower holds LESS than it owns, so the leader's
+    # close is copied at the owned 2.0, not reduce-only and not clamped to the exchange net.
     g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
+    g.ledger._recompute_net(g.ledger.data)
+    g.audit.append_live_fill({"created_at": c.utc_now_iso(), "created_at_ms": c.utc_now_ms(), "copy_fill_id": "cf_s3",
+                              "leader_fill_id": "f_open_s3", "leader_wallet": A, "coin": "BTC", "side": "BUY",
+                              "fill_price": 100.0, "fill_size": 2.0, "source": "TEST"})
+    g._fresh_exchange_net = lambda coin: 1.0  # readable, and short of what we own: a deficit, not a flat account
     it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
         c.LeaderFill("f_s3", A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
     it.intent_id = "s3"
@@ -157,6 +168,31 @@ def main() -> None:
     sites = re.findall(r"self\._place_order\((.*?)\)\n", src, re.S)
     bad = [s[:70] for s in sites if "pre_send=" not in s or "cloid=" not in s]
     check("S4_ALL_SIX_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 7 and not bad, "%d %s" % (len(sites), bad))
+
+    # ---- S5: the close-proof ACCOUNT gate on a GENUINE mismatch. The reader (USER_WALLET) is the follower, the
+    # trading account the SDK would sign for is a different real address: the fresh read is of the wrong account,
+    # so the owned close is HELD by name before any exchange call. Same sleeve/net as S3 (which sends), so the
+    # account disagreement is the only thing that can stop this close.
+    ex = Ex("s5", [RESTING])
+    g = gw(ex)
+    _lb = "0x" + "b" * 40  # its own sleeve: no standing close from S3 can sit in its way
+    g.ledger.sleeve(_lb, "BTC")["signed_size"] = 2.0
+    g.ledger._recompute_net(g.ledger.data)
+    g._fresh_exchange_net = lambda coin: 2.0  # the follower genuinely holds the sleeve on the real exchange
+    _acct_env = os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"]
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = "0x" + "d" * 40  # a valid, DIFFERENT account: never FOLLOWER
+    try:
+        it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
+            c.LeaderFill("f_s5", _lb, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
+        it.intent_id = "s5"
+        g.audit.append_order_intent(it)
+        ok, status, res = g._send_real(it)
+    finally:
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = _acct_env
+    reason = str((res or {}).get("error") or "")
+    check("S5_CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH_HELD_NO_CALL",
+          (not ok and reason == "CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH" and ex.calls == []),
+          "ok=%r status=%r reason=%r calls=%r" % (ok, status, reason, ex.calls))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
