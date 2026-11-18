@@ -118,7 +118,12 @@ def main() -> None:
     # ---- UI-ROUTE-13 -----------------------------------------------------------------------------
     agent.post("/api/wallet-include", data={"wallet": P, "included": "1"})
     agent.post("/api/wallet-config", data={"wallet": P, "copy_mode": "fixed", "fixed_notional": "11"})
-    seeded = stored().get("wallet_include", {}).get(P) is True and P in stored().get("wallet_config", {})
+    ui_state = stored()
+    ui_state["wallet_meta"] = ui.set_wallet_meta(ui_state, P, "purge-me", "metadata must be purged", "blue")
+    ui.atomic_write_json(ui.UI_STATE_FILE, ui_state)
+    seeded = (stored().get("wallet_include", {}).get(P) is True
+              and P in stored().get("wallet_config", {})
+              and P in stored().get("wallet_meta", {}))
     r = agent.post("/api/admin/purge-wallet", data={"wallet": P}, headers={"X-Requested-With": "fetch"})
     proof = r.json() if r.status_code == 200 else {}
     after = stored()
@@ -131,9 +136,10 @@ def main() -> None:
           seeded and r.status_code == 200 and proof.get("ok") is True
           and proof.get("json_removed", {}).get("ui_state.json") == 2
           and P not in (after.get("wallet_config") or {}) and P not in (after.get("wallet_include") or {})
+          and P not in (after.get("wallet_meta") or {})
           and P in purged and P not in (served.get("wallet_config") or {}) and guard_held,
           f"seeded={seeded} status={r.status_code} proof_json_removed={proof.get('json_removed')} "
-          f"purged={purged} guard_held={guard_held}")
+          f"wallet_meta={after.get('wallet_meta')} purged={purged} guard_held={guard_held}")
 
     # ---- UI-ROUTE-16 -----------------------------------------------------------------------------
     r = agent.post("/api/ui-state", data={"norm_base": "250", "copy_mode": "fixed", "fixed_notional": "7.5",
