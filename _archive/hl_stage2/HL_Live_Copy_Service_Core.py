@@ -1144,6 +1144,9 @@ TERMINAL_ROW_NAMES = frozenset({
     "REDUCE_ONLY_REJECT_EXCHANGE_FLAT", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
     "RESTING_ENTRY_FILL_UNVERIFIED", "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
     "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+    # Physical-wire collateral admission (_place_order -> _terminalise_pending_as_no_call): the margin-rest
+    # reservation failed, so the pending attempt is closed as definitely NO_CALL - "never left pending".
+    "SEND_NOT_ATTEMPTED_MARGIN_REST_NO_COLLATERAL",
     "SEND_OUTCOME_DEFERRED_RESOLVED", "SEND_OUTCOME_REVIEW_REQUIRED", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
     "SKIPPED_MARKET_HALTED", "SPOT_MARKET_SKIPPED", "SUPERSEDED_BY_RETRY", "UNSUPPORTED_SYMBOL_OR_METADATA",
     "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", "MARGIN_MODE_UNSET",
@@ -1161,6 +1164,9 @@ TERMINAL_ROW_NAMES = frozenset({
     # excess ENTRY is NOT sent, and the reconciliation row is SEND_TERMINAL with
     # operator_action=MANUAL_REVIEW_EXCESS_ENTRY_NOT_SENT and engine_can_send=False. Terminal, never pending.
     "CEILING_EXCESS_ENTRY_SIZING_UNKNOWN",
+    # CC1-B-SENDBACK2-2140(3): the split close's excess ENTRY was NOT sent and is OWED. One durable SEND_TERMINAL
+    # row concludes that leg (_dispatch_ceiling_excess runs once per close ack; nothing requeues the excess).
+    "CEILING_EXCESS_OWED",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
     "AUTHORISED_CLOSE_REFUSAL",
@@ -1188,6 +1194,10 @@ NON_TERMINAL_ROW_NAMES = frozenset({
     "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED", "ORPHAN_ATTEMPT_ROWS_SWEPT", "SUPERSEDED_SAME_ORDER_ROW",
     "STANDING_CLOSE_ALREADY_GONE", "ENTRY_ADD_RATE_LIMIT_RECOVERY_GTC", "ENTRY_ADD_RATE_LIMIT_RECOVERY_IOC",
     "ORPHAN_ORDER_CANCEL_FAILED", "OPERATOR_APPROVED_OID_ADOPTED",
+    # ALERT row (_note_unknown_precision_hold): alert-only, repeats every N held cycles; the close stays held.
+    "CLOSE_HELD_UNKNOWN_PRECISION",
+    # Durable pending-row write failure (begin_pending_send): an audit/infra fault, like AUDIT_WRITE_FAILED.
+    "PENDING_SEND_WRITE_FAILED",
 })
 # A fill that was refused at the send gate and parked by the shelved retention lane. Nothing writes these on this
 # branch (retention is not part of it), so the counter reads 0; it exists so a stray row is counted, not ignored.
