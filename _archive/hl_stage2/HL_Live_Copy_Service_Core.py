@@ -7317,23 +7317,37 @@ class SenderGateway:
         }
 
     def _recent_entry_fill_evidence(self, intent: Intent) -> bool:
-        """A live_fills row for this leader wallet+coin, on the OPPOSITE side to this close (an entry), not a ledger
-        repair, recorded within HL_LIVE_NO_SLEEVE_EVIDENCE_MS. Evidence that the sleeve row may simply not have landed yet."""
+        """Proof that OUR copy of this leader's entry is the reason the sleeve row is late.
+
+        True only when send_attempts holds an entry we actually sent (exchange order id present) for this leader
+        wallet+coin, opposite side to this close, whose leader fill time is within HL_LIVE_NO_SLEEVE_EVIDENCE_MS
+        BEFORE this close's own leader fill time, AND no close of that wallet+coin happened between that entry
+        and this close (a stale entry from an earlier, already-closed position never qualifies).
+        A user's own fill is not in send_attempts, so it never qualifies."""
         window_ms = max(0, int(fnum(os.getenv("HL_LIVE_NO_SLEEVE_EVIDENCE_MS"), 60000)))
         wallet, coin = normalise_wallet(intent.fill.leader_wallet), canonical_coin_key(intent.fill.coin)
         close_side = str(intent.fill.side or "").strip().upper()
-        excluded = set(str(s).strip().upper() for s in self.FILL_PROOF_REPAIR_SOURCES)
-        cutoff = utc_now_ms() - window_ms
+        close_fid = str(intent.fill.leader_fill_id or "")
+        close_ts = int(fnum(intent.fill.timestamp_ms, 0))
+        if close_ts <= 0:
+            return False
         try:
-            for r in iter_csv_rows(LIVE_FILLS_CSV):
-                if normalise_wallet(r.get("leader_wallet")) != wallet or canonical_coin_key(r.get("coin")) != coin:
-                    continue
-                if str(r.get("source") or "").strip().upper() in excluded:
-                    continue
+            rows = [r for r in send_attempt_rows()
+                    if normalise_wallet(r.get("leader_wallet")) == wallet
+                    and canonical_coin_key(r.get("coin")) == coin
+                    and str(r.get("leader_fill_id") or "") != close_fid]
+            entries = []
+            for r in rows:
                 side = str(r.get("side") or "").strip().upper()
-                if side not in {"BUY", "SELL"} or side == close_side:
-                    continue
-                if int(fnum(r.get("created_at_ms"), 0)) >= cutoff:
+                ets = int(fnum(r.get("leader_fill_timestamp_ms"), 0))
+                if side in {"BUY", "SELL"} and side != close_side and str(r.get("exchange_order_id") or "").strip() \
+                        and 0 < ets <= close_ts and close_ts - ets <= window_ms:
+                    entries.append(ets)
+            for ets in sorted(entries, reverse=True):
+                intervening = any(str(r.get("side") or "").strip().upper() == close_side
+                                  and ets < int(fnum(r.get("leader_fill_timestamp_ms"), 0)) < close_ts
+                                  for r in rows)
+                if not intervening:
                     return True
         except Exception as exc:
             log_error("recent_entry_fill_evidence", exc)
