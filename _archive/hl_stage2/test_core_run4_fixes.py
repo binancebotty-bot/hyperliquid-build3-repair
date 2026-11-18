@@ -315,11 +315,42 @@ def main() -> None:
     fake7 = FakeExchange()
     g7 = gateway(fake7, led7)
     g7._resolve_coin = lambda coin: dict(resolved, sz_decimals_proven=False)
+    g7._fetch_meta = lambda: None   # the retry's fresh meta read is stubbed: this case asserts the hold alone
     it7 = c.IntentBuilder(c.ConfigManager(), led7).build(fill("SELL", size=2.0, d="Close Long"))
     ok7, status7, res7 = send_real(g7, it7)
     check("PC7_UNPROVEN_PRECISION_HOLDS_A_CLOSE_BEFORE_ANY_WIRE",
           (not ok7) and len(fake7.calls) == 0 and "UNKNOWN_PRECISION" in str((status7, res7)),
           str((ok7, status7, res7, fake7.calls)))
+    # PC8 (run4 step 4): a held close gets one fresh meta read per retry; when the read proves precision it sends
+    state8, calls8 = {"proven": False}, []
+    led8 = ledger("p8", a_btc=2.0)
+    snapshot(2.0)
+    fake8 = FakeExchange()
+    g8 = gateway(fake8, led8)
+    g8._resolve_coin = lambda coin: dict(resolved, sz_decimals_proven=state8["proven"])
+    g8._fetch_meta = lambda: (calls8.append(1), state8.update(proven=True))
+    it8 = c.IntentBuilder(c.ConfigManager(), led8).build(fill("SELL", size=2.0, d="Close Long", oid="pc8"))
+    ok8, status8, res8 = send_real(g8, it8)
+    check("PC8_UNPROVEN_CLOSE_RETRY_DOES_A_FRESH_META_READ_THEN_SENDS",
+          ok8 and len(calls8) == 1 and len(fake8.calls) >= 1, str((ok8, status8, len(calls8), fake8.calls)))
+    # PC9 (run4 step 4): after N consecutive held cycles one named ALERT row, alert-only, and no exchange call
+    os.environ["HL_LIVE_UNKNOWN_PRECISION_ALERT_N"] = "2"
+    led9 = ledger("p9", a_btc=2.0)
+    snapshot(2.0)
+    fake9 = FakeExchange()
+    g9 = gateway(fake9, led9)
+    g9._resolve_coin = lambda coin: dict(resolved, sz_decimals_proven=False)
+    g9._fetch_meta = lambda: None
+    before9 = len(c.read_csv_rows(c.RECONCILIATION_CSV))
+    for tag in ("pc9a", "pc9b", "pc9c"):
+        it9 = c.IntentBuilder(c.ConfigManager(), led9).build(fill("SELL", size=2.0, d="Close Long", oid=tag))
+        send_real(g9, it9)
+    rows9 = c.read_csv_rows(c.RECONCILIATION_CSV)[before9:]
+    alerts9 = [r for r in rows9 if r.get("event") == "ALERT" and r.get("status") == "CLOSE_HELD_UNKNOWN_PRECISION"]
+    os.environ.pop("HL_LIVE_UNKNOWN_PRECISION_ALERT_N", None)
+    check("PC9_TWO_HELD_CLOSES_RAISE_ONE_NAMED_ALERT_AND_NO_WIRE",
+          len(alerts9) == 1 and not fake9.calls and alerts9[0].get("engine_can_send") == "False"
+          and "ALERT_ONLY" in str(alerts9[0].get("action")), str((len(alerts9), fake9.calls)))
     os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
 
     led = ledger("p1", a_btc=2.0)
