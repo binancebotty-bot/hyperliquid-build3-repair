@@ -439,8 +439,9 @@ def main() -> None:
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     fake.calls.clear()
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
-    # negative test (review follow-up): a STALE exchange snapshot (1.5) under a 2.0 sleeve must not produce an oversized close.
-    # The engine must either hold, or send no more than the exchange-proven 1.5 at the wire.
+    # Boss ruling 18 Nov 13:10Z ("We copy the leader"): a STALE exchange snapshot (1.5) under a 2.0 sleeve is a deficit and is
+    # copied at the owned 2.0, NOT reduce-only and NOT clamped to 1.5. This REPLACES the earlier "hold or send <= 1.5" rule. The
+    # conflict is stated in the commit: a stale snapshot can now produce a close larger than the exchange net (a flip is intended).
     snapshot(1.5)
     os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER   # the account matches, so only the stale snapshot is under test
     stale_led = ledger("p3stale", a_btc=2.0)
@@ -449,8 +450,8 @@ def main() -> None:
     stale_t = {}
     s_ro, s_amt, s_why = stale_g._close_wire_plan(stale_intent, 2.0, 3, timing=stale_t)
     os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
-    check("P3_STALE_SNAPSHOT_HOLDS_ON_FOREIGN_UNITS",
-          s_why == "CLOSE_PROOF_HOLD_FOREIGN_UNITS" and abs(s_amt) < 1e-9 and s_ro is False, str((s_ro, s_amt, s_why)))
+    check("P3_STALE_SNAPSHOT_DEFICIT_COPIES_OWNED_NOT_REDUCE_ONLY",
+          s_why == "" and abs(s_amt - 2.0) < 1e-9 and s_ro is False, str((s_ro, s_amt, s_why)))
     snapshot(2.0)
     check("P3_UNREADABLE_STATUS_ASSUMES_THE_STANDING_CLOSE_FILLED", fake.calls and abs(fake.calls[0]["size"] - 0.5) < 1e-9,
           str(fake.calls))

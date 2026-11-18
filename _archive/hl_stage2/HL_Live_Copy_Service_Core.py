@@ -8526,7 +8526,13 @@ class SenderGateway:
         equal_net = abs(foreign) <= tol
         safe_foreign = (actual * owned > 0 and led * actual >= 0
                         and foreign * owned > 0 and abs(actual) + tol >= abs(led))
-        if not (equal_net or safe_foreign):
+        # Boss ruling 18 Nov 13:10Z: "We copy the leader." DEFICIT: the exchange holds LESS than our ledger and sleeve,
+        # on the sleeve's own side (we are missing units). The leader's close is copied at the fill-proven owned size,
+        # NOT reduce-only and NOT clamped to the exchange net (the 31 Oct flip / netting rule). Exchange above the
+        # ledger (foreign units, e.g. led 0 with exchange 8) is still held, and a flat or wrong-side net still holds.
+        deficit = (actual * owned > 0 and actual * side < 0
+                   and abs(actual) + tol < min(abs(led), abs(owned)))
+        if not (equal_net or safe_foreign or deficit):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_UNITS")
         if not equal_net and actual * side >= 0:
             # item 2: foreign residue only - the order does not oppose the real net. On the equal_net

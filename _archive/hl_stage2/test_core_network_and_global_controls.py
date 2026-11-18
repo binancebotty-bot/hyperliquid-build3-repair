@@ -356,11 +356,12 @@ def global_controls_tests() -> None:
     check("G12_CROSS_NETWORK_LIMIT_FROM_FOLLOWER_MID_UNITS_KEPT",
           len(calls) == 1 and abs(calls[0]["px"] - 93.09) < 1e-9 and abs(calls[0]["size"] - intent.copy_size) < 1e-9,
           f"{status} {calls} size={intent.copy_size}")
-    # negative (review follow-up): the follower's FRESH exchange position differs from the sleeve, read through the
-    # un-stubbed exchange reader. The exit must be sized to what the exchange proves (4.0, reduce-only), never the sleeve (10).
+    # negative: the follower's FRESH exchange position (4) differs from the sleeve (10), read through the un-stubbed reader.
+    # Boss ruling 18 Nov 13:10Z: "We copy the leader." A leader close of 10 is copied at the fill-proven owned size (10),
+    # NOT reduce-only and NOT clamped to the exchange net. (This replaces the earlier 4-reduce-only expectation.)
     status, calls, _ = send({"marketable_bps": 10}, side="SELL", mid=100.0, sleeve=10.0, net=4.0)
-    check("NET_NEG_EXIT_SIZED_TO_THE_EXCHANGE_NET_NOT_THE_SLEEVE",
-          status == "ORDER_FILLED" and len(calls) == 1 and abs(calls[0]["size"] - 4.0) < 1e-9 and calls[0]["reduce_only"] is True,
+    check("NET_NEG_EXIT_COPIES_LEADER_OWNED_SIZE_NOT_REDUCE_ONLY",
+          status == "ORDER_FILLED" and len(calls) == 1 and abs(calls[0]["size"] - 10.0) < 1e-9 and calls[0]["reduce_only"] is False,
           f"{status} {calls}")
     # a fresh exchange net of zero: nothing is owned on the exchange, so no close may be sent
     status, calls, _ = send({"marketable_bps": 10}, side="SELL", mid=100.0, sleeve=10.0, net=0.0)
