@@ -179,6 +179,7 @@ MISSED_ENTRY_INCIDENT_EVENT = "MISSED_ENTRY_REFUSAL_INCIDENT"
 # ORD-010: an ENTRY/ADD whose leader fill is older than this never goes as a normal copy: it takes the
 # missed-entry rule explicitly (no dependence on the HL_LIVE_MISSED_ENTRY_RULE switch).
 ENTRY_MAX_AGE_MS = 30000
+LEADER_TO_SEND_MAX_MS = 2000  # OD-19: follower fill within 2 s of the leader's exchange fill time (alert only)
 LATE_FILL_INCIDENT_STATES = frozenset({"ENTRY_FILLED_AFTER_LEADER_REDUCED",
                                        "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED"})
 # The convergence loop publishes a scan heartbeat after EVERY scan (a zero-action one too): a dead loop has to be
@@ -8285,6 +8286,15 @@ class SenderGateway:
             f = timing.get(finish)
             if s not in (None, "") and f not in (None, ""):
                 timing[out] = int(fnum(f, 0) - fnum(s, 0))
+        # gap 5 (Boss OD-19, 18 Nov): the follower's fill must land within 2 s of the leader's EXCHANGE-recorded fill
+        # time. Measured and alerted here; it never blocks an order. Closes are measured the same way.
+        if timing.get("leader_to_send_attempt_ms") not in (None, "") and timing.get("leader_fill_timestamp_ms") not in (None, ""):
+            delay = int(fnum(timing.get("leader_to_send_attempt_ms"), 0))
+            if delay > LEADER_TO_SEND_MAX_MS:
+                timing["speed_over_2s"] = "SLOW"
+                log_error("LEADER_TO_SEND_OVER_2S",
+                          f"leader exchange fill time {timing.get('leader_fill_timestamp_ms')} ms, send attempt written "
+                          f"{written_ms} ms, delay {delay} ms > {LEADER_TO_SEND_MAX_MS} ms; sent anyway (never blocks)")
         return timing
 
     @staticmethod
