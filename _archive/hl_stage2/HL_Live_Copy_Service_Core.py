@@ -8516,6 +8516,10 @@ class SenderGateway:
             # size as the leader sized it, reduce_only NEVER forced (CC1-B-RULING-NOREDUCEONLY-2238). A forced
             # reduce_only here is rejected when the flip must cross flat, so the close never happens. RED: A2.
             return decide("SEND", amount, False)
+        # A readable FLAT exchange holds nothing to reduce: never a fresh order, whatever the ledger says.
+        # (The equal_net branch below trusts the ledger net; a ledger that drifted to 0 must not open a short.)
+        if abs(actual) <= tol:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_EXCHANGE_FLAT_NOTHING_TO_CLOSE")
         # item 4: foreign/USER units are never consumed by our close. The hold is named explicitly
         # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led

@@ -321,6 +321,7 @@ def global_controls_tests() -> None:
         led = c.ManualLedger(path=tmp / f"send{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
+            led._recompute_net(led.data)  # the ledger net follows its sleeves, as production writes it
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side))
         fake = FakeExchange()
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
