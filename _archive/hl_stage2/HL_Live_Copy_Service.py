@@ -1255,7 +1255,9 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
             "validation_failure": result.get("validation_failure", result.get("error")),
         }, sort_keys=True)
     append_send_attempt(row, status, confirmed=True, response=result, error=str(result.get("error", "")), notes=notes)
-    out = {"ok": bool(result.get("ok")), "status": status, "intent_id": intent_id, "payload": payload, "response": result}
+    # wire_attempted: only a call that reached the exchange sender. Pre-wire refusals never set it.
+    out = {"ok": bool(result.get("ok")), "status": status, "intent_id": intent_id, "payload": payload, "response": result,
+           "wire_attempted": True}
     if auto_live:
         out.update({"auto_live": True, "auto_send_wallet": auto_send_wallet})
     return out
@@ -2699,6 +2701,10 @@ class DryRunLiveCopyService:
         )
         self.auto_send_attempted += 1
         self.auto_send_intent_ids.add(intent_id)
+        if not result.get("wire_attempted"):
+            # Refused before the exchange call: no order exists, so no exchange ack will ever settle the
+            # reservation set before the send. Release it for THIS intent only, or the coin is held forever.
+            self.settle_in_flight(str(intent_row.get("coin") or ""), intent_id, "PRE_WIRE_REFUSED_NO_EXCHANGE_CALL")
         status = str(result.get("status", ""))
         if status == "ORDER_FILLED":
             self.auto_send_filled += 1
