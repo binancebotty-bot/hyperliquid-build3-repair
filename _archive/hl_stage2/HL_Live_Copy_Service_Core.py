@@ -179,6 +179,7 @@ MISSED_ENTRY_INCIDENT_EVENT = "MISSED_ENTRY_REFUSAL_INCIDENT"
 # ORD-010: an ENTRY/ADD whose leader fill is older than this never goes as a normal copy: it takes the
 # missed-entry rule explicitly (no dependence on the HL_LIVE_MISSED_ENTRY_RULE switch).
 ENTRY_MAX_AGE_MS = 30000
+LEADER_TO_SEND_MAX_MS = 2000  # OD-19: follower fill within 2 s of the leader's exchange fill time (alert only)
 LATE_FILL_INCIDENT_STATES = frozenset({"ENTRY_FILLED_AFTER_LEADER_REDUCED",
                                        "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED"})
 # The convergence loop publishes a scan heartbeat after EVERY scan (a zero-action one too): a dead loop has to be
@@ -5750,6 +5751,17 @@ class SenderGateway:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
                         notes=(f"named diff: {cause}; no order (symbol not tradable or leader price/size unusable; "
                                f"status={resolved.get('status')})"))
+        # gap 4 (18 Nov): the floored size must still clear the minimum notional, as on the normal entry path.
+        # Floor-rounding can drop a sized order under $10 or under the symbol minimum: refuse loudly, send nothing.
+        min_notional = max(DEFAULT_MIN_NOTIONAL, fnum(resolved.get("min_order_value_usd"), 0.0))
+        try:
+            min_notional = max(min_notional, DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
+        except Exception:
+            pass
+        if size * leader_px < min_notional:
+            return dict(base, outcome="MISSED_ENTRY_DIFF_BELOW_MIN_NOTIONAL",
+                        notes=(f"named diff: {cause}; floored size {size} x leader price {leader_px} = "
+                               f"{round(size * leader_px, 4)} is below the minimum notional {min_notional}; no order"))
         if self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is not None:
             return dict(base, outcome="MISSED_ENTRY_ALREADY_RESTING",
                         notes=f"named diff: {cause}; a limit for this leader, coin and side is already resting")
@@ -8274,6 +8286,15 @@ class SenderGateway:
             f = timing.get(finish)
             if s not in (None, "") and f not in (None, ""):
                 timing[out] = int(fnum(f, 0) - fnum(s, 0))
+        # gap 5 (Boss OD-19, 18 Nov): the follower's fill must land within 2 s of the leader's EXCHANGE-recorded fill
+        # time. Measured and alerted here; it never blocks an order. Closes are measured the same way.
+        if timing.get("leader_to_send_attempt_ms") not in (None, "") and timing.get("leader_fill_timestamp_ms") not in (None, ""):
+            delay = int(fnum(timing.get("leader_to_send_attempt_ms"), 0))
+            if delay > LEADER_TO_SEND_MAX_MS:
+                timing["speed_over_2s"] = "SLOW"
+                log_error("LEADER_TO_SEND_OVER_2S",
+                          f"leader exchange fill time {timing.get('leader_fill_timestamp_ms')} ms, send attempt written "
+                          f"{written_ms} ms, delay {delay} ms > {LEADER_TO_SEND_MAX_MS} ms; sent anyway (never blocks)")
         return timing
 
     @staticmethod
@@ -9811,14 +9832,11 @@ class SenderGateway:
             adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
                        / follower_px * 100.0) if follower_px > 0 else float("inf")
             if adverse > close_adv_limit + 1e-12:
-                detail = (f"close limit {limit_px} vs follower price {follower_px} is {adverse:.4f}% adverse > "
-                          f"{close_adv_limit}%; intent_id={intent.intent_id}")
-                return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
-                    "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
-                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
-                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
-                    "operator_action": "REVIEW_CLOSE_ADVERSE_DIFF_CONTROL", "timing": timing,
-                }
+                # CLOSES SACRED (Boss 18 Nov): this control never refuses a close. The limit is capped at the
+                # allowed boundary through the follower mid and the close still goes out.
+                cap_raw = (follower_px * (1.0 - close_adv_limit / 100.0) if intent.copy_side == "SELL"
+                           else follower_px * (1.0 + close_adv_limit / 100.0))
+                limit_px = self._format_limit_px(cap_raw, price_max_dec)
         wire_size = self._floor_wire_size(intent.copy_size, sz_dec)
         wire_notional = abs(wire_size * limit_px)
         cfg_min_for_uplift = DEFAULT_MIN_NOTIONAL
@@ -11645,7 +11663,17 @@ class WSManager:
         """The wallets to subscribe right now: the live provider if one was given, else the fixed list."""
         src = getattr(self, "_wallet_source", None)
         raw = src() if callable(src) else (src or [])
-        return list(raw)[:MAX_WALLETS]
+        wallets = list(raw)
+        if len(wallets) > MAX_WALLETS:
+            # gap 1 (Boss 18 Nov, OD-14): an 11th wallet on the WebSocket is REJECTED LOUDLY, never silently cut.
+            # The extra wallets run on REST polling (gap 2). One error row per distinct over-count, not per call.
+            over = len(wallets) - MAX_WALLETS
+            if getattr(self, "_ws_over_cap_reported", 0) != over:
+                self._ws_over_cap_reported = over
+                log_error("WS_WALLET_OVER_CAP_REJECTED",
+                          f"{len(wallets)} LIVE wallets, WebSocket cap {MAX_WALLETS}: {over} wallet(s) NOT on the "
+                          f"WebSocket; they must run on polling")
+        return wallets[:MAX_WALLETS]
 
     def start(self) -> None:
         if not self.enabled or websocket is None or self._thread is not None:

@@ -370,9 +370,13 @@ def global_controls_tests() -> None:
     book["positions"] = []
     status, calls, _ = send({}, mid=0.0)
     check("G12_CROSS_NETWORK_NO_FOLLOWER_PRICE_NO_ORDER", status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls, status)
+    # CLOSES SACRED (Boss 18 Nov): the adverse close diff control caps the close limit at 0.2% through the
+    # follower mid (99.5 -> 99.8 for a SELL at mid 100) and the close is still sent. It never refuses a close.
+    # Mutation check: the old refusal (SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF, no call) makes this check fail.
     status, calls, _ = send({"marketable_bps": 50, "max_close_adverse_diff_pct": 0.2}, side="SELL", mid=100.0, sleeve=10.0)
-    check("G13_CLOSE_DIFF_GUARD_BLOCKS_CLOSE_TOO_FAR_THROUGH_MID",
-          status == "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF" and not calls, f"{status} {calls}")
+    check("G13_CLOSE_DIFF_CAPS_CLOSE_LIMIT_AND_STILL_SENDS",
+          status == "ORDER_FILLED" and len(calls) == 1 and abs(calls[0]["px"] - 99.8) < 0.05,
+          f"{status} {calls}")
     status, calls, _ = send({"marketable_bps": 10, "max_close_adverse_diff_pct": 0.2}, side="SELL", mid=100.0, sleeve=10.0)
     status, calls, _ = send({"marketable_bps": 50}, side="SELL", mid=100.0, sleeve=10.0)
 
