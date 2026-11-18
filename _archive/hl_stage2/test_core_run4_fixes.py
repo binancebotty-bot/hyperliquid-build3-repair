@@ -387,6 +387,8 @@ def main() -> None:
           str(fake.calls))
     c.OPEN_ORDERS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("status unreadable"))
     led = ledger("p3c", a_btc=2.0)
+    snapshot(2.0)   # the exchange holds the same 2.0 as the sleeve (a stale 1.5 snapshot reads as foreign units)
+    print("DBG_P3C_PRE", flush=True)
     fake = CancelExchange([part], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
@@ -431,7 +433,15 @@ def main() -> None:
     fake = FakeExchange([NO_MATCH])
     g = gateway(fake, led)
     time.sleep(0.02)
-    config(send=False, marketable_bps=20)   # switched off while the close was being sent
+
+    class SwitchOffAfterTheIoc(FakeExchange):   # the operator switches sending off while the IOC is in flight
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+            r = FakeExchange.order(self, coin, is_buy, size, px, tif, reduce_only)
+            config(send=False, marketable_bps=20)
+            return r
+    fake = SwitchOffAfterTheIoc([NO_MATCH])
+    g = gateway(fake, led)
+    config(send=True, marketable_bps=20)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
 
@@ -504,7 +514,7 @@ def main() -> None:
     core.stop()
 
     # ---- O: one resting entry limit per leader, coin and side ---------------------------------------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)   # sending on: a resting entry is never placed while the switch is off
     saved_leader = c.LEADER_NETWORK
     c.LEADER_NETWORK = c.FOLLOWER_NETWORK
     try:
