@@ -45,6 +45,10 @@ def main():
                        "HL_LIVE_MM_WAIT_SEC": "2"})
     import requests
     import HL_Live_Copy_Service_Core as c
+    # Fixture: the send path needs the isolated sender lease (one engine per machine), as test_core_disk_full does.
+    os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
