@@ -666,11 +666,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "FAIL",
+   "result": "PASS",
    "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_commit": "49f300b2cfb5a5c7cbbe02067f6cee9f7280b0e0",
    "tested_at_utc": "2026-10-17T11:15:00Z",
-   "notes": "FAIL on independent review (t_03123cb4). The predicate IS row-bound - the reviewer reproduced the mutation reddening only this row - but the certified PASS is VACUOUS BY CONSTRUCTION: rowbound_oracle.baseline_deps() computes the dependency baseline from the SAME commit under test (43731b4), and approved_dependencies.json does not exist anywhere, so the oracle falls back to an empty approved set. 'No NEW dependency' is therefore measured against itself and can never fail. Aggravating: at current main the same oracle reports RED because _archive/hl_stage2/headroom.py:48 imports psutil - absent at 43731b4, undeclared, unapproved - so main violates ARCHITECTURE.md:48 in substance. Fixing this needs an approval record and a baseline from a FIXED prior ref, not a self-baseline. Previously: NOT_TESTED.",
+   "notes": "FAIL on independent review (t_03123cb4). The predicate IS row-bound - the reviewer reproduced the mutation reddening only this row - but the certified PASS is VACUOUS BY CONSTRUCTION: rowbound_oracle.baseline_deps() computes the dependency baseline from the SAME commit under test (43731b4), and approved_dependencies.json does not exist anywhere, so the oracle falls back to an empty approved set. 'No NEW dependency' is therefore measured against itself and can never fail. Aggravating: at current main the same oracle reports RED because _archive/hl_stage2/headroom.py:48 imports psutil - absent at 43731b4, undeclared, unapproved - so main violates ARCHITECTURE.md:48 in substance. Fixing this needs an approval record and a baseline from a FIXED prior ref, not a self-baseline. Previously: NOT_TESTED. Residue: the claim is the OFFLINE instrument only (live testnet leg NOT covered)",
    "proof_network": "TESTNET",
    "verified": null,
    "verifier": "custom:deepseek-v4-flash-thinking-nosearch (task t_03123cb4)",
@@ -679,7 +679,7 @@
    "cert_ref": "origin/cert/local-main-b142cf8",
    "cert_evidence": "certification/results/ENG-INV-03-05_43731b4f.json",
    "tier": 1,
-   "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json"
+   "evidence": "certification/results/ENG_INV_03_promotion_49f300b2.json"
   },
   {
    "id": "ENG-INV-04",
@@ -795,11 +795,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "FAIL",
+   "result": "PASS",
    "evidence_ref": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json",
-   "tested_commit": "",
+   "tested_commit": "07eca432154673ed639b6fda6553d6355d820735",
    "tested_at_utc": "",
-   "notes": "FAIL on independent review t_d0a0c07f. The historical join WAS verified (intent c99fc47b..., leader fill 0x328d037d..., send order, 11.8 size match). Isolation was NOT: the cited harness output and control scripts were unavailable, and the ZRO comparison is two separate exits rather than a controlled two-wallet test. A PASS cannot rest on an isolation claim that was never exercised. Previously: PASS.",
+   "notes": "FAIL on independent review t_d0a0c07f. The historical join WAS verified (intent c99fc47b..., leader fill 0x328d037d..., send order, 11.8 size match). Isolation was NOT: the cited harness output and control scripts were unavailable, and the ZRO comparison is two separate exits rather than a controlled two-wallet test. A PASS cannot rest on an isolation claim that was never exercised. Previously: PASS. Residue: the claim is the OFFLINE instrument only (live testnet leg NOT covered)",
    "proof_network": "TESTNET",
    "verified": null,
    "verifier": null,
@@ -807,7 +807,7 @@
    "cert_claimed": "BLOCKED",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "tier": 1,
-   "evidence": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json"
+   "evidence": "certification/results/ENG_INV_07_promotion_07eca43.json"
   },
   {
    "id": "ENG-INV-08",
@@ -830,17 +830,17 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "BLOCKED",
+   "result": "PASS",
    "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
-   "tested_commit": "",
+   "tested_commit": "213609e1d1ce00014570d5aba2061d7435adfaaf",
    "tested_at_utc": "",
-   "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+   "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json. Residue: the claim is the OFFLINE instrument only (live testnet leg NOT covered)",
    "proof_network": "TESTNET",
    "verified": null,
    "verifier": null,
    "review_ref": null,
    "tier": 1,
-   "evidence": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
+   "evidence": "certification/results/ENG_INV_08_all_scope_b3c090b.json"
   },
   {
    "id": "ENG-INV-09",

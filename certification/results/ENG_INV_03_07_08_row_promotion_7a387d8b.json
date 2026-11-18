@@ -1,0 +1,11 @@
+=== Mechanical Diff Report ===
+Base commit: 7a387d8b
+(a) Changed record IDs (sorted): ['ENG-INV-03', 'ENG-INV-07', 'ENG-INV-08']
+(b) Per-record identical/differ:
+    Total records: 832
+    Changed: 3
+    Unchanged (identical): 829
+(c) Residue lines:
+    ENG-INV-03: Residue: the claim is the OFFLINE instrument only (live testnet leg NOT covered)...
+    ENG-INV-07: Residue: the claim is the OFFLINE instrument only (live testnet leg NOT covered)...
+    ENG-INV-08: Residue: the claim is the OFFLINE instrument only (live testnet leg NOT covered)...
