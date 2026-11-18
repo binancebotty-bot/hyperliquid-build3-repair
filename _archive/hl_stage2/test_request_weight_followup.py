@@ -48,6 +48,13 @@ class FakeConfig:
     def copy_mode(self, _wallet):
         return "proportional"
 
+    def stream_wallets(self):
+        # Fixture mirror of the production rule: LIVE ("ON") wallets only, at most MAX_WALLETS (10).
+        return [w for w, m in self.modes.items() if m == "ON"][:10]
+
+    def live_wallets(self):
+        return [w for w, m in self.modes.items() if m == "ON"]
+
 
 class FakeCore:
     def __init__(self, cfg, wallets, ledger):
@@ -244,7 +251,11 @@ class RequestWeightFollowupTests(unittest.TestCase):
             sleeps.append(seconds)
             current_ms[0] += int(round(seconds * 1000))
 
+        # Fixture: this test is about cooldown pacing only. The sender lease and the master gate are stubbed as passing
+        # (c7c_fixup stubs the lease the same way). The gate itself is pinned by test_core_master_gate.py.
         with (mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "250"}),
+              mock.patch.object(core, "_sender_lease_owned", lambda: True),
+              mock.patch.object(core.SenderGateway, "_master_gate_reason", lambda self, *a, **k: ""),
               mock.patch.object(core, "utc_now_ms", side_effect=lambda: current_ms[0]),
               mock.patch.object(core.time, "sleep", side_effect=virtual_sleep)):
             exit_gateway = sender_gateway()
