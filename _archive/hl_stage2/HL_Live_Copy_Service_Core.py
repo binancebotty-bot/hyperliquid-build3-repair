@@ -7316,6 +7316,29 @@ class SenderGateway:
             ),
         }
 
+    def _recent_entry_fill_evidence(self, intent: Intent) -> bool:
+        """A live_fills row for this leader wallet+coin, on the OPPOSITE side to this close (an entry), not a ledger
+        repair, recorded within HL_LIVE_NO_SLEEVE_EVIDENCE_MS. Evidence that the sleeve row may simply not have landed yet."""
+        window_ms = max(0, int(fnum(os.getenv("HL_LIVE_NO_SLEEVE_EVIDENCE_MS"), 60000)))
+        wallet, coin = normalise_wallet(intent.fill.leader_wallet), canonical_coin_key(intent.fill.coin)
+        close_side = str(intent.fill.side or "").strip().upper()
+        excluded = set(str(s).strip().upper() for s in self.FILL_PROOF_REPAIR_SOURCES)
+        cutoff = utc_now_ms() - window_ms
+        try:
+            for r in iter_csv_rows(LIVE_FILLS_CSV):
+                if normalise_wallet(r.get("leader_wallet")) != wallet or canonical_coin_key(r.get("coin")) != coin:
+                    continue
+                if str(r.get("source") or "").strip().upper() in excluded:
+                    continue
+                side = str(r.get("side") or "").strip().upper()
+                if side not in {"BUY", "SELL"} or side == close_side:
+                    continue
+                if int(fnum(r.get("created_at_ms"), 0)) >= cutoff:
+                    return True
+        except Exception as exc:
+            log_error("recent_entry_fill_evidence", exc)
+        return False
+
     def _pre_send_ownership_gate(self, intent: Intent) -> Tuple[bool, Dict[str, Any]]:
         coin_key = canonical_coin_key(intent.fill.coin)
         lifecycle = classify_send_lifecycle(intent)
@@ -9119,7 +9142,9 @@ class SenderGateway:
         return "REFUSED"
 
     def _owed_set_claim(self, key: str, row: Dict[str, Any], claim_id: Optional[str]) -> bool:
-        """Compare-and-set the claim on one owed row. The row must still be the one this sweep read (same last_seen_ms)."""
+        """Compare-and-set the claim_id on one owed row. The row must still be the one this sweep read (same last_seen_ms).
+        claim_id is TELEMETRY ONLY: it records which sweep is attempting a send. It is not a guard. The real guards are
+        the in-process _OWED_INFLIGHT set and the send_attempts log check in _owed_wire_state."""
         with _OWED_CLOSES_LOCK:
             rows = load_json(OWED_CLOSES_FILE, {}) or {}
             cur = rows.get(key)
@@ -9137,8 +9162,8 @@ class SenderGateway:
         """Re-run every OPEN owed close through the normal send gates (switch, rate limit, ownership, validation).
         A close leaves the store only on a send, or when both sides are flat. Returns the number sent.
 
-        Double-send guard: a sweep claims the row (claim_id, persisted before the wire call) and skips rows already in
-        flight in this process. Before any new send it reads the send_attempts log for this fill: an attempt with an
+        Double-send guard: a sweep skips rows already in flight in this process (_OWED_INFLIGHT). It records a claim_id
+        on the row before the wire call, for telemetry only (see _owed_set_claim). The real guard is the send-log check. Before any new send it reads the send_attempts log for this fill: an attempt with an
         exchange order id means the close already went out (retire); a pending_send with no final row means the outcome
         is unknown (hold and alert, never resend). Only a fill with no attempt, or with refused attempts, is re-sent."""
         with _OWED_CLOSES_LOCK:
@@ -9380,6 +9405,11 @@ class SenderGateway:
         timing["ownership_gate_started_ms"] = utc_now_ms()
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
         lag_statuses = {"OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION", "OWNERSHIP_GATE_SIGN_CONFLICT"}
+        no_sleeve_status = "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
+        no_sleeve_lag = bool(not gate_ok and gate_block.get("status") == no_sleeve_status
+                             and lifecycle in {"REDUCE", "EXIT"} and self._recent_entry_fill_evidence(intent))
+        if no_sleeve_lag:  # our entry fill is recorded but its sleeve row has not landed yet: wait for it, do not lose the close
+            lag_statuses = lag_statuses | {no_sleeve_status}
         if not gate_ok and gate_block.get("status") in lag_statuses:
             # often only the ledger (copy poll) or the exchange snapshot lagging the other by a few seconds: bring
             # both up to date and look again; only a mismatch that survives fresh records is a real one
@@ -9398,6 +9428,11 @@ class SenderGateway:
                 if not gate_ok and gate_block.get("status") in lag_statuses and time.monotonic() < deadline:
                     time.sleep(0.5)
         timing["ownership_gate_finished_ms"] = utc_now_ms()
+        if not gate_ok and no_sleeve_lag and gate_block.get("status") == no_sleeve_status:
+            # the window expired with the entry's sleeve still missing: hold it durably (owed queue), never drop it
+            self._persist_owed_close(intent, no_sleeve_status, intent.copy_size)
+            self._open_close_escalation(intent, "CLOSE_HELD_NO_SLEEVE_YET")
+            return _finish(False, "CLOSE_HELD_OWED_NO_SLEEVE_YET")
         if not gate_ok:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)

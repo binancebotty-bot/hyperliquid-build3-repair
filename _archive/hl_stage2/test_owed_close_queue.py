@@ -240,6 +240,92 @@ check("door-refused no-sleeve close: sends nothing, writes no owed row",
       (not ok_ns) and len(ex_nosleeve.calls) == 0 and owed_rows() == {},
       "ok=%r status=%r calls=%d rows=%d" % (ok_ns, status_ns, len(ex_nosleeve.calls), len(owed_rows())))
 
+# ---- no-sleeve close WITH our entry fill on record: the entry's sleeve row may be late ----------
+# Entry evidence = a live_fills row for this leader wallet+coin on the opposite side (recent). Without it the close is
+# refused once and nothing is owed (the 32e01c6 test). With it the door waits (lag window), then owes the close.
+def _write_entry_fill(fid, side="BUY"):
+    c.append_csv(c.LIVE_FILLS_CSV, c.LIVE_FILL_FIELDS, {
+        "created_at": "", "created_at_ms": str(c.utc_now_ms()), "copy_fill_id": fid + "-cp", "intent_id": fid,
+        "leader_fill_id": fid, "leader_wallet": t.A, "sleeve_id": "", "position_id": "", "coin": t.COIN,
+        "side": side, "fill_price": "100", "fill_size": "1.0", "fill_notional": "100", "fee": "0",
+        "source": "POLL", "exchange_hash": "", "exchange_order_id": "", "ledger_action": "", "wallet_position_before": "",
+        "wallet_position_after": "", "coin_net_after": "", "notes": ""})
+
+
+def _clear_live_fills():
+    try:
+        c.LIVE_FILLS_CSV.unlink()
+    except FileNotFoundError:
+        pass
+
+
+os.environ["HL_LIVE_UNEXPLAINED_WAIT_SEC"] = "2"
+os.environ["HL_LIVE_NO_SLEEVE_EVIDENCE_MS"] = "60000"
+
+# (1) the row lands INSIDE the window: the close sends once, nothing owed
+reset(); _clear_live_fills()
+led, net = t.new_ledger(), [0.0]
+ex_in = t.FakeExchange()
+gw_in = t.make_gateway(ex_in, led, net)
+_write_entry_fill("owed-inwin-entry")
+intent = t.exit_intent(led, t.A, "SELL", 1.0, "owed-inwin-f", 1.0)
+drop_sleeve_row(led)
+def _land_in_window():
+    led.sleeve(t.A, t.COIN)["signed_size"] = 1.0
+    net[0] = 1.0
+gw_in.truth_refresh = _land_in_window
+ok_in, status_in = gw_in.send_if_allowed(intent)
+check("no-sleeve close, row lands inside the window: sent once, nothing owed",
+      ok_in and len(ex_in.calls) == 1 and owed_rows() == {},
+      "ok=%r status=%r calls=%d rows=%d" % (ok_in, status_in, len(ex_in.calls), len(owed_rows())))
+
+# (2) the row lands AFTER the window: owed, then the sweep sends once when it lands
+reset(); _clear_live_fills()
+led, net = t.new_ledger(), [0.0]
+ex_after = t.FakeExchange()
+gw_after = t.make_gateway(ex_after, led, net)
+_write_entry_fill("owed-afterwin-entry")
+intent = t.exit_intent(led, t.A, "SELL", 1.0, "owed-afterwin-f", 1.0)
+drop_sleeve_row(led)
+ok_a, status_a = gw_after.send_if_allowed(intent)
+check("no-sleeve close, row not yet landed: held and owed, no send",
+      (not ok_a) and status_a == "CLOSE_HELD_OWED_NO_SLEEVE_YET" and len(ex_after.calls) == 0 and len(owed_rows()) == 1,
+      "ok=%r status=%r calls=%d rows=%d" % (ok_a, status_a, len(ex_after.calls), len(owed_rows())))
+led.sleeve(t.A, t.COIN)["signed_size"] = 1.0
+net[0] = 1.0
+sent_a = gw_after.sweep_owed_closes()
+check("row lands after the window: owed sweep sends once",
+      sent_a == 1 and len(ex_after.calls) == 1 and owed_rows() == {},
+      "sent=%r calls=%d rows=%d" % (sent_a, len(ex_after.calls), len(owed_rows())))
+
+# (3) no entry fill on record (a genuine user coin): refused once, nothing owed, no wait
+reset(); _clear_live_fills()
+led, net = t.new_ledger(), [0.0]
+ex_user = t.FakeExchange()
+gw_user = t.make_gateway(ex_user, led, net)
+intent = t.exit_intent(led, t.A, "SELL", 1.0, "owed-user-f", 1.0)
+drop_sleeve_row(led)
+t0 = time.monotonic()
+ok_u, status_u = gw_user.send_if_allowed(intent)
+elapsed = time.monotonic() - t0
+check("no entry fill on record: refused once, nothing owed, no wait",
+      (not ok_u) and status_u == "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE" and len(ex_user.calls) == 0
+      and owed_rows() == {} and elapsed < 1.0,
+      "status=%r calls=%d rows=%d elapsed=%.2f" % (status_u, len(ex_user.calls), len(owed_rows()), elapsed))
+# (4) only a SAME-side fill on record (a close, not an entry): no evidence, refused once, nothing owed
+reset(); _clear_live_fills()
+led, net = t.new_ledger(), [0.0]
+ex_same = t.FakeExchange()
+gw_same = t.make_gateway(ex_same, led, net)
+_write_entry_fill("owed-sameside-f", side="SELL")
+intent = t.exit_intent(led, t.A, "SELL", 1.0, "owed-sameside-close", 1.0)
+drop_sleeve_row(led)
+ok_s, status_s = gw_same.send_if_allowed(intent)
+check("only a same-side fill on record: refused once, nothing owed",
+      (not ok_s) and status_s == "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE" and len(ex_same.calls) == 0 and owed_rows() == {},
+      "status=%r calls=%d rows=%d" % (status_s, len(ex_same.calls), len(owed_rows())))
+_clear_live_fills()
+
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
 if failed:
