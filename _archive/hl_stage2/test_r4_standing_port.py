@@ -225,11 +225,17 @@ def lag_plan(side, size, ex, lag, mode="ON"):
     gw.cfg.wallet_mode = lambda w: mode
     gw._reduce_only_for_intent = lambda i: True
     gw._floor_wire_size = lambda s, d: round(s, d)
-    it = exit_intent(led, A, side, size, "lag-" + str(size) + "-" + str(ex), 0.0)
+    gw._proven_owned_for_sleeve = lambda w, cn: (10.0, "test ownership record")
+    it = exit_intent(led, A, side, size, "lag-" + str(size) + "-" + str(ex), 10.0)
     return c.SenderGateway._close_wire_plan(gw, it, size, 3, lambda s: True, None, lag)
 
-check("PORT_LAG_SIZES_FROM_EXCHANGE_ONLY", lag_plan("SELL", 6.0, 4.0, True) == (True, 4.0, ""), str(lag_plan("SELL", 6.0, 4.0, True)))
+# CC1-B-CONSOLIDATED-2310 (replaces CC1-B-RULING-NETSAFE-2142): the equal_net path has NO abs(net) cap. Size is
+# min(requested, FILL-PROVEN owned); the real exchange net only decides reduce_only, True ONLY when the wire truly
+# opposes it AND fits inside it. Order 6 with net 4 owns 6, so a forced reduce_only would be a lie the exchange
+# rejects: SEND 6, reduce_only False. Cross-check: test_core_close_to_target.LAG_NO_ABS_NET_CAP_SENDS_TEN_NOT_REDUCE_ONLY.
+check("PORT_LAG_NO_CAP_ON_EQUAL_NET_SIZES_FROM_PROVEN_OWNED", lag_plan("SELL", 6.0, 4.0, True) == (False, 6.0, ""), str(lag_plan("SELL", 6.0, 4.0, True)))
 check("PORT_LAG_NOTHING_TO_CLOSE_SKIPS", lag_plan("SELL", 6.0, 0.0, True)[1] == 0.0 and lag_plan("SELL", 6.0, -3.0, True)[1] == 0.0)
 check("PORT_LAG_FULL_POSITION_KEEPS_ORDER_SIZE", lag_plan("SELL", 6.0, 9.0, True) == (True, 6.0, ""), str(lag_plan("SELL", 6.0, 9.0, True)))
 check("PORT_LAG_WALLET_CLOSE_ONLY_IS_REDUCE_ONLY", lag_plan("SELL", 6.0, 9.0, True, mode="CLO") == (True, 6.0, ""), str(lag_plan("SELL", 6.0, 9.0, True, mode="CLO")))
 print("PORT_TOTAL=%d FAILED=%d" % (len(RESULTS), sum(1 for _, ok in RESULTS if not ok)), flush=True)
+sys.exit(1 if any(not ok for _, ok in RESULTS) else 0)

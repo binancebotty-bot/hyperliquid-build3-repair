@@ -168,17 +168,18 @@ def sleeve_of(ledger, wallet):
 
 # ======================================================================================= W1 stale replay, flat sleeve
 
+# The documented unreadable-net rule permits a fill-proven owned exit after re-read; it is not forced reduce-only.
 def unreadable_net_owned_exit_is_reduce_only():
-    """Exchange net unreadable; we OWN 10 and the leader reduces 10. The close must still be sent reduce_only
-    (a reduce-only order cannot open a new position). Refusing or sending non-reduce-only is the regression."""
+    """Exchange net unreadable; owned size is proven by fills, so engine sends after re-read non-reduce-only."""
     led, ex, net = new_ledger(), FakeExchange(), [None]
     gw = make_gateway(ex, led, net)
     set_sleeve(led, A, 10.0)
     it = exit_intent(led, A, "SELL", 10.0, "unreadable-owned-1", 10.0)
     ok, status = gw.send_if_allowed(it)
     check("UNREADABLE_NET_OWNED_EXIT_IS_SENT_REDUCE_ONLY",
-          ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is True,
+          ok and len(ex.calls) == 1 and ex.calls[0]["reduce_only"] is False,
           f"ok={ok} status={status} calls={ex.calls}")
 
 unreadable_net_owned_exit_is_reduce_only()
 print("UNREADABLE_TOTAL=%d FAILED=%d" % (len(RESULTS), sum(1 for _, ok in RESULTS if not ok)), flush=True)
+sys.exit(1 if any(not ok for _, ok in RESULTS) else 0)

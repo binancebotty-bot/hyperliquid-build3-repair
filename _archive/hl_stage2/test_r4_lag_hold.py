@@ -182,7 +182,7 @@ def lag_case(owned_at, net_val, requested=6.0):
     gw = make_gateway(exch, led, [0.0])
     gw._reduce_only_for_intent = lambda i: True
     gw._floor_wire_size = lambda s, d: round(s, d)
-    it = exit_intent(led, A, "SELL", requested, "hold-%s-%s" % (owned_at, net_val), 0.0)
+    it = exit_intent(led, A, "SELL", requested, "hold-%s-%s" % (owned_at, net_val), 10.0)
     side = c.ManualLedger.signed_delta(it.copy_side, 1.0)
     gw._fresh_exchange_net = lambda coin: (-side * net_val) if net_val is not None else None
     good = -side * 10.0
@@ -196,9 +196,12 @@ def lag_case(owned_at, net_val, requested=6.0):
 plan, elapsed = lag_case(owned_at=2.0, net_val=10.0)
 check("LAG_HOLD_A_CATCHES_UP_SENDS_OWNED_CLOSE", plan == (True, 6.0, "") and elapsed < c.CLOSE_LAG_HOLD_SEC,
       f"plan={plan} elapsed={elapsed}")
-# (b) never catches up -> reduce_only close sized from the exchange after the full window
+# a27649f (Boss 18 Nov): a lag window that closes with owned still 0 IS the no-ownership case. Fill-proven owned
+# (_proven_owned_for_sleeve: live_fills rows by wallet+coin, repair rows excluded) is the only ownership source and it
+# stayed 0 here, so nothing may be sent: a reduce_only sized from exchange net 4.0 would consume 4 units we cannot
+# attribute to this sleeve. Cross-check: test_core_close_to_target.LAG_ZERO_OWNED_WINDOW_EXPIRED_SENDS_NOTHING.
 plan, elapsed = lag_case(owned_at=None, net_val=4.0)
-check("LAG_HOLD_B_NEVER_CATCHES_UP_SENDS_REDUCE_ONLY", plan == (True, 4.0, "") and elapsed >= c.CLOSE_LAG_HOLD_SEC,
+check("LAG_HOLD_B_NEVER_CATCHES_UP_HOLDS_NO_OWNERSHIP", plan == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD") and elapsed >= c.CLOSE_LAG_HOLD_SEC,
       f"plan={plan} elapsed={elapsed}")
 # (c) flat exchange -> nothing sent after the window
 plan, elapsed = lag_case(owned_at=None, net_val=0.0)
@@ -207,3 +210,4 @@ check("LAG_HOLD_C_FLAT_EXCHANGE_SENDS_NOTHING", plan[0] is False and plan[1] == 
 
 c._CLOSE_LAG_CLOCK, c._CLOSE_LAG_SLEEP = _SAVED
 print("LAG_HOLD_TOTAL=%d FAILED=%d" % (len(RESULTS), sum(1 for _, ok in RESULTS if not ok)), flush=True)
+sys.exit(1 if any(not ok for _, ok in RESULTS) else 0)
