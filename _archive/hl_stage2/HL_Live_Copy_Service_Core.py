@@ -8557,7 +8557,17 @@ class SenderGateway:
         # A readable FLAT exchange holds nothing to reduce: never a fresh order, whatever the ledger says.
         # (The equal_net branch below trusts the ledger net; a ledger that drifted to 0 must not open a short.)
         if abs(actual) <= tol:
-            return decide("HOLD", why="CLOSE_PROOF_HOLD_EXCHANGE_FLAT_NOTHING_TO_CLOSE")
+            # A readable flat exchange. A coin net that is the sum of its own sleeves may be netted by other sleeves
+            # (flip rule, N9): that path still runs. A coin net that disagrees with its sleeves is a STALE ledger
+            # (the NET_NEG drift): hold, never a fresh order on a flat exchange.
+            sleeve_sum = 0.0
+            for wallet_map in ((self.ledger.data.get("by_wallet") or {}).values() if self.ledger else []):
+                if isinstance(wallet_map, dict):
+                    for sleeve_coin, sleeve_row in wallet_map.items():
+                        if canonical_coin_key(sleeve_coin) == coin:
+                            sleeve_sum += fnum((sleeve_row or {}).get("signed_size"), 0.0)
+            if abs(sleeve_sum - led) > tol:
+                return decide("HOLD", why="CLOSE_PROOF_HOLD_EXCHANGE_FLAT_LEDGER_NET_STALE")
         # item 4: foreign/USER units are never consumed by our close. The hold is named explicitly
         # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led
@@ -8568,7 +8578,12 @@ class SenderGateway:
         # on the sleeve's own side (we are missing units). The leader's close is copied at the fill-proven owned size,
         # NOT reduce-only and NOT clamped to the exchange net (the 31 Oct flip / netting rule). Exchange above the
         # ledger (foreign units, e.g. led 0 with exchange 8) is still held, and a flat or wrong-side net still holds.
-        deficit = (actual * owned > 0 and actual * side < 0
+        # A fill with more than one send attempt is a remainder/recovery: an earlier attempt's outcome may not be
+        # in the ledger (or recorded yet). This attempt's own pending_send row is the only one on a first send.
+        fid_attempts = {str(r.get("attempt_id") or "") for r in send_attempt_rows()
+                        if str(r.get("leader_fill_id") or "") == str(intent.fill.leader_fill_id)}
+        fid_sent = len(fid_attempts) > 1
+        deficit = (actual * owned > 0 and actual * side < 0 and not fid_sent
                    and abs(actual) + tol < min(abs(led), abs(owned)))
         if not (equal_net or safe_foreign or deficit):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_UNITS")

@@ -209,7 +209,9 @@ check("J2_1C_NO_EXCHANGE_CALL", len(calls1) == 0, f"calls={calls1}")
 fake1b = FakeExchange()
 ledger1b = c.ManualLedger(path=tmp / "ledger1b.json")
 ledger1b.sleeve(LEADER, "BTC")["signed_size"] = 1.0
+ledger1b._recompute_net(ledger1b.data)  # the coin net follows its sleeve, as production writes it (was stale: 0)
 gw1b = make_gateway(fake1b, ledger1b)
+gw1b._fresh_exchange_net = lambda coin: 1.0  # the exchange holds the 1.0 sleeve: a readable, matching position
 intent1b = make_intent("EXIT", "SELL", 0.001, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True)
 ok1b, status1b, result1b, calls1b = send_via_send_real(gw1b, intent1b)
 
