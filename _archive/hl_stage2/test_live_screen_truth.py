@@ -71,6 +71,9 @@ def main() -> None:
     cfg = c.load_json(c.LIVE_CONFIG_FILE, {})
     cfg.update({"auto_send_enabled": True, "wallets": {"0x" + "d" * 40: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed"}}})
     c.atomic_write_json(c.LIVE_CONFIG_FILE, cfg)
+    # the request path reads memory only; the one background exchange read is run here, synchronously, so the
+    # summary sees the figure the refresh would have stored (no network: urlopen is stubbed above)
+    ui._exchange_slow_refresh()
     summary = client.get("/api/live-audit-summary").json()
     fa = summary.get("follower_account") or {}
     check("L2_SUMMARY_HAS_WHOLE_ACCOUNT_VALUE", fa.get("ok") and abs(fa.get("value", 0) - 1450.12) < 1e-9
