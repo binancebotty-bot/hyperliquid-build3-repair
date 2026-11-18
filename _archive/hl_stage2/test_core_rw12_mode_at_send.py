@@ -32,8 +32,15 @@ def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="rw12_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
-                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000"})
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000",
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "sender.lock"),
+                       "HL_LIVE_HL_ACCOUNT_ADDRESS": FOLLOWER})
     import HL_Live_Copy_Service_Core as c
+
+    # The send path refuses to write the write-ahead pending_send row (and so to send) without the
+    # machine-wide sender lease: take the isolated one this fixture owns, exactly as the engine does.
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
 
     c.USER_WALLET = FOLLOWER
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100"}
@@ -44,10 +51,11 @@ def main() -> None:
     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
     c.HLAccount, c.HLExchange = object, object
 
-    def mk_intent(iid, wallet=A, side="BUY", notes="lifecycle=ENTRY;"):
+    def mk_intent(iid, wallet=A, side="BUY", notes="lifecycle=ENTRY;", position_before=0.0):
         fill = c.LeaderFill("f_" + iid, wallet, "BTC", side, 100.0, 1.0, c.utc_now_ms(), "TEST")
         return c.Intent(iid, fill, side, 1.0, 100.0, "ON", "fixed", "ENTRY_ALLOWED", "ENTRY",
-                        "sleeve:%s:BTC" % wallet, "", "FLAT", 0.0, 0.0, False, False, c.utc_now_ms(), notes)
+                        "sleeve:%s:BTC" % wallet, "", "FLAT", position_before, 0.0, False, False,
+                        c.utc_now_ms(), notes)
 
     def disk_rows(path):
         if not path.exists():
@@ -81,7 +89,7 @@ def main() -> None:
         def bulk_orders(self, *a, **k):  # pragma: no cover
             raise AssertionError("unexpected bulk_orders")
 
-    def gw(ex):
+    def gw(ex, owned=0.0, net=None):
         g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / ("l%d.json" % id(ex))))
         g._resolve_coin = lambda coin: dict(resolved)
         g._get_exchange_client = lambda *a, **k: ex
@@ -94,6 +102,11 @@ def main() -> None:
         g._margin_mode_done = {"BTC"}
         g.cfg.master_switch_now = lambda: True
         g.cfg.liq_parity_enabled = lambda: False
+        if owned:  # a real owned sleeve, so a close has an ownership record to prove itself against
+            g.ledger.sleeve(A, "BTC")["signed_size"] = owned
+            g.ledger._recompute_net(g.ledger.data)
+        if net is not None:  # data source only: the follower exchange's fresh net read
+            g._fresh_exchange_net = lambda coin: net
         return g
 
     def wait_for(fn, secs=8.0):
@@ -140,12 +153,12 @@ def main() -> None:
     def set_mode(g, mode):
         g.cfg.config["wallets"][A]["mode"] = mode  # the operator flips the wallet AFTER the intent was built
 
-    def attempt(label, mode_at_send, side="BUY", lifecycle="ENTRY", reply=None):
+    def attempt(label, mode_at_send, side="BUY", lifecycle="ENTRY", reply=None, owned=0.0, net=None):
         iid = "m" + label
-        it = mk_intent(iid, side=side, notes="lifecycle=%s;" % lifecycle)
+        it = mk_intent(iid, side=side, notes="lifecycle=%s;" % lifecycle, position_before=owned)
         c.AuditLogWriter().append_order_intent(it)  # intent built while the wallet was ON (wallet_mode="ON")
         ex = Ex([reply or FILLED(1.0, 100.0)])
-        g = gw(ex)
+        g = gw(ex, owned=owned, net=net)
         set_mode(g, mode_at_send)
         sent, status = g.send_if_allowed(it)
         return ex, sent, status, it
@@ -158,15 +171,18 @@ def main() -> None:
     check("M1_BLOCK_AUDIT_ROW_BLOCKED_CLO_ENTRY", any(r.get("terminal_state") == "BLOCKED_CLO_ENTRY" for r in recon(it.intent_id)), str(recon(it.intent_id)))
     ex, sent, status, it = attempt("clo_add", "CLO", lifecycle="ADD")
     check("M2_ADD_QUEUED_ON_THEN_CLO_IS_BLOCKED", not sent and status == "BLOCKED_CLO_ENTRY" and not ex.calls, "%s %s" % (sent, status))
-    ex, sent, status, it = attempt("clo_exit", "CLO", side="SELL", lifecycle="EXIT")
-    check("M3_EXIT_STILL_SENT_IN_CLO", len(ex.calls) == 1 and status != "BLOCKED_CLO_ENTRY", "%s %s %d" % (sent, status, len(ex.calls)))
+    # a LEGITIMATE close: the sleeve owns 1.0 and the fresh exchange net is 1.0, so the close-proof
+    # gate has real proof and the CLO rule (exits unchanged) is the thing deciding this send
+    ex, sent, status, it = attempt("clo_exit", "CLO", side="SELL", lifecycle="EXIT", owned=1.0, net=1.0)
+    check("M3_EXIT_STILL_SENT_IN_CLO", len(ex.calls) == 1 and status != "BLOCKED_CLO_ENTRY",
+          "%s %s %d" % (sent, status, len(ex.calls)))
     for lc, side in (("ENTRY", "BUY"), ("ADD", "BUY"), ("EXIT", "SELL"), ("REDUCE", "SELL")):
         ex, sent, status, it = attempt("off_" + lc, "OFF", side=side, lifecycle=lc)
         check("M4_%s_QUEUED_ON_THEN_OFF_SENDS_NOTHING" % lc, not sent and status == "BLOCKED_OFF" and not ex.calls, "%s %s %d" % (sent, status, len(ex.calls)))
     check("M4_OFF_AUDIT_ROW_BLOCKED_OFF", any(r.get("terminal_state") == "BLOCKED_OFF" for r in recon("moff_ENTRY")), str(recon("moff_ENTRY")))
     ex, sent, status, it = attempt("on_entry", "ON")
     check("M5_ON_ENTRY_UNCHANGED", sent and len(ex.calls) == 1, "%s %s" % (sent, status))
-    # unreadable mode: fail OPEN to the intent-time decision, loudly
+    # unreadable mode: an ENTRY/ADD fails CLOSED - the read re-raises, no order and no attempt row
     it = mk_intent("munread")
     c.AuditLogWriter().append_order_intent(it)
     ex = Ex([FILLED(1.0, 100.0)])
@@ -175,9 +191,27 @@ def main() -> None:
     def boom(w):
         raise RuntimeError("config unreadable")
     g.cfg.wallet_mode = boom
-    sent, status = g.send_if_allowed(it)
+    raised = ""
+    try:
+        sent, status = g.send_if_allowed(it)
+    except RuntimeError as exc:
+        raised, sent, status = str(exc), False, "RAISED"
+    check("M6_UNREADABLE_MODE_FAILS_CLOSED_FOR_AN_ENTRY_BY_RAISING",
+          raised == "config unreadable" and not ex.calls and not attempts(it.intent_id),
+          "raised=%r sent=%r status=%r calls=%d attempts=%r" % (raised, sent, status, len(ex.calls), attempts(it.intent_id)))
+    # ...while an EXIT fails OPEN to its intent-time decision, loudly (a close is never lost to a config read)
+    it2 = mk_intent("munread_exit", side="SELL", notes="lifecycle=EXIT;", position_before=1.0)
+    c.AuditLogWriter().append_order_intent(it2)
+    ex2 = Ex([FILLED(1.0, 100.0)])
+    g2 = gw(ex2, owned=1.0, net=1.0)
+
+    def boom_exit(w):
+        raise RuntimeError("config unreadable")
+    g2.cfg.wallet_mode = boom_exit
+    sent2, status2 = g2.send_if_allowed(it2)
     errs = [r for r in disk_rows(c.ERRORS_CSV) if r.get("context") == "send_time_wallet_mode_unreadable"]
-    check("M6_UNREADABLE_MODE_FAILS_OPEN_LOUDLY", sent and len(ex.calls) == 1 and bool(errs), "%s %s errs=%d" % (sent, status, len(errs)))
+    check("M6_UNREADABLE_MODE_FAILS_OPEN_FOR_AN_EXIT_LOUDLY", sent2 and len(ex2.calls) == 1 and bool(errs),
+          "%s %s errs=%d" % (sent2, status2, len(errs)))
     mode = _json.loads(c.LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig"))["wallets"][A]["mode"]
     check("M7_NO_WALLET_MODE_CHANGED_ON_DISK", mode == "ON", mode)
     failed = [n for n, ok in RESULTS if not ok]

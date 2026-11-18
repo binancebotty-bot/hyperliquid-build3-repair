@@ -80,14 +80,17 @@ def main():
                             c.utc_now_ms() - int(age_ms) + seq[0], "TEST", 0, {})
 
     class FakeExchange:
-        def __init__(self, margin_ok=True):
-            self.calls, self.cancels, self.margin_ok = [], [], margin_ok
+        def __init__(self, margin_ok=True, fills=False):
+            self.calls, self.cancels, self.margin_ok, self.fills = [], [], margin_ok, fills
 
         def update_leverage(self, leverage, name, is_cross=True):
             return {"status": "ok"} if self.margin_ok else {"status": "err", "response": "margin setup refused"}
 
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "reduce_only": reduce_only})
+            if self.fills:  # a marketable IOC crosses: the venue replies with the fill, not a resting order
+                return {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+                    {"filled": {"totalSz": str(size), "avgPx": str(px), "oid": 9000 + len(self.calls)}}]}}}
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 9000 + len(self.calls)}}]}}}
 
         def cancel(self, coin, oid):
@@ -126,7 +129,7 @@ def main():
     set_mids(99.0, 100.0)
     c.follower_mid("BTC")
     set_mids(100.0, 100.0, cache=False)
-    f1 = FakeExchange()
+    f1 = FakeExchange(fills=True)
     o1 = gateway(f1)._missed_entry_rest_or_diff(intent(fill()), "FOLLOWER_PRICE_FRESHNESS_GATE")
     check("R1_STALE_THEN_FRESH_WITHIN_TOLERANCE_TAKES", o1.get("follower_px") == 100.0
           and o1.get("outcome") == "FILLED_AWAITING_COPY_POLL" and len(f1.calls) == 1 and f1.calls[0]["tif"] == "Ioc",
@@ -182,7 +185,9 @@ def main():
           "%s %s" % (o5, f5.calls))
 
     # R6 ORD-010: an old ENTRY takes the rule at the refusal choke point with the switch OFF; a fresh
-    # one with no other refusal cause does not.
+    # one with no other refusal cause does not. The rule's OWN second gate then refuses this intent by
+    # name (OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF: no owned sleeve and no exchange proof for it), so the
+    # correct outcome is a named refusal with ZERO exchange calls - never a resting limit on unowned units.
     os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
     clear()
     set_mids(101.0, 101.0)
@@ -190,8 +195,9 @@ def main():
     i6 = intent(fill(age_ms=60000))
     o6 = core(f6)._apply_missed_entry_rule_on_refusal(i6.fill, i6, "INTENT_NOT_SEND_ALLOWED")
     check("R6_ORD_010_OLD_ENTRY_TAKES_THE_RULE_WITH_SWITCH_OFF", o6 is not None
-          and o6.get("cause") == "ORD_010_ENTRY_AGE_OVER_30S" and bool(f6.calls)
-          and f6.calls[-1]["tif"] == "Gtc" and abs(f6.calls[-1]["px"] - 100.0) < 1e-9,
+          and o6.get("cause") == "ORD_010_ENTRY_AGE_OVER_30S"
+          and o6.get("outcome") == "OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF"
+          and not f6.calls,
           "%s %s" % (o6, f6.calls))
     clear()
     set_mids(101.0, 101.0)

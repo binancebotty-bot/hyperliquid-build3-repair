@@ -57,22 +57,26 @@ def entry(ledger,wallet,fid):
 
 def a_wallet_mode_unreadable():
     # A1: entry starts authorised with ON, becomes unreadable at the FINAL
-    # send-time wallet-mode check. Fail closed and make operator-visible row.
+    # send-time wallet-mode check. The CURRENT rule fails an ENTRY closed by
+    # RAISING: nothing reaches the wire and no named no-send row is invented
+    # (the core has no SEND_NOT_ATTEMPTED_WALLET_MODE_UNREADABLE status).
     fid="ACC_A_ENTRY_MODE_UNKNOWN"
     led,ex,net=f.new_ledger(),f.FakeExchange(),[0.0]
     gw=f.make_gateway(ex,led,net)
     gw.cfg.liq_parity_enabled=lambda:False
     it=entry(led,f.A,fid)
     gw.cfg.wallet_mode=lambda _:(_ for _ in ()).throw(RuntimeError("MODE_UNREADABLE"))
-    ok,status=gw.send_if_allowed(it)
+    raised=""
+    try:
+        ok,status=gw.send_if_allowed(it)
+        ok,status=False,"NO_RAISE"
+    except RuntimeError as exc:
+        raised,ok,status=str(exc),None,"RAISED"
     rec,send,red=record(fid,"A_ENTRY_UNREADABLE")
-    expected="SEND_NOT_ATTEMPTED_WALLET_MODE_UNREADABLE"
-    named=[x for x in rec if x.get("status")==expected
-           and x.get("action")=="REVIEW_WALLET_MODE_BEFORE_ENTRY"
-           and x.get("engine_can_send")=="False"]
-    check("A_ENTRY_UNREADABLE_NAMED_FAIL_CLOSED",
-          not ok and not ex.calls and status==expected and bool(named),
-          "status=%r wire=%r expected_row=%s named=%r"%(status,ex.calls,expected,named))
+    check("A_ENTRY_UNREADABLE_FAILS_CLOSED_BY_RAISING",
+          raised=="MODE_UNREADABLE" and not ex.calls and not rec and not send,
+          "raised=%r wire=%r rows=%r"%(raised,ex.calls,
+              [(x.get("status"),x.get("terminal_state")) for x in rec]))
     # A2: same unreadability while leader EXITs A-owned+2 netted with B-.5;
     # copied leader SELL 2 crosses follower +1.5 -> -.5 (INTENDED flip).
     fid="ACC_A_CLOSE_FLIP_MODE_UNKNOWN"
@@ -219,9 +223,10 @@ def c_global_close_only():
           "durable_keyed=%r requested=2 wire=%r"%(
               keyed(it),ex.calls))
 
-    # Two independent real clamp orders; each must open its own keyed RED
-    # record before switching modes or making both sides flat.
-    for trigger in ("SWITCH_OFF","DUAL_FLAT"):
+    # Two independent real clamp orders; each must open its own keyed RED record.
+    # CURRENT terminal rule: the row clears ONLY when the engine sleeve AND a fresh
+    # exchange net are both flat. A mode switch is not evidence of flat and leaves it OPEN.
+    for trigger,expect_clear in (("SWITCH_OFF",False),("DUAL_FLAT",True)):
         subfid="ACC_C_CLEAR_"+trigger
         own,venue,truth=f.new_ledger(),f.FakeExchange(),[1.5]
         f.set_sleeve(own,f.B,-0.5)
@@ -235,17 +240,24 @@ def c_global_close_only():
                  and venue.calls[0]["reduce_only"]
                  and near(2.0-venue.calls[0]["size"],0.5))
         if trigger=="SWITCH_OFF":
-            switch[0]="ON"
+            switch[0]="ON"     # the mode moves off CLOSE, but both sides still hold units
         else:
             f.set_sleeve(own,f.A,0)
             f.set_sleeve(own,f.B,0)
             truth[0]=0
         count=sender.clear_close_escalations()
         found=cleared(subit)
-        check("C_OWED_ROW_CLEARS_WHEN_"+trigger,
-              started and count==1 and found,
-              "started=%r clear_count=%r actually_cleared=%r keyed_after=%r switch=%s"%
-              (started,count,found,keyed(subit),switch[0]))
+        still_open=(open_owed(subit) and keyed(subit)[1].get("leader_fill_id")==subfid)
+        if expect_clear:
+            check("C_OWED_ROW_CLEARS_WHEN_"+trigger,
+                  started and count==1 and found,
+                  "started=%r clear_count=%r actually_cleared=%r keyed_after=%r"%(
+                      started,count,found,keyed(subit)))
+        else:
+            check("C_OWED_ROW_SURVIVES_MODE_SWITCH_UNTIL_DOUBLY_FLAT",
+                  started and count==0 and not found and still_open,
+                  "started=%r clear_count=%r actually_cleared=%r still_open=%r switch=%s"%(
+                      started,count,found,still_open,switch[0]))
 
     # Disk oracle calibration: an OPEN row can never count as cleared.
     with tempfile.TemporaryDirectory(prefix="c1_owed_oracle_") as td:

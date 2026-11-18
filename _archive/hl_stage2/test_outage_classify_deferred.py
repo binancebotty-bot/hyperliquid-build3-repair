@@ -3,6 +3,9 @@ import subprocess, sys, tempfile
 from pathlib import Path
 from outage_classify import classify
 
+HERE = Path(__file__).resolve().parent   # the CLI is a sibling, not a CWD entry
+CLASSIFIER = str(HERE / "outage_classify.py")
+
 d = Path(tempfile.mkdtemp())
 (d / "order_intents.csv").write_text("leader_fill_id,notes\n")
 (d / "reconciliation.csv").write_text(
@@ -15,7 +18,9 @@ assert r["S"] == "MERGED_BLOCKED_ENTRY_BLOCKED_RISK", r
 assert r["T"] == "DEFERRED_OPEN" and r["Z"] == "DEFERRED_OPEN", r
 assert r["Q"] == "MISSING", r
 (d / "ids.txt").write_text("H S")
-assert subprocess.run([sys.executable, "outage_classify.py", str(d), str(d / "ids.txt")], capture_output=True).returncode == 0
+ok_run = subprocess.run([sys.executable, CLASSIFIER, str(d), str(d / "ids.txt")], capture_output=True, text=True)
+assert ok_run.returncode == 0, ok_run.stdout + ok_run.stderr
 (d / "ids.txt").write_text("H S T")
-assert subprocess.run([sys.executable, "outage_classify.py", str(d), str(d / "ids.txt")], capture_output=True).returncode == 1
+bad_run = subprocess.run([sys.executable, CLASSIFIER, str(d), str(d / "ids.txt")], capture_output=True, text=True)
+assert bad_run.returncode == 1, bad_run.stdout + bad_run.stderr
 print("PASS test_outage_classify_deferred")

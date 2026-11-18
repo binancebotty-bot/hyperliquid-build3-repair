@@ -11,7 +11,9 @@ Controller ruling 6409748448:
   * remove the dispatch early return ONLY for halted, IOC-no-match and insufficient-margin;
   * LIQ_PARITY_BLOCKED keeps its dispatch block exactly as it is - it is a Boss-ordered skip and must stay a
     named skip (testnet is handled by liq_parity=false in config, not by code);
-  * add cause branches so IOC-no-match and insufficient-margin reach `_missed_entry_rest_or_diff`;
+  * add cause branches so IOC-no-match and margin-rest-once reach `_missed_entry_rest_or_diff`;
+  * NEVER retry on a cached refusal: SKIPPED_INSUFFICIENT_MARGIN is a cache hit and the choke point returns None
+    for it (Core:14228), leaving the caller its one terminal row;
   * entries only - a reduction can never rest a limit and must keep going through the close path.
 
 FAILING FIRST: on the deployed engine these cases return True/None where they should return False/"" - the
@@ -67,7 +69,8 @@ got = sender_stub(ioc=FAR).known_dispatch_reject(fill(dir_='Close Long'))
 check('A_REDUCTION_IS_NEVER_DISPATCH_BLOCKED', got == '',
       'a close fill was dispatch-blocked with %r - reductions must use the close path' % (got,))
 
-# ---- 4. the cause mapping now hands IOC / margin refusals to the missed-entry rule ----
+# ---- 4. the cause mapping hands IOC / margin-rest-once refusals to the missed-entry rule,
+#         and NEVER retries on a CACHED refusal (Core:14228 returns None for SKIPPED_INSUFFICIENT_MARGIN).
 def core_stub():
     calls = []
     s = types.SimpleNamespace(
@@ -85,15 +88,20 @@ ENTRY_INTENT = types.SimpleNamespace(reason='', notes='lifecycle=ENTRY', intent_
                                      fill=fill(), copy_side='BUY', copy_size=1.0,
                                      wallet_position_before=0.0)
 
-for label, status in (('IOC_NO_MATCH', 'SKIPPED_IOC_NO_IMMEDIATE_MATCH'),
-                      ('INSUFFICIENT_MARGIN', 'SKIPPED_INSUFFICIENT_MARGIN')):
+for label, status, reaches in (('IOC_NO_MATCH', 'SKIPPED_IOC_NO_IMMEDIATE_MATCH', True),
+                               ('MARGIN_REJECT_REST_ONCE', 'MARGIN_REJECT_REST_ONCE', True),
+                               ('INSUFFICIENT_MARGIN', 'SKIPPED_INSUFFICIENT_MARGIN', False)):
     core, calls = core_stub()
     try:
         out = C.LiveCopyCore._apply_missed_entry_rule_on_refusal(core, fill(), ENTRY_INTENT, status)
     except Exception as exc:
         out = '%s: %s' % (type(exc).__name__, str(exc)[:80])
-    check('REFUSAL_%s_REACHES_THE_MISSED_ENTRY_RULE' % label, bool(calls) and isinstance(out, dict),
-          'rule_calls=%r out=%r' % (calls, out))
+    if reaches:
+        check('REFUSAL_%s_REACHES_THE_MISSED_ENTRY_RULE' % label, len(calls) == 1 and isinstance(out, dict),
+              'rule_calls=%r out=%r' % (calls, out))
+    else:
+        check('REFUSAL_%s_NEVER_RETRIES_A_CACHED_REFUSAL' % label, not calls and out is None,
+              'a cached insufficient-margin refusal was retried: rule_calls=%r out=%r' % (calls, out))
 
 # ---- 5. a reduction refusal still never reaches the rule ----
 core, calls = core_stub()
