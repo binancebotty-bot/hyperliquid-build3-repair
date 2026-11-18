@@ -8604,8 +8604,17 @@ class SenderGateway:
         fid_attempts = {str(r.get("attempt_id") or "") for r in send_attempt_rows()
                         if str(r.get("leader_fill_id") or "") == str(intent.fill.leader_fill_id)}
         fid_sent = len(fid_attempts) > 1
+        prior_filled = any(
+            str(r.get("leader_fill_id") or "") == str(intent.fill.leader_fill_id)
+            and str(r.get("status") or "").upper() == "ORDER_FILLED"
+            for r in send_attempt_rows())
         deficit = (actual * owned > 0 and actual * side < 0 and not fid_sent
                    and abs(actual) + tol < min(abs(led), abs(owned)))
+        if prior_filled and (equal_net or safe_foreign) and not any(
+                str(r.get("leader_fill_id") or "") == str(intent.fill.leader_fill_id)
+                and str(r.get("source") or "") == "copy_account_poll"
+                for r in read_csv_rows(LIVE_FILLS_CSV)):
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_DUPLICATE_SEND_ATTEMPT")
         if not (equal_net or safe_foreign or deficit):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_UNITS")
         if not equal_net and actual * side >= 0:
