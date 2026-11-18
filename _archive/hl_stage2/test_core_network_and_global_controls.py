@@ -324,6 +324,10 @@ def global_controls_tests() -> None:
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side))
         fake = FakeExchange()
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        # Fixture (ownership record): Boss's rule is that a close with NO ownership record is never sent (ad7d900).
+        # The sleeve written to `led` above IS this engine's ownership record for the coin, so the gateway must see it.
+        # Without this, every exit below is held as CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD. Entries do not read the ledger here.
+        gw.ledger = led
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
