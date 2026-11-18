@@ -7638,6 +7638,8 @@ class SenderGateway:
                 _min_n = (lambda sz: abs(sz * limit_px) >= _mn)
             except Exception as exc:
                 log_error("standing_close_min_notional", exc)
+            if remainder is not None:
+                _sc_t["close_size_cap"] = close_size  # the part-fill remainder: the wire re-plan must not size above it
             _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, _sc_t, ledger_may_lag=remainder is not None)
             if _skip:
                 if _sc_t.get("close_decision") != "SETTLED":
@@ -8418,8 +8420,12 @@ class SenderGateway:
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
         state = timing if isinstance(timing, dict) else {}
+        if state.get("close_size_cap") is not None:  # R4 step 2/3: a standing close is planned at what is left, at the wire too
+            size = min(abs(float(size)), abs(float(state["close_size_cap"])))
         def decide(kind: str, amount: float = 0.0, ro: bool = False, why: str = "") -> Tuple[bool, float, str]:
             state["close_decision"] = kind
+            if kind == "SEND" and sz_dec is not None:  # the precision the SEND was sized with, for the late wire gate (R4 step 1)
+                state["close_verified_sz_decimals"] = sz_dec
             return ro, amount, why
         if not self.ledger or ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)

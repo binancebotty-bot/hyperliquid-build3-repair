@@ -109,6 +109,10 @@ def main() -> None:
         g._validate_final_wire_order = lambda *a, **k: (True, {})
         g._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         g._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        # the follower's fresh exchange net comes from the same snapshot the scenario writes (as run3 stubs it); offline
+        # reads otherwise make the close plan unreadable, so the standing close is planned without reduce_only
+        g._fresh_exchange_net = lambda coin: c.fnum(((c.load_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {}) or {})
+                                                    .get("positions_by_coin") or {}).get(coin, {}).get("signed_size"), 0.0)
         return g
 
     def send_real(g, intent):
@@ -127,6 +131,9 @@ def main() -> None:
         c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {coin: {"signed_size": net}}})
 
     def ledger(name, **sleeves):
+        # each scenario starts with no fill history: live_fills.csv is shared by every scenario in this run, and a fill
+        # left by an earlier scenario (same leader, same coin) would otherwise prove the owned size for this one
+        c.LIVE_FILLS_CSV.unlink(missing_ok=True)
         led = c.ManualLedger(path=tmp / f"{name}.json")
         for key, s in sleeves.items():
             w, coin = key.split("_")
