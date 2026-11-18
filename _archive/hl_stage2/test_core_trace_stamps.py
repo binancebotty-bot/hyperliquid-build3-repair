@@ -40,6 +40,13 @@ def offline(*a, **k):
 
 requests.post = offline
 import HL_Live_Copy_Service_Core as c  # noqa: E402
+# Fixture: the send path needs the isolated sender lease (one engine per machine), as test_core_disk_full does,
+# and the send switch armed.
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+c.acquire_global_instance_lock(tmp / "state")
+assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True, "global_controls": {},
+                                             "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
 
 c.requests.post = offline
 c.USER_WALLET = "0x" + "c" * 40
