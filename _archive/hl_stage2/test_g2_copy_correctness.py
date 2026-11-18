@@ -293,6 +293,11 @@ def main() -> None:
 
     _real_sender = svcmod.send_hyperliquid_order
     svcmod.send_hyperliquid_order = fake_sender
+    # Hermetic: a close prices from the live L2 book; the sandbox has no route to it, so the close was refused
+    # as CURRENT_QUOTE_UNAVAILABLE before the sender. Stub only the price source; the payload is still checked as sent.
+    _real_quote = svcmod.fetch_public_executable_quote
+    svcmod.fetch_public_executable_quote = lambda coin, side, *a, **k: {"ok": True, "coin": coin, "side": side,
+        "bid": 100.0, "ask": 100.0, "executable_price": 100.0, "source": "test_stub", "error": ""}
     svc13 = fresh()
     _r0 = svc13.process_ws_fill(fill("w0", "0xw1", "BTC", "BUY", 100.0, 1.0, 500, source="live_ws"))    # baseline only
     _r1 = svc13.process_ws_fill(fill("w1", "0xw1", "BTC", "BUY", 100.0, 10.0, 1000, source="live_ws"))   # planner OPEN BUY 1.0
@@ -303,12 +308,125 @@ def main() -> None:
     check("real send is NOT settled by the local dry-run mutation (reservation retained)",
           svc13.in_flight.get("BTC") is not None, str(svc13.in_flight))
     svc13.clear_in_flight("BTC")   # stands in for the G3 exchange ack arriving
+    _n13 = len(seen)
     svc13.process_ws_fill(fill("w2", "0xw1", "BTC", "SELL", 100.0, 10.0, 2000, source="live_ws"))  # planner FLATTEN SELL 1.0
     check("planner reduce_only + side reach the SENDER payload (FLATTEN SELL)",
-          seen[-1]["side"] == "SELL" and seen[-1]["reduce_only"] is True, str(seen[-1:]))
+          len(seen) == _n13 + 1 and seen[-1]["side"] == "SELL" and seen[-1]["reduce_only"] is True, str(seen[-1:]))
     svcmod.send_hyperliquid_order = _real_sender
+    svcmod.fetch_public_executable_quote = _real_quote
     svcmod.LIVE_AUTO_SEND_ENABLED = False
     os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+
+    print("\n=== t13b) a PRE-WIRE refusal must not hold the coin's in-flight reservation (later close still sent) ===")
+    _b_dir = Path(tempfile.mkdtemp(prefix="g2_seam_b_"))
+    (_b_dir / "live_config.json").write_text(json.dumps({
+        "wallets": {"0xw1": {"mode": "LIVE", "enabled": True, "copy_mode": "proportional", "norm_base": 100.0, "leader_equity_base": 1000.0}}
+    }), encoding="utf-8")
+    svcmod.configure_paths(_b_dir, tmp / "raw_live_fills_b.csv")
+    svcmod.LIVE_AUTO_SEND_ENABLED = True
+    svcmod.LIVE_AUTO_SEND_WALLET = "0xw1"
+    svcmod.LIVE_AUTO_SEND_MAX_PER_RUN = 5
+    svcmod.LIVE_POLL_ENABLED = False
+    os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
+    svcmod.HL_PERP_META_BY_COIN_CACHE = {"BTC": {"szDecimals": 5, "name": "BTC", "canonical_name": "BTC"}}
+    _sent_b = []
+    _quote_b = [False]
+
+    def _sender_b(payload, marketable_bps=0.0, use_current_quote=False, max_notional=None):
+        _sent_b.append({"side": str(payload.get("side")), "reduce_only": bool(payload.get("reduce_only"))})
+        return {"ok": True, "status": "ORDER_FILLED", "fill_avg_px": str(payload.get("limit_price")),
+                "fill_size": str(payload.get("copy_size")), "oid": "t13b", "coin": payload.get("coin"),
+                "side": payload.get("side"), "size": payload.get("copy_size"),
+                "limit_price": payload.get("limit_price"), "reduce_only": payload.get("reduce_only")}
+
+    def _quote_b_fn(coin, side, *a, **k):
+        if _quote_b[0]:
+            return {"ok": True, "coin": coin, "side": side, "bid": 100.0, "ask": 100.0,
+                    "executable_price": 100.0, "source": "test_stub", "error": ""}
+        return {"ok": False, "status": "NO_QUOTE", "error": "test: quote withheld before the wire"}
+
+    _rq_b = svcmod.fetch_public_executable_quote
+    _rs_b = svcmod.send_hyperliquid_order
+    svcmod.fetch_public_executable_quote = _quote_b_fn
+    svcmod.send_hyperliquid_order = _sender_b
+    svc_b = fresh()
+    svc_b.process_ws_fill(fill("b0", "0xw1", "BTC", "BUY", 100.0, 1.0, 500, source="live_ws"))   # baseline only
+    svc_b.process_ws_fill(fill("b1", "0xw1", "BTC", "BUY", 100.0, 10.0, 1000, source="live_ws"))  # OPEN BUY 1.0
+    svc_b.clear_in_flight("BTC")   # stands in for the G3 exchange ack of the entry
+    svc_b.process_ws_fill(fill("b2", "0xw1", "BTC", "SELL", 100.0, 10.0, 2000, source="live_ws"))  # FLATTEN SELL, refused pre-wire
+    check("pre-wire refusal (no exchange call) leaves NO in-flight reservation behind",
+          svc_b.in_flight.get("BTC") is None, str(svc_b.in_flight))
+    _quote_b[0] = True
+    _n_b = len(_sent_b)
+    svc_b.process_ws_fill(fill("b3", "0xw1", "BTC", "SELL", 100.0, 10.0, 3000, source="live_ws"))  # the NEXT close
+    check("a later close on the same coin still reaches the sender after a pre-wire refusal",
+          len(_sent_b) == _n_b + 1 and _sent_b[-1]["side"] == "SELL", str(_sent_b))
+    svcmod.send_hyperliquid_order = _rs_b
+    svcmod.fetch_public_executable_quote = _rq_b
+    svcmod.configure_paths(_seam_dir, tmp / "raw_live_fills.csv")   # hand the shared paths back to t13's dir
+    svcmod.LIVE_AUTO_SEND_ENABLED = False
+    os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+
+    print("\n=== t13c) wire_attempted is True on EVERY post-wire result; a pre-wire result never carries it ===")
+    _c_dir = Path(tempfile.mkdtemp(prefix="g2_seam_c_"))
+    (_c_dir / "live_config.json").write_text(json.dumps({
+        "wallets": {"0xw1": {"mode": "LIVE", "enabled": True, "copy_mode": "proportional", "norm_base": 100.0, "leader_equity_base": 1000.0}}
+    }), encoding="utf-8")
+    svcmod.configure_paths(_c_dir, tmp / "raw_live_fills_c.csv")
+    svcmod.LIVE_AUTO_SEND_ENABLED = True
+    svcmod.LIVE_AUTO_SEND_WALLET = "0xw1"
+    os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
+    svcmod.HL_PERP_META_BY_COIN_CACHE = {"BTC": {"szDecimals": 5, "name": "BTC", "canonical_name": "BTC"}}
+    svcmod.save_manual_live_positions({})
+    _sender_mode = {"status": "ORDER_REJECTED", "raise": False}
+
+    def _sender_c(payload, marketable_bps=0.0, use_current_quote=False, max_notional=None):
+        if _sender_mode["raise"]:
+            raise RuntimeError("test: exchange call raised after the wire")
+        return {"ok": _sender_mode["status"] == "ORDER_FILLED", "status": _sender_mode["status"],
+                "fill_avg_px": str(payload.get("limit_price")), "fill_size": str(payload.get("copy_size")),
+                "oid": "t13c", "coin": payload.get("coin"), "side": payload.get("side"),
+                "size": payload.get("copy_size"), "limit_price": payload.get("limit_price"),
+                "reduce_only": payload.get("reduce_only")}
+
+    _rs_c = svcmod.send_hyperliquid_order
+    svcmod.send_hyperliquid_order = _sender_c
+    _row_c = {"created_at": "t", "dry_run": True, "intent_id": "c-intent", "leader_wallet": "0xw1",
+              "coin": "BTC", "side": "BUY", "copy_size": 1.0, "copy_notional": 100.0, "order_type": "IOC_LIMIT",
+              "limit_price": 100.0, "reduce_only": False, "execution_decision": "WOULD_PLACE_IOC_LIMIT",
+              "decision_reason": "T13C", "manual_reconcile_required": False, "status": "WOULD_SEND_DRY_RUN"}
+    svcmod.append_csv(svcmod.WOULD_SEND_ORDERS_CSV, svcmod.WOULD_SEND_ORDER_FIELDS, _row_c)
+    _res_rej = svcmod.manual_send_one_intent("c-intent", True, auto_live=True, auto_send_wallet="0xw1")
+    check("post-wire ORDER_REJECTED result carries wire_attempted=True",
+          _res_rej.get("status") == "ORDER_REJECTED" and _res_rej.get("wire_attempted") is True, str(_res_rej)[:200])
+    svcmod.save_manual_live_positions({})
+    _sender_mode["status"] = "ORDER_FILLED"
+    _row_c2 = dict(_row_c); _row_c2["intent_id"] = "c-intent-2"
+    svcmod.append_csv(svcmod.WOULD_SEND_ORDERS_CSV, svcmod.WOULD_SEND_ORDER_FIELDS, _row_c2)
+    _res_ok = svcmod.manual_send_one_intent("c-intent-2", True, auto_live=True, auto_send_wallet="0xw1")
+    check("post-wire ORDER_FILLED result carries wire_attempted=True",
+          _res_ok.get("status") == "ORDER_FILLED" and _res_ok.get("wire_attempted") is True, str(_res_ok)[:200])
+    _sender_mode["status"] = "ORDER_REJECTED"
+    _sender_mode["raise"] = True
+    _raised = False
+    _row_c3 = dict(_row_c); _row_c3["intent_id"] = "c-intent-3"
+    svcmod.append_csv(svcmod.WOULD_SEND_ORDERS_CSV, svcmod.WOULD_SEND_ORDER_FIELDS, _row_c3)
+    try:
+        _res_exc = svcmod.manual_send_one_intent("c-intent-3", True, auto_live=True, auto_send_wallet="0xw1")
+    except RuntimeError:
+        _raised = True
+        _res_exc = None
+    check("a post-wire exception propagates (never a dict that could look pre-wire)",
+          _raised and _res_exc is None, str(_res_exc)[:200])
+    _sender_mode["raise"] = False
+    _pre_c = svcmod.manual_send_one_intent("c-intent", False, auto_live=True, auto_send_wallet="0xw1")
+    check("a pre-wire refusal (no confirm) never carries wire_attempted",
+          _pre_c.get("status") == "CONFIRM_REQUIRED" and "wire_attempted" not in _pre_c, str(_pre_c)[:200])
+    svcmod.send_hyperliquid_order = _rs_c
+    svcmod.configure_paths(_seam_dir, tmp / "raw_live_fills.csv")
+    svcmod.LIVE_AUTO_SEND_ENABLED = False
+    os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+    svcmod.save_manual_live_positions({})
 
     print("\n=== t14) manual send cannot overwrite planner side (contradiction => FAIL CLOSED) ===")
     svcmod.save_manual_live_positions({"BTC": {"signed_size": 2.0, "last_updated_at": "t", "last_oid": "x", "last_intent_id": "x"}})

@@ -158,6 +158,11 @@ EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
+# Durable owed closes (Boss 18 Nov): a close held for missing ownership is re-run by a per-cycle sweep.
+OWED_CLOSES_FILE = AUDIT_DIR / "owed_closes.json"
+_OWED_CLOSES_LOCK = threading.Lock()
+OWNERSHIP_HOLD_REASONS = frozenset({"CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD", "CLOSE_PROOF_HOLD_UNKNOWN_SLEEVE",
+                                     "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE"})
 _CLOSE_ESCALATIONS_LOCK = threading.RLock()
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
@@ -7643,6 +7648,8 @@ class SenderGateway:
                 _sc_t["close_size_cap"] = close_size  # the part-fill remainder: the wire re-plan must not size above it
             _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, _sc_t, ledger_may_lag=remainder is not None)
             if _skip:
+                if _skip in OWNERSHIP_HOLD_REASONS and _sc_t.get("close_decision") != "SETTLED":
+                    self._persist_owed_close(intent, _skip, close_size)
                 if _sc_t.get("close_decision") != "SETTLED":
                     self._journal_authorised_close_refusal(intent, _skip)
                 self.audit.append_reconciliation(
@@ -8428,7 +8435,12 @@ class SenderGateway:
             if kind == "SEND" and sz_dec is not None:  # the precision the SEND was sized with, for the late wire gate (R4 step 1)
                 state["close_verified_sz_decimals"] = sz_dec
             return ro, amount, why
-        if not self.ledger or ledger_may_lag:
+        if not self.ledger:
+            # Boss 18 Nov: no ownership record = we never copied the opening trade, so we own nothing here.
+            # Send nothing and alert with a named reason. Never a reduce-only close of units we cannot attribute.
+            self._open_close_escalation(intent, "CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
+        if ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
         if sz_dec is None:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_PRECISION")
@@ -8674,7 +8686,7 @@ class SenderGateway:
 
     def _close_lag_window_expired(self, intent: Intent, requested: float, sz_dec: Optional[int], side: float,
                                   tol: float, decide: Any) -> Tuple[bool, float, str]:
-        """Owned still unproven after the hold: reduce_only close sized from the exchange net, only if it opposes."""
+        """Owned still zero after the hold: we own nothing we can prove, so nothing is sent (Boss 18 Nov)."""
         net = SenderGateway._close_net_with_reread(self, intent.fill.coin)
         if net is None or not math.isfinite(net) or abs(net) <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")  # unreadable or flat: nothing to reduce
@@ -8683,11 +8695,12 @@ class SenderGateway:
         amount = self._floor_wire_size(round(min(requested, abs(net)), 10), sz_dec)
         if amount <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+        # Boss 18 Nov: owned is still 0 when the window closes, so we own nothing we can prove. Send nothing; alert.
         try:
-            self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY")
+            self._open_close_escalation(intent, "CLOSE_HELD_LAG_EXPIRED_NO_OWNERSHIP")
         except Exception as exc:
             log_error("close_escalation_write_failed", exc)
-        return decide("SEND", amount, True)
+        return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
 
     def _close_net_with_reread(self, coin: str) -> Optional[float]:
         """CC1-B-CONSOLIDATED-2310 item 3: one bounded fresh read; still unreadable -> ONE re-read.
@@ -9035,6 +9048,69 @@ class SenderGateway:
             }
             atomic_write_json(CLOSE_ESCALATIONS_FILE, rows)
             self._close_escalations = rows
+
+    def _persist_owed_close(self, intent: Intent, reason: str, copy_size: float) -> None:
+        """Owed close (Boss 18 Nov): held for missing ownership, so it is kept durably and re-run by sweep_owed_closes
+        until ownership exists or both sides are flat. One row per wallet and coin: the latest held close."""
+        key = normalise_wallet(intent.fill.leader_wallet) + "::" + canonical_coin_key(intent.fill.coin)
+        intent_dict = {f: getattr(intent, f) for f in Intent.__dataclass_fields__ if f != "fill"}
+        intent_dict["copy_size"] = float(copy_size)
+        intent_dict["fill"] = {f: getattr(intent.fill, f) for f in LeaderFill.__dataclass_fields__}
+        now = utc_now_ms()
+        with _OWED_CLOSES_LOCK:
+            rows = load_json(OWED_CLOSES_FILE, {}) or {}
+            earlier = rows.get(key) if isinstance(rows.get(key), dict) else {}
+            rows[key] = {"state": "OPEN", "wallet": normalise_wallet(intent.fill.leader_wallet),
+                         "coin": canonical_coin_key(intent.fill.coin), "reason": str(reason),
+                         "first_seen_ms": int(fnum(earlier.get("first_seen_ms"), now)), "last_seen_ms": now,
+                         "intent": json.loads(json.dumps(intent_dict, default=str))}
+            atomic_write_json(OWED_CLOSES_FILE, rows)
+
+    @staticmethod
+    def _owed_intent(row: Dict[str, Any]) -> Intent:
+        d = dict(row["intent"])
+        fill = LeaderFill(**d.pop("fill"))
+        d["fill"] = fill
+        return Intent(**d)
+
+    def _owned_and_exchange_flat(self, wallet: str, coin: str) -> bool:
+        """Both sides flat: the engine sleeve is flat AND a fresh same-coin exchange read is flat."""
+        owned_row = (((self.ledger.data or {}).get("by_wallet") or {}).get(wallet, {}).get(coin)) if self.ledger else None
+        try:
+            owned = float(owned_row["signed_size"]) if isinstance(owned_row, dict) else float("nan")
+            exchange = float(self._fresh_exchange_net(coin))
+        except (TypeError, ValueError, KeyError):
+            return False
+        return (math.isfinite(owned) and abs(owned) <= POSITION_EPSILON
+                and math.isfinite(exchange) and abs(exchange) <= POSITION_EPSILON)
+
+    def _retire_owed_close(self, key: str, row: Dict[str, Any]) -> None:
+        with _OWED_CLOSES_LOCK:
+            rows = load_json(OWED_CLOSES_FILE, {}) or {}
+            if isinstance(rows.get(key), dict) and rows[key].get("last_seen_ms") == row.get("last_seen_ms"):
+                rows.pop(key)
+                atomic_write_json(OWED_CLOSES_FILE, rows)
+
+    def sweep_owed_closes(self) -> int:
+        """Re-run every OPEN owed close through the normal send gates (switch, rate limit, ownership, validation).
+        A close leaves the store only on a send, or when both sides are flat. Returns the number sent."""
+        with _OWED_CLOSES_LOCK:
+            snapshot = dict(load_json(OWED_CLOSES_FILE, {}) or {})
+        sent = 0
+        for key, row in snapshot.items():
+            if not isinstance(row, dict) or row.get("state") != "OPEN":
+                continue
+            try:
+                if self._owned_and_exchange_flat(row["wallet"], row["coin"]):
+                    self._retire_owed_close(key, row)
+                    continue
+                ok, _status = self.send_if_allowed(SenderGateway._owed_intent(row))
+                if ok:
+                    self._retire_owed_close(key, row)
+                    sent += 1
+            except Exception as exc:
+                log_error("owed_close_sweep", exc)
+        return sent
 
     def _follower_order_account_for_proof(self) -> str:
         """R1/CS-I3: the account the PHYSICAL order will actually sign for.
@@ -9760,6 +9836,8 @@ class SenderGateway:
             if close_skip:
                 if close_skip == "CLOSE_PROOF_HOLD_UNKNOWN_PRECISION":
                     self._note_unknown_precision_hold(intent)
+                if close_skip in OWNERSHIP_HOLD_REASONS and timing.get("close_decision") != "SETTLED":
+                    self._persist_owed_close(intent, close_skip, wire_size)
                 settled = timing.get("close_decision") == "SETTLED"
                 if not settled:
                     self._journal_authorised_close_refusal(intent, close_skip)
@@ -15051,6 +15129,10 @@ class LiveCopyCore:
                 self.sender.clear_close_escalations()
             except Exception as exc:
                 log_error("close_escalation_flat_proof", exc)
+            try:
+                self.sender.sweep_owed_closes()  # held closes are re-run here, through the normal send gates
+            except Exception as exc:
+                log_error("owed_close_sweep_cycle", exc)
             return result
 
     def _copy_poll_once(self, summary: CycleSummary, hot: bool) -> Dict[str, Any]:
