@@ -223,6 +223,23 @@ check("real ownership door admits the owed close on the sweep and it is sent onc
       held_rows == 1 and sent_door == 1 and len(ex_door.calls) == 1 and owed_rows() == {},
       "held_rows=%d sent=%r calls=%d rows=%d" % (held_rows, sent_door, len(ex_door.calls), len(owed_rows())))
 
+# ---- a close the REAL door refuses for no matching sleeve: sends nothing, writes no owed row ----
+# Boss rule: user coins are the user's own and are never adopted. A close with no sleeve row is refused by the
+# door (_pre_send_ownership_gate, NO_MATCHING_WALLET_SLEEVE) before the close-wire hold, so it is NOT an owed close.
+# The owed queue covers only a close that is held AFTER the door admits it. Known path that reaches this refusal
+# with a legitimate sleeve: a leader close whose entry ledger row lands after the close fill; the lag wait in
+# send_if_allowed only retries UNEXPLAINED_EXCHANGE_POSITION and SIGN_CONFLICT, not this status (see report).
+reset()
+led, net = t.new_ledger(), [0.0]
+ex_nosleeve = t.FakeExchange()
+gw_nosleeve = t.make_gateway(ex_nosleeve, led, net)     # real door, nothing stubbed
+intent = t.exit_intent(led, t.A, "SELL", 1.0, "owed-nosleeve-f", 1.0)
+drop_sleeve_row(led)
+ok_ns, status_ns = gw_nosleeve.send_if_allowed(intent)
+check("door-refused no-sleeve close: sends nothing, writes no owed row",
+      (not ok_ns) and len(ex_nosleeve.calls) == 0 and owed_rows() == {},
+      "ok=%r status=%r calls=%d rows=%d" % (ok_ns, status_ns, len(ex_nosleeve.calls), len(owed_rows())))
+
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
 if failed:
