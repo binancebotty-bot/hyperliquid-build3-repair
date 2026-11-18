@@ -11638,7 +11638,17 @@ class WSManager:
         """The wallets to subscribe right now: the live provider if one was given, else the fixed list."""
         src = getattr(self, "_wallet_source", None)
         raw = src() if callable(src) else (src or [])
-        return list(raw)[:MAX_WALLETS]
+        wallets = list(raw)
+        if len(wallets) > MAX_WALLETS:
+            # gap 1 (Boss 18 Nov, OD-14): an 11th wallet on the WebSocket is REJECTED LOUDLY, never silently cut.
+            # The extra wallets run on REST polling (gap 2). One error row per distinct over-count, not per call.
+            over = len(wallets) - MAX_WALLETS
+            if getattr(self, "_ws_over_cap_reported", 0) != over:
+                self._ws_over_cap_reported = over
+                log_error("WS_WALLET_OVER_CAP_REJECTED",
+                          f"{len(wallets)} LIVE wallets, WebSocket cap {MAX_WALLETS}: {over} wallet(s) NOT on the "
+                          f"WebSocket; they must run on polling")
+        return wallets[:MAX_WALLETS]
 
     def start(self) -> None:
         if not self.enabled or websocket is None or self._thread is not None:
