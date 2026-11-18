@@ -5750,6 +5750,17 @@ class SenderGateway:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
                         notes=(f"named diff: {cause}; no order (symbol not tradable or leader price/size unusable; "
                                f"status={resolved.get('status')})"))
+        # gap 4 (18 Nov): the floored size must still clear the minimum notional, as on the normal entry path.
+        # Floor-rounding can drop a sized order under $10 or under the symbol minimum: refuse loudly, send nothing.
+        min_notional = max(DEFAULT_MIN_NOTIONAL, fnum(resolved.get("min_order_value_usd"), 0.0))
+        try:
+            min_notional = max(min_notional, DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
+        except Exception:
+            pass
+        if size * leader_px < min_notional:
+            return dict(base, outcome="MISSED_ENTRY_DIFF_BELOW_MIN_NOTIONAL",
+                        notes=(f"named diff: {cause}; floored size {size} x leader price {leader_px} = "
+                               f"{round(size * leader_px, 4)} is below the minimum notional {min_notional}; no order"))
         if self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is not None:
             return dict(base, outcome="MISSED_ENTRY_ALREADY_RESTING",
                         notes=f"named diff: {cause}; a limit for this leader, coin and side is already resting")
