@@ -72,17 +72,29 @@ def main() -> None:
     cfg = c.load_json(c.LIVE_CONFIG_FILE, {})
     cfg.update({"auto_send_enabled": True, "wallets": {"0x" + "d" * 40: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed"}}})
     c.atomic_write_json(c.LIVE_CONFIG_FILE, cfg)
-    # COLD START (the timing race): the request path reads memory only, so the first summary is empty while the one
-    # background refresh runs. The screen must show that honestly (not a guess), and once the refresh has landed the
-    # same endpoint must carry the whole-account value.
+    # COLD START invariant: the first summary is either the correct whole-account value, or explicitly pending
+    # (no ok flag and no value). Never a wrong or guessed number. Whether it is computed synchronously on the first
+    # load (correct) or left pending (empty) is an implementation choice, so only the invariant is asserted.
     with ui._SLOW_EXCHANGE_LOCK:
         ui._SLOW_EXCHANGE.update({"snapshot": {}, "follower": {}, "built_at": 0.0, "refreshing": False})
     ui._ACCOUNT_VALUE_CACHE.clear()
     ui._AUDIT_SUMMARY_CACHE.clear()   # the summary endpoint has a 2 s read cache
     cold = client.get("/api/live-audit-summary").json().get("follower_account") or {}
-    check("L2_COLD_START_IS_HONEST_NOT_A_GUESS", not cold.get("ok"), str(cold))
+    cold_correct = bool(cold.get("ok")) and abs(cold.get("value", -1) - 1450.12) < 1e-9
+    cold_pending = not cold.get("ok") and "value" not in cold
+    check("L2_COLD_START_IS_CORRECT_OR_EXPLICITLY_PENDING", cold_correct or cold_pending, str(cold))
+    # BACKGROUND REFRESH: warm but stale last-good figures are served as last-good (not replaced by a guess) on the
+    # request path, a single background read starts, and once it lands the same endpoint carries the correct value.
+    with ui._SLOW_EXCHANGE_LOCK:
+        ui._SLOW_EXCHANGE.update({"snapshot": {"seeded": True},
+                                  "follower": {"ok": True, "value": 1000.0, "address": "0x" + "c" * 40},
+                                  "built_at": time.time() - 3600.0, "refreshing": False})
+    ui._AUDIT_SUMMARY_CACHE.clear()
+    stale = client.get("/api/live-audit-summary").json().get("follower_account") or {}
+    check("L2_STALE_FIGURES_ARE_SERVED_AS_LAST_GOOD_NOT_GUESSED",
+          stale.get("ok") and abs(stale.get("value", -1) - 1000.0) < 1e-9, str(stale))
     deadline = time.time() + 15
-    while time.time() < deadline and (ui._SLOW_EXCHANGE.get("refreshing") or not ui._SLOW_EXCHANGE.get("built_at")):
+    while time.time() < deadline and (ui._SLOW_EXCHANGE.get("refreshing") or time.time() - ui._SLOW_EXCHANGE.get("built_at", 0) > 60):
         time.sleep(0.05)
     ui._AUDIT_SUMMARY_CACHE.clear()
     warm = client.get("/api/live-audit-summary").json().get("follower_account") or {}
