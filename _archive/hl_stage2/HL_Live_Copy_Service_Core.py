@@ -7205,7 +7205,7 @@ class SenderGateway:
         }
 
     def _reserve_exchange_order_slot(self, wait_for_cooldown: bool = True) -> int:
-        """Reserve a paced slot; entries wait for 429 cooldown before reserving so exits can pass them."""
+        """Reserve a unique paced slot; exits skip cooldown but retain their queue place."""
         min_gap_ms = max(0, int(fnum(os.getenv("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"), 250)))
         while True:
             now_ms = utc_now_ms()
@@ -7214,8 +7214,9 @@ class SenderGateway:
                 if wait_for_cooldown and cooldown_until_ms > now_ms:
                     wait_ms = cooldown_until_ms - now_ms
                 else:
+                    # Claim the slot under the lock so cooldown wakeups cannot collide.
                     slot_ms = max(self._last_exchange_order_ms + min_gap_ms, now_ms)
-                    self._last_exchange_order_ms = max(self._last_exchange_order_ms, slot_ms)
+                    self._last_exchange_order_ms = slot_ms
                     return slot_ms
             time.sleep(min(5.0, wait_ms / 1000.0))
 

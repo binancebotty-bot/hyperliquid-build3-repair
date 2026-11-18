@@ -28,6 +28,17 @@ class RecordingSenderGateway(core.SenderGateway):
         super().__setattr__(name, value)
 
 
+class TestConfig:
+    def send_mode_now(self):
+        return "ON"
+
+    def wallet_enabled(self, _wallet):
+        return True
+
+    def wallet_mode(self, _wallet):
+        return "ON"
+
+
 class FakeExchange:
     def __init__(self, clock=None):
         self.calls = []
@@ -91,13 +102,24 @@ class VirtualClock:
 
 def sender_gateway():
     gateway = RecordingSenderGateway.__new__(RecordingSenderGateway)
+    gateway.cfg = TestConfig()
     gateway.slot_reservations = []
     gateway._exchange_order_lock = threading.Lock()
     object.__setattr__(gateway, "_last_exchange_order_ms", 0)
     gateway._exchange_rate_limit_cooldown_until_ms = 0
     gateway.sender_key_invalid = ""
     gateway._note_sender_key_rejection = lambda response: None
+    core._GLOBAL_INSTANCE_LOCK_OWNED = True
+    core._GLOBAL_INSTANCE_LOCK = mock.Mock(closed=False)
     return gateway
+
+
+def sender_intent():
+    fill = core.LeaderFill("fill-1", "wallet-1", "BTC", "BUY", 100.0, 1.0, 100000, "TEST")
+    return core.Intent(
+        "intent-1", fill, "BUY", 1.0, 100.0, "ON", "fixed", "ENTRY", "ENTRY",
+        "sleeve-1", "position-1", "FLAT", 0.0, 0.0, False, False,
+    )
 
 
 class SlotReservationPacingTests(unittest.TestCase):
@@ -106,6 +128,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         gap_ms = 100
         now_ms = 100000
         gateway = sender_gateway()
+        intent = sender_intent()
         object.__setattr__(gateway, "_last_exchange_order_ms", now_ms)
         exchange = FakeExchange()
         start = threading.Barrier(worker_count + 1)
@@ -120,7 +143,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         def place_order():
             try:
                 start.wait(timeout=3)
-                gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False)
+                gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False, intent=intent)
             except Exception as exc:  # surfaced in the main test thread
                 errors.append(exc)
 
@@ -148,6 +171,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         gap_ms = 100
         clock = VirtualClock(start_ms=100000, expected_sleep_count=worker_count)
         gateway = sender_gateway()
+        intent = sender_intent()
         object.__setattr__(gateway, "_last_exchange_order_ms", clock.now_ms())
         cooldown_until_ms = clock.now_ms() + 1000
         gateway._exchange_rate_limit_cooldown_until_ms = cooldown_until_ms
@@ -165,7 +189,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         def place_order():
             try:
                 start.wait(timeout=3)
-                gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", False)
+                gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", False, intent=intent)
             except Exception as exc:  # surfaced in the main test thread
                 errors.append(exc)
 
@@ -198,15 +222,16 @@ class SlotReservationPacingTests(unittest.TestCase):
         now_ms = 100000
         gap_ms = 100
         gateway = sender_gateway()
+        intent = sender_intent()
         object.__setattr__(gateway, "_last_exchange_order_ms", now_ms)
         exchange = FakeExchange()
 
         with mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": str(gap_ms)}):
             with mock.patch.object(core, "utc_now_ms", new=lambda: now_ms):
                 with mock.patch.object(core.time, "sleep", new=lambda _seconds: None):
-                    gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False)
+                    gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False, intent=intent)
                     gateway._cancel_order(exchange, "BTC", "123")
-                    gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", True)
+                    gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", True, intent=intent)
 
         self.assertEqual(
             gateway.slot_reservations,
