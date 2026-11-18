@@ -161,6 +161,7 @@ CLOSE_ESCALATIONS_FILE = AUDIT_DIR / "close_escalations.json"
 # Durable owed closes (Boss 18 Nov): a close held for missing ownership is re-run by a per-cycle sweep.
 OWED_CLOSES_FILE = AUDIT_DIR / "owed_closes.json"
 _OWED_CLOSES_LOCK = threading.Lock()
+_OWED_INFLIGHT: set = set()  # owed keys a sweep is working on, process-wide (the engine is one process)
 OWNERSHIP_HOLD_REASONS = frozenset({"CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD", "CLOSE_PROOF_HOLD_UNKNOWN_SLEEVE",
                                      "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE"})
 _CLOSE_ESCALATIONS_LOCK = threading.RLock()
@@ -9091,27 +9092,91 @@ class SenderGateway:
                 rows.pop(key)
                 atomic_write_json(OWED_CLOSES_FILE, rows)
 
+    def _owed_wire_state(self, row: Dict[str, Any]) -> str:
+        """What the send_attempts log says about this owed close's earlier wire attempts (newest row per attempt).
+        SENT: an attempt carries an exchange order id (the close reached the exchange; retire, never resend).
+        UNKNOWN: a pending_send row with no final row, or an UNKNOWN/AMBIGUOUS final (the outcome is not known; never resend).
+        REFUSED: every attempt ended with a final row and no order id (the exchange did not take it; a retry is allowed).
+        NONE: no attempt was written (no wire call happened)."""
+        fill = (row.get("intent") or {}).get("fill") or {}
+        fid = str(fill.get("leader_fill_id") or "")
+        wallet, coin = normalise_wallet(row.get("wallet")), canonical_coin_key(row.get("coin"))
+        latest: Dict[str, Dict[str, str]] = {}
+        for r in send_attempt_rows():
+            if str(r.get("leader_fill_id") or "") != fid:
+                continue
+            if normalise_wallet(r.get("leader_wallet")) != wallet or canonical_coin_key(r.get("coin")) != coin:
+                continue
+            latest[str(r.get("attempt_id") or "")] = r
+        if not latest:
+            return "NONE"
+        if any(str(r.get("exchange_order_id") or "").strip() for r in latest.values()):
+            return "SENT"
+        for r in latest.values():
+            st = str(r.get("status") or "").strip().upper()
+            if st == "PENDING_SEND" or "UNKNOWN" in st or "AMBIGUOUS" in st:
+                return "UNKNOWN"
+        return "REFUSED"
+
+    def _owed_set_claim(self, key: str, row: Dict[str, Any], claim_id: Optional[str]) -> bool:
+        """Compare-and-set the claim on one owed row. The row must still be the one this sweep read (same last_seen_ms)."""
+        with _OWED_CLOSES_LOCK:
+            rows = load_json(OWED_CLOSES_FILE, {}) or {}
+            cur = rows.get(key)
+            if not isinstance(cur, dict) or cur.get("last_seen_ms") != row.get("last_seen_ms"):
+                return False
+            if claim_id is None:
+                cur.pop("claim_id", None)
+            else:
+                cur["claim_id"] = claim_id
+            rows[key] = cur
+            atomic_write_json(OWED_CLOSES_FILE, rows)
+            return True
+
     def sweep_owed_closes(self) -> int:
         """Re-run every OPEN owed close through the normal send gates (switch, rate limit, ownership, validation).
-        A close leaves the store only on a send, or when both sides are flat. Returns the number sent."""
+        A close leaves the store only on a send, or when both sides are flat. Returns the number sent.
+
+        Double-send guard: a sweep claims the row (claim_id, persisted before the wire call) and skips rows already in
+        flight in this process. Before any new send it reads the send_attempts log for this fill: an attempt with an
+        exchange order id means the close already went out (retire); a pending_send with no final row means the outcome
+        is unknown (hold and alert, never resend). Only a fill with no attempt, or with refused attempts, is re-sent."""
         with _OWED_CLOSES_LOCK:
             snapshot = dict(load_json(OWED_CLOSES_FILE, {}) or {})
         sent = 0
         for key, row in snapshot.items():
             if not isinstance(row, dict) or row.get("state") != "OPEN":
                 continue
+            with _OWED_CLOSES_LOCK:
+                if key in _OWED_INFLIGHT:
+                    continue
+                _OWED_INFLIGHT.add(key)
             try:
                 if self._owned_and_exchange_flat(row["wallet"], row["coin"]):
                     self._retire_owed_close(key, row)
+                    continue
+                state = self._owed_wire_state(row)
+                if state == "SENT":
+                    self._retire_owed_close(key, row)   # the earlier send reached the exchange: do not send again
+                    continue
+                if state == "UNKNOWN":
+                    self._open_close_escalation(SenderGateway._owed_intent(row), "OWED_CLOSE_SEND_OUTCOME_UNKNOWN")
+                    continue
+                claim_id = uuid.uuid4().hex
+                if not self._owed_set_claim(key, row, claim_id):
                     continue
                 ok, _status = self.send_if_allowed(SenderGateway._owed_intent(row))
                 if ok:
                     self._retire_owed_close(key, row)
                     sent += 1
+                else:
+                    self._owed_set_claim(key, row, None)
             except Exception as exc:
                 log_error("owed_close_sweep", exc)
+            finally:
+                with _OWED_CLOSES_LOCK:
+                    _OWED_INFLIGHT.discard(key)
         return sent
-
     def _follower_order_account_for_proof(self) -> str:
         """R1/CS-I3: the account the PHYSICAL order will actually sign for.
 

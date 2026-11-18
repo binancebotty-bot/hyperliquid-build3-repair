@@ -9,6 +9,7 @@ Run: python3 test_owed_close_queue.py   (exit 0 only if every check passes)
 import importlib.util
 import json
 import os
+import threading as _th
 import time
 from pathlib import Path
 
@@ -150,6 +151,77 @@ finally:
 filled_calls = [x for x in ex429.calls if not x.get("refused")]
 check("after the 429 clears: sent exactly once", sent_after == 1 and len(filled_calls) == 1 and owed_rows() == {},
       "sent=%r filled_calls=%d rows=%d" % (sent_after, len(filled_calls), len(owed_rows())))
+
+# ---- crash between the send and the retire: the restarted sweep must NOT send again ----------
+class Crash(BaseException):
+    """Stands in for a process death right after the exchange accepted the order."""
+
+
+led, ex, net, gw, intent, ok, status = hold_then_land_setup(3.0, "owed-crash-f")
+led.sleeve(t.A, t.COIN)["signed_size"] = 1.0
+gw._retire_owed_close = lambda key, row: (_ for _ in ()).throw(Crash())
+try:
+    gw.sweep_owed_closes()
+    crashed = False
+except Crash:
+    crashed = True
+check("crash injected after the exchange accepted the close", crashed and len(ex.calls) == 1 and len(owed_rows()) == 1,
+      "crashed=%r calls=%d rows=%d" % (crashed, len(ex.calls), len(owed_rows())))
+ex_after = t.FakeExchange()
+gw_after = open_ownership_door(t.make_gateway(ex_after, led, net))
+sent_after_crash = gw_after.sweep_owed_closes()
+check("restart after crash: the send log shows the order, so NO second send and the row retires",
+      sent_after_crash == 0 and len(ex_after.calls) == 0 and owed_rows() == {},
+      "sent=%r calls=%d rows=%d" % (sent_after_crash, len(ex_after.calls), len(owed_rows())))
+
+# ---- two sweeps at once: exactly one send ---------------------------------------------------
+# Deterministic race: sweeper A is parked right after it claims the row and BEFORE its pending_send row exists,
+# which is the window only the in-process in-flight set covers. Sweeper B runs its sweep inside that window.
+led, ex, net, gw, intent, ok, status = hold_then_land_setup(3.0, "owed-conc-f")
+led.sleeve(t.A, t.COIN)["signed_size"] = 1.0
+ex_race = t.FakeExchange()
+gw_a = open_ownership_door(t.make_gateway(ex_race, led, net))
+gw_b = open_ownership_door(t.make_gateway(ex_race, led, net))   # a second sweeper object in the same process
+parked, release = _th.Event(), _th.Event()
+_orig_claim = gw_a._owed_set_claim
+
+
+def _claim_then_park(key, row, claim_id):
+    out = _orig_claim(key, row, claim_id)
+    if claim_id is not None:
+        parked.set()
+        release.wait(5)
+    return out
+
+
+gw_a._owed_set_claim = _claim_then_park
+a_result = []
+th_a = _th.Thread(target=lambda: a_result.append(gw_a.sweep_owed_closes()))
+th_a.start()
+parked.wait(5)
+b_sent = gw_b.sweep_owed_closes()                 # runs while A holds the claim, before A has written pending_send
+release.set()
+th_a.join(10)
+check("two concurrent sweeps: exactly one send", (b_sent + sum(a_result)) == 1 and len(ex_race.calls) == 1,
+      "b=%r a=%r calls=%d" % (b_sent, a_result, len(ex_race.calls)))
+
+# ---- the REAL ownership door admits the owed close on the sweep (no stub on the second cycle) ----
+# Phase 1 holds the close with the door stubbed: the real door refuses a no-row close BEFORE the close-wire hold,
+# so no owed row would exist (see the report: that refusal is not persisted). Phase 2 is the real door, unstubbed.
+reset()
+led, net = t.new_ledger(), [1.0]
+ex_door = t.FakeExchange()
+gw_door = open_ownership_door(t.make_gateway(ex_door, led, net))
+intent = t.exit_intent(led, t.A, "SELL", 1.0, "owed-door-f", 1.0)
+drop_sleeve_row(led)
+gw_door.send_if_allowed(intent)
+held_rows = len(owed_rows())
+del gw_door.__dict__["_pre_send_ownership_gate"]        # the real door is back
+led.sleeve(t.A, t.COIN)["signed_size"] = 1.0           # the fill is on the books; the exchange shows the same position
+sent_door = gw_door.sweep_owed_closes()
+check("real ownership door admits the owed close on the sweep and it is sent once",
+      held_rows == 1 and sent_door == 1 and len(ex_door.calls) == 1 and owed_rows() == {},
+      "held_rows=%d sent=%r calls=%d rows=%d" % (held_rows, sent_door, len(ex_door.calls), len(owed_rows())))
 
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
