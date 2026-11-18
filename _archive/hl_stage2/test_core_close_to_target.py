@@ -101,10 +101,11 @@ r = plan("SELL", 10, 10, 10, lag=True, owned=5)
 check("LAG_CLAMPS_TO_PROVEN_OWNED", r == (True, 5.0, ""), str(r))
 r = plan("BUY", 10, -10, -10, lag=True, owned=-10)
 check("LAG_SHORT_SLEEVE_BUY_CLOSE", r == (True, 10.0, ""), str(r))
+# Boss 18 Nov: we own nothing we cannot prove, so the window expiring with owned still 0 sends NOTHING and alerts.
 r = plan("SELL", 10, 10, 10, lag=True, owned=0)
-check("LAG_ZERO_OWNED_HOLDS_NOW_REDUCE_ONLY_AFTER_WINDOW", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY"] and WIRES == [10.0], str((r, ESC)))
+check("LAG_ZERO_OWNED_WINDOW_EXPIRED_SENDS_NOTHING", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD") and ESC == ["CLOSE_HELD_LAG_EXPIRED_NO_OWNERSHIP"] and WIRES == [], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, lag=True, owned="UNPROVABLE")
-check("LAG_UNPROVABLE_OWNED_HOLDS_NOW_REDUCE_ONLY_AFTER_WINDOW", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY"] and WIRES == [10.0], str((r, ESC)))
+check("LAG_UNPROVABLE_OWNED_WINDOW_EXPIRED_SENDS_NOTHING", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD") and ESC == ["CLOSE_HELD_LAG_EXPIRED_NO_OWNERSHIP"] and WIRES == [], str((r, ESC)))
 # Boss 18 Nov: no ownership record = we never copied the opening trade, so we own nothing here.
 # Send nothing; alert with a named reason. No reduce-only close of units we cannot attribute.
 r = plan("SELL", 10, 10, 10, no_ledger=True)

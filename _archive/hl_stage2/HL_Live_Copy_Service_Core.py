@@ -8679,7 +8679,7 @@ class SenderGateway:
 
     def _close_lag_window_expired(self, intent: Intent, requested: float, sz_dec: Optional[int], side: float,
                                   tol: float, decide: Any) -> Tuple[bool, float, str]:
-        """Owned still unproven after the hold: reduce_only close sized from the exchange net, only if it opposes."""
+        """Owned still zero after the hold: we own nothing we can prove, so nothing is sent (Boss 18 Nov)."""
         net = SenderGateway._close_net_with_reread(self, intent.fill.coin)
         if net is None or not math.isfinite(net) or abs(net) <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")  # unreadable or flat: nothing to reduce
@@ -8688,11 +8688,12 @@ class SenderGateway:
         amount = self._floor_wire_size(round(min(requested, abs(net)), 10), sz_dec)
         if amount <= tol:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_SIZE_ROUNDS_TO_ZERO")
+        # Boss 18 Nov: owned is still 0 when the window closes, so we own nothing we can prove. Send nothing; alert.
         try:
-            self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_LAG_WINDOW_EXPIRED_REDUCE_ONLY")
+            self._open_close_escalation(intent, "CLOSE_HELD_LAG_EXPIRED_NO_OWNERSHIP")
         except Exception as exc:
             log_error("close_escalation_write_failed", exc)
-        return decide("SEND", amount, True)
+        return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
 
     def _close_net_with_reread(self, coin: str) -> Optional[float]:
         """CC1-B-CONSOLIDATED-2310 item 3: one bounded fresh read; still unreadable -> ONE re-read.
