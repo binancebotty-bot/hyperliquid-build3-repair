@@ -133,7 +133,7 @@ def main() -> None:
     def ledger(name, **sleeves):
         # each scenario starts with no fill history: live_fills.csv is shared by every scenario in this run, and a fill
         # left by an earlier scenario (same leader, same coin) would otherwise prove the owned size for this one
-        c.LIVE_FILLS_CSV.unlink(missing_ok=True)
+        c.LIVE_FILLS_CSV = tmp / f"live_fills_{name}.csv"   # a fresh file per scenario: no unlink, so no Windows file lock
         led = c.ManualLedger(path=tmp / f"{name}.json")
         for key, s in sleeves.items():
             w, coin = key.split("_")
@@ -281,6 +281,31 @@ def main() -> None:
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     body = src.split("def _exit_recovery_exists", 1)[1].split("\n    def ", 1)[0]
     check("R3_RECOVERY_CHECK_KEPT_IN_MEMORY", "_recovery_intent_ids" in body and body.count("iter_audit_history") == 1 and "read_csv_rows" not in body)
+
+    # ---- PC: the close plan's precision and the remainder cap (pinned) -------------------------------------------
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER   # the order account matches the follower reader, as in send_real
+    led = ledger("pc", a_btc=2.0)
+    snapshot(2.0)
+    g = gateway(FakeExchange(), led)
+    it = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
+    t = {}
+    ro, amt, why = g._close_wire_plan(it, 1.5, None, timing=t, ledger_may_lag=True)
+    check("PC1_UNKNOWN_PRECISION_HOLDS_AND_RECORDS_NO_PRECISION",
+          why == "CLOSE_PROOF_HOLD_UNKNOWN_PRECISION" and "close_verified_sz_decimals" not in t, str((ro, amt, why, t)))
+    t = {}
+    ro, amt, why = g._close_wire_plan(it, 1.5, 3, timing=t, ledger_may_lag=True)
+    check("PC2_KNOWN_PRECISION_SENDS_AND_RECORDS_THE_EXCHANGE_DECIMALS",
+          why == "" and t.get("close_decision") == "SEND" and t.get("close_verified_sz_decimals") == 3, str((ro, amt, why, t)))
+    t = {"close_size_cap": 1.5}
+    ro, amt, why = g._close_wire_plan(it, 2.0, 3, timing=t, ledger_may_lag=True)
+    check("PC3_STANDING_CLOSE_NEVER_EXCEEDS_THE_REMAINDER_LAG_PATH", why == "" and abs(amt) <= 1.5 + 1e-9, str((ro, amt, why)))
+    t = {"close_size_cap": 1.5}
+    ro, amt, why = g._close_wire_plan(it, 2.0, 3, timing=t)
+    check("PC4_STANDING_CLOSE_NEVER_EXCEEDS_THE_REMAINDER_LEDGER_PATH", why == "" and abs(amt) <= 1.5 + 1e-9, str((ro, amt, why)))
+    fake_t = {}
+    ro, amt, why = g._close_wire_plan(it, 2.0, 3, timing=fake_t)
+    check("PC5_NO_CAP_MEANS_NO_CAP", why == "" and abs(amt) > 1.5, str((ro, amt, why)))
+    os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
 
     led = ledger("p1", a_btc=2.0)
     snapshot(2.0)
