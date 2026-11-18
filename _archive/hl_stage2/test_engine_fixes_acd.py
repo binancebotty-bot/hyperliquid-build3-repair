@@ -48,7 +48,9 @@ assert wires == [], wires
 assert any("CLAMPED" in e for e in esc), esc
 print("RESULT::A1_PASS")
 
-# A2
+# A2 (unreadable net, ownership present): Boss 31 Oct rule, normal order, reduce_only never forced.
+# Coverage note: A2 is a bare assert, so under a reduce_only=True mutant it aborts the script with
+# AssertionError at line 54 (rc=1) and does NOT feed the FAILED=N counter. Verified red under mutant.
 r, esc, wires = plan(side="SELL", size=2.0, led=2.0, ex=2.0, readable=False, owned=2.0)
 print("A2", r, esc, wires)
 assert r == (False, 2.0, ""), r

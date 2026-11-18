@@ -8512,8 +8512,10 @@ class SenderGateway:
             except Exception as exc:
                 log_error("close_escalation_write_failed", exc)
             state["close_verified_sz_decimals"] = sz_dec
-            # a close sized from our owned amount must stay reduce-only: reduce-only cannot open a position
-            return decide("SEND", amount, True)
+            # Boss 31 Oct 2026 (22:34-22:37Z): unreadable net = re-read once, then send the fill-proven owned
+            # size as the leader sized it, reduce_only NEVER forced (CC1-B-RULING-NOREDUCEONLY-2238). A forced
+            # reduce_only here is rejected when the flip must cross flat, so the close never happens. RED: A2.
+            return decide("SEND", amount, False)
         # item 4: foreign/USER units are never consumed by our close. The hold is named explicitly
         # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led
