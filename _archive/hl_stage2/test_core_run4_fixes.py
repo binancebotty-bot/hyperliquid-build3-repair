@@ -251,7 +251,14 @@ def main() -> None:
     gtc = [x for x in fake.calls if x["tif"] == "Gtc"]
     check("R1_UNFILLED_CLOSE_STANDS_AS_REDUCE_ONLY_LIMIT", len(gtc) == 1 and gtc[0]["reduce_only"] and gtc[0]["size"] == 2.0,
           str(fake.calls))
-    rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE"]
+    # send_attempts is append-only: the send writes a pending_send row (attempt_id A), then _record_placed_order
+    # writes the final ORDER_RESTING row with its order id (attempt_id B = hash of the order id). Both rows carry the
+    # same intent_id and order_type, so the newest row per (intent_id, order_type) is this order's current state.
+    _newest = {}
+    for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV):
+        if r.get("order_type") == "REAL_GTC_RECOVERY_CLOSE":
+            _newest[(r.get("intent_id"), r.get("order_type"))] = r
+    rows = list(_newest.values())
     check("R1_RECOVERY_ORDER_WRITTEN_TO_SEND_ATTEMPTS_WITH_ITS_ORDER_ID",
           len(rows) == 1 and rows[0]["status"] == "ORDER_RESTING" and rows[0]["exchange_order_id"] == "4244"
           and rows[0]["intent_id"] == exit_it.intent_id and rows[0]["reduce_only_sent"] == "True", str(rows)[:300])
