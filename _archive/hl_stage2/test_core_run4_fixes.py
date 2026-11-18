@@ -45,12 +45,16 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="run4fix_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
-                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0"})
+                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
+                       # isolated machine-wide lock (as test_core_run3_fixes.py): the physical sender refuses
+                       # SEND_BLOCKED_NO_SENDER_LEASE unless this engine owns the sender lease
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock")})
     for k in ("HL_LIVE_HOT_SEND_WORKERS", "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS", "HL_LIVE_STALE_ENTRY_SEC"):
         os.environ.pop(k, None)
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
     import requests
     import HL_Live_Copy_Service_Core as c
+    c.acquire_global_instance_lock(tmp / "state")   # the sender lease the physical call requires
     os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
 
     def offline(*a, **k):
