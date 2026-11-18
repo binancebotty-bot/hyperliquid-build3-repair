@@ -398,6 +398,16 @@ def main() -> None:
     ok, status, res = send_real(g, exit_intent(led, A, "SELL", 447.0))
     check("N9_NO_CATCH_UP_NO_BLIND_RESEND", not ok and len(fake.calls) == 1 and res.get("reject_category") == "REDUCE_ONLY_REJECTED",
           f"{status} {fake.calls}")
+    # Exchange changed first but the ledger is still stale: disagreement must not authorize a non-reduce-only resend.
+    led = ledger(a=447.0)
+    snapshot(447.0)
+    fake = FakeExchange([RO_REJECT])
+    g = gateway(fake, led)
+    threading.Thread(target=lambda: (time.sleep(0.2), snapshot(0.0))).start()
+    os.environ["HL_LIVE_NETTING_RETRY_WAIT_SEC"] = "0.8"
+    ok, status, res = send_real(g, exit_intent(led, A, "SELL", 447.0))
+    check("N9_EXCHANGE_LEDGER_DISAGREEMENT_NO_RESEND", not ok and len(fake.calls) == 1
+          and fake.calls[0]["reduce_only"] is True, f"{status} {fake.calls}")
 
     # ---- N10: the screen shows each coin's net and which leader holds what --------------------------------------
     ui = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8-sig")

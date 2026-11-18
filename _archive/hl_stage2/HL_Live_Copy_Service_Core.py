@@ -9880,7 +9880,12 @@ class SenderGateway:
                 # coin is sent meanwhile) and resend once without reduce-only if they now agree.
                 deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_NETTING_RETRY_WAIT_SEC"), 3.0))
                 while True:
-                    if not self._reduce_only_on_wire(intent, wire_size):
+                    exchange_net = SenderGateway._finite_net_or_none(self._fresh_exchange_net(intent.fill.coin))
+                    ledger_net = (SenderGateway._finite_net_or_none(self.ledger.coin_net(intent.fill.coin))
+                                  if self.ledger is not None else None)
+                    nets_agree = (exchange_net is not None and ledger_net is not None
+                                  and abs(exchange_net - ledger_net) <= POSITION_EPSILON)
+                    if nets_agree and not self._reduce_only_on_wire(intent, wire_size):
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
                         self._supersede_attempt(timing, response, intent)
