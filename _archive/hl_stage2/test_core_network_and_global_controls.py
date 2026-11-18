@@ -146,7 +146,8 @@ print(json.dumps(calls))
 def global_controls_tests() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="coregc_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
-                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_FOLLOWER_DEXES": "xyz"})  # HIP-3 DEX in scope
+                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_FOLLOWER_DEXES": "xyz",  # HIP-3 DEX in scope
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock")})
     os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
     import HL_Live_Copy_Service_Core as c
     import HL_Copy_App_SSOT as ui
@@ -154,6 +155,7 @@ def global_controls_tests() -> None:
     ui.LIVE_COPY_CONFIG_FILE = c.LIVE_CONFIG_FILE
     client = TestClient(ui.app)
     c.USER_WALLET = FOLLOWER
+    c.acquire_global_instance_lock(tmp / "state")   # fixture only: the sender lease the physical call requires (as run3/run4)
     book = {"positions": [], "down": False, "reads": 0}
 
     def fetcher(payload):
@@ -312,6 +314,10 @@ def global_controls_tests() -> None:
 
     def send(gc, side="BUY", mid=93.0, sleeve=0.0):
         config(**gc)
+        # fixture only: the switch is ON for a physical send, the signer is the follower account, and the follower's fresh
+        # net is the position the scenario gives it (the close proof reads these; production reads them the same way)
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {**c.load_json(c.LIVE_CONFIG_FILE, {}), "auto_send_enabled": True})
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
         led = c.ManualLedger(path=tmp / f"send{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
@@ -323,6 +329,7 @@ def global_controls_tests() -> None:
         gw._exchange_client_has_symbol = lambda *a, **k: True
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
+        gw._fresh_exchange_net = lambda coin: float(sleeve)
         set_mid(mid)
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
         saved = c.HLAccount, c.HLExchange
@@ -332,6 +339,7 @@ def global_controls_tests() -> None:
         finally:
             c.HLAccount, c.HLExchange = saved
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+            os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
         return status, fake.calls, intent
 
     status, calls, intent = send({"marketable_bps": 10})
