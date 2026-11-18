@@ -98,7 +98,12 @@ gate_line = next(n.lineno for n in ast.walk(place_order)
                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
                  and n.func.attr == '_master_gate_reason')
 stmts = [n for n in place_order.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
-first_stmt_line = stmts[0].lineno if stmts else lo
+# The try: header is not an effect; the first real statement is its first body statement. Comparing against the
+# Try node itself (its line is the 'try:' line, one above the gate) made this check fail on a correct gate.
+_first = stmts[0] if stmts else None
+while isinstance(_first, ast.Try) and _first.body:
+    _first = _first.body[0]
+first_stmt_line = _first.lineno if _first is not None else lo
 check('THE_GATE_IS_THE_FIRST_THING_PLACE_ORDER_DOES', gate_line == first_stmt_line, (gate_line, first_stmt_line))
 
 

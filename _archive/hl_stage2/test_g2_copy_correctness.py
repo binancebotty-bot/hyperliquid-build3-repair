@@ -293,6 +293,11 @@ def main() -> None:
 
     _real_sender = svcmod.send_hyperliquid_order
     svcmod.send_hyperliquid_order = fake_sender
+    # Hermetic: a close prices from the live L2 book; the sandbox has no route to it, so the close was refused
+    # as CURRENT_QUOTE_UNAVAILABLE before the sender. Stub only the price source; the payload is still checked as sent.
+    _real_quote = svcmod.fetch_public_executable_quote
+    svcmod.fetch_public_executable_quote = lambda coin, side, *a, **k: {"ok": True, "coin": coin, "side": side,
+        "bid": 100.0, "ask": 100.0, "executable_price": 100.0, "source": "test_stub", "error": ""}
     svc13 = fresh()
     _r0 = svc13.process_ws_fill(fill("w0", "0xw1", "BTC", "BUY", 100.0, 1.0, 500, source="live_ws"))    # baseline only
     _r1 = svc13.process_ws_fill(fill("w1", "0xw1", "BTC", "BUY", 100.0, 10.0, 1000, source="live_ws"))   # planner OPEN BUY 1.0
@@ -303,10 +308,12 @@ def main() -> None:
     check("real send is NOT settled by the local dry-run mutation (reservation retained)",
           svc13.in_flight.get("BTC") is not None, str(svc13.in_flight))
     svc13.clear_in_flight("BTC")   # stands in for the G3 exchange ack arriving
+    _n13 = len(seen)
     svc13.process_ws_fill(fill("w2", "0xw1", "BTC", "SELL", 100.0, 10.0, 2000, source="live_ws"))  # planner FLATTEN SELL 1.0
     check("planner reduce_only + side reach the SENDER payload (FLATTEN SELL)",
-          seen[-1]["side"] == "SELL" and seen[-1]["reduce_only"] is True, str(seen[-1:]))
+          len(seen) == _n13 + 1 and seen[-1]["side"] == "SELL" and seen[-1]["reduce_only"] is True, str(seen[-1:]))
     svcmod.send_hyperliquid_order = _real_sender
+    svcmod.fetch_public_executable_quote = _real_quote
     svcmod.LIVE_AUTO_SEND_ENABLED = False
     os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
 
