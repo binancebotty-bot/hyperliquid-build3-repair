@@ -7606,7 +7606,7 @@ class SenderGateway:
             # plan below holds with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION and the reconciliation row names it.
             try:
                 _res = self._resolve_coin(intent.fill.coin)
-                if _res.get("ok") and _res.get("sz_decimals") is not None:
+                if _res.get("ok") and _res.get("sz_decimals") is not None and _res.get("sz_decimals_proven", True):
                     sz_dec = int(_res["sz_decimals"])
             except Exception as exc:
                 log_error("recovery_precision_resolve", exc)
@@ -9456,6 +9456,10 @@ class SenderGateway:
         sz_dec = resolved["sz_decimals"]
         price_max_dec = resolved["price_max_decimals"]
         perp_dexs = resolved.get("perp_dexs")
+        if not resolved.get("sz_decimals_proven", True) and self._reduce_only_for_intent(intent):
+            # run4 step 4: a close is never sized with a precision the exchange did not report (no guessed 4)
+            return False, "CLOSE_PROOF_HOLD_UNKNOWN_PRECISION", {"status": "CLOSE_PROOF_HOLD_UNKNOWN_PRECISION",
+                                                                 "exchange_called": False, "timing": timing}
         lifecycle = classify_send_lifecycle(intent)
         if resolved.get("sdk_order_compatible") is False:
             detail = (
@@ -11042,6 +11046,8 @@ class SenderGateway:
         return {
             "ok": True, "raw_coin": raw, "sdk_coin": sdk_coin,
             "sz_decimals": sz_dec, "price_max_decimals": price_max_dec,
+            # run4 step 4: False when the exchange meta carried no szDecimals (sz_dec above is only the 4 default)
+            "sz_decimals_proven": ("szDecimals" in item or "sz_decimals" in item),
             "perp_dexs": perp_dexs, "status": "OK", "error": "",
             "symbol_source": item.get("symbol_source", ""),
             "perp_dex": item.get("perp_dex", ""),

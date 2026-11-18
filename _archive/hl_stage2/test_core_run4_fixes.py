@@ -305,6 +305,21 @@ def main() -> None:
     fake_t = {}
     ro, amt, why = g._close_wire_plan(it, 2.0, 3, timing=fake_t)
     check("PC5_NO_CAP_MEANS_NO_CAP", why == "" and abs(amt) > 1.5, str((ro, amt, why)))
+    # PC6/PC7 (run4 step 4): a precision the exchange did not prove holds a close; it is never a guessed 4
+    unproven = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), None)._resolved_from_meta_item(
+        "BTC", "BTC", {"canonical_coin": "BTC"})
+    check("PC6_META_WITHOUT_SZDECIMALS_IS_NOT_PROVEN", unproven.get("sz_decimals_proven") is False,
+          str(unproven.get("sz_decimals_proven")))
+    led7 = ledger("p7", a_btc=2.0)
+    snapshot(2.0)
+    fake7 = FakeExchange()
+    g7 = gateway(fake7, led7)
+    g7._resolve_coin = lambda coin: dict(resolved, sz_decimals_proven=False)
+    it7 = c.IntentBuilder(c.ConfigManager(), led7).build(fill("SELL", size=2.0, d="Close Long"))
+    ok7, status7, res7 = send_real(g7, it7)
+    check("PC7_UNPROVEN_PRECISION_HOLDS_A_CLOSE_BEFORE_ANY_WIRE",
+          (not ok7) and len(fake7.calls) == 0 and "UNKNOWN_PRECISION" in str((status7, res7)),
+          str((ok7, status7, res7, fake7.calls)))
     os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
 
     led = ledger("p1", a_btc=2.0)
