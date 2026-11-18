@@ -9796,14 +9796,11 @@ class SenderGateway:
             adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
                        / follower_px * 100.0) if follower_px > 0 else float("inf")
             if adverse > close_adv_limit + 1e-12:
-                detail = (f"close limit {limit_px} vs follower price {follower_px} is {adverse:.4f}% adverse > "
-                          f"{close_adv_limit}%; intent_id={intent.intent_id}")
-                return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
-                    "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
-                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
-                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
-                    "operator_action": "REVIEW_CLOSE_ADVERSE_DIFF_CONTROL", "timing": timing,
-                }
+                # CLOSES SACRED (Boss 18 Nov): this control never refuses a close. The limit is capped at the
+                # allowed boundary through the follower mid and the close still goes out.
+                cap_raw = (follower_px * (1.0 - close_adv_limit / 100.0) if intent.copy_side == "SELL"
+                           else follower_px * (1.0 + close_adv_limit / 100.0))
+                limit_px = self._format_limit_px(cap_raw, price_max_dec)
         wire_size = self._floor_wire_size(intent.copy_size, sz_dec)
         wire_notional = abs(wire_size * limit_px)
         cfg_min_for_uplift = DEFAULT_MIN_NOTIONAL
