@@ -8428,7 +8428,12 @@ class SenderGateway:
             if kind == "SEND" and sz_dec is not None:  # the precision the SEND was sized with, for the late wire gate (R4 step 1)
                 state["close_verified_sz_decimals"] = sz_dec
             return ro, amount, why
-        if not self.ledger or ledger_may_lag:
+        if not self.ledger:
+            # Boss 18 Nov: no ownership record = we never copied the opening trade, so we own nothing here.
+            # Send nothing and alert with a named reason. Never a reduce-only close of units we cannot attribute.
+            self._open_close_escalation(intent, "CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
+        if ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
         if sz_dec is None:
             return decide("HOLD", why="CLOSE_PROOF_HOLD_UNKNOWN_PRECISION")

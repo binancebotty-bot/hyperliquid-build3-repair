@@ -533,7 +533,9 @@ def bypass_door(n):
                 it, dict(RESOLVED), COIN, planned, PX, dict(timing))
         admitted = planned if wire_ok and not skip else 0.0
         unknown = n in (1, 3)  # 5 (unreadable net) now SENDs owned under the law
-        return (admitted <= 0.5 + 1e-9 and (not unknown or admitted == 0.0)), \
+        # Boss 18 Nov: ledger absent = no ownership record = send nothing, with the named reason.
+        named = (n != 3) or (planned == 0.0 and skip == "CLOSE_PROOF_HOLD_NO_OWNERSHIP_RECORD")
+        return (admitted <= 0.5 + 1e-9 and (not unknown or admitted == 0.0) and named), \
             "door=%d ro=%r proposed=%r skip=%r wire_ok=%r admitted=%r owned=0.5" % (
                 n, reduce_only, planned, skip, wire_ok, admitted)
     finally:
