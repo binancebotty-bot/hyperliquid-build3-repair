@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -71,6 +72,25 @@ def main() -> None:
     cfg = c.load_json(c.LIVE_CONFIG_FILE, {})
     cfg.update({"auto_send_enabled": True, "wallets": {"0x" + "d" * 40: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed"}}})
     c.atomic_write_json(c.LIVE_CONFIG_FILE, cfg)
+    # COLD START (the timing race): the request path reads memory only, so the first summary is empty while the one
+    # background refresh runs. The screen must show that honestly (not a guess), and once the refresh has landed the
+    # same endpoint must carry the whole-account value.
+    with ui._SLOW_EXCHANGE_LOCK:
+        ui._SLOW_EXCHANGE.update({"snapshot": {}, "follower": {}, "built_at": 0.0, "refreshing": False})
+    ui._ACCOUNT_VALUE_CACHE.clear()
+    ui._AUDIT_SUMMARY_CACHE.clear()   # the summary endpoint has a 2 s read cache
+    cold = client.get("/api/live-audit-summary").json().get("follower_account") or {}
+    check("L2_COLD_START_IS_HONEST_NOT_A_GUESS", not cold.get("ok"), str(cold))
+    deadline = time.time() + 15
+    while time.time() < deadline and (ui._SLOW_EXCHANGE.get("refreshing") or not ui._SLOW_EXCHANGE.get("built_at")):
+        time.sleep(0.05)
+    ui._AUDIT_SUMMARY_CACHE.clear()
+    warm = client.get("/api/live-audit-summary").json().get("follower_account") or {}
+    check("L2_REFRESH_LANDS_AND_THE_VALUE_IS_CORRECT",
+          warm.get("ok") and abs(warm.get("value", 0) - 1450.12) < 1e-9, str(warm))
+    # the request path reads memory only; the one background exchange read is run here, synchronously, so the
+    # summary sees the figure the refresh would have stored (no network: urlopen is stubbed above)
+    ui._exchange_slow_refresh()
     summary = client.get("/api/live-audit-summary").json()
     fa = summary.get("follower_account") or {}
     check("L2_SUMMARY_HAS_WHOLE_ACCOUNT_VALUE", fa.get("ok") and abs(fa.get("value", 0) - 1450.12) < 1e-9

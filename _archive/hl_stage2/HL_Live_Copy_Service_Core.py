@@ -7600,6 +7600,16 @@ class SenderGateway:
     ) -> None:
         if not self.ledger or not intent.reduce_only_intended or self._exit_recovery_exists(intent):
             return
+        if sz_dec is None:
+            # Precision is the exchange's szDecimals for this coin, read from the same resolver the send path uses.
+            # Never a silent default (a guessed 4 can size a close wrong); if the exchange does not prove it, the
+            # plan below holds with CLOSE_PROOF_HOLD_UNKNOWN_PRECISION and the reconciliation row names it.
+            try:
+                _res = self._resolve_coin(intent.fill.coin)
+                if _res.get("ok") and _res.get("sz_decimals") is not None and _res.get("sz_decimals_proven", True):
+                    sz_dec = int(_res["sz_decimals"])
+            except Exception as exc:
+                log_error("recovery_precision_resolve", exc)
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
         wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
         close_size = min(abs(wallet_pos), abs(wire_size), abs(intent.copy_size))
@@ -7628,6 +7638,8 @@ class SenderGateway:
                 _min_n = (lambda sz: abs(sz * limit_px) >= _mn)
             except Exception as exc:
                 log_error("standing_close_min_notional", exc)
+            if remainder is not None:
+                _sc_t["close_size_cap"] = close_size  # the part-fill remainder: the wire re-plan must not size above it
             _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, _sc_t, ledger_may_lag=remainder is not None)
             if _skip:
                 if _sc_t.get("close_decision") != "SETTLED":
@@ -8408,8 +8420,12 @@ class SenderGateway:
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
         state = timing if isinstance(timing, dict) else {}
+        if state.get("close_size_cap") is not None:  # R4 step 2/3: a standing close is planned at what is left, at the wire too
+            size = min(abs(float(size)), abs(float(state["close_size_cap"])))
         def decide(kind: str, amount: float = 0.0, ro: bool = False, why: str = "") -> Tuple[bool, float, str]:
             state["close_decision"] = kind
+            if kind == "SEND" and sz_dec is not None:  # the precision the SEND was sized with, for the late wire gate (R4 step 1)
+                state["close_verified_sz_decimals"] = sz_dec
             return ro, amount, why
         if not self.ledger or ledger_may_lag:
             return SenderGateway._close_wire_plan_ledger_lag(self, intent, size, sz_dec, min_notional_ok, decide)
@@ -9115,6 +9131,37 @@ class SenderGateway:
                 cleared += 1
         return cleared
 
+    def _refresh_unproven_precision(self, intent: Intent, resolved: Dict[str, Any]) -> Dict[str, Any]:
+        """One forced asset-meta read for a close whose szDecimals the exchange did not report.
+        Returns the fresh resolution, or the old one if the read fails (the caller then holds). Never defaults."""
+        self._core_meta_fetched = False   # forced for this retry: the fetched flags would skip the read
+        self._meta_fetched = False
+        try:
+            self._fetch_meta()
+        except Exception as exc:
+            log_error("close_precision_meta_refresh", exc)
+        fresh = self._resolve_coin(intent.fill.coin)
+        return fresh if isinstance(fresh, dict) and fresh.get("ok") else resolved
+
+    def _note_unknown_precision_hold(self, intent: Intent) -> None:
+        """Count consecutive held close cycles per coin. Alert-only at N and every N after; never pauses entries."""
+        coin = canonical_coin_key(intent.fill.coin)
+        streak = self.__dict__.setdefault("_unknown_precision_streak", {})
+        streak[coin] = streak.get(coin, 0) + 1
+        n = max(1, int(fnum(os.getenv("HL_LIVE_UNKNOWN_PRECISION_ALERT_N"), 3.0)))
+        if streak[coin] % n:
+            return
+        try:
+            self.audit.append_reconciliation(
+                "ALERT", "CLOSE_HELD_UNKNOWN_PRECISION",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin, action="ALERT_ONLY_NO_PAUSE",
+                reject_category="CLOSE_HELD_UNKNOWN_PRECISION", engine_can_send="False",
+                notes=f"close held {streak[coin]} consecutive cycles: exchange szDecimals unproven for {coin}; "
+                      "no default precision used; entries are not paused")
+        except Exception as exc:
+            log_error("close_held_unknown_precision_alert", exc)
+
     def _journal_authorised_close_refusal(self, intent: Intent, reason: str) -> None:
         """An authorised close without confirmed success must have a named durable row."""
         # RED JSON persists first. The dispatcher owns the single terminal fill
@@ -9441,6 +9488,16 @@ class SenderGateway:
         sz_dec = resolved["sz_decimals"]
         price_max_dec = resolved["price_max_decimals"]
         perp_dexs = resolved.get("perp_dexs")
+        # run4 step 4: a precision the exchange did not report is never a guess. A reduce-only close gets one fresh
+        # meta read per retry; if precision is still unproven the close plan receives None and holds (journaled RED).
+        reduce_only_intent = self._reduce_only_for_intent(intent)
+        if not resolved.get("sz_decimals_proven", True) and reduce_only_intent:
+            resolved = self._refresh_unproven_precision(intent, resolved)
+            sz_dec = resolved["sz_decimals"]
+        precision_proven = bool(resolved.get("sz_decimals_proven", True))
+        plan_sz_dec = None if (reduce_only_intent and not precision_proven) else sz_dec
+        if precision_proven:
+            self.__dict__.setdefault("_unknown_precision_streak", {}).pop(canonical_coin_key(intent.fill.coin), None)
         lifecycle = classify_send_lifecycle(intent)
         if resolved.get("sdk_order_compatible") is False:
             detail = (
@@ -9698,8 +9755,10 @@ class SenderGateway:
         if lifecycle in {"EXIT", "REDUCE"}:
             _min_n = self._effective_symbol_min_notional(resolved)
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
-                intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
+                intent, wire_size, plan_sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
             if close_skip:
+                if close_skip == "CLOSE_PROOF_HOLD_UNKNOWN_PRECISION":
+                    self._note_unknown_precision_hold(intent)
                 settled = timing.get("close_decision") == "SETTLED"
                 if not settled:
                     self._journal_authorised_close_refusal(intent, close_skip)
@@ -11027,6 +11086,8 @@ class SenderGateway:
         return {
             "ok": True, "raw_coin": raw, "sdk_coin": sdk_coin,
             "sz_decimals": sz_dec, "price_max_decimals": price_max_dec,
+            # run4 step 4: False when the exchange meta carried no szDecimals (sz_dec above is only the 4 default)
+            "sz_decimals_proven": ("szDecimals" in item or "sz_decimals" in item),
             "perp_dexs": perp_dexs, "status": "OK", "error": "",
             "symbol_source": item.get("symbol_source", ""),
             "perp_dex": item.get("perp_dex", ""),
