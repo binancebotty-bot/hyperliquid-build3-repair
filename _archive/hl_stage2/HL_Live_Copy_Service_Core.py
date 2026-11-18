@@ -8550,15 +8550,27 @@ class SenderGateway:
             except Exception as exc:
                 log_error("close_escalation_write_failed", exc)
             state["close_verified_sz_decimals"] = sz_dec
-            # a close sized from our owned amount must stay reduce-only: reduce-only cannot open a position
-            return decide("SEND", amount, True)
+            # Boss 31 Oct 2026 (22:34-22:37Z): unreadable net = re-read once, then send the fill-proven owned
+            # size as the leader sized it, reduce_only NEVER forced (CC1-B-RULING-NOREDUCEONLY-2238). A forced
+            # reduce_only here is rejected when the flip must cross flat, so the close never happens. RED: A2.
+            return decide("SEND", amount, False)
+        # A readable FLAT exchange holds nothing to reduce: never a fresh order, whatever the ledger says.
+        # (The equal_net branch below trusts the ledger net; a ledger that drifted to 0 must not open a short.)
+        if abs(actual) <= tol:
+            return decide("HOLD", why="CLOSE_PROOF_HOLD_EXCHANGE_FLAT_NOTHING_TO_CLOSE")
         # item 4: foreign/USER units are never consumed by our close. The hold is named explicitly
         # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led
         equal_net = abs(foreign) <= tol
         safe_foreign = (actual * owned > 0 and led * actual >= 0
                         and foreign * owned > 0 and abs(actual) + tol >= abs(led))
-        if not (equal_net or safe_foreign):
+        # Boss ruling 18 Nov 13:10Z: "We copy the leader." DEFICIT: the exchange holds LESS than our ledger and sleeve,
+        # on the sleeve's own side (we are missing units). The leader's close is copied at the fill-proven owned size,
+        # NOT reduce-only and NOT clamped to the exchange net (the 31 Oct flip / netting rule). Exchange above the
+        # ledger (foreign units, e.g. led 0 with exchange 8) is still held, and a flat or wrong-side net still holds.
+        deficit = (actual * owned > 0 and actual * side < 0
+                   and abs(actual) + tol < min(abs(led), abs(owned)))
+        if not (equal_net or safe_foreign or deficit):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_UNITS")
         if not equal_net and actual * side >= 0:
             # item 2: foreign residue only - the order does not oppose the real net. On the equal_net

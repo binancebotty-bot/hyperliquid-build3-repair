@@ -55,8 +55,10 @@ def plan(side, size, led, ex, mode="ON", dust=False, readable=True, lifecycle_ex
 OK = lambda s: True
 check("AGREEING_CLOSE_NOT_REDUCE_ONLY", plan("SELL", 10, 10, 10, min_ok=OK) == (True, 10.0, ""))
 check("CLOSE_MAY_INCREASE_EXPOSURE", plan("SELL", 10, 5, 5, min_ok=OK) == (False, 10.0, ""))
+# Boss ruling 18 Nov 13:10Z: "We copy the leader." Exchange 4 under a ledger/sleeve of 10 is a DEFICIT: copy the leader's close at
+# the owned size (10), NOT reduce-only and NOT clamped to the exchange net. (Replaces the old hold expectation.)
 r = plan("SELL", 10, 10, 4, min_ok=OK)
-check("FOREIGN_UNITS_HOLD_NAMED", r == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_UNITS") and WIRES == [], str(r))
+check("DEFICIT_COPIES_LEADER_OWNED_SIZE_NOT_REDUCE_ONLY", r == (False, 10.0, "") and WIRES == [10.0], str(r))
 r = plan("SELL", 10, 10, 0.0, min_ok=OK)
 check("EXCHANGE_FLAT_SENDS_NOTHING", r[1] == 0.0 and r[2])
 r = plan("SELL", 10, 10, -5.0, min_ok=OK)
@@ -72,9 +74,11 @@ check("HEADER_CLOSE_ONLY_DUST_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01,
 check("DUST_WHOLE_POSITION_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True) == (True, 0.01, ""))
 r = plan("SELL", 10, 10, 10, readable=False)
 # 129d744 deliberately made the unreadable-net fallback reduce_only=True (was False); expectation updated to match.
-check("UNREADABLE_NET_SENDS_OWNED_IS_REDUCE_ONLY", r == (True, 10.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
+# Boss 31 Oct 2026 (22:34-22:37Z): unreadable net = re-read once, then send owned as the leader sized it,
+# reduce_only NEVER forced (CC1-B-RULING-NOREDUCEONLY-2238). A forced reduce_only is rejected when the flip crosses flat.
+check("UNREADABLE_NET_SENDS_OWNED_IS_NOT_REDUCE_ONLY", r == (False, 10.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, readable=False, owned=5)
-check("UNREADABLE_NET_SENDS_OWNED_WITH_NO_NET_CLAMP", r == (True, 5.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
+check("UNREADABLE_NET_SENDS_OWNED_WITH_NO_NET_CLAMP", r == (False, 5.0, "") and ESC == ["CLOSE_PROOF_UNREADABLE_NET_FALLBACK"], str((r, ESC)))
 r = plan("SELL", 10, 10, 10, readable=False, owned=0)
 check("UNREADABLE_NO_OWNED_SLEEVE_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and WIRES == [] and ESC == [], str((r, ESC)))
 check("ENTRY_IS_UNCHANGED", plan("BUY", 10, 0, 0, lifecycle_exit=False) == (False, 10, ""))
@@ -123,8 +127,9 @@ check("LAG_NET_UNREADABLE_ZERO_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD
 r = plan("SELL", 12, 0, 8, min_ok=OK, owned=12)
 check("FOREIGN_CROSS_HOLD_NAMED", r == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_CROSS") and WIRES == [], str(r))
 check("SAME_SIDE_CLOSE_HOLDS_DIRECTION", plan("BUY", 5, 20, 10, min_ok=OK) == (False, 0.0, "CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE"))
-check("TRIM_BELOW_MIN_NOTIONAL_FOREIGN_UNITS_HOLDS", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_UNITS"))
-check("TRIM_WITHOUT_MIN_CHECK_FOREIGN_UNITS_HOLDS", plan("SELL", 10, 10, 4) == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_UNITS"))
+# Boss ruling 18 Nov 13:10Z (copy the leader): a deficit is copied at the owned size, not held.
+check("TRIM_BELOW_MIN_NOTIONAL_DEFICIT_COPIES_OWNED", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (False, 10.0, ""), str(plan("SELL", 10, 10, 4, min_ok=lambda s: False)))
+check("TRIM_WITHOUT_MIN_CHECK_DEFICIT_COPIES_OWNED", plan("SELL", 10, 10, 4) == (False, 10.0, ""), str(plan("SELL", 10, 10, 4)))
 check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK, owned=-10) == (True, 10.0, ""))
 check("PURE_REDUCTION_OPPOSING_WITHIN_NET_REDUCE_ONLY", plan("SELL", 5, 20, 20, min_ok=OK) == (True, 5.0, ""))
 failed = [n for n, ok in R if not ok]

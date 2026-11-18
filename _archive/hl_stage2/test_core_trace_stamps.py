@@ -30,7 +30,8 @@ def check(name, cond, detail=""):
 tmp = Path(tempfile.mkdtemp(prefix="tracestamps_"))
 os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
                    "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_HL_PRIVATE_KEY": "0x" + "1" * 64,
-                   "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_WS_ENABLED": "0"})
+                   "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_WS_ENABLED": "0",
+                   "HL_LIVE_LIQ_PARITY": "0"})
 import requests  # noqa: E402
 
 
@@ -40,6 +41,13 @@ def offline(*a, **k):
 
 requests.post = offline
 import HL_Live_Copy_Service_Core as c  # noqa: E402
+# Fixture: the send path needs the isolated sender lease (one engine per machine), as test_core_disk_full does,
+# and the send switch armed.
+os.environ["HL_LIVE_GLOBAL_LOCK_FILE"] = str(tmp / "sender.lock")
+c.acquire_global_instance_lock(tmp / "state")
+assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True, "global_controls": {},
+                                             "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
 
 c.requests.post = offline
 c.USER_WALLET = "0x" + "c" * 40
@@ -101,7 +109,7 @@ class Led:
         return 0.0
 
 
-def send(tag, block):
+def send(tag, block, via_send_if_allowed=False):
     fake = FakeExchange()
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     gw._resolve_coin = lambda coin: dict(RESOLVED)
@@ -123,6 +131,22 @@ def send(tag, block):
     i.wallet_position_before = i.coin_net_before = 0.0
     i.reduce_only_intended = i.reduce_only_sent_planned = False
     i.created_at_ms, i.notes = 1, "lifecycle=ENTRY"
+    if via_send_if_allowed:
+        # The timing dict is built in send_if_allowed (the send_real_started_ms stamp) and handed to _send_real.
+        handed = {}
+        real = c.SenderGateway._send_real
+        def spy(self, intent, timing=None, *a, **k):
+            handed["timing"] = dict(timing or {})
+            return False, "SPY", {"exchange_called": False, "timing": dict(timing or {})}
+        c.SenderGateway._send_real = spy
+        # Fixture: the ownership gate needs a persisted exchange snapshot this harness does not build. It is stubbed
+        # here only; the gate is pinned by its own tests. The stamp is what this check pins.
+        gw._pre_send_ownership_gate = lambda intent: (True, {})
+        try:
+            gw.send_if_allowed(i)
+        finally:
+            c.SenderGateway._send_real = real
+        return fake, i, handed.get("timing", {})
     ok, status, result = gw._send_real(i)
     gw._append_real_attempt(i, status, result)
     return fake, i, status
@@ -136,6 +160,13 @@ fake, intent, status = send("blocked", True)
 sb = stages(intent.fill)
 check("blocked_send_did_not_call_exchange", fake.calls == 0, status)
 check("blocked_send_has_no_send_real_started_ms", "send_real_started_ms" in sb and sb["send_real_started_ms"] is None, str(sb))
+
+# (4) pins the timing-dict stamp in send_if_allowed (not only the trace copy): the dict handed to _send_real
+# carries send_real_started_ms as a positive int.
+fake, intent, handed_timing = send("dict", False, via_send_if_allowed=True)
+check("timing_dict_handed_to_send_real_has_send_real_started_ms",
+      isinstance(handed_timing.get("send_real_started_ms"), int) and handed_timing["send_real_started_ms"] > 0,
+      str(handed_timing)[:300])
 
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
