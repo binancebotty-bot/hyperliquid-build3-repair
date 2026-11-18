@@ -46,13 +46,15 @@ def wallets(n_live: int, n_off: int = 0) -> dict:
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="coregaps_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
-                       "HL_LIVE_ENV_FILE": str(tmp / "none.env")})
+                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"),
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock")})
     import requests
     import HL_Live_Copy_Service_Core as c
     import HL_Copy_App_SSOT as ui
     from fastapi.testclient import TestClient
     ui.LIVE_COPY_CONFIG_FILE = c.LIVE_CONFIG_FILE
     c.USER_WALLET = FOLLOWER
+    c.acquire_global_instance_lock(tmp / "state")   # fixture only: the sender lease the physical call requires (as run3/run4)
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")
@@ -106,6 +108,7 @@ def main() -> None:
             self.calls.append({"size": size, "px": px, "tif": tif["limit"]["tif"], "reduce_only": reduce_only})
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 7}}]}}}
 
+    config(auto=True)   # fixture only: the real-order switch is ON for this scenario (the gateway reads it at construction)
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "rec.json"))
     gw.ledger.sleeve(LEADER, "BTC")["signed_size"] = 2.0
     used = []
@@ -116,7 +119,16 @@ def main() -> None:
     fake = FakeExchange()
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
     gw.cfg.master_switch_now = lambda: True   # sending on: a standing close is never placed while it is off (run 4)
-    gw._queue_exit_recovery_if_needed(fake, "BTC", intent, 99.0, 2.0, {}, "could not immediately match")
+    # fixture only: the exchange-side facts the close proof reads, supplied as the run4/run3 fixtures do. Production holds
+    # (unknown precision, account mismatch, unreadable net) are unchanged.
+    gw._resolve_coin = lambda coin: {"ok": True, "sdk_coin": "BTC", "sz_decimals": 5, "price_max_decimals": 2,
+                                     "perp_dexs": [""], "sdk_order_compatible": True, "min_order_value_usd": 1.0,
+                                     "min_size": 0.0, "status": "OK"}
+    gw._fresh_exchange_net = lambda coin: 2.0   # the follower is long 2 BTC on the exchange: the close sells 2
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER   # the order account is the follower reader's account
+    config(auto=True)   # fixture only: the real-order switch is ON for this scenario (the config() above turns it off)
+    gw._queue_exit_recovery_if_needed(fake, "BTC", intent, 99.0, 2.0, {}, "could not immediately match", sz_dec=5)
+    os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
 

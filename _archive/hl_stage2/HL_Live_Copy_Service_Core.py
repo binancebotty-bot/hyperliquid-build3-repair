@@ -8803,7 +8803,8 @@ class SenderGateway:
             timing["ceiling_excess_started_ms"] = utc_now_ms()
             _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC_CEILING_EXCESS", limit_px, size, False,
                                                   timing, "ceiling_excess")
-            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, limit_px, "Ioc", False,
+            place_order = self._place_order
+            response = place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, limit_px, "Ioc", False,
                                          timing, "ceiling_excess_call_started_ms", cloid=_cl, pre_send=_pre,
                                          intent=intent, path="send_ceiling_excess", entry_leg=True)
             ok, status, _oid, error = self._parse_hl_response(response)
