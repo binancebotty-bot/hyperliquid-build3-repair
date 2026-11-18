@@ -312,7 +312,7 @@ def global_controls_tests() -> None:
     resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
-    def send(gc, side="BUY", mid=93.0, sleeve=0.0):
+    def send(gc, side="BUY", mid=93.0, sleeve=0.0, net=None):
         config(**gc)
         # fixture only: the switch is ON for a physical send, the signer is the follower account, and the follower's fresh
         # net is the position the scenario gives it (the close proof reads these; production reads them the same way)
@@ -329,7 +329,7 @@ def global_controls_tests() -> None:
         gw._exchange_client_has_symbol = lambda *a, **k: True
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
-        gw._fresh_exchange_net = lambda coin: float(sleeve)
+        gw._fresh_exchange_net = lambda coin: float(sleeve if net is None else net)   # default: the follower holds the sleeve
         set_mid(mid)
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
         saved = c.HLAccount, c.HLExchange
@@ -346,6 +346,14 @@ def global_controls_tests() -> None:
     check("G12_CROSS_NETWORK_LIMIT_FROM_FOLLOWER_MID_UNITS_KEPT",
           len(calls) == 1 and abs(calls[0]["px"] - 93.09) < 1e-9 and abs(calls[0]["size"] - intent.copy_size) < 1e-9,
           f"{status} {calls} size={intent.copy_size}")
+    # negative (review follow-up): the follower's FRESH exchange net differs from the sleeve. The exit must never be sized
+    # above what the exchange proves the follower holds (4.0), whatever the sleeve says (10.0).
+    status, calls, _ = send({"marketable_bps": 10}, side="SELL", mid=100.0, sleeve=10.0, net=4.0)
+    check("NET_NEG_EXIT_NEVER_SIZED_ABOVE_THE_EXCHANGE_NET",
+          all(x["size"] <= 4.0 + 1e-9 for x in calls), f"{status} {calls}")
+    # and a fresh net of zero: nothing owned on the exchange, so nothing may be sent as a close
+    status, calls, _ = send({"marketable_bps": 10}, side="SELL", mid=100.0, sleeve=10.0, net=0.0)
+    check("NET_NEG_FLAT_EXCHANGE_SENDS_NO_CLOSE", not calls, f"{status} {calls}")
     status, calls, _ = send({}, mid=0.0)
     check("G12_CROSS_NETWORK_NO_FOLLOWER_PRICE_NO_ORDER", status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls, status)
     status, calls, _ = send({"marketable_bps": 50, "max_close_adverse_diff_pct": 0.2}, side="SELL", mid=100.0, sleeve=10.0)
