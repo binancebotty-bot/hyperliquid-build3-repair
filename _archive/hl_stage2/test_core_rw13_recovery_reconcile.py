@@ -47,6 +47,8 @@ def main() -> None:
     c.LEADER_MIDS_FETCHER = c.MIDS_FETCHER
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True, "global_controls": {},
         "wallets": {A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
+    # Stale fixture (classified 18 Nov): the close-proof gate (_close_proof_account_ok) needs the trading account to equal USER_WALLET; the placeholder key derives another address, so every close held CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH before any exchange call. Pin the account to FOLLOWER explicitly.
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
     c.HLAccount, c.HLExchange = object, object
 

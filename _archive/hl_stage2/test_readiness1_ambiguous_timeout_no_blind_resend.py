@@ -114,6 +114,8 @@ def main() -> None:
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side=side))
         c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
         c.atomic_write_json(c.STANDING_CLOSES_FILE, {})
+        # Stale fixture (classified 18 Nov): the close-proof gate (_close_proof_account_ok) needs the trading account to equal USER_WALLET; the placeholder key derives another address, so every close held CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH before any exchange call. Pin the account to FOLLOWER explicitly.
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object

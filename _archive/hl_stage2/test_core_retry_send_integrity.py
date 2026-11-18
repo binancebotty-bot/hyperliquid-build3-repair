@@ -45,6 +45,8 @@ def main() -> None:
     c.LEADER_MIDS_FETCHER = c.MIDS_FETCHER
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True, "global_controls": {},
         "wallets": {A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
+    # Stale fixture (classified 18 Nov): the close-proof gate (_close_proof_account_ok) needs the trading account to equal USER_WALLET; the placeholder key derives another address, so every close held CLOSE_PROOF_HOLD_ACCOUNT_MISMATCH before any exchange call. Pin the account to FOLLOWER explicitly.
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
     c.HLAccount, c.HLExchange = object, object
 
@@ -146,7 +148,9 @@ def main() -> None:
     g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
     check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1, str(ex.calls))
     check("S3_STANDING_CLOSE_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s3", 1), str(ex.calls))
-    check("S3_STANDING_CLOSE_STILL_REDUCE_ONLY", bool(ex.calls) and ex.calls[0]["ro"] is True)
+    # Stale expectation (classified 18 Nov): Boss ruling 13:10Z "WE COPY THE LEADER" - a standing close is sent at the
+    # owned size, NOT reduce-only, NOT clamped to the exchange net (same rule as S1_RETRY_NOT_REDUCE_ONLY above).
+    check("S3_STANDING_CLOSE_COPIES_LEADER_NOT_REDUCE_ONLY", bool(ex.calls) and ex.calls[0]["ro"] is False, str(ex.calls))
 
     # ---- S4: every non-first physical send site passes its own cloid and a pre_send hook
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
