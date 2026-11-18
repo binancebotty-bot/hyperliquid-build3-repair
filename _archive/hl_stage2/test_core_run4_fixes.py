@@ -388,12 +388,24 @@ def main() -> None:
     c.OPEN_ORDERS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("status unreadable"))
     led = ledger("p3c", a_btc=2.0)
     snapshot(2.0)   # the exchange holds the same 2.0 as the sleeve (a stale 1.5 snapshot reads as foreign units)
-    print("DBG_P3C_PRE", flush=True)
     fake = CancelExchange([part], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     fake.calls.clear()
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    # negative test (review follow-up): a STALE exchange snapshot (1.5) under a 2.0 sleeve must not produce an oversized close.
+    # The engine must either hold, or send no more than the exchange-proven 1.5 at the wire.
+    snapshot(1.5)
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER   # the account matches, so only the stale snapshot is under test
+    stale_led = ledger("p3stale", a_btc=2.0)
+    stale_g = gateway(FakeExchange(), stale_led)
+    stale_intent = c.IntentBuilder(c.ConfigManager(), stale_led).build(fill("SELL", size=2.0, d="Close Long"))
+    stale_t = {}
+    s_ro, s_amt, s_why = stale_g._close_wire_plan(stale_intent, 2.0, 3, timing=stale_t)
+    os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
+    check("P3_STALE_SNAPSHOT_NEVER_PLANS_AN_OVERSIZED_CLOSE",
+          bool(s_why) or abs(s_amt) <= 1.5 + 1e-9, str((s_ro, s_amt, s_why)))
+    snapshot(2.0)
     check("P3_UNREADABLE_STATUS_ASSUMES_THE_STANDING_CLOSE_FILLED", fake.calls and abs(fake.calls[0]["size"] - 0.5) < 1e-9,
           str(fake.calls))
     c.OPEN_ORDERS_FETCHER = order_status
