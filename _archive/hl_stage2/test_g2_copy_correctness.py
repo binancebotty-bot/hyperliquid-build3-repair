@@ -367,6 +367,67 @@ def main() -> None:
     svcmod.LIVE_AUTO_SEND_ENABLED = False
     os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
 
+    print("\n=== t13c) wire_attempted is True on EVERY post-wire result; a pre-wire result never carries it ===")
+    _c_dir = Path(tempfile.mkdtemp(prefix="g2_seam_c_"))
+    (_c_dir / "live_config.json").write_text(json.dumps({
+        "wallets": {"0xw1": {"mode": "LIVE", "enabled": True, "copy_mode": "proportional", "norm_base": 100.0, "leader_equity_base": 1000.0}}
+    }), encoding="utf-8")
+    svcmod.configure_paths(_c_dir, tmp / "raw_live_fills_c.csv")
+    svcmod.LIVE_AUTO_SEND_ENABLED = True
+    svcmod.LIVE_AUTO_SEND_WALLET = "0xw1"
+    os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
+    svcmod.HL_PERP_META_BY_COIN_CACHE = {"BTC": {"szDecimals": 5, "name": "BTC", "canonical_name": "BTC"}}
+    svcmod.save_manual_live_positions({})
+    _sender_mode = {"status": "ORDER_REJECTED", "raise": False}
+
+    def _sender_c(payload, marketable_bps=0.0, use_current_quote=False, max_notional=None):
+        if _sender_mode["raise"]:
+            raise RuntimeError("test: exchange call raised after the wire")
+        return {"ok": _sender_mode["status"] == "ORDER_FILLED", "status": _sender_mode["status"],
+                "fill_avg_px": str(payload.get("limit_price")), "fill_size": str(payload.get("copy_size")),
+                "oid": "t13c", "coin": payload.get("coin"), "side": payload.get("side"),
+                "size": payload.get("copy_size"), "limit_price": payload.get("limit_price"),
+                "reduce_only": payload.get("reduce_only")}
+
+    _rs_c = svcmod.send_hyperliquid_order
+    svcmod.send_hyperliquid_order = _sender_c
+    _row_c = {"created_at": "t", "dry_run": True, "intent_id": "c-intent", "leader_wallet": "0xw1",
+              "coin": "BTC", "side": "BUY", "copy_size": 1.0, "copy_notional": 100.0, "order_type": "IOC_LIMIT",
+              "limit_price": 100.0, "reduce_only": False, "execution_decision": "WOULD_PLACE_IOC_LIMIT",
+              "decision_reason": "T13C", "manual_reconcile_required": False, "status": "WOULD_SEND_DRY_RUN"}
+    svcmod.append_csv(svcmod.WOULD_SEND_ORDERS_CSV, svcmod.WOULD_SEND_ORDER_FIELDS, _row_c)
+    _res_rej = svcmod.manual_send_one_intent("c-intent", True, auto_live=True, auto_send_wallet="0xw1")
+    check("post-wire ORDER_REJECTED result carries wire_attempted=True",
+          _res_rej.get("status") == "ORDER_REJECTED" and _res_rej.get("wire_attempted") is True, str(_res_rej)[:200])
+    svcmod.save_manual_live_positions({})
+    _sender_mode["status"] = "ORDER_FILLED"
+    _row_c2 = dict(_row_c); _row_c2["intent_id"] = "c-intent-2"
+    svcmod.append_csv(svcmod.WOULD_SEND_ORDERS_CSV, svcmod.WOULD_SEND_ORDER_FIELDS, _row_c2)
+    _res_ok = svcmod.manual_send_one_intent("c-intent-2", True, auto_live=True, auto_send_wallet="0xw1")
+    check("post-wire ORDER_FILLED result carries wire_attempted=True",
+          _res_ok.get("status") == "ORDER_FILLED" and _res_ok.get("wire_attempted") is True, str(_res_ok)[:200])
+    _sender_mode["status"] = "ORDER_REJECTED"
+    _sender_mode["raise"] = True
+    _raised = False
+    _row_c3 = dict(_row_c); _row_c3["intent_id"] = "c-intent-3"
+    svcmod.append_csv(svcmod.WOULD_SEND_ORDERS_CSV, svcmod.WOULD_SEND_ORDER_FIELDS, _row_c3)
+    try:
+        _res_exc = svcmod.manual_send_one_intent("c-intent-3", True, auto_live=True, auto_send_wallet="0xw1")
+    except RuntimeError:
+        _raised = True
+        _res_exc = None
+    check("a post-wire exception propagates (never a dict that could look pre-wire)",
+          _raised and _res_exc is None, str(_res_exc)[:200])
+    _sender_mode["raise"] = False
+    _pre_c = svcmod.manual_send_one_intent("c-intent", False, auto_live=True, auto_send_wallet="0xw1")
+    check("a pre-wire refusal (no confirm) never carries wire_attempted",
+          _pre_c.get("status") == "CONFIRM_REQUIRED" and "wire_attempted" not in _pre_c, str(_pre_c)[:200])
+    svcmod.send_hyperliquid_order = _rs_c
+    svcmod.configure_paths(_seam_dir, tmp / "raw_live_fills.csv")
+    svcmod.LIVE_AUTO_SEND_ENABLED = False
+    os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+    svcmod.save_manual_live_positions({})
+
     print("\n=== t14) manual send cannot overwrite planner side (contradiction => FAIL CLOSED) ===")
     svcmod.save_manual_live_positions({"BTC": {"signed_size": 2.0, "last_updated_at": "t", "last_oid": "x", "last_intent_id": "x"}})
     _row14 = {"created_at": "t", "dry_run": True, "intent_id": "planner-conflict", "leader_wallet": "0xw1",
