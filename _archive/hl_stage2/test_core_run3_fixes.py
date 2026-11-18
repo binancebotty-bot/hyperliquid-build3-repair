@@ -396,7 +396,9 @@ def main() -> None:
     g = gateway(fake, led)
     os.environ["HL_LIVE_NETTING_RETRY_WAIT_SEC"] = "0.6"
     ok, status, res = send_real(g, exit_intent(led, A, "SELL", 447.0))
-    check("N9_NO_CATCH_UP_NO_BLIND_RESEND", not ok and len(fake.calls) == 1 and res.get("reject_category") == "REDUCE_ONLY_REJECTED",
+    # Boss-approved test correction (09:19Z): the close-proof hold stays. With records that never catch up, the
+    # send is held before the wire, so nothing is sent and nothing is re-sent blind.
+    check("N9_NO_CATCH_UP_NO_BLIND_RESEND", not ok and len(fake.calls) == 0 and status == "SEND_NOT_ATTEMPTED_CLOSE_PROOF_HOLD",
           f"{status} {fake.calls}")
 
     # ---- N10: the screen shows each coin's net and which leader holds what --------------------------------------
