@@ -109,6 +109,7 @@ def main() -> None:
 
     def send_real(g, intent):
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
+        os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER     # the fake signer's account = the follower reader's account
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object
         try:
@@ -116,6 +117,7 @@ def main() -> None:
         finally:
             c.HLAccount, c.HLExchange = saved
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+            os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
 
     def snapshot(net, coin="BTC"):
         c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {coin: {"signed_size": net}}})
