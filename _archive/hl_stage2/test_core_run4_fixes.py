@@ -403,8 +403,8 @@ def main() -> None:
     stale_t = {}
     s_ro, s_amt, s_why = stale_g._close_wire_plan(stale_intent, 2.0, 3, timing=stale_t)
     os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
-    check("P3_STALE_SNAPSHOT_NEVER_PLANS_AN_OVERSIZED_CLOSE",
-          bool(s_why) or abs(s_amt) <= 1.5 + 1e-9, str((s_ro, s_amt, s_why)))
+    check("P3_STALE_SNAPSHOT_HOLDS_ON_FOREIGN_UNITS",
+          s_why == "CLOSE_PROOF_HOLD_FOREIGN_UNITS" and abs(s_amt) < 1e-9 and s_ro is False, str((s_ro, s_amt, s_why)))
     snapshot(2.0)
     check("P3_UNREADABLE_STATUS_ASSUMES_THE_STANDING_CLOSE_FILLED", fake.calls and abs(fake.calls[0]["size"] - 0.5) < 1e-9,
           str(fake.calls))
