@@ -1884,7 +1884,7 @@ def _classify_owned_exchange_net(owned_net: float, exchange_net: float, exchange
     elif abs(exchange_net - owned_net) <= eps:
         status = "OWNED_FULLY_SUPPORTED"
     elif abs(exchange_net) > abs(owned_net):
-        status = "OWNED_PLUS_ACCOUNT_RESIDUAL"
+        status = "RESIDUAL_ACCOUNT_LEVEL"
     else:
         status = "OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE"
         unsupported = owned_net - exchange_net
@@ -3110,7 +3110,7 @@ def _build_manual_reconciliation_rows(manual_positions: Dict[str, Any], exchange
                 severity = "OK"
             elif issue in {"OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "SIGN_CONFLICT_PENDING_RECONCILIATION"}:
                 severity = "CRITICAL"
-            elif issue == "OWNED_PLUS_ACCOUNT_RESIDUAL":
+            elif issue == "RESIDUAL_ACCOUNT_LEVEL":
                 severity = "INFO"
             else:
                 severity = "INFO"
@@ -3132,7 +3132,7 @@ def _build_manual_reconciliation_rows(manual_positions: Dict[str, Any], exchange
             "last_intent_id": pos.get("last_intent_id", ""),
             "last_oid": pos.get("last_oid", ""),
             "last_updated_at": pos.get("last_updated_at", ""),
-            "latest_error": "residual account exposure; not wallet owned" if issue == "OWNED_PLUS_ACCOUNT_RESIDUAL" else (
+            "latest_error": "residual account exposure; not wallet owned" if issue == "RESIDUAL_ACCOUNT_LEVEL" else (
                 "ledger sleeve not fully supported by exchange; external reconciliation required" if severity == "CRITICAL" else ""
             ),
             "count": 1,
@@ -3555,7 +3555,7 @@ def _build_real_copy_positions(
                 })
             else:
                 base.update({"status": "EXTERNAL_ORPHAN_UNOWNED"})
-        elif exchange_available and abs(owned_net) > 1e-12 and base.get("status") == "OWNED_PLUS_ACCOUNT_RESIDUAL":
+        elif exchange_available and abs(owned_net) > 1e-12 and base.get("status") == "RESIDUAL_ACCOUNT_LEVEL":
             base.update({"status": "RESIDUAL_ACCOUNT_LEVEL", "service_live_net": live_net})
         classifications[coin_upper] = base
     for wallet, coin_upper, pos in sorted(sleeves, key=lambda item: (item[1], item[0])):

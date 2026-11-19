@@ -185,13 +185,19 @@ def c_unrealized_derived(ctx) -> tuple[bool, str]:
 
 
 def c_side_and_residual_derived(ctx) -> tuple[bool, str]:
-    """side follows the sign of the sleeve; residual is exchange net minus owned net."""
+    """side follows the sign of the sleeve; residual is exchange net minus owned net, and both producers
+    emit the same canonical label for that account-level residual."""
     btc, eth = ctx["owned_by_coin"]["BTC"], ctx["owned_by_coin"]["ETH"]
+    inline_btc = ctx["inline"][(WALLET_A, "BTC")]
     ok = (btc["side"] == "LONG" and eth["side"] == "SHORT"
           and btc["residual_size"] == 0.5 and eth["residual_size"] == -0.5
-          and btc["ledger_vs_exchange"] == "RESIDUAL_ACCOUNT_LEVEL")
-    return ok, "btc=(%r,%r,%r) eth=(%r,%r,%r)" % (btc["side"], btc["residual_size"], btc["ledger_vs_exchange"],
-                                                  eth["side"], eth["residual_size"], eth["ledger_vs_exchange"])
+          and btc["ledger_vs_exchange"] == "RESIDUAL_ACCOUNT_LEVEL"
+          and inline_btc["ownership_status"] == "RESIDUAL_ACCOUNT_LEVEL"
+          and inline_btc["exchange_match"] == "RESIDUAL_ACCOUNT_LEVEL")
+    return ok, "btc=(%r,%r,%r) eth=(%r,%r,%r) inline=(%r,%r)" % (
+        btc["side"], btc["residual_size"], btc["ledger_vs_exchange"],
+        eth["side"], eth["residual_size"], eth["ledger_vs_exchange"],
+        inline_btc["ownership_status"], inline_btc["exchange_match"])
 
 
 def c_short_mark_positive(ctx) -> tuple[bool, str]:
@@ -302,6 +308,14 @@ MUTATIONS = [
      '            "entry_px": avg_entry if avg_entry > 0 else None,\n'
      '            "mark_px": None,',
      {"DUP_MARK_DERIVED_PV_OVER_SIZE", "DUP_SHAPE_VALUE_PARITY", "DUP_SHORT_MARK_POSITIVE"}),
+    # the label unification itself: reverting the shared classifier to the pre-canonical label must
+    # redden the parity row, because both producers would leak the stale label into the UI again.
+    ("M6_revert_label_unification",
+     '    elif abs(exchange_net) > abs(owned_net):\n'
+     '        status = "RESIDUAL_ACCOUNT_LEVEL"\n',
+     '    elif abs(exchange_net) > abs(owned_net):\n'
+     '        status = "OWNED_PLUS_ACCOUNT_RESIDUAL"\n',
+     {"DUP_SIDE_AND_RESIDUAL_DERIVED"}),
 ]
 
 
