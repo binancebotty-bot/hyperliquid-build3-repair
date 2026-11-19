@@ -993,6 +993,16 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
         append_send_attempt(missing, "INTENT_NOT_FOUND", confirmed=confirm_send, notes="would-send intent_id not found")
         return {"ok": False, "status": "INTENT_NOT_FOUND", "intent_id": intent_id}
 
+    # ENG-018 review: an AUTO-LIVE entry takes its size from the planner (row copy_size), never from the
+    # wallet config. No planner size on this route is a broken decision: refuse by NAME here, before the
+    # generic payload validation, so the ledger says why. Exits/reduces keep their existing refusals.
+    if auto_live and not truthy_csv(row.get("reduce_only")) and fnum(row.get("copy_size")) <= 0:
+        _psm_status = "ENTRY_" + PLANNER_SIZE_MISSING
+        _psm_error = (f"auto-live entry carried no planner size (row copy_size={row.get('copy_size')!r}); "
+                      f"size is never derived from wallet config - NAMED refusal")
+        append_send_attempt(row, _psm_status, confirmed=confirm_send, error=_psm_error,
+                            notes="auto-live: the planner size is the only size")
+        return {"ok": False, "status": _psm_status, "intent_id": intent_id, "error": _psm_error}
     allowed = {"WOULD_PLACE_IOC_LIMIT", "WOULD_LATE_COPY", "WOULD_REDUCE_OR_EXIT"}
     errors = []
     if str(row.get("execution_decision", "")).strip() not in allowed:
@@ -1046,9 +1056,12 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
         "copy_notional": fnum(row.get("copy_notional")),
         "reduce_only": truthy_csv(row.get("reduce_only")),
     }
-    is_auto_fixed_open = bool(auto_live and copy_mode == "fixed" and not close_position and not payload.get("reduce_only"))
+    # ENG-018 review: authority split on this route. An AUTO-LIVE fixed open uses the planner's size above
+    # verbatim (the same authority process_fill guards); only a MANUAL operator send may size an entry from
+    # the wallet's configured fixed_notional, which is an explicit human instruction.
+    is_wallet_fixed_open = bool(copy_mode == "fixed" and not auto_live and not close_position and not payload.get("reduce_only"))
     _ceil_max_notional = 0.0  # set below when ceiling rounding is applied to a fixed open
-    if is_auto_fixed_open and fixed_notional > 0 and fnum(payload.get("limit_price")) > 0:
+    if is_wallet_fixed_open and fixed_notional > 0 and fnum(payload.get("limit_price")) > 0:
         if fixed_notional < MIN_ORDER_NOTIONAL:
             _bl_resp = {"ok": False, "status": "FIXED_NOTIONAL_BELOW_MIN", "fixed_notional": fixed_notional, "min_order_notional": MIN_ORDER_NOTIONAL}
             append_send_attempt(row, "FIXED_NOTIONAL_BELOW_MIN", confirmed=confirm_send, response=_bl_resp, error=f"fixed_notional {fixed_notional} < min order notional {MIN_ORDER_NOTIONAL}", notes="fixed_notional below exchange minimum; not sent")
@@ -1149,7 +1162,7 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
     payload["use_current_quote"] = bool(use_current_quote and close_position)
     payload.setdefault("current_quote_price", "")
     # For fixed opens copy_notional = fixed_notional (already set); recompute for all other paths.
-    if not is_auto_fixed_open:
+    if not is_wallet_fixed_open:
         payload["copy_notional"] = fnum(payload.get("copy_size")) * fnum(payload.get("limit_price"))
     payload["position_before"] = position_before
     payload["close_position"] = bool(close_position)
@@ -1157,7 +1170,7 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
     max_notional_for_send = manual_open_cap
     cap_source = limit_source
     notional_cap_reason = "manual_open_cap"
-    if is_auto_fixed_open:
+    if is_wallet_fixed_open:
         if _ceil_max_notional > 0:
             # Ceiling rounding was applied: cap must accommodate ceil_size * adjusted_price.
             max_notional_for_send = min(configured_cap_ceiling, _ceil_max_notional)
@@ -1170,7 +1183,7 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
     payload["limit_source"] = cap_source
     payload["copy_mode"] = copy_mode
     payload["fixed_notional"] = fixed_notional if copy_mode == "fixed" else ""
-    payload["intended_notional"] = fixed_notional if is_auto_fixed_open else payload["copy_notional"]
+    payload["intended_notional"] = fixed_notional if is_wallet_fixed_open else payload["copy_notional"]
     payload["max_notional_used"] = max_notional_for_send
     payload["global_max_notional"] = LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD
     payload["cap_source"] = cap_source
@@ -4598,10 +4611,12 @@ def self_test() -> bool:
             HL_PERP_META_BY_COIN_CACHE = {"TAO": {"szDecimals": 3, "name": "TAO"}}
             # --- end reduce-only dust-close min-notional bypass tests ---
 
-            # --- fixed-mode entry sizing tests ---
+            # --- fixed-mode MANUAL entry sizing tests (ENG-018: this is the operator route) ---
             # TESTFIXED has szDecimals=0 (integer lots) at $1.40/unit.
             # fixed_notional=10.5: raw=7.5, floor=7 ($9.80 < $10), ceil=8 ($11.20 >= $10).
             # These tests verify ceiling rounding and that no MIN_NOTIONAL_AFTER_ROUNDING fires.
+            # The wallet's fixed_notional sizes a MANUAL send only: an AUTO-LIVE fixed open takes its size
+            # from the planner (see test_eng018_auto_live_fixed_planner_size.py), never from wallet config.
             HL_PERP_META_BY_COIN_CACHE = {"TESTFIXED": {"szDecimals": 0, "name": "TESTFIXED"}}
             _wlcfg_fe = load_json(APP_CONFIG_FILE, {})
             _wlcfg_fe["wallets"][wallet]["copy_mode"] = "fixed"
@@ -4620,7 +4635,7 @@ def self_test() -> bool:
             }
             append_csv(WOULD_SEND_ORDERS_CSV, WOULD_SEND_ORDER_FIELDS, _fe_row)
             # 1. Preview: fixed mode overrides huge leader size with ceil(10.5/1.40)=8
-            _fe_prev = manual_send_one_intent("fixed-entry-huge", False, auto_live=True, auto_send_wallet=wallet)
+            _fe_prev = manual_send_one_intent("fixed-entry-huge", False)
             if _fe_prev.get("status") != "CONFIRM_REQUIRED":
                 raise AssertionError(f"fixed entry preview should be CONFIRM_REQUIRED: {_fe_prev}")
             if round(fnum(_fe_prev.get("payload", {}).get("copy_size")), 8) != 8.0:
@@ -4630,7 +4645,7 @@ def self_test() -> bool:
             if fnum(_fe_prev.get("payload", {}).get("manual_open_cap")) < 11.0:
                 raise AssertionError(f"fixed entry manual_open_cap should accommodate ceil notional: {_fe_prev.get('payload', {}).get('manual_open_cap')}")
             # 2. Confirm send via fake_sender: must not return MIN_NOTIONAL_AFTER_ROUNDING
-            _fe_sent = manual_send_one_intent("fixed-entry-huge", True, auto_live=True, auto_send_wallet=wallet)
+            _fe_sent = manual_send_one_intent("fixed-entry-huge", True)
             if _fe_sent.get("status") == "MIN_NOTIONAL_AFTER_ROUNDING":
                 raise AssertionError(f"fixed entry fixed_notional>=10 must not produce MIN_NOTIONAL_AFTER_ROUNDING: {_fe_sent}")
             if _fe_sent.get("status") != "ORDER_FILLED":
@@ -4641,7 +4656,7 @@ def self_test() -> bool:
             _fe_below_row = dict(_fe_row)
             _fe_below_row["intent_id"] = "fixed-entry-below-min"
             append_csv(WOULD_SEND_ORDERS_CSV, WOULD_SEND_ORDER_FIELDS, _fe_below_row)
-            _fe_below = manual_send_one_intent("fixed-entry-below-min", False, auto_live=True, auto_send_wallet=wallet)
+            _fe_below = manual_send_one_intent("fixed-entry-below-min", False)
             if _fe_below.get("status") != "FIXED_NOTIONAL_BELOW_MIN":
                 raise AssertionError(f"fixed_notional=5 must return FIXED_NOTIONAL_BELOW_MIN: {_fe_below}")
             if _fe_below.get("min_order_notional") != MIN_ORDER_NOTIONAL:
@@ -4655,7 +4670,7 @@ def self_test() -> bool:
             _fe_prop_row["copy_size"] = 100.0
             _fe_prop_row["copy_notional"] = 140.0
             append_csv(WOULD_SEND_ORDERS_CSV, WOULD_SEND_ORDER_FIELDS, _fe_prop_row)
-            _fe_prop = manual_send_one_intent("fixed-entry-prop", False, auto_live=True, auto_send_wallet=wallet)
+            _fe_prop = manual_send_one_intent("fixed-entry-prop", False)
             if _fe_prop.get("status") != "CONFIRM_REQUIRED":
                 raise AssertionError(f"proportional entry preview should be CONFIRM_REQUIRED: {_fe_prop}")
             if round(fnum(_fe_prop.get("payload", {}).get("copy_size")), 8) != 100.0:
