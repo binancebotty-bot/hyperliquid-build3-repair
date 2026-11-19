@@ -8392,7 +8392,7 @@ class SenderGateway:
         proof = self._fill_proof_for_sleeve(w, k)
         if proof["unreadable"]:
             return 0.0, "fills_unreadable"
-        if proof["fills_rows"] or proof["repair_rows"]:
+        if proof["fills_rows"]:
             proven = float(proof["fills_delta"])  # REAL fills only: repair deltas are never added
             return (0.0 if abs(proven) <= POSITION_EPSILON else proven), "fills"
         if self.ledger is not None:
@@ -8489,11 +8489,18 @@ class SenderGateway:
         # (CLOSE_PROOF_HOLD_FOREIGN_UNITS / ..._FOREIGN_CROSS) and stays.
         foreign = actual - led
         equal_net = abs(foreign) <= tol
+        # Netting lag (F3): exchange position is closer to flat than ledger position (foreign*led < 0).
+        # This happens when another leader's opposite fill has executed on the exchange but not yet
+        # recorded in the ledger. Allow the close to be sent with reduce-only; the netting retry
+        # logic (SenderGateway._send_real lines 9876-9907) will handle REDUCE_ONLY_REJECTED by
+        # waiting for ledger catch-up and resending without reduce-only.
+        netting_lag = foreign * led < 0
         safe_foreign = (actual * owned > 0 and led * actual >= 0
                         and foreign * owned > 0 and abs(actual) + tol >= abs(led))
-        if not (equal_net or safe_foreign):
+        if not (equal_net or safe_foreign or netting_lag):
             return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_UNITS")
-        if not equal_net and actual * side >= 0:
+        # Netting lag (F3): skip NET_NOT_OPPOSING hold when exchange position is stale (closer to flat than ledger)
+        if not equal_net and actual * side >= 0 and not netting_lag:
             # item 2: foreign residue only - the order does not oppose the real net. On the equal_net
             # path there is no such hold: sleeve netting may legitimately raise gross (Boss settled).
             return decide("HOLD", why="CLOSE_PROOF_HOLD_NET_NOT_OPPOSING")
@@ -8523,7 +8530,7 @@ class SenderGateway:
                 except Exception as exc:
                     log_error("close_escalation_write_failed", exc)
         else:
-            ro = actual * delta < 0 and amount <= abs(actual) + tol  # from the REAL net, never forced
+            ro = True if netting_lag else (actual * delta < 0 and amount <= abs(actual) + tol)  # from the REAL net, never forced; netting lag forces reduce-only
             if safe_foreign and not ro:  # foreign residue must never be crossed
                 return decide("HOLD", why="CLOSE_PROOF_HOLD_FOREIGN_CROSS")
         state["close_verified_sz_decimals"] = sz_dec
@@ -9878,9 +9885,22 @@ class SenderGateway:
                 # netting (F3): another leader's opposite fill moved the account before the records caught up. Wait
                 # for the ledger and exchange views to catch up (same coin = same worker, so nothing else of this
                 # coin is sent meanwhile) and resend once without reduce-only if they now agree.
+                # Check ledger net directly (not exchange net, which may be stale): reduce-only is needed only when
+                # the close opposes the LEDGER net and size <= abs(ledger net). When ledger net flips or goes flat,
+                # the close no longer needs reduce-only.
+                coin = canonical_coin_key(intent.fill.coin)
+                delta = ManualLedger.signed_delta(intent.copy_side, abs(wire_size))
                 deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_NETTING_RETRY_WAIT_SEC"), 3.0))
                 while True:
-                    if not self._reduce_only_on_wire(intent, wire_size):
+                    ledger_net = 0.0
+                    if self.ledger is not None:
+                        try:
+                            ledger_net = float(self.ledger.coin_net(coin))
+                        except Exception:
+                            ledger_net = 0.0
+                    # Reduce-only no longer needed when ledger net doesn't oppose the close or is too small
+                    reduce_only_needed = (ledger_net * delta < 0 and abs(delta) <= abs(ledger_net) + POSITION_EPSILON)
+                    if not reduce_only_needed:
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
                         self._supersede_attempt(timing, response, intent)
