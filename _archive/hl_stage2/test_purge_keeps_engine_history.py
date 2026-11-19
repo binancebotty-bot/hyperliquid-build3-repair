@@ -242,18 +242,22 @@ def main() -> None:
           and "rollback copy is written" in rendered,
           "purge tooltip still understates the purge")
 
-    # ---- migration: a plaintext tombstone from an older build still matches, then rewrites hashed
+    # ---- migration: a plaintext tombstone from an older build still matches, then rewrites hashed.
+    # FAIL CLOSED: a line nothing can parse is kept verbatim and counted, never silently dropped.
     legacy = tmp / "legacy_purged_wallets.txt"
     write(legacy, W + "\n" + "0xnot-a-wallet\n" + "garbage line\n")
     ui.PURGED_WALLETS_FILE = legacy
     loaded = ui.load_purged_wallets()
     check("PURGE_PLAINTEXT_TOMBSTONE_MATCHES_AFTER_MIGRATION",
-          is_purged(W) is True and is_purged(K) is False and loaded == {want_hash},
-          "loaded=%r" % (sorted(loaded),))
+          is_purged(W) is True and is_purged(K) is False
+          and want_hash in loaded and {"0xnot-a-wallet", "garbage line"} <= loaded
+          and len(ui.PURGE_UNPARSEABLE_ENTRIES) == 2,
+          "loaded=%r unparseable=%r" % (sorted(loaded), ui.PURGE_UNPARSEABLE_ENTRIES))
     ui.save_purged_wallets(loaded)
-    rewritten = legacy.read_text(encoding="utf-8").split()
+    rewritten = legacy.read_text(encoding="utf-8").splitlines()
     check("PURGE_MIGRATION_REWRITES_TOMBSTONE_HASHED",
-          rewritten == [want_hash] and W not in legacy.read_text(encoding="utf-8"),
+          want_hash in rewritten and W not in legacy.read_text(encoding="utf-8")
+          and {"0xnot-a-wallet", "garbage line"} <= set(rewritten),
           "rewritten=%r" % (rewritten,))
 
     try:

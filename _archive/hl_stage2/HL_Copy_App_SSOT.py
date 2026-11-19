@@ -420,36 +420,84 @@ def purge_tombstone(value: Any) -> str:
     return hashlib.sha256(normalise_wallet_for_purge(text).encode("utf-8")).hexdigest()
 
 
+PURGE_UNPARSEABLE_ENTRIES: List[str] = []
+_PURGE_UNPARSEABLE_ALERTED: set[Tuple[str, ...]] = set()
+
+
+def _split_tombstones(values: Iterable[Any]) -> Tuple[set[str], List[str]]:
+    """(tombstones, unparseable) from raw lines or set members; blank padding is not an entry."""
+    tombstones: set[str] = set()
+    unparseable: List[str] = []
+    for value in values:
+        text = str(value or "").strip().lower()
+        if not text:
+            continue
+        try:
+            tombstones.add(purge_tombstone(text))
+        except ValueError:
+            unparseable.append(text)
+    return tombstones, unparseable
+
+
+def _alert_unparseable(entries: List[str]) -> None:
+    """FAIL CLOSED: an entry this build cannot parse is kept in the purge set and named aloud.
+
+    Alerted once per distinct set, because load_purged_wallets() runs on every dashboard render.
+    """
+    PURGE_UNPARSEABLE_ENTRIES[:] = list(entries)
+    signature = tuple(sorted(entries))
+    if not signature or signature in _PURGE_UNPARSEABLE_ALERTED:
+        return
+    _PURGE_UNPARSEABLE_ALERTED.add(signature)
+    print("PURGE_UNPARSEABLE_ENTRY count=%d file=%s entries=%r treated=PURGED"
+          % (len(entries), PURGED_WALLETS_FILE.name, entries), flush=True)
+
+
 def load_purged_wallets() -> set[str]:
     """sha256 tombstones. A plaintext line written by an older build is hashed here so it still
-    matches its wallet exactly once, and the file is rewritten hashed on the next save. A line that
-    is neither a tombstone nor a wallet address is skipped, never fatal.
+    matches its wallet exactly once, and the file is rewritten hashed on the next save.
+
+    FAIL CLOSED: a line that is neither a tombstone nor a wallet address is kept VERBATIM in the
+    returned set and alerted by name, never skipped - skipping it would silently unblock whichever
+    wallet it was written to purge, which is the one direction this list must not fail in.
     """
     if not PURGED_WALLETS_FILE.exists():
+        _alert_unparseable([])
         return set()
-    tombstones: set[str] = set()
-    for line in PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines():
-        try:
-            tombstones.add(purge_tombstone(line))
-        except ValueError:
-            continue
-    return tombstones
+    tombstones, unparseable = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
+    _alert_unparseable(unparseable)
+    return tombstones | set(unparseable)
 
 
 def is_purged(wallet: Any, tombstones: Optional[set[str]] = None) -> bool:
     """Membership test for the purge list; pass a loaded set to avoid re-reading the file."""
+    loaded = load_purged_wallets() if tombstones is None else tombstones
+    text = str(wallet or "").strip().lower()
+    if text and text in loaded:
+        # an unparseable entry is stored verbatim, so the exact key that wrote it stays blocked
+        return True
     try:
-        return purge_tombstone(wallet) in (load_purged_wallets() if tombstones is None else tombstones)
+        return purge_tombstone(text) in loaded
     except ValueError:
         return False
 
 
 def save_purged_wallets(tombstones: set[str]) -> None:
+    """Write hashes plus any entry this build cannot parse, carried over from disk verbatim.
+
+    A caller set that never saw an unreadable entry must not be able to erase it, so unparseable
+    lines already on disk are merged in and re-alerted rather than rewritten away.
+    """
+    candidates = set(tombstones)
+    if PURGED_WALLETS_FILE.exists():
+        _, on_disk = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
+        candidates |= set(on_disk)
+    valid, unparseable = _split_tombstones(candidates)
+    _alert_unparseable(unparseable)
     PURGED_WALLETS_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = _unique_tmp_path(PURGED_WALLETS_FILE)
-    valid = sorted(purge_tombstone(t) for t in tombstones)
     with _FILE_WRITE_LOCK:
-        tmp.write_text("".join(f"{w}\n" for w in valid), encoding="utf-8")
+        tmp.write_text("".join(f"{w}\n" for w in sorted(valid | set(unparseable))), encoding="utf-8")
         _replace_with_retries(tmp, PURGED_WALLETS_FILE)
 
 
