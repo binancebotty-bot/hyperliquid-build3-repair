@@ -3477,7 +3477,7 @@
       "id": "UI-WALLET-015",
       "area": "WALLET",
       "feature": "PURGE (admin)",
-      "expected_behaviour": "Purge removes the wallet from app/engine-loaded files; must be refused or safe when the wallet owns exposure.",
+      "expected_behaviour": "Purge clears the operator wallet's metadata (app config, caches, live state) and must be refused or safe when the wallet owns exposure; engine history and positions are retained by design.",
       "sources": [
         "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) /api/admin/purge-wallet"
       ],
