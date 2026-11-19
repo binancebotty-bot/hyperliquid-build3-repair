@@ -127,19 +127,21 @@ def main() -> None:
     r = agent.post("/api/admin/purge-wallet", data={"wallet": P}, headers={"X-Requested-With": "fetch"})
     proof = r.json() if r.status_code == 200 else {}
     after = stored()
-    purged = (ui.PURGED_WALLETS_FILE.read_text(encoding="utf-8").split() if ui.PURGED_WALLETS_FILE.exists() else [])
+    tombstone = (ui.PURGED_WALLETS_FILE.read_text(encoding="utf-8").split() if ui.PURGED_WALLETS_FILE.exists() else [])
+    purged = ui.load_purged_wallets()
     served = agent.get("/api/ui-state").json()
     guard = agent.post("/api/admin/purge-wallet", data={"wallet": ui.USER_WALLET},
                        headers={"X-Requested-With": "fetch"})
-    guard_held = guard.status_code == 400 and ui.USER_WALLET.lower() not in [w.lower() for w in purged]
+    guard_held = guard.status_code == 400 and not ui.is_purged(ui.USER_WALLET, purged)
     check("UI_ROUTE_13_PURGE_WALLET_PERSISTS",
           seeded and r.status_code == 200 and proof.get("ok") is True
           and proof.get("json_removed", {}).get("ui_state.json") == 3
           and P not in (after.get("wallet_config") or {}) and P not in (after.get("wallet_include") or {})
           and P not in (after.get("wallet_meta") or {})
-          and P in purged and P not in (served.get("wallet_config") or {}) and guard_held,
+          and P not in tombstone and ui.is_purged(P, purged)
+          and P not in (served.get("wallet_config") or {}) and guard_held,
           f"seeded={seeded} status={r.status_code} proof_json_removed={proof.get('json_removed')} "
-          f"wallet_meta={after.get('wallet_meta')} purged={purged} guard_held={guard_held}")
+          f"wallet_meta={after.get('wallet_meta')} tombstone={tombstone} guard_held={guard_held}")
 
     # ---- UI-ROUTE-16 -----------------------------------------------------------------------------
     r = agent.post("/api/ui-state", data={"norm_base": "250", "copy_mode": "fixed", "fixed_notional": "7.5",

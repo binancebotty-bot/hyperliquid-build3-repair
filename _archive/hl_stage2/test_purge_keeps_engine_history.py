@@ -70,6 +70,11 @@ def main() -> None:
                        "HL_FOLLOWER_NETWORK": "testnet"})
     import HL_Copy_App_SSOT as ui
 
+    def is_purged(wallet):
+        """Membership must go through the app's helper; a missing helper is a FAIL, not a crash."""
+        helper = getattr(ui, "is_purged", None)
+        return bool(helper and helper(wallet))
+
     # --- repoint every path the purge can reach into the temp dir ------------------------
     data, audit = tmp / "hl_copy_output", tmp / "audit"
     ui.DATA_DIR, ui.LIVE_COPY_AUDIT_DIR = data, audit
@@ -160,12 +165,25 @@ def main() -> None:
     manual = ui.MANUAL_WALLETS_FILE.read_text(encoding="utf-8").split()
     gate = json.loads(ui.WALLET_GATE_FILE.read_text(encoding="utf-8"))
     live = (json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8")).get("wallets") or {})
-    purged = (ui.PURGED_WALLETS_FILE.read_text(encoding="utf-8").split()
-              if ui.PURGED_WALLETS_FILE.exists() else [])
+    tombstone_lines = (ui.PURGED_WALLETS_FILE.read_text(encoding="utf-8").split()
+                       if ui.PURGED_WALLETS_FILE.exists() else [])
     check("PURGE_INCLUDE_GATE_LIVE_CONFIG_CLEARED",
           W not in manual and K in manual and W not in gate and K in gate
-          and W not in live and K in live and W in purged,
-          "manual=%r gate=%r live=%r purged=%r" % (manual, sorted(gate), sorted(live), purged))
+          and W not in live and K in live,
+          "manual=%r gate=%r live=%r" % (manual, sorted(gate), sorted(live)))
+
+    # ---- tombstone: the permanent file holds a hash, never the address -------------------
+    want_hash = hashlib.sha256(W.encode("utf-8")).hexdigest()
+    raw_tombstone = ui.PURGED_WALLETS_FILE.read_text(encoding="utf-8")
+    check("PURGE_TOMBSTONE_HASHED_NOT_PLAINTEXT",
+          W not in raw_tombstone and K not in raw_tombstone
+          and tombstone_lines == [want_hash],
+          "lines=%r want=%s" % (tombstone_lines, want_hash))
+
+    # membership must answer both ways, or the check above is vacuous
+    check("PURGE_MEMBERSHIP_HELPER_TRUE_AND_FALSE",
+          is_purged(W) is True and is_purged(K) is False,
+          "W=%r K=%r" % (is_purged(W), is_purged(K)))
 
     projections = {p.name: wallet_col(p) for p in
                    (ui.COPY_TRADES_CSV, ui.EXPECTED_COPY_FILLS_CSV, ui.LIVE_WALLET_METRICS_CSV)}
@@ -216,6 +234,27 @@ def main() -> None:
     note = str(proof.get("note") or "").lower()
     check("PURGE_RESULT_SAYS_HISTORY_KEPT",
           "history" in note and "position" in note and "kept" in note, "note=%r" % (proof.get("note"),))
+
+    # the button tooltip is what tells the operator what a purge does: metadata only, not erasure
+    rendered = ui.render_row({"wallet": W}, 1.0, {})
+    check("PURGE_UI_WORDING_HONEST",
+          "metadata only" in rendered and "engine history and positions are kept" in rendered
+          and "rollback copy is written" in rendered,
+          "purge tooltip still understates the purge")
+
+    # ---- migration: a plaintext tombstone from an older build still matches, then rewrites hashed
+    legacy = tmp / "legacy_purged_wallets.txt"
+    write(legacy, W + "\n" + "0xnot-a-wallet\n" + "garbage line\n")
+    ui.PURGED_WALLETS_FILE = legacy
+    loaded = ui.load_purged_wallets()
+    check("PURGE_PLAINTEXT_TOMBSTONE_MATCHES_AFTER_MIGRATION",
+          is_purged(W) is True and is_purged(K) is False and loaded == {want_hash},
+          "loaded=%r" % (sorted(loaded),))
+    ui.save_purged_wallets(loaded)
+    rewritten = legacy.read_text(encoding="utf-8").split()
+    check("PURGE_MIGRATION_REWRITES_TOMBSTONE_HASHED",
+          rewritten == [want_hash] and W not in legacy.read_text(encoding="utf-8"),
+          "rewritten=%r" % (rewritten,))
 
     try:
         ui.purge_wallet_app_config(ui.USER_WALLET)

@@ -23,6 +23,7 @@ or:
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -37,7 +38,7 @@ import urllib.request
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 try:
@@ -407,22 +408,46 @@ def normalise_wallet_for_purge(wallet: Any) -> str:
     return value
 
 
+def purge_tombstone(value: Any) -> str:
+    """sha256 hex tombstone of a wallet address; an existing tombstone passes through.
+
+    purged_wallets.txt is permanent, so it must never hold a plaintext address: the only address
+    prefix that survives on disk is the one in backup_purge_files()' directory name, by design.
+    """
+    text = str(value or "").strip().lower()
+    if len(text) == 64 and all(c in "0123456789abcdef" for c in text):
+        return text
+    return hashlib.sha256(normalise_wallet_for_purge(text).encode("utf-8")).hexdigest()
+
+
 def load_purged_wallets() -> set[str]:
+    """sha256 tombstones. A plaintext line written by an older build is hashed here so it still
+    matches its wallet exactly once, and the file is rewritten hashed on the next save. A line that
+    is neither a tombstone nor a wallet address is skipped, never fatal.
+    """
     if not PURGED_WALLETS_FILE.exists():
         return set()
-    wallets: set[str] = set()
+    tombstones: set[str] = set()
     for line in PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines():
         try:
-            wallets.add(normalise_wallet_for_purge(line))
+            tombstones.add(purge_tombstone(line))
         except ValueError:
             continue
-    return wallets
+    return tombstones
 
 
-def save_purged_wallets(wallets: set[str]) -> None:
+def is_purged(wallet: Any, tombstones: Optional[set[str]] = None) -> bool:
+    """Membership test for the purge list; pass a loaded set to avoid re-reading the file."""
+    try:
+        return purge_tombstone(wallet) in (load_purged_wallets() if tombstones is None else tombstones)
+    except ValueError:
+        return False
+
+
+def save_purged_wallets(tombstones: set[str]) -> None:
     PURGED_WALLETS_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = _unique_tmp_path(PURGED_WALLETS_FILE)
-    valid = sorted(normalise_wallet_for_purge(w) for w in wallets)
+    valid = sorted(purge_tombstone(t) for t in tombstones)
     with _FILE_WRITE_LOCK:
         tmp.write_text("".join(f"{w}\n" for w in valid), encoding="utf-8")
         _replace_with_retries(tmp, PURGED_WALLETS_FILE)
@@ -480,28 +505,32 @@ def remove_wallet_rows_from_csv(path: Path, wallet: str) -> int:
     return removed
 
 
-def _remove_wallet_from_json_obj(obj: Any, wallet: str) -> Tuple[Any, int]:
+def _drop_wallet_entries(obj: Any, match: Callable[[str], bool]) -> Tuple[Any, int]:
     removed = 0
     if isinstance(obj, dict):
-        if wallet in obj:
-            obj.pop(wallet, None)
+        for key in [k for k in obj if isinstance(k, str) and match(k)]:
+            obj.pop(key, None)
             removed += 1
         for key in list(obj.keys()):
-            child, child_removed = _remove_wallet_from_json_obj(obj[key], wallet)
+            child, child_removed = _drop_wallet_entries(obj[key], match)
             obj[key] = child
             removed += child_removed
         return obj, removed
     if isinstance(obj, list):
         kept: List[Any] = []
         for item in obj:
-            if isinstance(item, dict) and str(item.get("wallet", "")).strip().lower() == wallet:
+            if isinstance(item, dict) and match(str(item.get("wallet", "")).strip().lower()):
                 removed += 1
                 continue
-            child, child_removed = _remove_wallet_from_json_obj(item, wallet)
+            child, child_removed = _drop_wallet_entries(item, match)
             kept.append(child)
             removed += child_removed
         return kept, removed
     return obj, 0
+
+
+def _remove_wallet_from_json_obj(obj: Any, wallet: str) -> Tuple[Any, int]:
+    return _drop_wallet_entries(obj, lambda key: key == wallet)
 
 
 def remove_wallet_from_json(path: Path, wallet: str) -> int:
@@ -529,9 +558,14 @@ def purge_wallet_app_config(wallet: str) -> Dict[str, Any]:
         live_wallet_metrics.csv: this wallet's rows (the app rebuilds them from engine truth)
       - the derived app caches app_model_state.json, portfolio_history.json and
         equity_history.json: whole files, rebuilt on the next load
-      - appends the wallet to purged_wallets.txt so the app's read paths (load_engine_truth,
-        load_raw_fills) keep hiding it without editing any engine file
-    Every file it touches is copied to hl_copy_output/purge_backups/<stamp>_<wallet[:8]>/ first.
+      - appends sha256(wallet) to purged_wallets.txt so the app's read paths (load_engine_truth,
+        load_raw_fills) keep hiding it without editing any engine file. The tombstone file holds
+        hashes only, never a plaintext address; is_purged() is the membership test, and a plaintext
+        line left by an older build is hashed on read and rewritten hashed on the next save
+    backup_purge_files() copies every file it touches to
+    hl_copy_output/purge_backups/<timestamp>_<first 8 hex of the wallet>/ first, so the wallet's
+    address prefix stays visible in that backup directory name by design: this purge clears wallet
+    metadata, it is not an erasure of records.
 
     It does NOT remove engine history or positions, because a retired wallet can still hold a
     position that has to be closed: the append-only engine audit (live_fills.csv, order_intents.csv,
@@ -560,9 +594,9 @@ def purge_wallet_app_config(wallet: str) -> Dict[str, Any]:
     derived_files = [APP_MODEL_STATE_JSON, PORTFOLIO_HISTORY_FILE, EQUITY_HISTORY_FILE]
     backup_dir = backup_purge_files(wallet, text_files + json_files + csv_files + derived_files)
 
-    purged = load_purged_wallets()
-    purged.add(wallet)
-    save_purged_wallets(purged)
+    tombstones = load_purged_wallets()
+    tombstones.add(purge_tombstone(wallet))
+    save_purged_wallets(tombstones)
 
     text_removed = {
         "manual_wallets.txt": remove_wallet_from_text_file(MANUAL_WALLETS_FILE, wallet),
@@ -613,7 +647,7 @@ def purge_wallet_app_config(wallet: str) -> Dict[str, Any]:
     invalidate_model_cache()
     return {
         "ok": True,
-        "note": "app config, caches and live state cleared; engine history and positions kept",
+        "note": "wallet metadata cleared; engine history and positions kept; a rollback copy was written",
         "wallet": wallet,
         "backup_dir": str(backup_dir),
         "text_removed": text_removed,
@@ -842,8 +876,9 @@ def load_engine_truth() -> Dict[str, Any]:
         truth = legacy if isinstance(legacy, dict) else {}
     # ADMIN MAINTENANCE ONLY: locally blacklisted wallets stay hidden from
     # dashboard/model reads even if an active engine-loaded file is repopulated.
-    for wallet in load_purged_wallets():
-        truth, _ = _remove_wallet_from_json_obj(truth, wallet)
+    purged = load_purged_wallets()
+    if purged:
+        truth, _ = _drop_wallet_entries(truth, lambda key: is_purged(key, purged))
     return truth
 
 
@@ -4662,7 +4697,7 @@ def load_raw_fills() -> List[RawFill]:
     with RAW_FILLS_CSV.open("r", newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             fill = parse_raw_fill_row(row)
-            if fill is None or fill.fill_id in seen or fill.wallet in purged:
+            if fill is None or fill.fill_id in seen or is_purged(fill.wallet, purged):
                 continue
             seen.add(fill.fill_id)
             fills.append(fill)
@@ -7080,7 +7115,7 @@ def render_row(r: Dict[str, Any], base: float, ui: Dict[str, Any], state: Option
             wallet_color_cls = f" wallet-color-{html.escape(color)}"
         inc_cell = f"""<form action="/api/wallet-include" method="post" class="inc-form" title="Include/exclude this wallet from combined graph and header cards only"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><input type="checkbox" name="included" value="1" {'checked' if included else ''} onchange="this.form.requestSubmit()"><span class="small">INC</span></form>"""
         cfg_cell = f"""<form action="/api/wallet-config" method="post" class="wallet-cfg"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><select name="copy_mode"><option value="" {'selected' if not r.get('wallet_config') else ''}>global</option><option value="proportional" {'selected' if eff_mode == 'proportional' and r.get('wallet_config') else ''}>prop</option><option value="fixed" {'selected' if eff_mode == 'fixed' and r.get('wallet_config') else ''}>fixed</option></select><input name="norm_base" value="{eff_base:g}" size="5" title="wallet normalisation base"><input name="fixed_notional" value="{eff_fixed:g}" size="4" title="wallet fixed $"><button title="save wallet override">Set</button></form>"""
-        purge_cell = f"""<form action="/api/admin/purge-wallet" method="post" class="purge-form" title="ADMIN MAINTENANCE ONLY: clear this wallet's app config (engine history and positions are kept)"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><button class="purge-btn" title="purge wallet">PURGE</button></form>"""
+        purge_cell = f"""<form action="/api/admin/purge-wallet" method="post" class="purge-form" title="ADMIN MAINTENANCE ONLY: clears this wallet's metadata only; engine history and positions are kept; a rollback copy is written to purge_backups"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><button class="purge-btn" title="purge wallet">PURGE</button></form>"""
         meta_link = f'<a href="/wallet-meta/{html.escape(wallet)}" class="meta-edit-link" title="Edit wallet tag / color / note">Meta</a>'
     row_cls = 'user' if r.get('is_user_wallet') else ''
     if not r.get('is_user_wallet') and not included: row_cls += ' excluded-row'
@@ -7174,7 +7209,7 @@ document.addEventListener('submit',async e=>{{
   }}
   e.preventDefault();markBusy(5000);form.classList.add('saving');
   try{{const r=await fetch(form.action,{{method:'POST',body:new FormData(form),headers:{{'X-Requested-With':'fetch'}}}});
-    if(form.matches('.purge-form')){{const j=await r.json().catch(()=>({{}}));if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));flash(j.note||'app config cleared; history and positions kept','pos');saveViewState();setTimeout(()=>location.reload(),2500);return;}}
+    if(form.matches('.purge-form')){{const j=await r.json().catch(()=>({{}}));if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));flash(j.note||'wallet metadata cleared; history and positions kept; a rollback copy was written','pos');saveViewState();setTimeout(()=>location.reload(),2500);return;}}
     if(!r.ok)throw new Error('HTTP '+r.status);saveViewState();setTimeout(()=>location.reload(),150);}}
   catch(err){{console.warn('save failed',err);flash(String((err&&err.message)||'save failed'),'neg');}}
   finally{{form.classList.remove('saving');restoreViewState();}}
@@ -7482,7 +7517,7 @@ async def api_wallet_meta(request: Request):
 
 @app.post("/api/admin/purge-wallet")
 async def admin_purge_wallet(request: Request):
-    """ADMIN MAINTENANCE ONLY: clear a wallet's app config and caches; history and positions are kept."""
+    """ADMIN MAINTENANCE ONLY: clear a wallet's metadata; engine history and positions are kept and a rollback copy is written."""
     form = await request.form()
     try:
         proof = purge_wallet_app_config(str(form.get("wallet", "")))
