@@ -28,11 +28,13 @@ class Ledger:
 
 ESC = []
 WIRES = []
-def plan(side, size, led, ex, mode="ON", dust=False, readable=True, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON", owned=None, no_ledger=False):
+def plan(side, size, led, ex, mode="ON", dust=False, readable=True, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON", owned=None, no_ledger=False, no_fills=False):
     ESC.clear(); WIRES.clear()
     me = SimpleNamespace(ledger=None if no_ledger else Ledger(led, (size if owned is None else owned)), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
     me._open_close_escalation = lambda intent, reason: ESC.append(reason)
-    me._proven_owned_for_sleeve = lambda w, c: ((0.0, "no_proof") if owned == "UNPROVABLE" else (size if owned is None else owned, "fills"))
+    me._proven_owned_for_sleeve = lambda w, c: (
+        (0.0, "ledger_sleeve_without_fills") if no_fills else
+        ((0.0, "no_proof") if owned == "UNPROVABLE" else (size if owned is None else owned, "fills")))
     me._close_proof_account_ok = lambda: True
     me._follower_order_account_for_proof = lambda *a, **k: c.USER_WALLET
     me._reduce_only_for_intent = lambda i: lifecycle_exit
@@ -124,6 +126,11 @@ check("TRIM_BELOW_MIN_NOTIONAL_FOREIGN_UNITS_HOLDS", plan("SELL", 10, 10, 4, min
 check("TRIM_WITHOUT_MIN_CHECK_FOREIGN_UNITS_HOLDS", plan("SELL", 10, 10, 4) == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_UNITS"))
 check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK, owned=-10) == (True, 10.0, ""))
 check("PURE_REDUCTION_OPPOSING_WITHIN_NET_REDUCE_ONLY", plan("SELL", 5, 20, 20, min_ok=OK) == (True, 5.0, ""))
+# BOSS 2026-11-18 ownership ruling: ZERO engine-origin, exchange-confirmed fills is NOT ownership.
+r = plan("SELL", 2.0, 2.0, 2.0, min_ok=OK, no_fills=True)
+check("LEDGER_ONLY_NO_FILLS_SENDS_NOTHING_AND_ALERTS",
+      r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+      and ESC == ["CLOSE_PROOF_LEDGER_SLEEVE_WITHOUT_FILLS"] and WIRES == [], str((r, ESC, WIRES)))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)

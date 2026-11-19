@@ -8383,23 +8383,25 @@ class SenderGateway:
         away the proof UNDER-states ownership, which fails closed (smaller close or a HOLD) - never over-states.
         A sleeve whose real fills sum to zero proves zero; the ledger is NOT consulted as a fallback.
 
-        origin "fills"                   the sleeve has fill/repair rows: the value is the fill sum above.
-        origin "ledger_sleeve_no_fills"  the sleeve has NO rows at all - the ONE ledger fallback; the caller
-                                        writes proven_from=ledger_sleeve_no_fills into the row.
+        origin "fills"                   >=1 engine-origin, exchange-confirmed fill row: the value is the fill sum.
+        origin "ledger_sleeve_without_fills"  a ledger sleeve exists but there is NO exchange-confirmed fill:
+                                        NOT ownership. Proves ZERO; the caller alerts and sends nothing.
         origin "fills_unreadable"/"no_proof"  nothing could be proven: fail closed, no fallback.
         """
         w, k = normalise_wallet(wallet), canonical_coin_key(coin)
         proof = self._fill_proof_for_sleeve(w, k)
         if proof["unreadable"]:
             return 0.0, "fills_unreadable"
-        if proof["fills_rows"] or proof["repair_rows"]:
+        if proof["fills_rows"]:
             proven = float(proof["fills_delta"])  # REAL fills only: repair deltas are never added
             return (0.0 if abs(proven) <= POSITION_EPSILON else proven), "fills"
+        # BOSS 2026-11-18: ZERO engine-origin, exchange-confirmed fills is NOT proof of ownership.
+        # A ledger-only sleeve is a NAMED NO-PROOF case, never an authorised fallback. Read the raw
+        # ledger map here - sleeve() auto-creates a zero sleeve and would label every wallet as owned.
         if self.ledger is not None:
-            try:
-                return float(self.ledger.sleeve(w, k).get("signed_size", 0.0)), "ledger_sleeve_no_fills"
-            except Exception as exc:
-                log_error("proven_owned_for_sleeve_ledger", exc)
+            row = ((self.ledger.data.get("by_wallet") or {}).get(w) or {}).get(k)
+            if isinstance(row, dict) and "signed_size" in row:
+                return 0.0, "ledger_sleeve_without_fills"
         return 0.0, "no_proof"
 
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
@@ -8450,8 +8452,13 @@ class SenderGateway:
             proven_owned, proven_from = self._proven_owned_for_sleeve(wallet, coin)
         state["close_proven_from"] = proven_from
         state["close_proven_owned"] = proven_owned
-        if proven_from == "ledger_sleeve_no_fills":  # the ONE fallback: no fills rows at all -> say so in the row
-            state["close_proven_note"] = "proven_from=ledger_sleeve_no_fills; owned=%.10g" % proven_owned
+        if proven_from == "ledger_sleeve_without_fills":
+            # BOSS 2026-11-18: a ledger-only sleeve is NOT ownership. No wire, named escalation.
+            state["close_proven_note"] = "ledger-only sleeve; no exchange-confirmed engine-origin fill: no ownership proof"
+            try:
+                self._open_close_escalation(intent, "CLOSE_PROOF_LEDGER_SLEEVE_WITHOUT_FILLS")
+            except Exception as exc:
+                log_error("close_escalation_write_failed", exc)
         if abs(proven_owned) <= tol:
             if abs(owned) <= tol and abs(led) <= tol and (actual is None or abs(actual) <= tol):
 
@@ -8657,9 +8664,17 @@ class SenderGateway:
 
     def _close_lag_window_expired(self, intent: Intent, requested: float, sz_dec: Optional[int], side: float,
                                   tol: float, decide: Any) -> Tuple[bool, float, str]:
-        """Unproven ownership after the hold: no wire; alert and hold RED."""
+        """Unproven ownership after the hold: no wire; alert and hold RED. A ledger-only sleeve
+        with zero exchange-confirmed fills gets the NAMED alert, not the generic one."""
         try:
-            self._open_close_escalation(intent, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")
+            reason = "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE"
+            try:
+                _, origin = self._proven_owned_for_sleeve(intent.fill.leader_wallet, intent.fill.coin)
+            except Exception:
+                origin = ""
+            if origin == "ledger_sleeve_without_fills":
+                reason = "CLOSE_PROOF_LEDGER_SLEEVE_WITHOUT_FILLS"
+            self._open_close_escalation(intent, reason)
         except Exception as exc:
             log_error("close_escalation_write_failed", exc)
         return decide("HOLD", why="CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE")

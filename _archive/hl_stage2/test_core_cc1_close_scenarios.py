@@ -18,6 +18,7 @@ Standalone process: python test_core_c7_close_must_send.py
 Prints RESULT::<NAME>_PASS|_FAIL per check and TOTAL=n FAILED=m; exits non-zero when anything failed.
 """
 import csv
+import math
 import os
 import sys
 import time
@@ -54,7 +55,7 @@ OID_WALLET = "0x" + "f" * 40       # fill rows written only to feed the per-orde
 # fill-proof witnesses: each owns a wallet NO other witness ever writes a live_fills row for, so the
 # process-wide live_fills.csv (never truncated by the test) cannot prove one witness with another's rows.
 PROOF_W_REPAIR = "0x" + "e" * 40    # has real fills AND a CORE_LEDGER_REPAIR row
-PROOF_W_NOFILL = "0x" + "d1" * 20   # has NO live_fills rows at all -> the one ledger fallback
+PROOF_W_NOFILL = "0x" + "d1" * 20   # NO live_fills rows: ledger-only sleeve; sends NOTHING + named alert (not a fallback)
 RESOLVED = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
             "sdk_order_compatible": True, "min_order_value_usd": MIN_USD, "min_size": 0.0, "status": "OK"}
 
@@ -127,10 +128,24 @@ def set_sleeve(ledger, wallet, signed):
     ledger._recompute_net(ledger.data)
 
 
-def make_gateway(ex, ledger, net, account=ACCOUNT, snapshot=True):
+def make_gateway(ex, ledger, net, account=ACCOUNT, snapshot=True, proof_from_fills=True):
     """A real SenderGateway; the REAL _pre_send_ownership_gate, _validate_final_wire_order, _close_wire_plan and
-    send path run. Only data sources are replaced."""
+    send path run. Only data sources are replaced.
+
+    BOSS 2026-11-18: a ledger sleeve alone is not ownership. Ordinary close witnesses therefore declare
+    their already-copied sleeve at the fill-proof DATA source, exactly as an engine-origin fill row would;
+    the two dedicated fill-proof witnesses opt out so they still exercise the real live_fills.csv path.
+    The closure reads gw.ledger live so DOOR_3's 'ledger removed' case still sees zero proof.
+    """
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
+    if proof_from_fills:
+        def _declared_fill_proof(wallet, coin):
+            led_now = getattr(gw, "ledger", None)
+            signed = sleeve_of(led_now, wallet) if led_now is not None else 0.0
+            has_fill = bool(signed) and math.isfinite(signed)
+            return {"fills_rows": 1 if has_fill else 0, "fills_delta": signed if has_fill else 0.0,
+                    "repair_rows": 0, "repair_delta": 0.0, "unreadable": False}
+        gw._fill_proof_for_sleeve = _declared_fill_proof
     ex.physical_net = net
     gw._resolve_coin = lambda coin: dict(RESOLVED)
     gw._get_exchange_client = lambda *a, **k: ex
@@ -962,7 +977,7 @@ def _proof_fixture(wallet, sleeve=2.0, net=2.0, fid="proof-f"):
     """A gateway on an A/BTC sleeve whose LEDGER says ``sleeve`` and whose exchange net is ``net``, with an EMPTY
     live_fills.csv so only rows this witness writes can prove ownership."""
     led, ex, net_box = new_ledger(), FakeExchange(), [net]
-    gw = make_gateway(ex, led, net_box)
+    gw = make_gateway(ex, led, net_box, proof_from_fills=False)
     it = exit_intent(led, wallet, "SELL", abs(sleeve), fid, sleeve, start=sleeve)
     return led, ex, net_box, gw, it
 
@@ -984,17 +999,24 @@ def ledger_repair_rows_are_never_owned():
             ok, amount, why, t.get("close_proven_from"), t.get("close_proven_owned"), proven, origin, sleeve_of(led, A))
 
 
-def no_fill_rows_falls_back_to_the_ledger_sleeve_and_says_so():
-    """The ONE fallback: the sleeve has NO live_fills rows at all, so the ledger sleeve is used and the row
-    carries proven_from=ledger_sleeve_no_fills - the origin is visible, never silent."""
+def ledger_only_no_fills_sends_nothing_and_alerts():
+    """BOSS 2026-11-18 ownership ruling: a ledger-only sleeve with ZERO engine-origin,
+    exchange-confirmed fills is NOT proof of ownership. It MUST send NOTHING and raise the named
+    alert CLOSE_PROOF_LEDGER_SLEEVE_WITHOUT_FILLS. This REWRITES a previously-green assertion that
+    expected the ledger_sleeve_no_fills fallback to SEND 2.0: a visible provenance label is not
+    ownership. No wire, no plan, named hold, no physical call."""
     led, ex, net, gw, it = _proof_fixture(PROOF_W_NOFILL, sleeve=2.0, net=2.0, fid="proof-nofill-f")
+    alerts = []
+    gw._open_close_escalation = lambda intent, reason: alerts.append(reason)
     t = {}
-    ok, amount, why = gw._close_wire_plan(it, 2.0, 3, None, t)
-    note = str(t.get("close_proven_note") or "")
-    return (ok and abs(amount - 2.0) < 1e-9
-            and t.get("close_proven_from") == "ledger_sleeve_no_fills"
-            and "proven_from=ledger_sleeve_no_fills" in note), \
-        "ok=%r amount=%r why=%r from=%r note=%r" % (ok, amount, why, t.get("close_proven_from"), note)
+    ro, amount, why = gw._close_wire_plan(it, 2.0, 3, None, t)
+    return (ro is False and amount == 0.0
+            and why == "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE"
+            and t.get("close_proven_from") == "ledger_sleeve_without_fills"
+            and alerts == ["CLOSE_PROOF_LEDGER_SLEEVE_WITHOUT_FILLS"]
+            and ex.calls == []), \
+        "ro=%r amount=%r why=%r from=%r alerts=%r calls=%r (want ZERO wire + named alert)" % (
+            ro, amount, why, t.get("close_proven_from"), alerts, ex.calls)
 
 def main():
     started = time.perf_counter()
@@ -1033,8 +1055,8 @@ def main():
          missing_fill_equal_coin_net_is_not_proof),
         ("PROOF_LEDGER_REPAIR_ROW_IS_NOT_OWNED_WIRE_IS_THE_REAL_FILL_ONLY",
          ledger_repair_rows_are_never_owned),
-        ("PROOF_NO_FILLS_ROWS_FALLS_BACK_TO_THE_LEDGER_SLEEVE_AND_SAYS_SO",
-         no_fill_rows_falls_back_to_the_ledger_sleeve_and_says_so),
+        ("PROOF_LEDGER_ONLY_NO_FILLS_SENDS_NOTHING_AND_ALERTS",
+         ledger_only_no_fills_sends_nothing_and_alerts),
         ("RESTART_I05_I06_UNRESOLVED_RED_SURVIVES",
          unresolved_owed_survives_restart),
         ("CEILING_W2B_200PCT_SLEEVE_CLOSE_PLUS_EXCESS_CLIPPED_TO_ENTRY_SIZE",
