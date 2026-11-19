@@ -1,4 +1,5 @@
+graphify-out/
+*.log
+certification/results/
 __pycache__/
 *.pyc
-_archive/hl_stage2/hl_copy_output/
-_archive/hl_stage2/hl_live_copy_audit_*/
