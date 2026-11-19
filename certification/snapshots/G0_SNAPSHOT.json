@@ -230,36 +230,25 @@
   "not_a_gate_change": true,
   "moved_from": "certification/gate_changes.jsonl line 4 at 6f321066ddc9ece565b91d0c6b5138eaa41f5e5e (controller ruling: snapshots live in their own manifest)",
   "status": "IN_PROGRESS",
-  "blocked_on": "The active engine tree and the call-path admission are not yet reconciled. Read-only process evidence at 2026-11-19T13:04:50+00:00 found no running HL_Live_Copy_Service main process; only test/helper processes were observed under C:/Users/wigmore/oc-runs/w91-eng018/_archive/hl_stage2 (HEAD 7e27fc28f2566dbf305caa6494d7ced9de64f3d2). This snapshot stays IN_PROGRESS until the live tree and its exchange.order() call path are identified and admitted.",
-  "live_engine_tree_evidence": {
-    "method": "Read-only enumeration of process command lines and working directories with psutil.process_iter over all running processes. No process was started, stopped, restarted or modified; ports 8012/8014 and CONTROL_STATE.json were not touched.",
-    "scanned_at": "2026-11-19T13:04:50+00:00",
-    "processes_scanned": 386,
-    "engine_main_process": "NOT_RUNNING",
-    "reason": "No process command line contained HL_Live_Copy_Service.py or HL_Copy_Engine_SSOT.py. The only textual match was this scanner's own command line.",
-    "engine_tree_paths": [
-      {
-        "path": "C:/Users/wigmore/oc-runs/w91-eng018/_archive/hl_stage2",
-        "is_git_worktree": true,
-        "head_sha": "7e27fc28f2566dbf305caa6494d7ced9de64f3d2",
-        "branch": "backup/r4-eng019-send-proof",
-        "observed_processes": [
-          "test_core_disk_full.py",
-          "test_core_fill_lag.py",
-          "inline test importing HL_Live_Copy_Service_Core with delayed-write hooks"
-        ],
-        "role": "test/helper processes only, NOT the live engine"
-      },
-      {
-        "path": "C:/Users/wigmore/trading_stack",
-        "is_git_worktree": false,
-        "head_sha": null,
-        "observed_processes": [
-          "_tools/hl_monitor.py",
-          "free-compute-task-manager/router_supervisor.py"
-        ],
-        "role": "monitor and task manager, not the engine; path is not a git worktree"
-      }
-    ]
-  }
+  "blocked_on": "The active engine tree and the call-path admission are not yet reconciled. Read-only process scan at 2026-11-19T13:12:27.032218+00:00 examined 385 processes; neither HL_Live_Copy_Service.py nor HL_Copy_Engine_SSOT.py was identified (scanner command lines contained self-references). Observed git worktrees are recorded under engine_paths_observed as evidence, not engine identification. This snapshot stays IN_PROGRESS until the live tree and its exchange.order() call path are identified and admitted.",
+  "engine_running": "no",
+  "engine_check_method": "Read-only scan of process command lines via psutil.process_iter([pid,cmdline,cwd]); 385 processes examined. Searched for HL_Live_Copy_Service.py and HL_Copy_Engine_SSOT.py; neither engine process identified. Scanner command lines containing the search strings were self-references, not engine processes.",
+  "engine_checked_at_utc": "2026-11-19T13:12:27.032218+00:00",
+  "processes_examined": 385,
+  "engine_process_matches": {
+    "HL_Live_Copy_Service.py": false,
+    "HL_Copy_Engine_SSOT.py": false
+  },
+  "engine_tree": "UNIDENTIFIED",
+  "engine_tree_reason": "No engine process was identified at check time.",
+  "engine_paths_observed": [
+    {
+      "path": "C:/Users/wigmore/oc-runs/w100-o2",
+      "head_sha": "399440b2c5dc9d1557eeaccaeb02300d1cf22a2d"
+    },
+    {
+      "path": "C:/Users/wigmore/oc-runs/w91-eng018",
+      "head_sha": "514a4eeef38fd8110357e47058d62c600ce763a7"
+    }
+  ]
 }
