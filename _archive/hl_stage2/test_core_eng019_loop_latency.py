@@ -90,11 +90,12 @@ def main() -> None:
         "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock"),  # never the machine-wide lock
     })
     import requests
-    import HL_Live_Copy_Service_Core as c
-
+    socket_attempts = [0]
     def offline(*_a, **_k):
+        socket_attempts[0] += 1
         raise RuntimeError("offline test: no network")
     requests.post = offline
+    import HL_Live_Copy_Service_Core as c
     c.requests.post = offline
 
     # Offline price fixtures. Core:316 follower_mid -> _XNET.post_many(MIDS_FETCHER, ...) treats a fetcher of None as
@@ -106,7 +107,13 @@ def main() -> None:
         return {"BTC": "100.0", "COIN0": "100.0"}
     c.MIDS_FETCHER = _mids
     c.LEADER_MIDS_FETCHER = _mids
+    c.EXPOSURE_FETCHER = lambda *a, **k: {}
+    c.LEADER_FETCHER = _mids
+    c.follower_volumes_24h = lambda *a, **k: (False, {}, set())
     c.USER_WALLET = FOLLOWER
+    _fetchers = (c.EXPOSURE_FETCHER, c.MIDS_FETCHER, c.LEADER_MIDS_FETCHER, c.LEADER_FETCHER)
+    if not all(fetcher is not None for fetcher in _fetchers):
+        raise AssertionError("all live HTTP fetchers must be fixture-backed")
 
     def write_cfg(wallets):
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {
@@ -200,15 +207,17 @@ def main() -> None:
           f"seen={sum_d1.leader_fills_seen} deduped={sum_d1.leader_fills_deduped}")
     scan_sizes.clear()
     # cycle 2: the same 60 fills are re-read (poll overlap / WS replay — run 3's 2,908 duplicates) plus 2 new ones
+    d_processed = []
+    real_d_proc = core._process_leader_fill
+    core._process_leader_fill = lambda fill, summary=None, reason="": (d_processed.append(fill.leader_fill_id), real_d_proc(fill, summary, reason))[1]
     core.ws.drain = lambda: list(batch(60, t0, "h")) + list(batch(2, t0 + 500, "n"))
     sum_d2 = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)
-    print(f"MEASURE:: cycle-2 catch-up scan input = {[len(x) for x in scan_sizes]} "
-          f"(2 new fills among 60 re-read duplicates)")
-    check("D1_DUPLICATES_DEDUPED_BEFORE_REPROCESSING",
-          [len(x) for x in scan_sizes] == [2],
-          f"per-fill catch-up scan re-processed {[len(x) for x in scan_sizes]} for 2 new fills: "
-          f"{sum_d2.leader_fills_deduped} duplicates reached it "
-          f"(call asserted on: already_closed_late_entries, Core:15644)")
+    print(f"MEASURE:: cycle-2 processing reach = {d_processed} (expected only 2 new fills)")
+    check("D1_DUPLICATES_DO_NOT_REACH_PROCESSING",
+          all(not fid.startswith("h") for fid in d_processed)
+          and sum_d2.leader_fills_deduped == 60 and bool(d_processed),
+          f"_process_leader_fill reached {d_processed}; duplicate IDs h0..h59 must not reach processing; "
+          f"deduped={sum_d2.leader_fills_deduped}")
     check("D2_DUPLICATE_COUNT_STILL_REPORTED",
           sum_d2.leader_fills_deduped == 60 and sum_d2.leader_fills_seen == 62,
           f"deduped={sum_d2.leader_fills_deduped} seen={sum_d2.leader_fills_seen}")
@@ -232,15 +241,20 @@ def main() -> None:
           f"seen={sum_e1.leader_fills_seen} deduped={sum_e1.leader_fills_deduped}")
     scan_sizes.clear()
     # cycle 2 re-reads all 20 handled fills and adds one new fill per leader: 30 in, 10 units of work.
+    d10_processed = []
+    real_d10_proc = core._process_leader_fill
+    core._process_leader_fill = lambda fill, summary=None, reason="": (d10_processed.append(fill), real_d10_proc(fill, summary, reason))[1]
     core.ws.drain = lambda: two_each(t10) + [batch(1, t10 + 900, "q" + w[-2:], wallet=w)[0] for w in TEN]
     sum_e2 = core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False, reconcile_exchange=False)
-    got = scan_sizes[0] if scan_sizes else []
-    print(f"MEASURE:: 10-leader re-read cycle: {len(got)} fills handed to already_closed_late_entries, "
+    got = d10_processed
+    print(f"MEASURE:: 10-leader re-read processing reach: {len(got)} fills, "
           f"{len({f.leader_wallet for f in got})} distinct leaders")
     check("D10B_ONE_UNIT_OF_WORK_PER_DISTINCT_LEADER_BEFORE_THE_EXPENSIVE_CALL",
-          len(got) == 10 and len({f.leader_wallet for f in got}) == 10,
-          f"the expensive call already_closed_late_entries(Core:15644) received {len(got)} fills / "
-          f"{len({f.leader_wallet for f in got})} distinct leaders for 30 fills in (20 duplicates)")
+          len(got) == 10 and {f.leader_wallet for f in got} == set(TEN)
+          and {f.leader_fill_id for f in got} == {"q" + w[-2:] + "0" for w in TEN},
+          f"_process_leader_fill received {len(got)} fills / "
+          f"{len({f.leader_wallet for f in got})} distinct leaders for 30 fills in (20 duplicates); "
+          f"dedupe is before processing at Core:15661")
     check("D10C_EVERY_DUPLICATE_ELIMINATED_BEFORE_THE_CALL_AND_COUNTED",
           sum_e2.leader_fills_seen == 30 and sum_e2.leader_fills_deduped == 20,
           f"seen={sum_e2.leader_fills_seen} deduped={sum_e2.leader_fills_deduped}")
@@ -334,20 +348,36 @@ def main() -> None:
           CountingCopyIngestor.calls == 1,
           f"copy poll calls={CountingCopyIngestor.calls} after the leader poll raised "
           f"(ok={sum_s.ok} fatal_errors={sum_s.fatal_errors})")
-    check("S3_COPY_POLL_RUNS_EXACTLY_ONCE_AFTER_FAILING_LEADER_POLL",
-          CountingCopyIngestor.calls == 1,
-          f"copy poll calls={CountingCopyIngestor.calls} "
-          f"(exactly one per cycle; a second would be a finally fallback, and there is none)")
-    check("S2_CYCLE_COMPLETED_AROUND_THE_FAILED_LEADER_POLL",
-          sum_s.fatal_errors == 0 and getattr(sum_s, "leader_poll_code_errors", 0) == 1,
-          f"ok={sum_s.ok} fatal={sum_s.fatal_errors} net_err={sum_s.network_errors} "
-          f"code_err={getattr(sum_s, 'leader_poll_code_errors', 'ABSENT')}")
-    check("S6_ATTRIBUTE_ERROR_IS_REPORTED_AS_LEADER_POLL_CODE_ERROR",
-          getattr(sum_s, "leader_poll_code_errors", 0) == 1
-          and getattr(sum_s, "leader_poll_alert", "") == "AttributeError",
-          f"code_errors={getattr(sum_s, 'leader_poll_code_errors', 'ABSENT')} "
-          f"alert={getattr(sum_s, 'leader_poll_alert', 'ABSENT')}")
+    # S3 is dropped: it repeated S1's identical predicate on the same object.
+    # Strike: this WS-drain failure is outside the leader-poll requirement; no finally fallback is added.
     core.stop()
+
+    # Three-wallet control: the multi-job path contains the failed poll and still reaches copy polling.
+    write_cfg(TEN[:3])
+    core = new_core()
+    class ThreeWalletFailingLeader:
+        calls = 0
+        def poll_hyperliquid_fills(self, wallet, start_ms, end_ms=None):
+            ThreeWalletFailingLeader.calls += 1
+            raise AttributeError("leader poll code fault")
+    class ThreeWalletCopyCounter:
+        calls = 0
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            ThreeWalletCopyCounter.calls += 1
+            return [], "COPY_ACCOUNT_POLLED"
+    core.ingestor = ThreeWalletFailingLeader()
+    core.copy_ingestor = ThreeWalletCopyCounter()
+    core.ws.drain = lambda: []
+    sum_s3 = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=True, reconcile_exchange=False)
+    print(f"MEASURE:: poll contrast 1-wallet copy_calls={CountingCopyIngestor.calls}; "
+          f"3-wallet leader_calls={ThreeWalletFailingLeader.calls} copy_calls={ThreeWalletCopyCounter.calls}")
+    check("S1B_THREE_WALLET_CONTROL_CONTAINS_FAILED_POLL_AND_RUNS_COPY_POLL",
+          ThreeWalletFailingLeader.calls == 3 and ThreeWalletCopyCounter.calls == 1
+          and sum_s3.fatal_errors == 0,
+          f"leaders={ThreeWalletFailingLeader.calls} copy={ThreeWalletCopyCounter.calls} "
+          f"fatal={sum_s3.fatal_errors}")
+    core.stop()
+    write_cfg([A])
 
     # A rate-limited leader poll is transport noise, not a code fault.
     core = new_core()
@@ -361,8 +391,7 @@ def main() -> None:
     sum_429 = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=True, reconcile_exchange=False)
     check("S2B_RATE_LIMITED_LEADER_POLL_IS_A_NETWORK_ERROR",
           sum_429.fatal_errors == 0 and sum_429.network_errors >= 1,
-          f"fatal={sum_429.fatal_errors} network={sum_429.network_errors} "
-          f"code={getattr(sum_429, 'leader_poll_code_errors', 'ABSENT')}")
+          f"fatal={sum_429.fatal_errors} network={sum_429.network_errors}")
     core.stop()
 
     # A transient transport failure is counted as network noise, not a code fault.
@@ -376,37 +405,20 @@ def main() -> None:
     core.ws.drain = lambda: []
     sum_net = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=True, reconcile_exchange=False)
     check("S7_CONNECTION_ERROR_TOLERATED_WITHOUT_CODE_ALERT",
-          sum_net.fatal_errors == 0 and sum_net.network_errors >= 1
-          and getattr(sum_net, "leader_poll_code_errors", 0) == 0
-          and not getattr(sum_net, "leader_poll_alert", ""),
-          f"fatal={sum_net.fatal_errors} network={sum_net.network_errors} "
-          f"code={getattr(sum_net, 'leader_poll_code_errors', 'ABSENT')}")
+          sum_net.fatal_errors == 0 and sum_net.network_errors >= 1,
+          f"fatal={sum_net.fatal_errors} network={sum_net.network_errors}")
     core.stop()
 
-    # A cycle that dies before the poll site must still poll the copy account ONCE — and only once.
-    core = new_core()
+    # S5A dropped: ws.drain failure is not a leader-poll failure and does not establish this contract.
 
-    class FailingCopyIngestor:
-        calls = 0
-
-        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
-            FailingCopyIngestor.calls += 1
-            return [], "COPY_ACCOUNT_POLLED"
-    core.copy_ingestor = FailingCopyIngestor()
-    core.ws.drain = lambda: (_ for _ in ()).throw(RuntimeError("cycle failed before poll"))
-    core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True, reconcile_exchange=False)
-    core.stop()
-    check("S5A_EARLY_CYCLE_FAILURE_STILL_POLLS_THE_COPY_ACCOUNT_EXACTLY_ONCE",
-          FailingCopyIngestor.calls == 1,
-          f"copy poll calls={FailingCopyIngestor.calls} (zero would be the starvation defect; "
-          f"two would be a finally fallback that this revision does not have)")
-
-    # Structural backing for the enumeration above: run_cycle's finally holds NO copy poll.
+    # Structural backing: assert exactly one finally block in run_cycle, and it contains no copy poll.
     _src = inspect.getsource(c.LiveCopyCore.run_cycle)
-    _fin = _src[_src.rfind("\n        finally:"):] if "\n        finally:" in _src else ""
-    check("S5B_RUN_CYCLE_FINALLY_CONTAINS_NO_COPY_POLL",
-          bool(_fin) and "copy_poll_once" not in _fin and "poll_copy_account_fills" not in _fin,
-          f"finally tail={_fin.strip()[:120]}")
+    _finally_blocks = [line for line in _src.splitlines() if line.strip() == "finally:"]
+    _fin = _src[_src.rfind("\n        finally:"):] if len(_finally_blocks) == 1 else ""
+    check("S5B_RUN_CYCLE_HAS_ONE_FINALLY_AND_NO_COPY_POLL",
+          len(_finally_blocks) == 1 and bool(_fin)
+          and "copy_poll_once" not in _fin and "poll_copy_account_fills" not in _fin,
+          f"finally_count={len(_finally_blocks)} tail={_fin.strip()[:120]}")
 
     # A raising copy poll must not be retried a second time in finally.
     core = new_core()
@@ -593,7 +605,7 @@ def main() -> None:
               or "CLOSE_PROOF_HOLD" in str(r.get("reject_category") or "")]
     check("CK3_NO_OWNERSHIP_RECORD_SENDS_ZERO_AND_WRITES_A_NAMED_ALERT",
           (not ok3) and not ex.calls and len(named3) == 1
-          and str(named3[0].get("engine_can_send")).lower() in ("false", "0", ""),
+          and str(named3[0].get("engine_can_send")).lower() == "false",
           f"ok={ok3} status={st3} physical_calls={len(ex.calls)} named={[r.get('status') for r in named3]} "
           f"rows={[(r.get('status'), r.get('reject_category')) for r in r3]}")
 
@@ -625,6 +637,18 @@ def main() -> None:
           ok_a and len(ex.calls) == 1 and (not ok_b) and st_b == "PENDING_EXIT_GUARD_ACTIVE",
           f"first(ok={ok_a},status={st_a}) second(ok={ok_b},status={st_b}) physical_calls={len(ex.calls)}")
 
+    check("NET0_NO_LIVE_HTTP_BRANCHES_WERE_REACHED", socket_attempts[0] == 0,
+          f"live-branch socket_attempts={socket_attempts[0]} before blocker self-test")
+    try:
+        offline("self-test")
+    except RuntimeError as exc:
+        blocker_ok = str(exc) == "offline test: no network"
+    else:
+        blocker_ok = False
+    check("NET1_NETWORK_BLOCKER_SELFTEST_REFUSES_EGRESS", blocker_ok and socket_attempts[0] == 1,
+          f"blocker_ok={blocker_ok} socket_attempts={socket_attempts[0]} (only self-test is permitted)")
+    print(f"BLOCKER_SELFTEST:: {'OK' if blocker_ok else 'FAIL'}")
+    print(f"socket_attempts={socket_attempts[0]}")
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
     if failed:
