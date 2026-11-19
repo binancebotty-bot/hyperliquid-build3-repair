@@ -22,6 +22,8 @@ caller. The bounded `git show` excerpt and caller digest are in ORDER 2; no bare
 
 ---
 
+REV4 — ENG-018 citations file-qualified: planner HL_Live_Copy_Service.py:136/2448, gate :1018-1021, threshold :109 (rev3 attributed these to the Core, which has neither).
+
 ## ORDER 1 — ENG-018 (PROVISIONAL)
 
 **(a)** `ENG-018`, ENGINE, tier 2, TESTNET, `NOT_TESTED`. Clause: *"The follower account holds one net position per coin, as the exchange does.
@@ -30,7 +32,7 @@ follows the exchange's net position, while per-leader attribution is kept and sh
 
 **(b)** Verified at `c63d2299` in `_archive/hl_stage2/HL_Live_Copy_Service.py`:
 `convergence_order_for_coin` **:2433** → `convergence_notional_for_fill` **:2459** → `event_authorised_desired_net` **:862** (sums per-wallet
-sleeves).
+sleeves). The planner import is `_archive/hl_stage2/HL_Live_Copy_Service.py:136` (`from convergence_shadow import compute_convergence_order`, guarded); its call is `_archive/hl_stage2/HL_Live_Copy_Service.py:2448` (`order = compute_convergence_order(...)`).
 
 **(b2) Two related paths, not one chain.**
 - **Path A — authority/aggregation:** `convergence_order_for_coin` **:2433** → `convergence_notional_for_fill` **:2459** →
@@ -38,7 +40,7 @@ sleeves).
   book should be*.
 - **Path B — send/netting:** from the same `convergence_order_for_coin` **:2433**, the aggregate desired net is compared with the account's
   actual net through `compute_convergence_order` (imported from `convergence_shadow`), and one order is sent only when the notional clears
-  the minimum. Path B decides *what single order moves the account toward that book*.
+  the minimum. The planner call is `_archive/hl_stage2/HL_Live_Copy_Service.py:2448`; its guarded import is `_archive/hl_stage2/HL_Live_Copy_Service.py:136`. The threshold is `_archive/hl_stage2/HL_Live_Copy_Service.py:109`; minimum-notional gate, below-minimum status, send-attempt record, and return are at `_archive/hl_stage2/HL_Live_Copy_Service.py:1018-1021`. Path B decides *what single order moves the account toward that book*.
 
 A produces the target; B acts on it. They are related paths, not a single chain.
 
