@@ -64,7 +64,8 @@ if _lock_is_held():
     _h = _holder.get('holder') if isinstance(_holder.get('holder'), dict) else _holder
     print('SKIP: another engine holds the machine-wide lock%s; this suite needs the machine to itself.'
           % ('' if _h.get('note') else ' (pid=%s state_dir=%s)' % (_h.get('pid'), _h.get('state_dir'))))
-    print('TOTAL=0 FAILED=0 SKIPPED=GLOBAL_ENGINE_LOCK_HELD')
+    # zero checks is a failure, not a pass: a stdout parser must not see FAILED=0
+    print('TOTAL=0 FAILED=1 SKIPPED=GLOBAL_ENGINE_LOCK_HELD')
     sys.exit(1)
 
 
