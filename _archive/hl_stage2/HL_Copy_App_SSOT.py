@@ -2804,7 +2804,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
                 continue
             upnl = fnum(pos.get("unrealizedPnl"))
             unrealized += upnl
-            mark_px = fnum(pos.get("positionValue")) / abs(size) if abs(size) > 1e-12 else 0.0
+            mark_px = abs(fnum(pos.get("positionValue"))) / abs(size) if abs(size) > 1e-12 else 0.0
             item_out = {
                 "coin": str(pos.get("coin", "")).upper(),
                 "signed_size": size,

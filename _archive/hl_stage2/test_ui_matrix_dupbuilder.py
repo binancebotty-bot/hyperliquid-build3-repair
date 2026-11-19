@@ -194,14 +194,17 @@ def c_side_and_residual_derived(ctx) -> tuple[bool, str]:
                                                   eth["side"], eth["residual_size"], eth["ledger_vs_exchange"])
 
 
-def c_short_mark_sign_gap(ctx) -> tuple[bool, str]:
-    """Known upstream wart, pinned so drift is visible: positionValue is signed, so a short derives a
-    NEGATIVE mark and the builder drops it (mark_px None) instead of flipping the sign."""
+def c_short_mark_positive(ctx) -> tuple[bool, str]:
+    """A short keeps its sign in szi/side only: the mark is |positionValue|/|szi|, so the builder carries
+    a POSITIVE mark and a real PnL for the short row instead of dropping both."""
     snap_mark = ctx["snap"]["positions_by_coin"]["ETH"]["mark_px"]
     row = ctx["owned_by_coin"]["ETH"]
-    want = RAW_PV["ETH"] / abs(RAW_SZI["ETH"])                # -6300/3.0 = -2100
-    ok = snap_mark == want and row["mark_px"] is None and row["unrealized_pnl"] is None
-    return ok, "snap_mark=%r want=%r row_mark_px=%r row_upnl=%r" % (snap_mark, want, row["mark_px"], row["unrealized_pnl"])
+    want = abs(RAW_PV["ETH"]) / abs(RAW_SZI["ETH"])            # 6300/3.0 = 2100
+    want_upnl = round((want - 3100.0) * -2.5, 8)               # (mark - entry) x signed sleeve size
+    ok = (snap_mark == want and row["signed_size"] == -2.5 and row["side"] == "SHORT"
+          and row["mark_px"] == want and row["unrealized_pnl"] == want_upnl)
+    return ok, "snap_mark=%r want=%r row_mark_px=%r row_upnl=%r want_upnl=%r" % (
+        snap_mark, want, row["mark_px"], row["unrealized_pnl"], want_upnl)
 
 
 def c_orphan_row_from_exchange_only(ctx) -> tuple[bool, str]:
@@ -244,15 +247,15 @@ def c_shape_value_parity(ctx) -> tuple[bool, str]:
     return not diffs, "; ".join(diffs)
 
 
-def c_exposure_fallback_gap(ctx) -> tuple[bool, str]:
-    """Declared divergence pinned (short-mark gap): the inline producer falls back to the entry price for
-    exposure (|size| x entry = 7750) while the builder emits position_value None because no positive mark
-    exists. Any silent realignment of the two producers on this field reddens here."""
+def c_short_notional_from_mark(ctx) -> tuple[bool, str]:
+    """The short's notional is |size| x derived mark in BOTH producers, never the entry-price fallback."""
     owned = ctx["owned_by_coin"]["ETH"]
     inline = ctx["inline"][(WALLET_B, "ETH")]
-    want = round(abs(-2.5) * 3100.0, 4)
-    ok = owned["position_value"] is None and inline["exposure"] == want
-    return ok, "builder_position_value=%r inline_exposure=%r want=%r" % (owned["position_value"], inline["exposure"], want)
+    want = abs(-2.5) * (abs(RAW_PV["ETH"]) / abs(RAW_SZI["ETH"]))   # 2.5 x 2100 = 5250
+    entry_fallback = round(abs(-2.5) * 3100.0, 4)                  # 7750 if the mark were missing
+    ok = owned["position_value"] == want and inline["exposure"] == want and want != entry_fallback
+    return ok, "builder_position_value=%r inline_exposure=%r want=%r entry_fallback=%r" % (
+        owned["position_value"], inline["exposure"], want, entry_fallback)
 
 
 CHECKS = [
@@ -260,21 +263,21 @@ CHECKS = [
     ("DUP_POSITION_VALUE_DERIVED", c_position_value_derived),
     ("DUP_UNREALIZED_DERIVED", c_unrealized_derived),
     ("DUP_SIDE_AND_RESIDUAL_DERIVED", c_side_and_residual_derived),
-    ("DUP_SHORT_MARK_SIGN_GAP", c_short_mark_sign_gap),
+    ("DUP_SHORT_MARK_POSITIVE", c_short_mark_positive),
     ("DUP_ORPHAN_ROW_FROM_EXCHANGE_ONLY", c_orphan_row_from_exchange_only),
     ("DUP_SHAPE_CORE_KEYS", c_shape_core_keys),
     ("DUP_SHAPE_KEY_DRIFT", c_shape_key_drift),
     ("DUP_SHAPE_VALUE_PARITY", c_shape_value_parity),
-    ("DUP_SHAPE_EXPOSURE_FALLBACK_GAP", c_exposure_fallback_gap),
+    ("DUP_SHORT_NOTIONAL_FROM_MARK", c_short_notional_from_mark),
 ]
 
 # Each mutation edits exactly one derivation; the failures must be ONLY these rows.
 MUTATIONS = [
     ("M1_drop_division_in_snapshot_mark",
-     'mark_px = fnum(pos.get("positionValue")) / abs(size) if abs(size) > 1e-12 else 0.0',
+     'mark_px = abs(fnum(pos.get("positionValue"))) / abs(size) if abs(size) > 1e-12 else 0.0',
      'mark_px = fnum(pos.get("positionValue")) if abs(size) > 1e-12 else 0.0',
      {"DUP_MARK_DERIVED_PV_OVER_SIZE", "DUP_POSITION_VALUE_DERIVED", "DUP_UNREALIZED_DERIVED",
-      "DUP_SHORT_MARK_SIGN_GAP", "DUP_ORPHAN_ROW_FROM_EXCHANGE_ONLY"}),
+      "DUP_SHORT_MARK_POSITIVE", "DUP_SHORT_NOTIONAL_FROM_MARK", "DUP_ORPHAN_ROW_FROM_EXCHANGE_ONLY"}),
     ("M2_builders_mark_echoes_position_value",
      '        ex_signed = _exchange_signed_size(ex)\n'
      '        ex_mark = _exchange_field(ex, "mark_px")\n'
@@ -283,22 +286,22 @@ MUTATIONS = [
      '        ex_mark = fnum(ex.get("position_value"))\n'
      '        ex_entry = _exchange_field(ex, "entry_px")',
      {"DUP_MARK_DERIVED_PV_OVER_SIZE", "DUP_POSITION_VALUE_DERIVED", "DUP_UNREALIZED_DERIVED",
-      "DUP_SHAPE_VALUE_PARITY"}),
+      "DUP_SHAPE_VALUE_PARITY", "DUP_SHORT_MARK_POSITIVE", "DUP_SHORT_NOTIONAL_FROM_MARK"}),
     ("M3_position_value_drops_size_factor",
      "owned_position_value = abs(signed) * ex_mark if ex_mark > 0 else None",
      "owned_position_value = abs(ex_mark) if ex_mark > 0 else None",
-     {"DUP_POSITION_VALUE_DERIVED", "DUP_SHAPE_VALUE_PARITY"}),
+     {"DUP_POSITION_VALUE_DERIVED", "DUP_SHAPE_VALUE_PARITY", "DUP_SHORT_NOTIONAL_FROM_MARK"}),
     ("M4_unrealized_echoes_exchange_pnl",
      "owned_unrealized = _owned_sleeve_unrealized(signed, avg_entry, ex_mark)",
      'owned_unrealized = fnum(ex.get("unrealized_pnl")) if ex_mark > 0 else None',
-     {"DUP_UNREALIZED_DERIVED", "DUP_SHAPE_VALUE_PARITY"}),
+     {"DUP_UNREALIZED_DERIVED", "DUP_SHAPE_VALUE_PARITY", "DUP_SHORT_MARK_POSITIVE"}),
     # the exact field emission that a sweep of this builder could not redden before: one row alone bites
     ("M5_owned_row_drops_mark_px",
      '            "entry_px": avg_entry if avg_entry > 0 else None,\n'
      '            "mark_px": ex_mark if ex_mark > 0 else None,',
      '            "entry_px": avg_entry if avg_entry > 0 else None,\n'
      '            "mark_px": None,',
-     {"DUP_MARK_DERIVED_PV_OVER_SIZE", "DUP_SHAPE_VALUE_PARITY"}),
+     {"DUP_MARK_DERIVED_PV_OVER_SIZE", "DUP_SHAPE_VALUE_PARITY", "DUP_SHORT_MARK_POSITIVE"}),
 ]
 
 
