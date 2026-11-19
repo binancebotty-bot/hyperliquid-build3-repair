@@ -15565,7 +15565,11 @@ class LiveCopyCore:
                                 _results[w] = ([], "POLL_NETWORK_ERROR")
                 else:
                     for w, _start, lane in _jobs:
-                        _results[w] = _poll_with_lane(w, _start, now, lane)
+                        try:
+                            _results[w] = _poll_with_lane(w, _start, now, lane)
+                        except Exception as _pe:
+                            log_error("leader_poll", _pe)
+                            _results[w] = ([], "POLL_NETWORK_ERROR")
                 for w, _start, _lane in _jobs:
                     wallet_fills, status = _results[w]
                     fills.extend(wallet_fills)
