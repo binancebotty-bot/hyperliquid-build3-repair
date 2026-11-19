@@ -285,6 +285,9 @@ def main():
         # a copy that CLEARS $10 before quantisation but (for real lot sizes) can fall UNDER it after
         # the exchange szDecimals floor: the wire must still be >= the minimum, or the entry must be
         # refused BY NAME. A silent hold is neither.
+        # This judges the PLANNER-emitted entry carried through the production quantiser: the archived
+        # direct sender is retired (Core owns the send), so an order that leaves the planner below the
+        # quantised minimum with no named refusal is only ever rescued by Core's private envelope.
         notional = MIN * 1.005 if notional is None else notional
         svcmod.HL_PERP_META_BY_COIN_CACHE[coin] = {"szDecimals": szd, "name": coin, "canonical_name": coin}
         auth = planner_verdict(coin, notional, px)
@@ -338,8 +341,22 @@ def main():
         order = shadow.compute_convergence_order("BTC", 0.0, 0.5, mark_px=100.0, min_notional=10.0)
         close_exact = (str(order.action) == "FLATTEN" and bool(order.reduce_only)
                        and abs(float(order.size) - 0.5) < 1e-12)
+        # the CLOSE the planner itself produces, carried through the same quantiser the wire uses:
+        # a close may lose size to the lot floor, but must never gain it, and must never be lifted
+        # to the $10 entry minimum.
+        sealed = []
+        for coin, pos, szd, px in (("BTC", 0.123449999999999, 5, 61000.0),
+                                   ("ETH", 0.5000000001, 2, 3000.0),
+                                   ("XRP", 19.999999999999, 0, 0.55)):
+            o = shadow.compute_convergence_order(coin, 0.0, pos, mark_px=px, min_notional=MIN)
+            wire = float(svcmod.round_size_hl_perp(float(o.size), szd)[0]) if float(o.size) > 0 else 0.0
+            if (str(o.action) != "FLATTEN" or not o.reduce_only
+                    or Decimal(str(wire)) > Decimal(str(pos))
+                    or Decimal(str(wire)) != Decimal(str(svcmod.round_size_hl_perp(pos, szd)[0]))):
+                problems.append(("seam", coin, pos, szd, str(o.action), wire, str(o.reason)))
+            sealed.append((coin, pos, wire))
         return (not problems and close_exact,
-                f"rounded_up={problems} close_order={order.short()}")
+                f"rounded_up={problems} close_order={order.short()} sealed={sealed}")
     guarded("OD09_E1_CLOSES_NEVER_ROUND_UP", e_case)
 
     # ===================== OD-09 (f) ONE uplift envelope, planner==service==sender =============
@@ -362,17 +379,20 @@ def main():
         wide_ok = wide_size > 0 and wire * 3.75 >= MIN - 1e-9
         detail.append(f"wide(size={wide_size},wire={wire},notional={wide.get('notional')!r},"
                       f"reason={wide.get('reason')!r})")
-        # the SAME envelope must be readable as one value from every layer that sizes the order
+        # the SAME envelope must be readable as one value from every layer that sizes the order:
+        # a shared resolver (callable) or a shared constant both count; nothing counts if each
+        # layer keeps its own copy.
         envelopes = []
         for label, mod in (("service", svcmod), ("planner", shadow), ("sender", svcmod)):
             for attr in ("entry_uplift_envelope", "uplift_envelope", "min_notional_envelope"):
-                fn = getattr(mod, attr, None)
-                if callable(fn):
-                    try:
-                        envelopes.append((label, attr, fn()))
-                    except Exception as exc:  # noqa: BLE001
-                        envelopes.append((label, attr, f"ERROR {exc}"))
-                    break
+                got = getattr(mod, attr, None)
+                if got is None:
+                    continue
+                try:
+                    envelopes.append((label, attr, got() if callable(got) else got))
+                except Exception as exc:  # noqa: BLE001
+                    envelopes.append((label, attr, f"ERROR {exc}"))
+                break
         shared = len({repr(x[2]) for x in envelopes}) == 1 and len(envelopes) == 3
         detail.append(f"envelopes={envelopes}")
         return (tight_ok and wide_ok and shared, " | ".join(detail))
