@@ -134,7 +134,7 @@ def main() -> None:
     guard_held = guard.status_code == 400 and ui.USER_WALLET.lower() not in [w.lower() for w in purged]
     check("UI_ROUTE_13_PURGE_WALLET_PERSISTS",
           seeded and r.status_code == 200 and proof.get("ok") is True
-          and proof.get("json_removed", {}).get("ui_state.json") == 2
+          and proof.get("json_removed", {}).get("ui_state.json") == 3
           and P not in (after.get("wallet_config") or {}) and P not in (after.get("wallet_include") or {})
           and P not in (after.get("wallet_meta") or {})
           and P in purged and P not in (served.get("wallet_config") or {}) and guard_held,

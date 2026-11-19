@@ -546,7 +546,7 @@ def purge_wallet_everywhere(wallet: str) -> Dict[str, Any]:
     ui = load_json(UI_STATE_FILE, {})
     ui_removed = 0
     if isinstance(ui, dict):
-        for key in ("wallet_config", "wallet_include"):
+        for key in ("wallet_config", "wallet_include", "wallet_meta"):
             section = ui.get(key)
             if isinstance(section, dict) and wallet in section:
                 section.pop(wallet, None)
