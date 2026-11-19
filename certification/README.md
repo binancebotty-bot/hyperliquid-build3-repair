@@ -29,6 +29,8 @@ The JSON is **not reproducible today**: `gen_matrix.py` emits `NOT_TESTED` for e
 
 `certification_matrix.json → source_sha256` lists every source file and its hash, so a regenerated matrix can be checked against the same inputs. Requirement IDs are stable; withdrawn requirements become `SUPERSEDED`, never deleted.
 
+The CSV is derived from the JSON, never hand-edited: `python3 certification/emit_csv_from_json.py` rewrites `certification_matrix.csv` from the committed records and refuses to write a uniform result column (`certification/test_emit_csv_guard.py` covers both sides).
+
 ## Matrix regeneration and result overlays
 
 The old instruction said: “This re-runnable, idempotent overlay is the durable record. Re-run it after any gen_matrix.py regeneration.” That instruction is withdrawn. `apply_verified_results.py` must never be run as a pipeline step; see `results/README.md`.
