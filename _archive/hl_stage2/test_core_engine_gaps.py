@@ -106,17 +106,19 @@ def main() -> None:
             self.calls.append({"size": size, "px": px, "tif": tif["limit"]["tif"], "reduce_only": reduce_only})
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 7}}]}}}
 
+    config(auto=True)   # sending ON before the gateway caches its config
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "rec.json"))
     gw.ledger.sleeve(LEADER, "BTC")["signed_size"] = 2.0
     used = []
     real_place = gw._place_order
     gw._place_order = lambda *a, **k: used.append(a[5]) or real_place(*a, **k)
-    config()
     intent = c.IntentBuilder(c.ConfigManager(), gw.ledger).build(fill("SELL"))
     fake = FakeExchange()
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
     gw.cfg.master_switch_now = lambda: True   # sending on: a standing close is never placed while it is off (run 4)
-    gw._queue_exit_recovery_if_needed(fake, "BTC", intent, 99.0, 2.0, {}, "could not immediately match")
+    os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER   # the order account the close proof must authenticate
+    c._sender_lease_owned = lambda: True   # the machine-wide sender lease
+    gw._queue_exit_recovery_if_needed(fake, "BTC", intent, 99.0, 2.0, {}, "could not immediately match", sz_dec=2)   # size precision, as both production callers pass
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
 
