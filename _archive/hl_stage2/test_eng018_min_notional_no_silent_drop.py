@@ -77,7 +77,7 @@ def main():
     os.environ.update(HL_LIVE_AUDIT_DIR=str(tmp), HL_LIVE_AUTO_SEND_ENABLED="0", HL_LIVE_POLL_ENABLED="0")
     os.environ.pop("HL_LIVE_MAX_ENTRY_UPLIFT_RATIO", None)
     os.environ.pop("HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD", None)
-    (tmp / "live_config.json").write_text(json.dumps({"wallets": {}}), encoding="utf-8")
+    (tmp / "live_config.json").write_text(json.dumps({"wallets": {}, "global_controls": {"send_mode": "ON"}}), encoding="utf-8")
     import HL_Live_Copy_Service as svcmod
     import HL_Live_Copy_Service_Core as coremod
     import convergence_shadow as shadow
@@ -150,8 +150,12 @@ def main():
     def fresh_fill(coin, notional, price, side="BUY"):
         seq[0] += 1
         size = (notional / price) if price else 0.0
-        return svcmod.LeaderFill(f"od09-{seq[0]}", wallet, coin, side, price, size, size,
-                                 int(time.time() * 1000) + seq[0], "2026-01-01T00:00:00Z", "ws", "test", {})
+        timestamp_ms = int(time.time() * 1000) + seq[0]
+        return svcmod.LeaderFill(
+            fill_id=f"od09-{seq[0]}", wallet=wallet, coin=coin, side=side,
+            price=float(price), size=float(size), signed_size_delta=float(size) * (1 if side == "BUY" else -1),
+            timestamp_ms=timestamp_ms, timestamp_iso="2026-01-01T00:00:00Z",
+            source="TEST", recording_method="TEST", raw={"dir": "Open Long" if side == "BUY" else "Open Short"})
 
     def planner_verdict(coin, notional, price):
         """The production planner seam: desired-net -> convergence order -> event notional."""
@@ -234,7 +238,10 @@ def main():
 
     def a1():
         order = shadow.compute_convergence_order("BTC", float("nan"), 0.0, mark_px=100.0, min_notional=10.0)
-        fill = fresh_fill("BTC", 0.0, 100.0)
+        fill = coremod.LeaderFill(
+            leader_fill_id="od09-nan-boundary", leader_wallet=wallet, coin="BTC", side="BUY",
+            price=100.0, size=0.0, timestamp_ms=int(time.time() * 1000),
+            source="TEST", ws_received_ms=0, raw={"dir": "Open Long"})
         intent = coremod.Intent(
             intent_id="od09-nan-boundary", fill=fill, copy_side=str(order.side),
             copy_size=float(order.size), copy_notional=float(order.size) * 100.0,
@@ -245,14 +252,39 @@ def main():
             reduce_only_intended=False, reduce_only_sent_planned=False)
         exchange_calls = {"count": 0}
         sender = coremod.SenderGateway(coremod.ConfigManager(), coremod.AuditLogWriter())
+        sender.cfg.config = {"global_controls": {"send_mode": "ON"}, "auto_send_enabled": True}
         sender._place_order = lambda *a, **k: exchange_calls.__setitem__("count", exchange_calls["count"] + 1)
         ok, refusal = sender.send_if_allowed(intent)
         named = named_refusal(refusal)
         boundary_record = {"status": refusal} if refusal else {}
-        passed = (exchange_calls["count"] == 0 and not ok and named)
+        passed = (exchange_calls["count"] == 0 and not ok and named
+                  and "MASTER_REAL_ORDERS_OFF" not in str(refusal))
         return passed, (f"sender_boundary=send_if_allowed exchange_calls={exchange_calls['count']} "
                         f"refusal={refusal!r} recorded={boundary_record}")
+
+    def a1_positive_control():
+        order = shadow.compute_convergence_order("BTC", 10.0, 0.0, mark_px=100.0, min_notional=10.0)
+        fill = coremod.LeaderFill(
+            leader_fill_id="od09-finite-boundary", leader_wallet=wallet, coin="BTC", side="BUY",
+            price=100.0, size=0.1, timestamp_ms=int(time.time() * 1000),
+            source="TEST", ws_received_ms=0, raw={"dir": "Open Long"})
+        intent = coremod.Intent(
+            intent_id="od09-finite-boundary", fill=fill, copy_side=str(order.side),
+            copy_size=float(order.size), copy_notional=float(order.size) * 100.0,
+            wallet_mode="LIVE", copy_mode="proportional", decision="ENTRY_ALLOWED",
+            reason=str(order.reason), sleeve_id="od09", position_id="od09",
+            position_direction_before="FLAT", wallet_position_before=0.0, coin_net_before=0.0,
+            reduce_only_intended=False, reduce_only_sent_planned=False)
+        exchange_calls = {"count": 0}
+        sender = coremod.SenderGateway(coremod.ConfigManager(), coremod.AuditLogWriter())
+        sender.cfg.config = {"global_controls": {"send_mode": "ON"}, "auto_send_enabled": True}
+        sender._place_order = lambda *a, **k: exchange_calls.__setitem__("count", exchange_calls["count"] + 1)
+        ok, status = sender.send_if_allowed(intent)
+        passed = exchange_calls["count"] == 1
+        return passed, (f"sender_boundary=send_if_allowed exchange_calls={exchange_calls['count']} "
+                        f"ok={ok} status={status!r} finite_size={order.size}")
     guarded("OD09_A1_NAN_SENDER_BOUNDARY_NO_EXCHANGE_NAMED_REFUSAL", a1)
+    guarded("OD09_A1_FINITE_POSITIVE_CONTROL_ONE_STUB_CALL", a1_positive_control)
 
     def a2():
         fill, calls = seam_run("BTC", 7.5, float("nan"))

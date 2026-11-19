@@ -2485,8 +2485,11 @@ class DryRunLiveCopyService:
         if not sizing.get("ok"):
             return sizing
         order = sizing["order"]
+        if str(order.reason).startswith("NON_FINITE_"):
+            return {"ok": False, "status": str(order.reason)}
         base = {"ok": True, "status": "OK", "desired_net": sizing["desired"].get("desired_net"),
                 "actual_net": actual_net, "in_flight": in_flight}
+
         if order.action == "NONE":
             base.update({"notional": 0.0, "action": "NONE", "reduce_only": False, "side": ""})
             return base

@@ -23,6 +23,7 @@ Model (per coin, evaluated each reconcile tick):
 """
 from __future__ import annotations
 
+import math
 import sys
 from dataclasses import dataclass
 from typing import Optional, Tuple
@@ -78,6 +79,12 @@ def compute_convergence_order(
       * size is the delta, so repeated identical (desired, actual) inputs after a fill
         produce NONE (idempotent).
     """
+    # Validate every numeric input before arithmetic can derive a side or size.
+    for field, value in (("DELTA", desired_net), ("ACTUAL", actual_net),
+                         ("PRICE", mark_px), ("MINIMUM", min_notional)):
+        if not math.isfinite(float(value)):
+            return _none(coin, f"NON_FINITE_{field}_REFUSAL")
+
     if in_flight:
         return _none(coin, "IN_FLIGHT_HOLD")
     if not leader_known:
