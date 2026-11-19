@@ -1,52 +1,190 @@
 {
   "event": "G0_SNAPSHOT",
   "date": "2026-11-19T12:42:26.852614+00:00",
-  "pinned_base": "c63d2299",
-  "branch_head": "819b6bf9",
+  "pinned_base": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+  "branch_head": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+  "as_of": {
+    "base": {
+      "sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "date": "2026-11-19T11:44:56Z"
+    },
+    "head": {
+      "sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "date": "2026-11-19T12:29:22Z"
+    },
+    "event": {
+      "sha": "6f321066ddc9ece565b91d0c6b5138eaa41f5e5e",
+      "date": "2026-11-19T12:42:39Z"
+    }
+  },
   "matrix_blob_at_base": "b3a68e21ffc5caebcbe034330871c7f758319600",
   "matrix_blob_at_head": "fb663272d7bc4404b0b375bba6b93850f0025993",
   "result_counts_at_base": {
-    "PASS": 54,
-    "FAIL": 105,
-    "BLOCKED": 11,
-    "NOT_TESTED": 662
+    "PASS": {
+      "value": 54,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "FAIL": {
+      "value": 105,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "BLOCKED": {
+      "value": 11,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "NOT_TESTED": {
+      "value": 662,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    }
   },
   "result_counts_at_head": {
-    "PASS": 50,
-    "FAIL": 107,
-    "BLOCKED": 12,
-    "NOT_TESTED": 663
+    "PASS": {
+      "value": 50,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    },
+    "FAIL": {
+      "value": 107,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    },
+    "BLOCKED": {
+      "value": 12,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    },
+    "NOT_TESTED": {
+      "value": 663,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    }
   },
   "applicability_counts_at_base": {
-    "APPLIES": 576,
-    "OPEN_DECISION": 38,
-    "SUPERSEDED": 23,
-    "APPLIES_PROPOSED": 171,
-    "ADAPTED_PROPOSED": 24
+    "APPLIES": {
+      "value": 576,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "OPEN_DECISION": {
+      "value": 38,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "SUPERSEDED": {
+      "value": 23,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "APPLIES_PROPOSED": {
+      "value": 171,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "ADAPTED_PROPOSED": {
+      "value": 24,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    }
   },
   "master_doc_blob": "b03ece0cd1571c880006aa423ca359ed74b0a477",
   "declared_authority": "certification/run_status.csv",
-  "declared_authority_pass": 6,
-  "declared_authority_note": "Declared authority only; run_status.csv was not modified.",
+  "declared_authority_pass": {
+    "value": 6,
+    "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+    "as_of_date": "2026-11-19T12:29:22Z"
+  },
+  "declared_authority_note": "Declared authority only; run_status.csv was not modified. Six PASS rows are present in run_status.csv at the as-of SHA above.",
   "cert_claimed_counts": {
     "base": {
-      "PASS": 513,
-      "BLOCKED": 1,
-      "NOT_TESTED": 14,
-      "null": 304
+      "PASS": {
+        "value": 513,
+        "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+        "as_of_date": "2026-11-19T11:44:56Z"
+      },
+      "BLOCKED": {
+        "value": 1,
+        "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+        "as_of_date": "2026-11-19T11:44:56Z"
+      },
+      "NOT_TESTED": {
+        "value": 14,
+        "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+        "as_of_date": "2026-11-19T11:44:56Z"
+      },
+      "null": {
+        "value": 304,
+        "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+        "as_of_date": "2026-11-19T11:44:56Z"
+      }
     },
     "head": {
-      "PASS": 513,
-      "BLOCKED": 1,
-      "NOT_TESTED": 14,
-      "null": 304
+      "PASS": {
+        "value": 513,
+        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+        "as_of_date": "2026-11-19T12:29:22Z"
+      },
+      "BLOCKED": {
+        "value": 1,
+        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+        "as_of_date": "2026-11-19T12:29:22Z"
+      },
+      "NOT_TESTED": {
+        "value": 14,
+        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+        "as_of_date": "2026-11-19T12:29:22Z"
+      },
+      "null": {
+        "value": 304,
+        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+        "as_of_date": "2026-11-19T12:29:22Z"
+      }
     }
   },
-  "csv_verdicts": 0,
-  "overlay_map_pass": 582,
+  "csv_verdicts": {
+    "value": 0,
+    "as_of_sha": "6f321066ddc9ece565b91d0c6b5138eaa41f5e5e",
+    "as_of_date": "2026-11-19T12:42:39Z",
+    "note": "Historical: verdict rows written by the G0 event itself (run_status.csv was not modified). This is NOT the number of verdict rows present in the CSV. At branch_head 819b6bf958dd2b8a01c7b41c539d0b03e3aa888a the CSV already has verdict rows; see csv_verdicts_at_head."
+  },
+  "csv_verdicts_at_head": {
+    "value": 15,
+    "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+    "as_of_date": "2026-11-19T12:29:22Z",
+    "breakdown": {
+      "PASS": {
+        "value": 6,
+        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+        "as_of_date": "2026-11-19T12:29:22Z"
+      },
+      "FAIL": {
+        "value": 9,
+        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+        "as_of_date": "2026-11-19T12:29:22Z"
+      }
+    },
+    "note": "Counted from the status column of certification/run_status.csv at the as-of SHA."
+  },
+  "overlay_map_pass": {
+    "value": 582,
+    "as_of_sha": "6f321066ddc9ece565b91d0c6b5138eaa41f5e5e",
+    "as_of_date": "2026-11-19T12:42:39Z",
+    "note": "Historical PASS entries in the retired apply_verified_results.py overlay map, not the committed matrix."
+  },
   "cert_claimed_result_contradictions": {
-    "base": 511,
-    "head": 513
+    "base": {
+      "value": 511,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    "head": {
+      "value": 513,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    }
   },
   "graphify": {
     "repo_graph_path": "C:/Users/wigmore/hyperliquid-build3-repair/graphify-out/graph.json",
@@ -57,14 +195,71 @@
     "note": "Two graph files for the same repo have different anchors; neither is a base commit. Do not cite either map as proof for a base until rebuilt at that ref."
   },
   "known_source_of_truth_defect": [
-    6,
-    50,
-    54,
-    0,
-    513,
-    582
+    {
+      "value": 6,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    },
+    {
+      "value": 50,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    },
+    {
+      "value": 54,
+      "as_of_sha": "c63d2299cbbeb0340ab0a61c57282bb300aa4956",
+      "as_of_date": "2026-11-19T11:44:56Z"
+    },
+    {
+      "value": 0,
+      "as_of_sha": "6f321066ddc9ece565b91d0c6b5138eaa41f5e5e",
+      "as_of_date": "2026-11-19T12:42:39Z"
+    },
+    {
+      "value": 513,
+      "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+      "as_of_date": "2026-11-19T12:29:22Z"
+    },
+    {
+      "value": 582,
+      "as_of_sha": "6f321066ddc9ece565b91d0c6b5138eaa41f5e5e",
+      "as_of_date": "2026-11-19T12:42:39Z"
+    }
   ],
   "kind": "snapshot",
   "not_a_gate_change": true,
-  "moved_from": "certification/gate_changes.jsonl line 4 at 6f321066 (controller ruling: snapshots live in their own manifest)"
+  "moved_from": "certification/gate_changes.jsonl line 4 at 6f321066ddc9ece565b91d0c6b5138eaa41f5e5e (controller ruling: snapshots live in their own manifest)",
+  "status": "IN_PROGRESS",
+  "blocked_on": "The active engine tree and the call-path admission are not yet reconciled. Read-only process evidence at 2026-11-19T13:04:50+00:00 found no running HL_Live_Copy_Service main process; only test/helper processes were observed under C:/Users/wigmore/oc-runs/w91-eng018/_archive/hl_stage2 (HEAD 7e27fc28f2566dbf305caa6494d7ced9de64f3d2). This snapshot stays IN_PROGRESS until the live tree and its exchange.order() call path are identified and admitted.",
+  "live_engine_tree_evidence": {
+    "method": "Read-only enumeration of process command lines and working directories with psutil.process_iter over all running processes. No process was started, stopped, restarted or modified; ports 8012/8014 and CONTROL_STATE.json were not touched.",
+    "scanned_at": "2026-11-19T13:04:50+00:00",
+    "processes_scanned": 386,
+    "engine_main_process": "NOT_RUNNING",
+    "reason": "No process command line contained HL_Live_Copy_Service.py or HL_Copy_Engine_SSOT.py. The only textual match was this scanner's own command line.",
+    "engine_tree_paths": [
+      {
+        "path": "C:/Users/wigmore/oc-runs/w91-eng018/_archive/hl_stage2",
+        "is_git_worktree": true,
+        "head_sha": "7e27fc28f2566dbf305caa6494d7ced9de64f3d2",
+        "branch": "backup/r4-eng019-send-proof",
+        "observed_processes": [
+          "test_core_disk_full.py",
+          "test_core_fill_lag.py",
+          "inline test importing HL_Live_Copy_Service_Core with delayed-write hooks"
+        ],
+        "role": "test/helper processes only, NOT the live engine"
+      },
+      {
+        "path": "C:/Users/wigmore/trading_stack",
+        "is_git_worktree": false,
+        "head_sha": null,
+        "observed_processes": [
+          "_tools/hl_monitor.py",
+          "free-compute-task-manager/router_supervisor.py"
+        ],
+        "role": "monitor and task manager, not the engine; path is not a git worktree"
+      }
+    ]
+  }
 }
