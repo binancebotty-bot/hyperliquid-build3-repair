@@ -23,8 +23,12 @@ Results live in `run_results.json`, not in the matrix. After each testnet run, a
 It checks every ID exists in the matrix and rewrites `RUN_STATUS.md` and `run_status.csv`. A requirement's status is its result in the latest run that tested it.
 
 ## Regenerating the matrix
-The matrix is generated from copies of the cited source documents, which are not in this repository (Build 4 and Mission Control are private, and the local evidence is large). With those copies available:
+The JSON is **not reproducible today**: `gen_matrix.py` emits `NOT_TESTED` for every result and no maintained verdict map exists. The retired `apply_verified_results.py` is not a regeneration step and must never be run as a pipeline step. The matrix is generated from copies of the cited source documents, which are not in this repository (Build 4 and Mission Control are private, and the local evidence is large). With those copies available:
 
     HL_CERT_SOURCE_DOCS=/path/to/source-docs python3 certification/gen_matrix.py
 
 `certification_matrix.json → source_sha256` lists every source file and its hash, so a regenerated matrix can be checked against the same inputs. Requirement IDs are stable; withdrawn requirements become `SUPERSEDED`, never deleted.
+
+## Matrix regeneration and result overlays
+
+The old instruction said: “This re-runnable, idempotent overlay is the durable record. Re-run it after any gen_matrix.py regeneration.” That instruction is withdrawn. `apply_verified_results.py` must never be run as a pipeline step; see `results/README.md`.
