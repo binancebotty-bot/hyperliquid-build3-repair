@@ -15,9 +15,9 @@ hashed tombstone, so this branch must not be deployed on its own.
   **verbatim** in the returned set, so the exact key that wrote it stays blocked, and the load emits a
   named event `PURGE_UNPARSEABLE_ENTRY count=… file=… entries=… treated=PURGED` and fills
   `PURGE_UNPARSEABLE_ENTRIES`, so the drop is visible instead of silent;
-- `save_purged_wallets()` carries unparseable lines over from disk verbatim, so no save (including one
-  from a caller set that never saw them) can erase an entry it cannot read. Entries are removed only by
-  hand.
+- `save_purged_wallets()` carries unparseable lines over from disk verbatim. Its read, merge, and replace
+  are serialized under `_FILE_WRITE_LOCK`, so saves using this lock cannot erase entries added by another
+  cooperating writer using the same lock; external or bypassing writers are not covered by this guarantee.
 
 Blank padding is not an entry and is still skipped: it names no wallet.
 

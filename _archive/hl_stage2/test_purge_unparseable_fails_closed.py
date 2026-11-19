@@ -91,8 +91,23 @@ def main() -> None:
           ui.is_purged(GARBAGE) is True and ui.is_purged(TRUNCATED) is True,
           "after save garbage=%r truncated=%r" % (ui.is_purged(GARBAGE), ui.is_purged(TRUNCATED)))
 
-    # a caller that only ever saw hashes must not be able to erase an entry it cannot read
-    ui.save_purged_wallets({hashlib.sha256(B.encode("utf-8")).hexdigest()})
+    # Construction invariant: save's disk read must run while the shared writer lock is owned.
+    # This makes a cooperating concurrent append serialize before or after the entire save transaction.
+    owned_during_save_read = []
+    original_split = ui._split_tombstones
+
+    def assert_locked_split(lines):
+        owned_during_save_read.append(ui._FILE_WRITE_LOCK._is_owned())
+        return original_split(lines)
+
+    ui._split_tombstones = assert_locked_split
+    try:
+        # a caller that only ever saw hashes must not be able to erase an entry it cannot read
+        ui.save_purged_wallets({hashlib.sha256(B.encode("utf-8")).hexdigest()})
+    finally:
+        ui._split_tombstones = original_split
+    check("PURGE_UNPARSEABLE_SAVE_READ_UNDER_LOCK", bool(owned_during_save_read) and all(owned_during_save_read),
+          "lock ownership during disk merge=%r" % (owned_during_save_read,))
     lines = tomb.read_text(encoding="utf-8").split()
     check("PURGE_UNPARSEABLE_SAVE_CANNOT_DROP", GARBAGE in lines and TRUNCATED in lines,
           "a save from a hashes-only set dropped the unreadable entries: %r" % (lines,))

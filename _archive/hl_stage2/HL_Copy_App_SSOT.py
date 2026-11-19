@@ -488,15 +488,15 @@ def save_purged_wallets(tombstones: set[str]) -> None:
     A caller set that never saw an unreadable entry must not be able to erase it, so unparseable
     lines already on disk are merged in and re-alerted rather than rewritten away.
     """
-    candidates = set(tombstones)
-    if PURGED_WALLETS_FILE.exists():
-        _, on_disk = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
-        candidates |= set(on_disk)
-    valid, unparseable = _split_tombstones(candidates)
-    _alert_unparseable(unparseable)
     PURGED_WALLETS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = _unique_tmp_path(PURGED_WALLETS_FILE)
     with _FILE_WRITE_LOCK:
+        candidates = set(tombstones)
+        if PURGED_WALLETS_FILE.exists():
+            _, on_disk = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
+            candidates |= set(on_disk)
+        valid, unparseable = _split_tombstones(candidates)
+        _alert_unparseable(unparseable)
+        tmp = _unique_tmp_path(PURGED_WALLETS_FILE)
         tmp.write_text("".join(f"{w}\n" for w in sorted(valid | set(unparseable))), encoding="utf-8")
         _replace_with_retries(tmp, PURGED_WALLETS_FILE)
 
