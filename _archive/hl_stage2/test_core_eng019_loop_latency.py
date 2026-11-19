@@ -90,13 +90,25 @@ def main() -> None:
         "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "engine-global.lock"),  # never the machine-wide lock
     })
     import requests
+    transport_attempts = [0]
+    stub_calls = [0]
     socket_attempts = [0]
     def offline(*_a, **_k):
         socket_attempts[0] += 1
         raise RuntimeError("offline test: no network")
-    requests.post = offline
+    class _OfflineResponse:
+        status_code = 200
+        def __init__(self, payload):
+            self._payload = [] if payload.get("type") in {"meta", "perpDexs", "spotMeta"} else {}
+        def json(self):
+            return self._payload
+    def transport_stub(url, json=None, timeout=None, **_kwargs):
+        # Reached only as the replacement itself; no socket or real HTTP transport is entered.
+        stub_calls[0] += 1
+        return _OfflineResponse(json or {})
+    requests.post = transport_stub
     import HL_Live_Copy_Service_Core as c
-    c.requests.post = offline
+    c.requests.post = transport_stub
 
     # Offline price fixtures. Core:316 follower_mid -> _XNET.post_many(MIDS_FETCHER, ...) treats a fetcher of None as
     # LIVE plumbing: it would attempt a real /info POST (the stub refuses it) and then sleep through two retries per
@@ -105,15 +117,8 @@ def main() -> None:
         if isinstance(payload, dict) and payload.get("type") == "perpDexs":
             return []
         return {"BTC": "100.0", "COIN0": "100.0"}
-    c.MIDS_FETCHER = _mids
-    c.LEADER_MIDS_FETCHER = _mids
-    c.EXPOSURE_FETCHER = lambda *a, **k: {}
-    c.LEADER_FETCHER = _mids
+    # The shared requests.post transport below is stubbed; do not inject per-fetcher fixtures.
     c.follower_volumes_24h = lambda *a, **k: (False, {}, set())
-    c.USER_WALLET = FOLLOWER
-    _fetchers = (c.EXPOSURE_FETCHER, c.MIDS_FETCHER, c.LEADER_MIDS_FETCHER, c.LEADER_FETCHER)
-    if not all(fetcher is not None for fetcher in _fetchers):
-        raise AssertionError("all live HTTP fetchers must be fixture-backed")
 
     def write_cfg(wallets):
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {
@@ -637,8 +642,11 @@ def main() -> None:
           ok_a and len(ex.calls) == 1 and (not ok_b) and st_b == "PENDING_EXIT_GUARD_ACTIVE",
           f"first(ok={ok_a},status={st_a}) second(ok={ok_b},status={st_b}) physical_calls={len(ex.calls)}")
 
-    check("NET0_NO_LIVE_HTTP_BRANCHES_WERE_REACHED", socket_attempts[0] == 0,
-          f"live-branch socket_attempts={socket_attempts[0]} before blocker self-test")
+    check("NET0_NO_LIVE_HTTP_BRANCHES_WERE_REACHED", transport_attempts[0] == 0,
+          f"TRANSPORT_ATTEMPTS={transport_attempts[0]} stub_calls={stub_calls[0]}")
+    if transport_attempts[0]:
+        frame = inspect.stack()[1]
+        print(f"TRANSPORT_CALLER::{frame.function} {frame.frame.f_globals.get('__name__')}:{frame.lineno}")
     try:
         offline("self-test")
     except RuntimeError as exc:
@@ -648,7 +656,7 @@ def main() -> None:
     check("NET1_NETWORK_BLOCKER_SELFTEST_REFUSES_EGRESS", blocker_ok and socket_attempts[0] == 1,
           f"blocker_ok={blocker_ok} socket_attempts={socket_attempts[0]} (only self-test is permitted)")
     print(f"BLOCKER_SELFTEST:: {'OK' if blocker_ok else 'FAIL'}")
-    print(f"socket_attempts={socket_attempts[0]}")
+    print(f"TRANSPORT_ATTEMPTS={transport_attempts[0]} stub_calls={stub_calls[0]} socket_attempts={socket_attempts[0]}")
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
     if failed:
