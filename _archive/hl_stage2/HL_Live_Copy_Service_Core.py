@@ -114,6 +114,9 @@ sys.path.insert(0, str(BASE_DIR))
 import exchange_truth as _XNET_MODULE  # noqa: E402
 import follower_volume as _VOLUME_MODULE  # noqa: E402
 import hotswap as _HOTSWAP  # noqa: E402  allowlisted live-swap seam, driven by HOTSWAP_REQUEST.json
+# OD-09: the sender reads the bounded-uplift envelope from the ONE accessor the planner and the
+# service convergence seam use, so a bound can never differ between the three layers.
+from convergence_shadow import entry_uplift_envelope  # noqa: E402
 # _XNET is a guard proxy: every _XNET.<fn>() call holds the hotswap shared guard for the whole call,
 # and the callable is resolved INSIDE that hold, so a live swap can neither straddle a call nor be
 # overtaken by one; two calls never exclude each other.
@@ -9556,8 +9559,7 @@ class SenderGateway:
         should_uplift = intended_notional + 1e-9 >= cfg_min_for_uplift
         if lifecycle in {"ENTRY", "ADD"} and should_uplift and limit_px > 0 and wire_notional < effective_min:
             target_notional = effective_min * 1.01
-            max_uplift_ratio = max(1.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_RATIO"), 1.25))
-            max_uplift_abs = max(0.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD"), 3.0))
+            max_uplift_ratio, max_uplift_abs = entry_uplift_envelope()
             max_target_for_intent = max(intended_notional * max_uplift_ratio, intended_notional + max_uplift_abs)
             if intended_notional > 0 and target_notional > max_target_for_intent:
                 detail = (
