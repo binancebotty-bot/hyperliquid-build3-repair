@@ -515,13 +515,39 @@ def remove_wallet_from_json(path: Path, wallet: str) -> int:
     return removed
 
 
-def purge_wallet_everywhere(wallet: str) -> Dict[str, Any]:
-    """ADMIN MAINTENANCE ONLY: purge a wallet from active app/engine-loaded files."""
+def purge_wallet_app_config(wallet: str) -> Dict[str, Any]:
+    """ADMIN MAINTENANCE ONLY: clear ONE wallet's app config, app caches and live per-wallet state.
+
+    Removes exactly this, and nothing else:
+      - ui_state.json sections wallet_config / wallet_include / wallet_meta: this wallet's entries
+      - manual_wallets.txt: this wallet's line (the app's include list)
+      - wallet_gate.json: this wallet's key (its per-wallet copy gate)
+      - hl_live_copy_audit/live_config.json: this wallet's entry under "wallets" (its copy config)
+      - engine_truth.json / exchange_baselines.json / live_state.json: this wallet's entry
+        (live per-wallet state documents, not a fill log)
+      - this app's projection CSVs copy_trades.csv, expected_copy_fills.csv and
+        live_wallet_metrics.csv: this wallet's rows (the app rebuilds them from engine truth)
+      - the derived app caches app_model_state.json, portfolio_history.json and
+        equity_history.json: whole files, rebuilt on the next load
+      - appends the wallet to purged_wallets.txt so the app's read paths (load_engine_truth,
+        load_raw_fills) keep hiding it without editing any engine file
+    Every file it touches is copied to hl_copy_output/purge_backups/<stamp>_<wallet[:8]>/ first.
+
+    It does NOT remove engine history or positions, because a retired wallet can still hold a
+    position that has to be closed: the append-only engine audit (live_fills.csv, order_intents.csv,
+    send_attempts.csv, would_send_orders.csv, reconciliation.csv), the engine's leader-fill capture
+    raw_live_fills.csv, manual_live_positions.json, exchange_account_history.json and
+    hl_copy_output/snapshots/ are left untouched. A full wipe is a separate, Boss-initiated,
+    backed-up action.
+    """
     wallet = normalise_wallet_for_purge(wallet)
     if wallet == USER_WALLET:
         raise ValueError("CANNOT_PURGE_USER_WALLET")
 
-    csv_files = [RAW_FILLS_CSV, EXPECTED_COPY_FILLS_CSV, COPY_TRADES_CSV, LIVE_WALLET_METRICS_CSV]
+    # raw_live_fills.csv is the ENGINE's leader-fill capture, not an app projection: its rows are
+    # kept so a retired wallet's fills stay replayable, and load_raw_fills()' purged filter hides
+    # them from app views without deleting engine history.
+    csv_files = [EXPECTED_COPY_FILLS_CSV, COPY_TRADES_CSV, LIVE_WALLET_METRICS_CSV]
     json_files = [
         UI_STATE_FILE,
         WALLET_GATE_FILE,
@@ -587,6 +613,7 @@ def purge_wallet_everywhere(wallet: str) -> Dict[str, Any]:
     invalidate_model_cache()
     return {
         "ok": True,
+        "note": "app config, caches and live state cleared; engine history and positions kept",
         "wallet": wallet,
         "backup_dir": str(backup_dir),
         "text_removed": text_removed,
@@ -7053,7 +7080,7 @@ def render_row(r: Dict[str, Any], base: float, ui: Dict[str, Any], state: Option
             wallet_color_cls = f" wallet-color-{html.escape(color)}"
         inc_cell = f"""<form action="/api/wallet-include" method="post" class="inc-form" title="Include/exclude this wallet from combined graph and header cards only"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><input type="checkbox" name="included" value="1" {'checked' if included else ''} onchange="this.form.requestSubmit()"><span class="small">INC</span></form>"""
         cfg_cell = f"""<form action="/api/wallet-config" method="post" class="wallet-cfg"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><select name="copy_mode"><option value="" {'selected' if not r.get('wallet_config') else ''}>global</option><option value="proportional" {'selected' if eff_mode == 'proportional' and r.get('wallet_config') else ''}>prop</option><option value="fixed" {'selected' if eff_mode == 'fixed' and r.get('wallet_config') else ''}>fixed</option></select><input name="norm_base" value="{eff_base:g}" size="5" title="wallet normalisation base"><input name="fixed_notional" value="{eff_fixed:g}" size="4" title="wallet fixed $"><button title="save wallet override">Set</button></form>"""
-        purge_cell = f"""<form action="/api/admin/purge-wallet" method="post" class="purge-form" title="ADMIN MAINTENANCE ONLY: permanently purge wallet"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><button class="purge-btn" title="purge wallet">PURGE</button></form>"""
+        purge_cell = f"""<form action="/api/admin/purge-wallet" method="post" class="purge-form" title="ADMIN MAINTENANCE ONLY: clear this wallet's app config (engine history and positions are kept)"><input type="hidden" name="wallet" value="{html.escape(wallet)}"><button class="purge-btn" title="purge wallet">PURGE</button></form>"""
         meta_link = f'<a href="/wallet-meta/{html.escape(wallet)}" class="meta-edit-link" title="Edit wallet tag / color / note">Meta</a>'
     row_cls = 'user' if r.get('is_user_wallet') else ''
     if not r.get('is_user_wallet') and not included: row_cls += ' excluded-row'
@@ -7142,12 +7169,14 @@ document.addEventListener('submit',async e=>{{
   const form=e.target;if(!form.matches('.ajax-form,.wallet-cfg,.inc-form,.purge-form'))return;
   if(form.matches('.purge-form')){{
     const wallet=(new FormData(form).get('wallet')||'').toString();
-    const typed=prompt('Type full wallet address to permanently purge');
+    const typed=prompt('Type full wallet address to clear its app config (engine history and positions are kept)');
     if(typed!==wallet){{e.preventDefault();flash('purge cancelled','muted');return;}}
   }}
   e.preventDefault();markBusy(5000);form.classList.add('saving');
-  try{{const r=await fetch(form.action,{{method:'POST',body:new FormData(form),headers:{{'X-Requested-With':'fetch'}}}});if(!r.ok)throw new Error('HTTP '+r.status);saveViewState();setTimeout(()=>location.reload(),150);}}
-  catch(err){{console.warn('save failed',err);flash('save failed','neg');}}
+  try{{const r=await fetch(form.action,{{method:'POST',body:new FormData(form),headers:{{'X-Requested-With':'fetch'}}}});
+    if(form.matches('.purge-form')){{const j=await r.json().catch(()=>({{}}));if(!r.ok||j.ok===false)throw new Error(j.error||('HTTP '+r.status));flash(j.note||'app config cleared; history and positions kept','pos');saveViewState();setTimeout(()=>location.reload(),2500);return;}}
+    if(!r.ok)throw new Error('HTTP '+r.status);saveViewState();setTimeout(()=>location.reload(),150);}}
+  catch(err){{console.warn('save failed',err);flash(String((err&&err.message)||'save failed'),'neg');}}
   finally{{form.classList.remove('saving');restoreViewState();}}
 }});
 
@@ -7453,10 +7482,10 @@ async def api_wallet_meta(request: Request):
 
 @app.post("/api/admin/purge-wallet")
 async def admin_purge_wallet(request: Request):
-    """ADMIN MAINTENANCE ONLY: purge a wallet from active dashboard data files."""
+    """ADMIN MAINTENANCE ONLY: clear a wallet's app config and caches; history and positions are kept."""
     form = await request.form()
     try:
-        proof = purge_wallet_everywhere(str(form.get("wallet", "")))
+        proof = purge_wallet_app_config(str(form.get("wallet", "")))
         if wants_json_response(request):
             return JSONResponse(proof)
         return HTMLResponse('<meta http-equiv="refresh" content="0; url=/">')

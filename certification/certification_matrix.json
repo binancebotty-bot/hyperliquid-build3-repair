@@ -3414,7 +3414,7 @@
    "expected_behaviour": "Account wallet forced OFF by set-wallet-mode; cannot be purged.",
    "sources": [
     "test_g4_ui_controls.py B_USER_WALLET_NEVER_ENABLES",
-    "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) purge_wallet_everywhere"
+    "HL_Copy_App_SSOT.py purge_wallet_app_config"
    ],
    "applicability": "APPLIES",
    "open_decisions": [],

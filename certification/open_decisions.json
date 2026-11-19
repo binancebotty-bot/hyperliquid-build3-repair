@@ -256,8 +256,8 @@
   },
   {
    "id": "OD-13",
-   "decision": "Wallet removal with owned exposure. The UI offers Archive (moves the wallet to `archived_wallets` with mode OFF) and admin PURGE (deletes it from app and engine-loaded files, including `engine_truth.json` and live config). GUT I18 requires an ownership tombstone until the position is legitimately closed. Needed: whether PURGE is refused, or proven safe, while exposure is owned",
-   "evidence": "`purge_wallet_everywhere`; GUT I18",
+   "decision": "Wallet removal with owned exposure. The UI offers Archive (moves the wallet to `archived_wallets` with mode OFF) and admin PURGE (`purge_wallet_app_config`, which clears the wallet's app config/include/meta, its derived app caches and its live per-wallet state entries; engine audit CSVs, fills, `manual_live_positions.json`, `exchange_account_history.json` and snapshots are KEPT, so an owned position stays closable). GUT I18 requires an ownership tombstone until the position is legitimately closed. Needed: whether PURGE is refused, or proven safe, while exposure is owned",
+   "evidence": "`purge_wallet_app_config`; GUT I18",
    "owner": "Architect",
    "records_affected": "UI-WALLET-002, -015, B4-I18",
    "matrix_records": [
