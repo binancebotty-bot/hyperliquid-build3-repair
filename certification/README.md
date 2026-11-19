@@ -16,7 +16,7 @@ This folder is the single reconciled list of what must be proven before the Hype
 - Pre-existing orders and positions on the follower account (including Build 4 leftovers) are never touched (ENG-016).
 
 ## Recording a run
-Results live in `run_results.json`, not in the matrix. After each testnet run, append one entry to `runs` (`run`, `date`, `commit`, `network`, `follower_network` (testnet or mainnet), `report`, `summary`, and `results`: a list of `{id, result, evidence}` with `result` PASS or FAIL), then run:
+Run results are recorded in `run_results.json`; the matrix's `result` field holds prior evidence and is not updated by `gen_status.py`. After each testnet run, append one entry to `runs` (`run`, `date`, `commit`, `network`, `follower_network` (testnet or mainnet), `report`, `summary`, and `results`: a list of `{id, result, evidence}` with `result` PASS or FAIL), then run:
 
     python3 certification/gen_status.py
 
@@ -25,7 +25,7 @@ It checks every ID exists in the matrix and rewrites `RUN_STATUS.md` and `run_st
 ## Regenerating the matrix
 The JSON is **not reproducible today**: `gen_matrix.py` emits `NOT_TESTED` for every result and no maintained verdict map exists. The retired `apply_verified_results.py` is not a regeneration step and must never be run as a pipeline step. The matrix is generated from copies of the cited source documents, which are not in this repository (Build 4 and Mission Control are private, and the local evidence is large). With those copies available:
 
-    HL_CERT_SOURCE_DOCS=/path/to/source-docs python3 certification/gen_matrix.py
+    The matrix is generated from source documents held outside this repository (at `/mnt/project-files/source-docs/` in the Claude project); regeneration requires access to those documents.
 
 `certification_matrix.json → source_sha256` lists every source file and its hash, so a regenerated matrix can be checked against the same inputs. Requirement IDs are stable; withdrawn requirements become `SUPERSEDED`, never deleted.
 
