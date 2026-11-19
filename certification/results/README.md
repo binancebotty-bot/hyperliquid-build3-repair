@@ -1,0 +1,5 @@
+# Retired result overlay
+
+`apply_verified_results.py` was documented as “the durable record” and instructed operators to rerun it after matrix regeneration. It is a retired historical map, not the producer of the committed matrix. Its 672-entry literal mapping has no evidence-file input: it holds 582 PASS, 77 FAIL and 13 BLOCKED entries, and 4 of its ids do not exist in this matrix. Applied here it would move the committed matrix from 50 PASS / 107 FAIL / 12 BLOCKED / 663 NOT_TESTED to 604 PASS / 76 FAIL / 13 BLOCKED / 139 NOT_TESTED, matching only 113 of the 668 rows it can reach.
+
+The script is quarantined because these mapped verdicts are not verified by the tool. **Never run it as a pipeline step.** The implementation is retained at `_retired/apply_verified_results.py` for historical inspection, with a byte-identical copy at `_retired/apply_verified_results.py.original` (sha256 `a9d064a3240d5aeae39a552ba1bd5f244eb639f8afe28564be95aa6b62eeecb2`). Refusal can only be bypassed with `APPLY_VERIFIED_ALLOW_FABRICATION=1`.

@@ -1,0 +1,70 @@
+{
+  "event": "G0_SNAPSHOT",
+  "date": "2026-11-19T12:42:26.852614+00:00",
+  "pinned_base": "c63d2299",
+  "branch_head": "819b6bf9",
+  "matrix_blob_at_base": "b3a68e21ffc5caebcbe034330871c7f758319600",
+  "matrix_blob_at_head": "fb663272d7bc4404b0b375bba6b93850f0025993",
+  "result_counts_at_base": {
+    "PASS": 54,
+    "FAIL": 105,
+    "BLOCKED": 11,
+    "NOT_TESTED": 662
+  },
+  "result_counts_at_head": {
+    "PASS": 50,
+    "FAIL": 107,
+    "BLOCKED": 12,
+    "NOT_TESTED": 663
+  },
+  "applicability_counts_at_base": {
+    "APPLIES": 576,
+    "OPEN_DECISION": 38,
+    "SUPERSEDED": 23,
+    "APPLIES_PROPOSED": 171,
+    "ADAPTED_PROPOSED": 24
+  },
+  "master_doc_blob": "b03ece0cd1571c880006aa423ca359ed74b0a477",
+  "declared_authority": "certification/run_status.csv",
+  "declared_authority_pass": 6,
+  "declared_authority_note": "Declared authority only; run_status.csv was not modified.",
+  "cert_claimed_counts": {
+    "base": {
+      "PASS": 513,
+      "BLOCKED": 1,
+      "NOT_TESTED": 14,
+      "null": 304
+    },
+    "head": {
+      "PASS": 513,
+      "BLOCKED": 1,
+      "NOT_TESTED": 14,
+      "null": 304
+    }
+  },
+  "csv_verdicts": 0,
+  "overlay_map_pass": 582,
+  "cert_claimed_result_contradictions": {
+    "base": 511,
+    "head": 513
+  },
+  "graphify": {
+    "repo_graph_path": "C:/Users/wigmore/hyperliquid-build3-repair/graphify-out/graph.json",
+    "repo_graph_built_at_commit": "db7b4b8853ff9dfae36b2230a8e81be672001d5f",
+    "checkout_graph_path": "C:/Users/wigmore/oc-runs/w87-clean/graphify-out/graph.json",
+    "checkout_graph_built_at_commit": "81c394bd30329606c5dfd5d8be81c2eaa2106890",
+    "base_anchored": false,
+    "note": "Two graph files for the same repo have different anchors; neither is a base commit. Do not cite either map as proof for a base until rebuilt at that ref."
+  },
+  "known_source_of_truth_defect": [
+    6,
+    50,
+    54,
+    0,
+    513,
+    582
+  ],
+  "kind": "snapshot",
+  "not_a_gate_change": true,
+  "moved_from": "certification/gate_changes.jsonl line 4 at 6f321066 (controller ruling: snapshots live in their own manifest)"
+}
