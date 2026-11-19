@@ -150,24 +150,6 @@
     "as_of_date": "2026-11-19T12:42:39Z",
     "note": "Historical: verdict rows written by the G0 event itself (run_status.csv was not modified). This is NOT the number of verdict rows present in the CSV. At branch_head 819b6bf958dd2b8a01c7b41c539d0b03e3aa888a the CSV already has verdict rows; see csv_verdicts_at_head."
   },
-  "csv_verdicts_at_head": {
-    "value": 15,
-    "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
-    "as_of_date": "2026-11-19T12:29:22Z",
-    "breakdown": {
-      "PASS": {
-        "value": 6,
-        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
-        "as_of_date": "2026-11-19T12:29:22Z"
-      },
-      "FAIL": {
-        "value": 9,
-        "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
-        "as_of_date": "2026-11-19T12:29:22Z"
-      }
-    },
-    "note": "Counted from the status column of certification/run_status.csv at the as-of SHA."
-  },
   "overlay_map_pass": {
     "value": 582,
     "as_of_sha": "6f321066ddc9ece565b91d0c6b5138eaa41f5e5e",
@@ -250,5 +232,30 @@
       "path": "C:/Users/wigmore/oc-runs/w91-eng018",
       "head_sha": "514a4eeef38fd8110357e47058d62c600ce763a7"
     }
-  ]
+  ],
+  "run_status_csv_verdicts": {
+    "blob_sha": "b3101549f0ccdbdc3d3e331be047dd2363d27e8d",
+    "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+    "as_of_date": "2026-11-19T12:29:22Z",
+    "counts": {
+      "PASS": 6,
+      "FAIL": 9,
+      "NOT_TESTED": 817
+    },
+    "row_total": 832,
+    "note": "Counted from the status column of certification/run_status.csv at the as-of SHA. Declared authority."
+  },
+  "certification_matrix_csv_verdicts": {
+    "blob_sha": "6984721c5df62dfe6d550dc86d516232c9edec85",
+    "as_of_sha": "819b6bf958dd2b8a01c7b41c539d0b03e3aa888a",
+    "as_of_date": "2026-11-19T12:29:22Z",
+    "counts": {
+      "PASS": 50,
+      "FAIL": 107,
+      "BLOCKED": 12,
+      "NOT_TESTED": 663
+    },
+    "row_total": 832,
+    "note": "Counted from the result column of certification/certification_matrix.csv at the as-of SHA; generated output with known-stale verdicts."
+  }
 }
