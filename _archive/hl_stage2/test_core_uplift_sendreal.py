@@ -15,13 +15,13 @@ class Spy:
   self.calls.append((coin,size,px)); return {'status':'ok','response':{'type':'order','data':{'statuses':[{'filled':{'totalSz':str(size),'avgPx':str(px),'oid':1}}]}}}
  def __getattr__(self,n): return lambda *a,**k: {'status':'ok'}
 LEADER='0x'+'a'*40
-c.atomic_write_json(c.LIVE_CONFIG_FILE, {'auto_send_enabled':True,'global_controls':{'min_notional':10,'max_order_notional':0,'marketable_bps':20},'wallets':{LEADER:{'enabled':True,'mode':'LIVE','copy_mode':'fixed','fixed_notional':10}}})
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {'auto_send_enabled':True,'global_controls':{'min_notional':10,'max_order_notional_usd':float(os.environ.get('HL_TEST_MAX_ORDER_NOTIONAL_USD','0')),'marketable_bps':20},'wallets':{LEADER:{'enabled':True,'mode':'LIVE','copy_mode':'fixed','fixed_notional':10}}})
 c.USER_WALLET='0x'+'c'*40
 c.wait_intent_durable=lambda *a,**k:None
 c.update_send_attempt_row=lambda *a,**k:True
 c.HLAccount=c.HLExchange=object
 os.environ['HL_LIVE_HL_PRIVATE_KEY']='0x'+'1'*64; os.environ['HL_LIVE_HL_ACCOUNT_ADDRESS']=c.USER_WALLET
-cases=[('px500',500,0),('px61000',61000,0),('px61000_merged500',61000,500),('finite_control',100,0)]
+cases=[('px500',500,0),('px61000',61000,0),('px61000_merged500',61000,500),('finite_control',10.05,0)]
 active_px={'value':500}
 c.MIDS_FETCHER=lambda payload: {'TEST': active_px['value']} if payload.get('type')=='allMids' else []
 
@@ -29,7 +29,7 @@ for name,px,merged in cases:
  active_px['value']=px
  c._FOLLOWER_MIDS.update(px={},ms=0,scope=[])
  spy=Spy(); ledger=c.ManualLedger(path=tmp/(name+'.json')); gw=c.SenderGateway(c.ConfigManager(),c.AuditLogWriter(),ledger)
- md={'ok':True,'sdk_coin':'TEST','raw_coin':'TEST','sz_decimals':0,'price_max_decimals':2,'perp_dexs':[''],'sdk_order_compatible':True,'min_order_value_usd':10.,'min_size':1.,'status':'OK'}
+ md={'ok':True,'sdk_coin':'TEST','raw_coin':'TEST','sz_decimals':(3 if name=='finite_control' else 0),'price_max_decimals':2,'perp_dexs':[''],'sdk_order_compatible':True,'min_order_value_usd':10.,'min_size':1.,'status':'OK'}
  gw._resolve_coin=lambda coin,md=md:dict(md)
  gw._get_exchange_client=lambda *a,**k:spy
  gw._exchange_client_has_symbol=lambda *a,**k:True

@@ -622,6 +622,10 @@ def sender_key_check() -> Dict[str, Any]:
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
 DEFAULT_MIN_NOTIONAL = float(os.getenv("HL_LIVE_MIN_NOTIONAL", "10"))
 WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP = "WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP"
+CORE_UPLIFT_MAX_TARGET_EPSILON = 1e-9
+
+def _max_entry_uplift_target(intended_notional: float, max_uplift_ratio: float, max_uplift_abs: float) -> float:
+    return max(intended_notional * max_uplift_ratio, intended_notional + max_uplift_abs)
 DEFAULT_MARKETABLE_BPS = float(os.getenv("HL_LIVE_MARKETABLE_BPS", "25"))
 DEFAULT_SLIPPAGE_BPS = 20.0  # Global Controls slippage when unset: Boss's 0.2 % (2026-10-09)
 DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT = float(os.getenv("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"))
@@ -9557,11 +9561,11 @@ class SenderGateway:
         symbol_min = fnum(resolved.get("min_order_value_usd"), 0.0)
         effective_min = max(cfg_min_for_uplift, symbol_min)
         intended_notional = abs(fnum(getattr(intent, "copy_notional", 0.0), 0.0))
-        should_uplift = intended_notional + 1e-9 >= cfg_min_for_uplift
+        should_uplift = intended_notional + CORE_UPLIFT_MAX_TARGET_EPSILON >= cfg_min_for_uplift
         if lifecycle in {"ENTRY", "ADD"} and should_uplift and limit_px > 0 and wire_notional < effective_min:
             target_notional = effective_min * 1.01
             max_uplift_ratio, max_uplift_abs = entry_uplift_envelope()
-            max_target_for_intent = max(intended_notional * max_uplift_ratio, intended_notional + max_uplift_abs)
+            max_target_for_intent = _max_entry_uplift_target(intended_notional, max_uplift_ratio, max_uplift_abs)
             if intended_notional > 0 and target_notional > max_target_for_intent:
                 detail = (
                     f"blocked before exchange: symbol min/lot uplift would exceed intended copy notional; "
