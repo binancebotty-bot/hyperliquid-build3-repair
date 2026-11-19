@@ -959,6 +959,8 @@ def classify_send_lifecycle(intent: Any) -> str:
         lifecycle = note.split("lifecycle=", 1)[1].split(";", 1)[0].strip().upper()
         if lifecycle in {"ENTRY", "ADD", "REDUCE", "EXIT"}:
             return lifecycle
+    if bool(getattr(intent, "reduce_only_intended", False)):
+        return "EXIT"
     reason = str(getattr(intent, "reason", "") or "").upper()
     if reason in {"ENTRY", "ADD", "REDUCE", "EXIT"}:
         return reason
@@ -15445,14 +15447,15 @@ class LiveCopyCore:
                     _prev_integrity = load_json(LIVE_INTEGRITY_STATUS_FILE, {})
                     _stamp = int(fnum(_prev_integrity.get("created_at_ms"), 0)) if isinstance(_prev_integrity, dict) else 0
                     _age_ms = utc_now_ms() - _stamp if _stamp > 0 else -1
-                    _fresh = 0 <= _age_ms <= 120_000
+                    _freshness_ms = max(1.0, fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0)) * 1000 * 24
+                    _fresh = 0 <= _age_ms <= _freshness_ms
                 except Exception:
                     _prev_integrity, _stamp, _age_ms, _fresh = {}, 0, -1, False
                 if not _fresh:
                     summary.integrity_status_stale = True
                     summary.integrity_status_age_ms = _age_ms
                     _block = "LEDGER_STATUS_STALE"
-                    log_error("integrity_status_stale", RuntimeError(f"age_ms={_age_ms} reason={_block}"))
+                    log_error("integrity_status_stale", RuntimeError(f"age_ms={_age_ms if _age_ms >= 0 else 'UNKNOWN'} reason={_block}"))
                 else:
                     summary.integrity_status_age_ms = _age_ms
                     _counts = _prev_integrity.get("counts") or {}
@@ -15471,7 +15474,8 @@ class LiveCopyCore:
             # Boss rule 16 Oct (decision card, testnet): nothing that was not in the two-month engine blocks an entry. A cycle
             # gate (feed stale, poll stale, unreconciled sends, wallet slots, sweep, unreadable P&L, rejected key) is an ALERT:
             # one GATE_WOULD_BLOCK row, the entry proceeds. The daily loss LIMIT the operator sets stays a hard stop (old build).
-            if _block and _block != "DAILY_LOSS_LIMIT_REACHED" and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True):
+            if (_block and _block not in {"DAILY_LOSS_LIMIT_REACHED", "LEDGER_STATUS_STALE", "LEDGER_EXCHANGE_DIVERGENCE"}
+                    and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True)):
                 self._gate_would_block(_block)
                 _block = ""
             self._entry_sends_blocked_reason = _block
