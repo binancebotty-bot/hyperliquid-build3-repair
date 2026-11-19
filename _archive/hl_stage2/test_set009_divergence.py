@@ -277,11 +277,69 @@ def test_no_block_when_matched():
           core._entry_sends_blocked_reason != "LEDGER_EXCHANGE_DIVERGENCE",
           f"block_reason: {core._entry_sends_blocked_reason}")
 
+def test_stale_status_holds_entries_but_not_closes():
+    """Stale status is an entry hold with alert; close lifecycle remains allowed."""
+    tmp = setup_tmp()
+    atomic_write_json(c.LIVE_INTEGRITY_STATUS_FILE, {
+        "created_at_ms": c.utc_now_ms() - 300_000,
+        "counts": {"exchange_manual_mismatch": 1},
+    })
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core.wallets = ["0xwallet"]
+    core.cfg = c.ConfigManager()
+    atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {},
+        "wallets": {"0xwallet": {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    import requests
+    def offline(*a, **k): raise RuntimeError("offline test: no network")
+    requests.post = offline
+    c.requests.post = offline
+    summary = core.run_cycle(poll_live=False, poll_copy=False, reconcile_exchange=False)
+    check("SET009_stale_mismatch_entry_blocked_with_stale_reason",
+          core._entry_sends_blocked_reason == "LEDGER_STATUS_STALE", core._entry_sends_blocked_reason)
+    check("SET009_stale_alert_counter_and_age_set",
+          summary.integrity_status_stale and summary.integrity_status_age_ms >= 120_000
+          and "integrity_status_stale" in c.CycleSummary.__dataclass_fields__,
+          f"stale={summary.integrity_status_stale} age={summary.integrity_status_age_ms}")
+    close = c.Intent("test-close", c.LeaderFill("close-fill", "0xwallet", "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"),
+        "SELL", 1.0, 100.0, "LIVE", "fixed", "EXIT_ALLOWED", "", "sleeve", "position", "LONG", 1.0,
+        1.0, True, True, notes="lifecycle=EXIT")
+    close_decision = core.sender.send_if_allowed(close, "LEDGER_STATUS_STALE")
+    check("SET009_stale_close_reaches_send_decision",
+          close_decision[1] != "ENTRY_BLOCKED_LEDGER_STATUS_STALE", str(close_decision))
+
+
+def test_missing_status_holds_entries_and_alerts():
+    """Missing status fails closed for entries and records the loud alert."""
+    tmp = setup_tmp()
+    if c.LIVE_INTEGRITY_STATUS_FILE.exists(): c.LIVE_INTEGRITY_STATUS_FILE.unlink()
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core.wallets = ["0xwallet"]
+    core.cfg = c.ConfigManager()
+    atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {},
+        "wallets": {"0xwallet": {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    import requests
+    def offline(*a, **k): raise RuntimeError("offline test: no network")
+    requests.post = offline
+    c.requests.post = offline
+    summary = core.run_cycle(poll_live=False, poll_copy=False, reconcile_exchange=False)
+    check("SET009_missing_status_entry_blocked_and_alerted",
+          core._entry_sends_blocked_reason == "LEDGER_STATUS_STALE" and summary.integrity_status_stale
+          and "integrity_status_stale" in c.CycleSummary.__dataclass_fields__,
+          f"reason={core._entry_sends_blocked_reason} stale={summary.integrity_status_stale}")
+    close = c.Intent("test-close", c.LeaderFill("close-fill", "0xwallet", "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"),
+        "SELL", 1.0, 100.0, "LIVE", "fixed", "EXIT_ALLOWED", "", "sleeve", "position", "LONG", 1.0,
+        1.0, True, True, notes="lifecycle=EXIT")
+    close_decision = core.sender.send_if_allowed(close, "LEDGER_STATUS_STALE")
+    check("SET009_missing_status_close_passes",
+          close_decision[1] != "ENTRY_BLOCKED_LEDGER_STATUS_STALE", str(close_decision))
+
 def main():
     test_polarity_exchange_has_ledger_flat()
     test_polarity_ledger_has_exchange_flat()
     test_gate_blocks_sends_on_divergence()
     test_no_block_when_matched()
+    test_stale_status_holds_entries_but_not_closes()
+    test_missing_status_holds_entries_and_alerts()
     
     failed = [n for n, ok in RESULTS if not ok]
     print(f"\nTOTAL={len(RESULTS)} FAILED={len(failed)}")

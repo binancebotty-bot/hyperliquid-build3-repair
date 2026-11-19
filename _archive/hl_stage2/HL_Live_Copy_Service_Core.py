@@ -3970,6 +3970,8 @@ class Intent:
 class CycleSummary:
     ok: bool = True
     entry_sends_blocked_reason: str = ""  # cycle entry gate result, shown on the live screen
+    integrity_status_stale: bool = False
+    integrity_status_age_ms: int = -1
     sender_key_invalid: str = ""  # follower exchange rejected the signing key: all sending stopped
     cycle: str = "run_cycle"
     auto_send_enabled: bool = False
@@ -15437,11 +15439,22 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
-            # Gate 4: only a fresh prior-cycle mismatch blocks; 120s covers slow cycles without trusting stale state.
+            # Gate 4: unreadable/stale integrity is a hold for entries; never treat unknown as matched.
             if not _block:
-                _prev_integrity = load_json(LIVE_INTEGRITY_STATUS_FILE, {})
-                _stamp = int(fnum((_prev_integrity or {}).get("created_at_ms"), 0)) if isinstance(_prev_integrity, dict) else 0
-                if _stamp > 0 and 0 <= utc_now_ms() - _stamp <= 120_000:
+                try:
+                    _prev_integrity = load_json(LIVE_INTEGRITY_STATUS_FILE, {})
+                    _stamp = int(fnum(_prev_integrity.get("created_at_ms"), 0)) if isinstance(_prev_integrity, dict) else 0
+                    _age_ms = utc_now_ms() - _stamp if _stamp > 0 else -1
+                    _fresh = 0 <= _age_ms <= 120_000
+                except Exception:
+                    _prev_integrity, _stamp, _age_ms, _fresh = {}, 0, -1, False
+                if not _fresh:
+                    summary.integrity_status_stale = True
+                    summary.integrity_status_age_ms = _age_ms
+                    _block = "LEDGER_STATUS_STALE"
+                    log_error("integrity_status_stale", RuntimeError(f"age_ms={_age_ms} reason={_block}"))
+                else:
+                    summary.integrity_status_age_ms = _age_ms
                     _counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_counts.get("exchange_manual_mismatch"), 0)) > 0:
                         _block = "LEDGER_EXCHANGE_DIVERGENCE"
