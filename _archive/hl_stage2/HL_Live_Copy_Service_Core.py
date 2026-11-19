@@ -8395,11 +8395,6 @@ class SenderGateway:
         if proof["fills_rows"] or proof["repair_rows"]:
             proven = float(proof["fills_delta"])  # REAL fills only: repair deltas are never added
             return (0.0 if abs(proven) <= POSITION_EPSILON else proven), "fills"
-        if self.ledger is not None:
-            try:
-                return float(self.ledger.sleeve(w, k).get("signed_size", 0.0)), "ledger_sleeve_no_fills"
-            except Exception as exc:
-                log_error("proven_owned_for_sleeve_ledger", exc)
         return 0.0, "no_proof"
 
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,

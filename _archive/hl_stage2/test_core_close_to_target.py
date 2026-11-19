@@ -25,14 +25,23 @@ class Ledger:
         self.data = {"by_wallet": {"0xabc": {"RESOLV": {"signed_size": (net if owned is None else owned), "coin": "RESOLV"}}},
                      "by_coin_net": {"RESOLV": {"signed_size": net}}}
     def coin_net(self, k): return self.net
+    def sleeve(self, w, k): return {"signed_size": self.owned}
 
 ESC = []
 WIRES = []
 def plan(side, size, led, ex, mode="ON", dust=False, readable=True, lifecycle_exit=True, sz_dec=2, min_ok=None, env=None, lag=False, gmode="ON", owned=None, no_ledger=False):
     ESC.clear(); WIRES.clear()
-    me = SimpleNamespace(ledger=None if no_ledger else Ledger(led, (size if owned is None else owned)), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
+    me = SimpleNamespace(ledger=None if no_ledger else Ledger(led, led if owned == "LEDGER_ONLY" else (size if owned is None else owned)), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: gmode))
     me._open_close_escalation = lambda intent, reason: ESC.append(reason)
-    me._proven_owned_for_sleeve = lambda w, c: ((0.0, "no_proof") if owned == "UNPROVABLE" else (size if owned is None else owned, "fills"))
+    def proven(w, k):
+        if owned != "UNPROVABLE":
+            ledger_only = owned == "LEDGER_ONLY"
+            proven_size = led if ledger_only else (size if owned is None else owned)
+            me._fill_proof_for_sleeve = lambda *_: {"unreadable": False, "fills_rows": 0 if ledger_only else 1, "repair_rows": 0, "fills_delta": 0.0 if ledger_only else proven_size}
+            return c.SenderGateway._proven_owned_for_sleeve(me, w, k)
+        return 0.0, "no_proof"
+    me._proven_owned_for_sleeve = proven
+    me._fill_proof_for_sleeve = lambda *_: {"unreadable": False, "fills_rows": 0, "repair_rows": 0, "fills_delta": 0.0}
     me._close_proof_account_ok = lambda: True
     me._follower_order_account_for_proof = lambda *a, **k: c.USER_WALLET
     me._reduce_only_for_intent = lambda i: lifecycle_exit
@@ -119,6 +128,8 @@ r = plan("SELL", 10, 10, 10, lag=True, readable=False, owned=0)
 check("LAG_NET_UNREADABLE_ZERO_OWNED_HOLDS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and WIRES == [], str(r))
 r = plan("SELL", 12, 0, 8, min_ok=OK, owned=12)
 check("FOREIGN_CROSS_HOLD_NAMED", r == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_CROSS") and WIRES == [], str(r))
+r = plan("SELL", 10, 10, 3, lag=True, owned="LEDGER_ONLY")
+check("LEDGER_ONLY_ZERO_FILLS_HOLDS_AND_ALERTS", r == (False, 0.0, "CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE") and WIRES == [] and ESC == ["CLOSE_PROOF_HOLD_NO_OWNED_SLEEVE"], str((r, WIRES, ESC)))
 check("SAME_SIDE_CLOSE_HOLDS_DIRECTION", plan("BUY", 5, 20, 10, min_ok=OK) == (False, 0.0, "CLOSE_PROOF_HOLD_DIRECTION_OR_SIZE"))
 check("TRIM_BELOW_MIN_NOTIONAL_FOREIGN_UNITS_HOLDS", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_UNITS"))
 check("TRIM_WITHOUT_MIN_CHECK_FOREIGN_UNITS_HOLDS", plan("SELL", 10, 10, 4) == (False, 0.0, "CLOSE_PROOF_HOLD_FOREIGN_UNITS"))
