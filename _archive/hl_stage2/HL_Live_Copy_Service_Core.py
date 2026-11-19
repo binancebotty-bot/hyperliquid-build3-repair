@@ -15399,6 +15399,7 @@ class LiveCopyCore:
                 _reported_outage_gap_floors = {str(k).lower(): int(fnum(v, 0)) for k, v in _raw_gaps.items()}
         _block = ""  # evaluated in full, then published once: the hot path never sees a half-run gate set
         started = time.monotonic()
+        _copy_poll_done = False  # ENG-019: the copy-account poll runs every cycle, whatever fails before it
         cycle_started_ms = utc_now_ms()
         self._fill_trace("cycle_start", None, {"cycle_id": cycle_started_ms, "queue_depth": self.hot_backlog()})
         try:
@@ -15565,7 +15566,11 @@ class LiveCopyCore:
                                 _results[w] = ([], "POLL_NETWORK_ERROR")
                 else:
                     for w, _start, lane in _jobs:
-                        _results[w] = _poll_with_lane(w, _start, now, lane)
+                        try:
+                            _results[w] = _poll_with_lane(w, _start, now, lane)
+                        except Exception as _pe:  # same guard as the parallel branch above: one leader poll never ends the cycle
+                            log_error("leader_poll", _pe)
+                            _results[w] = ([], "POLL_NETWORK_ERROR")
                 for w, _start, _lane in _jobs:
                     wallet_fills, status = _results[w]
                     fills.extend(wallet_fills)
@@ -15631,6 +15636,20 @@ class LiveCopyCore:
                 summary.poll_loop_status = str(state_for_age.get("last_leader_poll_status") or "POLL_DISABLED") if isinstance(state_for_age, dict) else "POLL_DISABLED"
             fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
             summary.leader_fills_seen = len(fills)
+            # ENG-019: the poll overlap and the WS replay hand this cycle the same leader fills it already handled,
+            # every cycle (run 3: 2,908 duplicates per cycle, each cycle over budget). Drop them BEFORE the catch-up
+            # scan and the per-fill loop, so a cycle's work is bounded by its NEW fills instead of by the re-read
+            # history. leader_fills_deduped still counts them, and an id repeated inside one batch is kept once.
+            _batch_keys: set = set()
+            _new_fills: List[LeaderFill] = []
+            for _f in fills:
+                _fk = self._guard_key(_f)
+                if _fk in _batch_keys or self._already_handled(_f):
+                    summary.leader_fills_deduped += 1
+                    continue
+                _batch_keys.add(_fk)
+                _new_fills.append(_f)
+            fills = _new_fills
             fills, _net_zero = collapse_stale_runs(fills, utc_now_ms(), self._already_handled)
             for _zf, _why in _net_zero:  # a stale run that netted to zero: every id still gets its row and is marked handled
                 self._fill_trace("catchup_net_zero", _zf)
@@ -15683,6 +15702,7 @@ class LiveCopyCore:
             summary.send_backlog = self.hot_backlog()
             if poll_copy:
                 self.copy_poll_once(summary)
+                _copy_poll_done = True
             elif getattr(self, "_copy_thread", None) is not None:
                 last = dict(getattr(self, "_copy_last", {}) or {})  # the copy thread polls; report its latest read
                 summary.copy_account_status = str(last.get("status") or "COPY_POLL_THREAD_STARTING")
@@ -15700,6 +15720,14 @@ class LiveCopyCore:
             summary.fatal_errors += 1
             log_error("run_cycle", exc)
         finally:
+            if poll_copy and not _copy_poll_done:
+                # ENG-019: a step before it failed (a leader poll, a gate, the sweep), so this cycle's copy-account
+                # poll never ran. It is the engine's own fills: it runs here instead of being skipped with the cycle.
+                try:
+                    self.copy_poll_once(summary)
+                except Exception as exc:
+                    log_error("copy_poll_after_cycle_failure", exc)
+                    summary.network_errors += 1
             if time.monotonic() - started > fnum(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC"), 5.0):
                 summary.budget_exceeded = True
             try:
