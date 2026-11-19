@@ -192,6 +192,20 @@ def main() -> None:
           f"code_errors={sum_s.leader_poll_code_errors} alert={sum_s.leader_poll_alert}")
     core.stop()
 
+    # A rate-limited leader poll is transport noise, not a code fault.
+    core = new_core()
+    class RateLimitedLeaderIngestor:
+        def poll_hyperliquid_fills(self, wallet, start_ms, end_ms=None):
+            raise RuntimeError("429 rate limited: leader poll failed this cycle")
+    core.ingestor = RateLimitedLeaderIngestor()
+    core.copy_ingestor = SpyCopyIngestor()
+    core.ws.drain = lambda: []
+    sum_429 = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=True, reconcile_exchange=False)
+    check("S2B_RATE_LIMITED_LEADER_POLL_IS_A_NETWORK_ERROR",
+          sum_429.fatal_errors == 0 and sum_429.network_errors >= 1,
+          f"fatal={sum_429.fatal_errors} network={sum_429.network_errors} code={sum_429.leader_poll_code_errors}")
+    core.stop()
+
     # A transient transport failure is counted as network noise, not a code fault.
     core = new_core()
     class NetworkLeaderIngestor:
