@@ -122,6 +122,42 @@ def main() -> None:
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
 
+    # The helper is called, but a missing lease must be refused before the exchange boundary, and the
+    # refusal must be seen where production records it. This needs its OWN gateway AND intent: the send
+    # above already queued a standing close for that intent, so reusing them returns at
+    # _exit_recovery_exists() and _place_order never runs (probe: 0 place_order calls, nothing journalled,
+    # which made the old `exchange_calls == []` pass vacuously).
+    # Observed channel (probe, false lease, fresh fixture): _place_order returns
+    # {"response": "BLOCKED_AT_PLACE_ORDER:SEND_BLOCKED_NO_SENDER_LEASE",
+    #  "terminal_state": "SEND_BLOCKED_NO_SENDER_LEASE", "exchange_called": false}, and
+    # _queue_exit_recovery_if_needed returns None, so the durable evidence is the reconciliation journal:
+    # AUTHORISED_CLOSE_REFUSAL reject_category=SEND_BLOCKED_NO_SENDER_LEASE plus EXIT_RECOVERY_QUEUE_FAILED
+    # notes "recovery_error=BLOCKED_AT_PLACE_ORDER:SEND_BLOCKED_NO_SENDER_LEASE". No SEND_TERMINAL row and no
+    # send_attempts row exist on this path: a refused CLOSE journals the close-refusal row, and
+    # _gate_refusal_row is only the non-close branch.
+    _lease_original = c._sender_lease_owned
+    try:
+        c._sender_lease_owned = lambda: False
+        config(auto=True)
+        lease_gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "lease_ledger.json"))
+        lease_gw.ledger.sleeve(LEADER, "BTC")["signed_size"] = 2.0
+        lease_gw.cfg.master_switch_now = lambda: True
+        lease_intent = c.IntentBuilder(c.ConfigManager(), lease_gw.ledger).build(fill("SELL"))
+        lease_fake = FakeExchange()
+        lease_gw._queue_exit_recovery_if_needed(lease_fake, "BTC", lease_intent, 99.0, 2.0, {},
+                                                "could not immediately match", sz_dec=2)
+        lease_rows = [r for r in c.iter_audit_history(c.RECONCILIATION_CSV)
+                      if str(r.get("intent_id") or "") == lease_intent.intent_id
+                      or lease_intent.intent_id in str(r.get("notes") or "")]
+        lease_reason = [r for r in lease_rows
+                        if "SEND_BLOCKED_NO_SENDER_LEASE"
+                        in (str(r.get("reject_category") or "") + "|" + str(r.get("notes") or ""))]
+        check("O2_FALSE_LEASE_REFUSES_WITH_NAMED_REASON", lease_fake.calls == [] and bool(lease_reason),
+              "exchange_calls=%r; journal_rows=%d; reason_rows=%d"
+              % (lease_fake.calls, len(lease_rows), len(lease_reason)))
+    finally:
+        c._sender_lease_owned = _lease_original
+
     # ---- D: daily loss limit --------------------------------------------------------------
     pnl = {"rows": None, "reads": 0}
 
