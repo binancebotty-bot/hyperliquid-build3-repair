@@ -272,6 +272,18 @@ def fnum(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _extract_exchange_size(ex: Any) -> float:
+    """Extract signed size from exchange position dict or return float value.
+    Handles formats: {"signed_size": 1.5}, {"szi": "1.5"}, {"size": 1.5}, 1.5, "1.5"
+    """
+    if isinstance(ex, dict):
+        for key in ("signed_size", "szi", "size", "net", "signed_net"):
+            if key in ex:
+                return fnum(ex.get(key), 0.0)
+        return 0.0
+    return fnum(ex, 0.0)
+
+
 def bval(value: Any, default: bool = False) -> bool:
     if value is None or value == "":
         return default
@@ -1615,7 +1627,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             coin_key = canonical_coin_key(coin)
             if coin_key.startswith("XYZ:") and coin_key not in exchange_positions and coin_key not in xyz_known:
                 continue
-            exchange_size = fnum(exchange_positions.get(coin), 0.0)
+            exchange_size = _extract_exchange_size(exchange_positions.get(coin))
             manual_size = 0.0
             manual_row = manual_by_coin.get(coin)
             if isinstance(manual_row, dict):
@@ -6355,14 +6367,21 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
-            # Gate 4: more active wallets than the leader stream can follow (refused, never dropped)
+            # Gate 4: ledger vs exchange divergence blocks new sends
+            if not _block:
+                _prev_integrity = load_json(LIVE_INTEGRITY_STATUS_FILE, {})
+                if isinstance(_prev_integrity, dict):
+                    _prev_counts = _prev_integrity.get("counts") or {}
+                    if int(fnum(_prev_counts.get("exchange_manual_mismatch"), 0)) > 0:
+                        _block = "LEDGER_EXCHANGE_DIVERGENCE"
+            # Gate 5: more active wallets than the leader stream can follow (refused, never dropped)
             if not _block and len(self.cfg.active_wallets()) > MAX_WALLETS:
                 _block = "TOO_MANY_ACTIVE_WALLETS"
-            # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
+            # Gate 6: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
                 _block = self._daily_loss_block()
             self._entry_sends_blocked_reason = _block
-            # --- end entry safety gates ---
+            # --- end entry safety gates (6 gates) ---
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
             if use_source_csv:
