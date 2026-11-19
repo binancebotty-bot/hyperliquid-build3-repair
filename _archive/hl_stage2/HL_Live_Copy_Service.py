@@ -132,10 +132,17 @@ FIXED_NOTIONAL_ROUNDING_BUFFER_PCT = 0.002
 FIXED_NOTIONAL_ROUNDING_BUFFER_USD = 0.02
 LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT = float(os.getenv("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"))
 # G2 (Gate 2): reuse the existing, sealed account-net convergence planner (pure; sends no orders).
+# OD-09: the planner is the ONE authority for the below-minimum decision; these names are its vocabulary,
+# imported rather than re-spelled here so the service cannot drift to a second envelope or refusal name.
 try:
-    from convergence_shadow import compute_convergence_order  # type: ignore
+    from convergence_shadow import (  # type: ignore
+        MIN_NOTIONAL_EVENT_UPLIFTED, MIN_NOTIONAL_REFUSAL, NON_FINITE_REFUSAL, compute_convergence_order,
+    )
 except Exception:  # pragma: no cover - fail closed if the sibling planner is unavailable
     compute_convergence_order = None
+    MIN_NOTIONAL_REFUSAL = "BELOW_MIN_NOTIONAL_REFUSED"
+    NON_FINITE_REFUSAL = "NON_FINITE_INPUT_REFUSED"
+    MIN_NOTIONAL_EVENT_UPLIFTED = "uplifted"
 
 LIVE_ORDER_ENDPOINT = os.getenv("HL_LIVE_ORDER_ENDPOINT", "https://api.hyperliquid.xyz/exchange")
 LIVE_AUTO_SEND_ENABLED = os.getenv("HL_LIVE_AUTO_SEND_ENABLED", "0") == "1"
@@ -237,6 +244,29 @@ def inum(value: Any, default: int = 0) -> int:
         return int(float(value))
     except Exception:
         return default
+
+
+def refusal_action(reason: str) -> str:
+    """OD-09: the reconciliation verdict for a planner refusal, derived from the ONE refusal name the
+    planner returned ("BELOW_MIN_NOTIONAL_REFUSED" -> "REFUSED_BELOW_MIN_NOTIONAL"). No second vocabulary."""
+    reason = str(reason or "")
+    if reason.endswith("_REFUSED"):
+        return "REFUSED_" + reason[: -len("_REFUSED")]
+    return "REFUSED_" + reason if reason else "REFUSED"
+
+
+def present_finite(value: Any) -> bool:
+    """True when `value` is absent, or a finite number. False for NaN/inf/unparsable.
+
+    OD-09: fnum() maps NaN to 0.0, so a NaN planner notional would read as "nothing to do" and be
+    recorded as convergence. Callers gate on THIS before trusting a number they are about to divide by.
+    """
+    if value is None or value == "":
+        return True
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def ensure_dirs() -> None:
@@ -1325,6 +1355,9 @@ class LiveWalletConfig:
     max_diff_pct: float = 0.10
     daily_loss_limit: float = 0.0
     enabled: bool = True
+    # Configured per-wallet minimum notional (0.0 = not configured). Folded into the ONE effective
+    # minimum handed to the planner (max of the $10 floor, this, and the exchange symbol minimum).
+    min_notional: float = 0.0
 
     @staticmethod
     def from_raw(wallet: str, raw: Any) -> "LiveWalletConfig":
@@ -1344,6 +1377,7 @@ class LiveWalletConfig:
             max_diff_pct=max(0.0, fnum(raw.get("max_diff_pct"), 0.10)),
             daily_loss_limit=max(0.0, fnum(raw.get("daily_loss_limit"), 0.0)),
             enabled=bool(normal.get("enabled")),
+            min_notional=max(0.0, fnum(raw.get("min_notional_usd"), 0.0)),
         )
 
 
@@ -2430,6 +2464,25 @@ class DryRunLiveCopyService:
                     "master_net": fnum(raw_master_net), "tolerance": tolerance}
         return {"ok": True, "status": "OK", "expected": expected}
 
+    def planner_entry_minimum(self, cfg: LiveWalletConfig, coin: str) -> Tuple[float, Optional[int]]:
+        """OD-09: the ONE effective minimum the planner is given, plus the symbol lot size it must
+        ceiling-quantise to: max($10 floor, configured wallet minimum, exchange symbol minimum).
+        Every layer uses this number; none of them keeps its own copy of the rule."""
+        resolved = resolve_hl_perp_symbol(coin) or {}
+        sz_raw = resolved.get("szDecimals")
+        sz_decimals = int(sz_raw) if isinstance(sz_raw, (int, float)) and not isinstance(sz_raw, bool) else None
+        symbol_min = fnum(resolved.get("min_order_value_usd"), 0.0)   # 0.0 when the venue exposes none
+        return max(MIN_ORDER_NOTIONAL, fnum(getattr(cfg, "min_notional", 0.0), 0.0), symbol_min), sz_decimals
+
+    def bump_min_notional_event(self, event: str) -> None:
+        """OD-09: THE counter for the below-minimum decision, keyed by the planner's own classification
+        ("uplifted" / "refused"). The planner counts nothing itself, and nothing else counts this rule."""
+        events = self.state.setdefault("min_notional_events", {})
+        if not isinstance(events, dict):
+            events = {}
+            self.state["min_notional_events"] = events
+        events[str(event)] = int(events.get(str(event), 0)) + 1
+
     def convergence_order_for_coin(
         self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig],
         actual_net: float, in_flight: bool = False,
@@ -2445,14 +2498,18 @@ class DryRunLiveCopyService:
         )
         if not desired.get("ok"):
             return desired
+        min_notional, sz_decimals = self.planner_entry_minimum(cfg, fill.coin)
         order = compute_convergence_order(
             fill.coin,
             desired.get("desired_net"),
             actual_net,
             in_flight=bool(in_flight),
             mark_px=fill.price,
-            min_notional=MIN_ORDER_NOTIONAL,
+            min_notional=min_notional,
+            sz_decimals=sz_decimals,
         )
+        if getattr(order, "min_notional_event", ""):
+            self.bump_min_notional_event(order.min_notional_event)
         return {"ok": True, "status": "OK", "desired": desired, "order": order,
                 "actual_net": actual_net, "in_flight": bool(in_flight)}
 
@@ -2486,31 +2543,17 @@ class DryRunLiveCopyService:
             return sizing
         order = sizing["order"]
         base = {"ok": True, "status": "OK", "desired_net": sizing["desired"].get("desired_net"),
-                "actual_net": actual_net, "in_flight": in_flight}
+                "actual_net": actual_net, "in_flight": in_flight,
+                # OD-09: the planner's own size and reason travel with the decision; the service never
+                # re-derives the size (notional/price round-trips can floor the wire size) nor the reason.
+                "size": float(order.size), "reason": str(order.reason),
+                "min_notional_event": str(getattr(order, "min_notional_event", ""))}
         if order.action == "NONE":
             base.update({"notional": 0.0, "action": "NONE", "reduce_only": False, "side": ""})
             return base
         base.update({"notional": float(order.size) * fill.price, "action": str(order.action),
                      "reduce_only": bool(order.reduce_only), "side": str(order.side).upper()})
         return base
-
-    def min_notional_uplift_ceiling(self, copy_notional: float) -> float:
-        """Largest notional a copy may be rounded UP to (OD-09). Reuses the same bounded entry-uplift
-        envelope the send layer already applies for lot/symbol rounding, so a tiny copy is never
-        inflated to the $10 minimum unconditionally."""
-        ratio = max(1.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_RATIO"), 1.25))
-        abs_usd = max(0.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD"), 3.0))
-        return max(copy_notional * ratio, copy_notional + abs_usd)
-
-    def handle_min_notional_for_entry(self, cfg: LiveWalletConfig, fill: LeaderFill, copy_notional: float) -> Tuple[bool, float, List[str], str]:
-        """OD-09: a below-minimum rounding must never silently become "not copied". Round UP to the
-        $10 minimum when the uplift stays inside the bounded envelope; otherwise refuse BY NAME."""
-        if copy_notional >= MIN_ORDER_NOTIONAL:
-            return True, copy_notional, [fill.fill_id], "DIRECT_EXECUTABLE"
-        if copy_notional > 0 and MIN_ORDER_NOTIONAL <= self.min_notional_uplift_ceiling(copy_notional):
-            self.bump("entries_uplifted_to_min_notional")
-            return True, MIN_ORDER_NOTIONAL, [fill.fill_id], "UPLIFTED_TO_MIN_NOTIONAL"
-        return False, copy_notional, [fill.fill_id], "BELOW_MIN_NOTIONAL_REFUSED"
 
     def append_reconciliation(self, cfg: LiveWalletConfig, fill: LeaderFill, event: str, status: str, action: str, before: float, after: float, copy_notional: float, notes: str = "") -> None:
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, {
@@ -2867,8 +2910,28 @@ class DryRunLiveCopyService:
             self.bump("fills_skipped_clo_entry")
             return
         copy_notional_raw = fnum(auth.get("notional"))
+        copy_size_planned = fnum(auth.get("size"))
+        planner_reason = str(auth.get("reason") or "")
         order_side = str(auth.get("side") or "").upper()   # planner side is authoritative for direction
         intent_type = "EXIT" if planner_reduce_only else "ENTRY"
+        # (fill.price is checked below for finiteness before any division)
+
+        # OD-09: a NON-FINITE planner notional/size/price is a broken measurement, not a copy. fnum() maps
+        # NaN to 0.0 (silently "nothing to do") and NaN compares False against `<= 0` / `> cap`, so the raw
+        # values are gated HERE, by name, before any division, reservation or send.
+        if not (present_finite(auth.get("notional")) and present_finite(auth.get("size")) and present_finite(fill.price)):
+            intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
+            notes = (f"planner returned a non-finite notional/size/price ({auth.get('notional')!r}, "
+                     f"{auth.get('size')!r}, {fill.price!r}); nothing sent - NAMED refusal")
+            self.append_order_intent(cfg, fill, intent_id, [fill.fill_id], intent_type,
+                                     NON_FINITE_REFUSAL, f"{intent_type}_{NON_FINITE_REFUSAL}",
+                                     0.0, 0.0, NON_FINITE_REFUSAL, notes, side_override=order_side)
+            self.append_reconciliation(cfg, fill, "REFUSE", f"{intent_type}_{NON_FINITE_REFUSAL}",
+                                       refusal_action(NON_FINITE_REFUSAL), before_signed, before_signed,
+                                       0.0, notes)
+            self.processed_ids.add(fill.fill_id)
+            self.bump("fills_blocked_" + NON_FINITE_REFUSAL.lower())
+            return
 
         # G4-C1 (Controller B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1): enforce the operator cap against the
         # FINAL PLANNER ORDER NOTIONAL. The per-event estimate checked earlier can UNDERSTATE this,
@@ -2883,7 +2946,7 @@ class DryRunLiveCopyService:
                 self.append_order_intent(
                     cfg, fill, "CAPBLOCK-%s" % str(fill.fill_id), [str(fill.fill_id)], "ENTRY",
                     "GLOBAL_MAX_ORDER_NOTIONAL", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                    copy_notional_raw, (copy_notional_raw / fill.price if fill.price > 0 else 0.0),
+                    copy_notional_raw, copy_size_planned,
                     "BLOCKED", notes="final planner order notional above global max_order_notional_usd",
                     decision={"execution_decision": "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
                               "decision_reason": "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"},
@@ -2897,28 +2960,31 @@ class DryRunLiveCopyService:
                 return
 
         if copy_notional_raw <= 0:
+            # OD-09: a planner REFUSAL reaches here as notional 0 too. It is a refusal, not convergence:
+            # it is written with its own status/reconciliation and counted where the decision was consumed.
+            # Recording it as CONVERGED ("desired met; zero orders") was the silent drop at this seam.
+            if planner_reason in {MIN_NOTIONAL_REFUSAL, NON_FINITE_REFUSAL}:
+                intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
+                status = f"{intent_type}_{planner_reason}"
+                notes = f"planner refused the copy by name ({planner_reason}); nothing sent - NAMED refusal"
+                self.append_order_intent(cfg, fill, intent_id, [fill.fill_id], intent_type,
+                                         planner_reason, status, 0.0, 0.0, planner_reason, notes,
+                                         side_override=order_side)
+                self.append_reconciliation(cfg, fill, "REFUSE", status, refusal_action(planner_reason),
+                                           before_signed, before_signed, 0.0, notes)
+                self.processed_ids.add(fill.fill_id)
+                return
             self.append_reconciliation(cfg, fill, "CONVERGED", str(auth.get("action") or "NONE"), "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
             self.processed_ids.add(fill.fill_id)
             self.bump("fills_converged_no_order")
             return
 
-        policy = "DIRECT_EXECUTABLE"
+        # OD-09: the planner already decided the min-notional outcome (uplift or refusal); the service
+        # records that decision and never re-applies, or re-invents, the rule.
+        policy = "UPLIFTED_TO_MIN_NOTIONAL" if str(auth.get("min_notional_event")) == MIN_NOTIONAL_EVENT_UPLIFTED else "DIRECT_EXECUTABLE"
         linked_ids = [fill.fill_id]
         copy_notional = copy_notional_raw
-        if intent_type == "ENTRY":
-            can_order, copy_notional, linked_ids, policy = self.handle_min_notional_for_entry(cfg, fill, copy_notional_raw)
-            if not can_order:
-                intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
-                copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
-                # OD-09: never a silent drop. Too small to round up => explicit NAMED refusal + counter.
-                notes = (f"copy notional {copy_notional:.6f} below min {MIN_ORDER_NOTIONAL} and rounding up would "
-                         f"exceed the entry-uplift envelope; nothing sent - NAMED refusal")
-                self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "BELOW_MIN_NOTIONAL", "ENTRY_BELOW_MIN_NOTIONAL_REFUSED", copy_notional, copy_size, policy, notes, side_override=order_side)
-                self.append_reconciliation(cfg, fill, "REFUSE", "ENTRY_BELOW_MIN_NOTIONAL_REFUSED", "REFUSED_BELOW_MIN_NOTIONAL", before_signed, before_signed, copy_notional, notes)
-                self.processed_ids.add(fill.fill_id)
-                self.bump("entries_refused_below_min_notional")
-                return
-        elif copy_notional < MIN_ORDER_NOTIONAL:
+        if intent_type == "EXIT" and copy_notional < MIN_ORDER_NOTIONAL:
             intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
             copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
             self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "EXIT_BELOW_MIN_NOTIONAL", "MANUAL_REVIEW", copy_notional, copy_size, "EXIT_BELOW_MIN_REVIEW", "exit/reduce notional below $10; manual reconcile in live mode", side_override=order_side)
@@ -2927,7 +2993,8 @@ class DryRunLiveCopyService:
             self.bump("exits_below_min_review")
             return
 
-        copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
+        # the planner's own size is authoritative: notional/price can round-trip a ceilinged size DOWN.
+        copy_size = copy_size_planned if copy_size_planned > 0 else (copy_notional / fill.price if fill.price > 0 else 0.0)
         intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
         decision = dry_run_intent_audit_decision(cfg, fill, intent_type, planner_reduce_only, replay_history=replay_history, quote_getter=self.get_public_quote, side=order_side)
         policy = decision.get("policy") or policy

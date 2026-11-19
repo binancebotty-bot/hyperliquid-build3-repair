@@ -30,6 +30,8 @@ def main():
     import HL_Live_Copy_Service as svcmod
     import convergence_shadow as shadow
     svcmod.TEST_INJECTION_ENABLED = True
+    # pin the venue metadata so the planner's szDecimals ceiling is a fixture, not a network call
+    svcmod.HL_PERP_META_BY_COIN_CACHE = {"BTC": {"szDecimals": 5, "name": "BTC", "canonical_name": "BTC"}}
     wallets = ("0xw1", "0xw2")
     configs = {w: svcmod.LiveWalletConfig(wallet=w, mode="LIVE", copy_mode="proportional",
                                           norm_base=1000.0, leader_equity_base=1000.0, enabled=True)
@@ -43,7 +45,9 @@ def main():
         return svc.convergence_order_for_coin(configs[wallets[0]], f, configs, actual)
 
     def counts():
-        ev = getattr(shadow, "MIN_NOTIONAL_EVENTS", None) or {}
+        # OD-09: ONE counter, in service state, keyed by the planner's own classification. The planner
+        # keeps no counter of its own (a module-global in a pure planner was the duplicate).
+        ev = svc.state.get("min_notional_events") or {}
         return int(ev.get("uplifted", 0) or 0), int(ev.get("refused", 0) or 0)
 
     # The two leaders oppose each other: +3 and -1 net to a +2 copy (same fixture as the ENG-018 send pins).
