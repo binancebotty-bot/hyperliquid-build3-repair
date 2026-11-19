@@ -3784,6 +3784,17 @@ def log_error(context: str, exc: BaseException | str) -> None:
             pass
 
 
+def _record_leader_poll_error(summary: Any, exc: Exception) -> None:
+    """Keep the poll guard armed, but distinguish transport errors from code faults."""
+    log_error("leader_poll", exc)
+    if isinstance(exc, (TimeoutError, ConnectionError, OSError)) or (requests is not None and isinstance(exc, requests.RequestException)):
+        summary.network_errors += 1
+    else:
+        summary.leader_poll_code_errors += 1
+        summary.leader_poll_alert = type(exc).__name__
+        sys.stderr.write(f"[leader_poll:{type(exc).__name__}] {exc!r}\\n{traceback.format_exc()}")
+
+
 def normalise_wallet(wallet: Any) -> str:
     return str(wallet or "").strip().lower()
 
@@ -3990,6 +4001,8 @@ class CycleSummary:
     budget_exceeded: bool = False
     network_errors: int = 0
     fatal_errors: int = 0
+    leader_poll_code_errors: int = 0
+    leader_poll_alert: str = ""
 
 
 class ConfigManager:
@@ -15562,14 +15575,14 @@ class LiveCopyCore:
                             try:
                                 _results[w] = _fut.result()
                             except Exception as _pe:
-                                log_error("leader_poll", _pe)
+                                _record_leader_poll_error(summary, _pe)
                                 _results[w] = ([], "POLL_NETWORK_ERROR")
                 else:
                     for w, _start, lane in _jobs:
                         try:
                             _results[w] = _poll_with_lane(w, _start, now, lane)
-                        except Exception as _pe:  # same guard as the parallel branch above: one leader poll never ends the cycle
-                            log_error("leader_poll", _pe)
+                        except Exception as _pe:  # one leader poll never ends the cycle; classification keeps code faults visible
+                            _record_leader_poll_error(summary, _pe)
                             _results[w] = ([], "POLL_NETWORK_ERROR")
                 for w, _start, _lane in _jobs:
                     wallet_fills, status = _results[w]
@@ -15701,8 +15714,8 @@ class LiveCopyCore:
                 self._process_leader_fill(fill, summary, self._entry_sends_blocked_reason)
             summary.send_backlog = self.hot_backlog()
             if poll_copy:
-                self.copy_poll_once(summary)
                 _copy_poll_done = True
+                self.copy_poll_once(summary)
             elif getattr(self, "_copy_thread", None) is not None:
                 last = dict(getattr(self, "_copy_last", {}) or {})  # the copy thread polls; report its latest read
                 summary.copy_account_status = str(last.get("status") or "COPY_POLL_THREAD_STARTING")

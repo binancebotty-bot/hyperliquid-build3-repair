@@ -162,7 +162,7 @@ def main() -> None:
 
         def poll_hyperliquid_fills(self, wallet, start_ms, end_ms=None):
             FailingLeaderIngestor.calls += 1
-            raise RuntimeError("429 rate limited: leader poll failed this cycle")
+            raise AttributeError("leader poll code fault")
 
     class CountingCopyIngestor:
         calls = 0
@@ -181,9 +181,59 @@ def main() -> None:
           CountingCopyIngestor.calls == 1,
           f"copy poll calls={CountingCopyIngestor.calls} after the leader poll raised "
           f"(ok={sum_s.ok} fatal_errors={sum_s.fatal_errors})")
+    check("S3_COPY_POLL_RUNS_ONCE_AFTER_FAILING_LEADER_POLL",
+          CountingCopyIngestor.calls == 1,
+          f"copy poll calls={CountingCopyIngestor.calls}")
     check("S2_CYCLE_COMPLETED_AROUND_THE_FAILED_LEADER_POLL",
-          sum_s.fatal_errors == 0 and sum_s.network_errors >= 1,
+          sum_s.fatal_errors == 0 and sum_s.leader_poll_code_errors == 1,
           f"ok={sum_s.ok} fatal={sum_s.fatal_errors} net_err={sum_s.network_errors}")
+    check("S6_ATTRIBUTE_ERROR_IS_REPORTED_AS_LEADER_POLL_CODE_ERROR",
+          sum_s.leader_poll_code_errors == 1 and sum_s.leader_poll_alert == "AttributeError",
+          f"code_errors={sum_s.leader_poll_code_errors} alert={sum_s.leader_poll_alert}")
+    core.stop()
+
+    # A transient transport failure is counted as network noise, not a code fault.
+    core = new_core()
+    class NetworkLeaderIngestor:
+        def poll_hyperliquid_fills(self, wallet, start_ms, end_ms=None):
+            raise ConnectionError("temporary transport failure")
+    core.ingestor = NetworkLeaderIngestor()
+    core.copy_ingestor = SpyCopyIngestor()
+    core.ws.drain = lambda: []
+    sum_net = core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=True, reconcile_exchange=False)
+    check("S7_CONNECTION_ERROR_TOLERATED_WITHOUT_CODE_ALERT",
+          sum_net.fatal_errors == 0 and sum_net.network_errors >= 1
+          and sum_net.leader_poll_code_errors == 0 and not sum_net.leader_poll_alert,
+          f"fatal={sum_net.fatal_errors} network={sum_net.network_errors} code={sum_net.leader_poll_code_errors}")
+    core.stop()
+
+    # Failure before the normal copy-poll site still uses the finally fallback.
+    core = new_core()
+    class FailingCopyIngestor:
+        calls = 0
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            FailingCopyIngestor.calls += 1
+            return [], "COPY_ACCOUNT_POLLED"
+    core.copy_ingestor = FailingCopyIngestor()
+    core.ws.drain = lambda: (_ for _ in ()).throw(RuntimeError("cycle failed before poll"))
+    core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True, reconcile_exchange=False)
+    check("S5_FINALLY_FALLBACK_POLLS_AFTER_EARLY_CYCLE_FAILURE", FailingCopyIngestor.calls == 1,
+          f"copy poll calls={FailingCopyIngestor.calls}")
+    core.stop()
+
+    # A raising copy poll must not be retried by finally in the same cycle.
+    core = new_core()
+    class RaisingCopyIngestor:
+        calls = 0
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            RaisingCopyIngestor.calls += 1
+            raise RuntimeError("copy poll failed")
+    core.ingestor = HealthyLeaderIngestor()
+    core.copy_ingestor = RaisingCopyIngestor()
+    core.ws.drain = lambda: []
+    core.run_cycle(use_source_csv=False, poll_live=True, poll_copy=True, reconcile_exchange=False)
+    check("S4_RAISING_COPY_POLL_IS_NOT_RETRIED_IN_FINALLY", RaisingCopyIngestor.calls == 1,
+          f"copy poll calls={RaisingCopyIngestor.calls}")
     core.stop()
 
     failed = [n for n, ok in RESULTS if not ok]
