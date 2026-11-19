@@ -1221,13 +1221,17 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
         max_notional=1e12 if is_close_guard_path else max_notional_for_send,
     )
     status = str(result.get("status") or "ORDER_SENDER_NOT_IMPLEMENTED")
+    settled_from_master = False
     if not TEST_INJECTION_ENABLED:
         # the ack/oid is durably attached but NEVER clears the reservation
         attach_send_result(_res_coin, {"oid": str(result.get("oid") or ""), "exchange_status": status,
                                        "responded_ms": utc_now_ms()})
-        reconcile_unresolved_send(_res_coin)
+        settlement = reconcile_unresolved_send(_res_coin)
+        # ENG-INV-10: an ack is not settlement. The follower position ledger may adopt a fill ONLY
+        # once independent MASTER evidence has settled THIS reservation; an ack alone never does.
+        settled_from_master = bool(settlement.get("settled"))
     position_after = position_before
-    if status == "ORDER_FILLED":
+    if status == "ORDER_FILLED" and (settled_from_master or TEST_INJECTION_ENABLED):
         updated = update_manual_live_position_from_fill(
             str(payload.get("coin", "")),
             str(payload.get("side", "")),

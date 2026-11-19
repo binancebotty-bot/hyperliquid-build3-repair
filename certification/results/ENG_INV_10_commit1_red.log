@@ -1,0 +1,54 @@
+RESULT::ENGINE_REV=b3c090b0f53d2b6989a4850914d711271ffbe209
+RESULT::HARNESS_SHA256=29a93d61f617bc5777186519c4d445608bb5888d84ea4d201e64b89ebaceca7e
+RESULT::OLFFLINE=no network: injected /info fetcher + injected exchange order double
+--- S1 ---
+RESULT::ROW::S1 send_attempts row={"coin": "ETH", "confirmed": "True", "copy_size": "0.008", "side": "BUY", "status": "ORDER_RESTING"}
+RESULT::ROW::S1 in_flight_unresolved[ETH]={"coin": "ETH", "exchange_status": "ORDER_RESTING", "intent_id": "INV10-S1", "oid": "9001", "pre_send_master_net": 0.0, "reduce_only": false, "remaining": 0.008, "responded_ms": 1794943227620, "settle_status": "UNSETTLED", "side": "BUY", "size": 0.008, "started_ms": 1794943227618}
+RESULT::ROW::S1 in_flight_terminals={}
+RESULT::PASS::S1 ack recorded as ORDER_RESTING, not filled
+RESULT::PASS::S1 no filled send_attempts terminal state
+RESULT::PASS::S1 no settled ledger row (in_flight_terminals has no ETH)
+RESULT::PASS::S1 reservation still blocking (settlement not granted)
+RESULT::PASS::S1 MASTER flat => no position recorded
+RESULT::PASS::S1 exactly one physical send attempted
+--- S2 ---
+RESULT::ROW::S2 send_attempts row (ack only)={"coin": "ETH", "copy_size": "0.008", "side": "BUY", "status": "ORDER_FILLED"}
+RESULT::ROW::S2 settle status recorded={"remaining": 0.008, "settle_status": "UNSETTLED"}
+RESULT::ROW::S2 in_flight_terminals={}
+RESULT::ROW::S2 manual_live_positions={"ETH": {"last_intent_id": "INV10-S2", "last_oid": "9002", "last_updated_at": "2026-11-17T19:20:27.641504+00:00", "leader_wallet": "0xw1", "signed_size": 0.008}}
+RESULT::PASS::S2 ack status is recorded verbatim as ORDER_FILLED (ack, not settlement)
+RESULT::PASS::S2 MASTER flat => no settled ledger row
+RESULT::PASS::S2 status recorded for the unresolvable ack is UNSETTLED
+RESULT::FAIL::S2 MASTER flat => no position adopted from the ack::{"ETH": {"last_intent_id": "INV10-S2", "last_oid": "9002", "last_updated_at": "2026-11-17T19:20:27.641504+00:00", "leader_wallet": "0xw1", "signed_size": 0.008}}
+RESULT::PASS::S2 exactly one physical send attempted
+--- S3 ---
+RESULT::ROW::S3 in_flight_terminals={"ETH": "SETTLED_FULL"}
+RESULT::ROW::S3 manual_live_positions={"ETH": {"last_intent_id": "INV10-S3", "last_oid": "9003", "last_updated_at": "2026-11-17T19:20:27.658744+00:00", "leader_wallet": "0xw1", "signed_size": 0.008}}
+RESULT::PASS::S3 MASTER fill+position => settlement granted
+RESULT::PASS::S3 reservation cleared once settled
+RESULT::PASS::S3 position recorded only now that MASTER truth agrees
+RESULT::PASS::S3 exactly one physical send attempted
+--- S4 ---
+RESULT::ROW::S4 send_attempts row (no ack)={"coin": "ETH", "error": "exchange timeout: no acknowledgement", "side": "BUY", "status": "ORDER_UNKNOWN"}
+RESULT::ROW::S4 MASTER openOrders (order is resting at the exchange)=[{"coin": "ETH", "limitPx": "2500.0", "oid": 9004, "side": "B", "sz": "0.008"}]
+RESULT::ROW::S4 reservation after 3 reconciles={"coin": "ETH", "exchange_status": "ORDER_UNKNOWN", "intent_id": "INV10-S4", "oid": "", "pre_send_master_net": 0.0, "reduce_only": false, "remaining": 0.008, "responded_ms": 1794943227670, "settle_status": "UNSETTLED", "side": "BUY", "size": 0.008, "started_ms": 1794943227669}
+RESULT::PASS::S4 no ack => status ORDER_UNKNOWN, never filled
+RESULT::PASS::S4 no settled ledger row while MASTER shows no fill
+RESULT::PASS::S4 reservation still blocking (fail closed)
+RESULT::PASS::S4 recorded settle status is UNSETTLED
+RESULT::PASS::S4 no position recorded
+RESULT::PASS::S4 settlement retries never cause a second physical send
+--- S5 ---
+RESULT::S5::scratch=C:\Users\wigmore\AppData\Local\Temp\inv10_s5_6o61tu91\tree
+RESULT::S5::mutation="an intent carrying an ack oid is treated as settled (SETTLED_FULL)"
+RESULT::S5::child_exit=1
+RESULT::S5::reddened::S1 no settled ledger row (in_flight_terminals has no ETH)
+RESULT::S5::reddened::S1 reservation still blocking (settlement not granted)
+RESULT::S5::reddened::S2 MASTER flat => no settled ledger row
+RESULT::S5::reddened::S2 status recorded for the unresolvable ack is UNSETTLED
+RESULT::S5::reddened::S2 MASTER flat => no position adopted from the ack
+RESULT::PASS::S5 mutated tree goes RED (child exit 1)
+RESULT::PASS::S5 S1 reddens under the mutation
+RESULT::PASS::S5 S2 reddens under the mutation
+RESULT::TOTAL=24 PASS=23 FAIL=1
+RESULT::RED
