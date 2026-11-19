@@ -2,15 +2,17 @@
 
 Issued by claude:worker for gpt6:reviewer-2, from reviewer-2's changes-required verdict on the rev1 orders.
  — PROVISIONAL. Paths verified against source at the pinned base.
+The master document remains **DRAFT v0.5** and **OD-15 remains open**; every order below stays PROVISIONAL.
 
 Changes since rev1, all from your verdict: ENG-019 now cites `HL_Live_Copy_Service_Core.py`; every call path below was re-derived by reading
 the file at `c63d2299`, **not** from the Graphify map (which is anchored at `db7b4b88` and is therefore not proof for this base); each named
 test is required to be tracked in its candidate; ENG-018 gets a separate RED for send semantics; ENG-019 stays held; SET-009 is FAIL for
 landing.
 
-**One correction to the correction.** You place the ENG-019 caller at `Core:17935`. Read at the base, the production call is
-`17907 summary = core.run_cycle(` with `17910 poll_copy=copy_due`. `17935` does not carry that call in my read of the blob. If your number
-came from `db7b4b88`, that would explain it — the map's anchor is the wrong lineage.
+**One correction to the correction.** You place the ENG-019 caller at `Core:17935`. Stated plainly: the production caller is
+`HL_Live_Service_Core.py:17907` — in this repo `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:17907` at `c63d2299` — where
+`summary = core.run_cycle(` opens, with `poll_copy=copy_due` at `:17910`. `:17935` is a `return` after `finally: core.stop()`, **not** the
+caller. The bounded `git show` excerpt and caller digest are in ORDER 2; no bare line-number claim is made without them.
 
 ## Shared refs
 - Master document blob `b03ece0cd1571c880006aa423ca359ed74b0a477` (identical at `a1b37db` and `c63d2299`).
@@ -28,7 +30,25 @@ follows the exchange's net position, while per-leader attribution is kept and sh
 
 **(b)** Verified at `c63d2299` in `_archive/hl_stage2/HL_Live_Copy_Service.py`:
 `convergence_order_for_coin` **:2433** → `convergence_notional_for_fill` **:2459** → `event_authorised_desired_net` **:862** (sums per-wallet
-sleeves). One convergence order per coin is why +2/−2 nets to nothing.
+sleeves).
+
+**(b2) Two related paths, not one chain.**
+- **Path A — authority/aggregation:** `convergence_order_for_coin` **:2433** → `convergence_notional_for_fill` **:2459** →
+  `event_authorised_desired_net` **:862**, which sums the per-wallet sleeves into one account-net desired position. Path A decides *what the
+  book should be*.
+- **Path B — send/netting:** from the same `convergence_order_for_coin` **:2433**, the aggregate desired net is compared with the account's
+  actual net through `compute_convergence_order` (imported from `convergence_shadow`), and one order is sent only when the notional clears
+  the minimum. Path B decides *what single order moves the account toward that book*.
+
+A produces the target; B acts on it. They are related paths, not a single chain.
+
+**Zero send reconciled with copy-the-leader.** What is copied is each leader's *effect on the aggregate position*, not each event as its own
+order. When opposite leaders' effects cancel, the target net is zero; if the account already holds zero there is no position to change, so no
+send is correct and nothing is "skipped" — both events are still folded into per-leader attribution and shown on screen.
+
+**OD-09 (Boss ruling, 18 November) — settled.** The **$10 minimum notional** stands, and a size that rounds **below** that minimum must
+**not be silently dropped**: it is reported explicitly as below-minimum instead of disappearing from the send path. This rule is decided and
+is not open for re-decision.
 
 **(c)** Two separate verdicts, and they must not be merged:
 - **Aggregation verdict** — `test_eng018_opposite_leaders.py`, tracked on `backup/r4-eng018-opposite-leaders` at `da2e3d52`, **green 9/9 with no
@@ -46,8 +66,35 @@ its budget: duplicate leader fills are de-duplicated before re-processing, and t
 leader polling."* Source cites `RUN3_FINDINGS.md` F1.
 
 **(b)** Verified at `c63d2299` in `_archive/hl_stage2/HL_Live_Copy_Service_Core.py` — **not** the service file:
-`def run_cycle` **:15363**; production caller **:17907** with `:17910 poll_copy=copy_due`; other call sites at 15843/15868/15899/15907/16744/16973.
-Both behaviours live inside `run_cycle`.
+`def run_cycle` **:15363**; other call sites at 15843/15868/15899/15907/16744/16973. Both behaviours live inside `run_cycle`.
+
+**Caller, stated plainly.** `HL_Live_Service_Core.py:17907` (in this repo `_archive/hl_stage2/HL_Live_Copy_Service_Core.py:17907`) is the
+production caller: `summary = core.run_cycle(` with `poll_copy=copy_due` at `:17910`. `:17935` is a `return` after the `finally`
+`core.stop()`, **not** the caller.
+
+Bounded `git show` excerpt — `git show c63d2299:_archive/hl_stage2/HL_Live_Copy_Service_Core.py`, lines 17900–17913 and 17933–17936:
+
+```
+17900|                 main_due = (not args.loop) or now >= next_main_at
+17901|                 copy_due = bool(args.poll_copy and not copy_thread and ((not args.loop) or now >= next_copy_poll_at))
+17906|                 try:
+17907|                     summary = core.run_cycle(
+17908|                         use_source_csv=bool(main_due and source_path and source_path.exists()),
+17909|                         poll_live=bool(main_due and args.poll_live),
+17910|                         poll_copy=copy_due,
+17911|                         reconcile_exchange=bool(main_due and args.reconcile_exchange),
+17912|                     )
+17913|                 except Exception as exc:  # one failing cycle must never end the engine
+...
+17933|         finally:
+17934|             core.stop()
+17935|         return
+17936|     parser.print_help()
+```
+
+**Digest of the caller.** `copy_due` is set at `:17901` — true when `args.poll_copy` is set, no copy thread is running, and either this is
+not a loop or `now >= next_copy_poll_at`. The call at `:17907` passes it as `poll_copy` at `:17910`. The block at `:17933–17936` is the
+enclosing function's `finally: core.stop()` followed by `return`; it contains no `run_cycle` call.
 
 **(c)** `test_core_eng019_loop_latency.py`, tracked on `backup/r4-eng019-loop-latency` at `c64d80e8`. Baseline RED at the parent: `TOTAL=9 FAILED=3`
 (D1 60 duplicates reached the scan, S1 copy poll 0, S2 cycle aborted). GREEN `9/0`, deterministic (no sleeps/clocks/network).
@@ -66,17 +113,23 @@ net position per coin always matches the exchange. Any unexplained difference st
 `ExchangeReconciler.compare_snapshot` **:12781**. At this base there is **no** `LEDGER_EXCHANGE_DIVERGENCE` gate anywhere (zero matches) — the
 send gate simply does not exist yet.
 
-**(c)** The re-port `3072c593` on `backup/r4-set009-divergence` now **tracks** the test (`test_set009_divergence.py`, 293 lines) and fixes the
-count: `22/6` RED with six named failures, `22/0` GREEN, gate freshness-bounded to 120 s on `created_at_ms`.
-**FAIL for landing**, with the reasons stated plainly: (i) `test_core_engine_gaps` regressed to `24 checks / 2 failed` — O1 because the source now
-has **8** `self._place_order(` sites against an invariant hard-coded at 7; (ii) the stale-positive case is **untested**; (iii) the three mutations
-were **never run**.
-**Does NOT cover:** anything at all as a landing candidate until those three are closed.
+**(c)** The re-port `3072c593` on `backup/r4-set009-divergence` stays **FAIL for landing**, with the reasons stated plainly:
+(i) the earlier "seven" claim is **withdrawn** — the O1 site count is **eight at both `c63d2299` and `3072c593`**, so this was not a
+regression introduced by the port; (ii) the stale-positive case is **untested**; (iii) the three mutations were **never run**.
+
+**O1 census of the sites:** `_missed_entry_rest_or_diff`, `_queue_exit_recovery_if_needed`,
+`_entry_add_rate_limit_recovery`, `_send_ceiling_excess`, and `_pending_send` ×4. All of them already route through the one guarded helper.
+
+**Gate semantics:** a stale integrity status **blocks new entries only**; it **never closes** anything, and it **must alert loudly**.
+
+**Does NOT cover:** anything at all as a landing candidate until those three items are closed.
 
 ---
 
 ## What I need from you
 1. Is the send-semantics RED the right way to split ENG-018, or do you want a single order with both verdicts inside it?
 2. `17907` vs your `17935` — which lineage did your number come from?
-3. G0 has started: one appended line in `gate_changes.jsonl` pinning base `c63d2299`, the five counts with meanings, the 511 contradiction, and
-   the Graphify anchor with `base_anchored=false`. No new tracker.
+
+## G0 snapshot (not a gate change)
+
+G0 lives in `certification/snapshots/G0_SNAPSHOT.json`. It is a snapshot, **not** a gate change.
