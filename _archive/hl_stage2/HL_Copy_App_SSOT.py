@@ -421,13 +421,26 @@ def purge_tombstone(value: Any) -> str:
 
 
 PURGE_UNPARSEABLE_ENTRIES: List[str] = []
+PURGE_UNPARSEABLE_REJECTED: List[str] = []
 _PURGE_UNPARSEABLE_ALERTED: set[Tuple[str, ...]] = set()
+_PURGE_CONTROL_ALERTED: set[Tuple[str, ...]] = set()
 
 
-def _split_tombstones(values: Iterable[Any]) -> Tuple[set[str], List[str]]:
-    """(tombstones, unparseable) from raw lines or set members; blank padding is not an entry."""
+def _has_control_chars(text: str) -> bool:
+    return any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in text)
+
+
+def _split_tombstones(values: Iterable[Any]) -> Tuple[set[str], List[str], List[str]]:
+    """(tombstones, unparseable, rejected) from raw lines or set members; blank padding is no entry.
+
+    An unparseable entry that also carries a control character is REJECTED instead of carried over:
+    written back verbatim it splits into several lines on the next read, so ONE supplied value would
+    become several persisted records - and the extra line could be a wallet address that the next
+    load hashes into the valid set. Rejected entries are alerted by the caller and never written.
+    """
     tombstones: set[str] = set()
     unparseable: List[str] = []
+    rejected: List[str] = []
     for value in values:
         text = str(value or "").strip().lower()
         if not text:
@@ -435,8 +448,11 @@ def _split_tombstones(values: Iterable[Any]) -> Tuple[set[str], List[str]]:
         try:
             tombstones.add(purge_tombstone(text))
         except ValueError:
-            unparseable.append(text)
-    return tombstones, unparseable
+            if _has_control_chars(text):
+                rejected.append(text)
+            else:
+                unparseable.append(text)
+    return tombstones, unparseable, rejected
 
 
 def _alert_unparseable(entries: List[str]) -> None:
@@ -453,6 +469,17 @@ def _alert_unparseable(entries: List[str]) -> None:
           % (len(entries), PURGED_WALLETS_FILE.name, entries), flush=True)
 
 
+def _alert_rejected(entries: List[str]) -> None:
+    """Name every entry refused because a control character would split it into extra records."""
+    PURGE_UNPARSEABLE_REJECTED[:] = list(entries)
+    signature = tuple(sorted(entries))
+    if not signature or signature in _PURGE_CONTROL_ALERTED:
+        return
+    _PURGE_CONTROL_ALERTED.add(signature)
+    print("PURGE_UNPARSEABLE_CONTROL_REJECTED count=%d file=%s entries=%r treated=REJECTED"
+          % (len(entries), PURGED_WALLETS_FILE.name, entries), flush=True)
+
+
 def load_purged_wallets() -> set[str]:
     """sha256 tombstones. A plaintext line written by an older build is hashed here so it still
     matches its wallet exactly once, and the file is rewritten hashed on the next save.
@@ -464,8 +491,10 @@ def load_purged_wallets() -> set[str]:
     if not PURGED_WALLETS_FILE.exists():
         _alert_unparseable([])
         return set()
-    tombstones, unparseable = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
+    tombstones, unparseable, rejected = _split_tombstones(
+        PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
     _alert_unparseable(unparseable)
+    _alert_rejected(rejected)
     return tombstones | set(unparseable)
 
 
@@ -486,19 +515,24 @@ def save_purged_wallets(tombstones: set[str]) -> None:
     """Write hashes plus any entry this build cannot parse, carried over from disk verbatim.
 
     A caller set that never saw an unreadable entry must not be able to erase it, so unparseable
-    lines already on disk are merged in and re-alerted rather than rewritten away.
+    lines already on disk are merged in and re-alerted rather than rewritten away. An unparseable
+    entry carrying a control character is refused, not merged: written back it would split into
+    several lines and grow the file a record the caller never supplied.
     """
     PURGED_WALLETS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with _FILE_WRITE_LOCK:
         candidates = set(tombstones)
         if PURGED_WALLETS_FILE.exists():
-            _, on_disk = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
+            _, on_disk, _ = _split_tombstones(PURGED_WALLETS_FILE.read_text(encoding="utf-8").splitlines())
             candidates |= set(on_disk)
-        valid, unparseable = _split_tombstones(candidates)
-        _alert_unparseable(unparseable)
+        valid, unparseable, rejected = _split_tombstones(candidates)
         tmp = _unique_tmp_path(PURGED_WALLETS_FILE)
         tmp.write_text("".join(f"{w}\n" for w in sorted(valid | set(unparseable))), encoding="utf-8")
         _replace_with_retries(tmp, PURGED_WALLETS_FILE)
+    # Alerts print to stdout, so they run OUTSIDE the lock: a blocked reader must not stall every
+    # atomic_write_json/atomic_write_csv behind a stalled alert.
+    _alert_unparseable(unparseable)
+    _alert_rejected(rejected)
 
 
 def backup_purge_files(wallet: str, files: List[Path]) -> Path:

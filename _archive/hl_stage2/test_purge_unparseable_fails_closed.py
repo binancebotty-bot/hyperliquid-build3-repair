@@ -93,24 +93,62 @@ def main() -> None:
 
     # Construction invariant: save's disk read must run while the shared writer lock is owned.
     # This makes a cooperating concurrent append serialize before or after the entire save transaction.
+    # The observation is bound to the READ itself, not to a helper called after it: hoisting only
+    # `read_text` above `with _FILE_WRITE_LOCK:` leaves every later call inside the lock, so a hook on
+    # a helper passes while a cooperating append is lost (test_purge_save_race.py loses 50 of 50).
     owned_during_save_read = []
-    original_split = ui._split_tombstones
 
-    def assert_locked_split(lines):
-        owned_during_save_read.append(ui._FILE_WRITE_LOCK._is_owned())
-        return original_split(lines)
+    class ObservedTombstonePath(type(tomb)):
+        def read_text(self, *args, **kwargs):
+            owned_during_save_read.append(ui._FILE_WRITE_LOCK._is_owned())
+            return super().read_text(*args, **kwargs)
 
-    ui._split_tombstones = assert_locked_split
+    real_path = ui.PURGED_WALLETS_FILE
+    ui.PURGED_WALLETS_FILE = ObservedTombstonePath(real_path)
     try:
         # a caller that only ever saw hashes must not be able to erase an entry it cannot read
         ui.save_purged_wallets({hashlib.sha256(B.encode("utf-8")).hexdigest()})
     finally:
-        ui._split_tombstones = original_split
+        ui.PURGED_WALLETS_FILE = real_path
     check("PURGE_UNPARSEABLE_SAVE_READ_UNDER_LOCK", bool(owned_during_save_read) and all(owned_during_save_read),
-          "lock ownership during disk merge=%r" % (owned_during_save_read,))
+          "lock ownership at the disk read=%r" % (owned_during_save_read,))
     lines = tomb.read_text(encoding="utf-8").split()
     check("PURGE_UNPARSEABLE_SAVE_CANNOT_DROP", GARBAGE in lines and TRUNCATED in lines,
           "a save from a hashes-only set dropped the unreadable entries: %r" % (lines,))
+
+    # ---- a control character must not let ONE supplied value become several records -------------
+    # Written verbatim, "broken\n0x..." persists as two lines, so one supplied value becomes two
+    # records and the tail is a plaintext address the next load hashes into the valid set.
+    promoted = "0x" + "d" * 40
+    hostile = "broken\n" + promoted
+    noisy = io.StringIO()
+    with contextlib.redirect_stdout(noisy), contextlib.redirect_stderr(noisy):
+        ui.save_purged_wallets({hashlib.sha256(B.encode("utf-8")).hexdigest(), hostile})
+    rejected_alert = noisy.getvalue()
+    raw_lines = [line.strip().lower() for line in tomb.read_text(encoding="utf-8").splitlines()]
+    check("PURGE_UNPARSEABLE_CONTROL_CHARS_NOT_WRITTEN",
+          hostile not in raw_lines and promoted not in raw_lines
+          and GARBAGE in raw_lines and TRUNCATED in raw_lines,
+          "one supplied value carrying a newline was persisted as %r" % (raw_lines,))
+    check("PURGE_UNPARSEABLE_CONTROL_CHARS_ALERTED",
+          "PURGE_UNPARSEABLE_CONTROL_REJECTED" in rejected_alert
+          and hostile in list(getattr(ui, "PURGE_UNPARSEABLE_REJECTED", [])),
+          "alert=%r rejected=%r" % (rejected_alert[:200], getattr(ui, "PURGE_UNPARSEABLE_REJECTED", [])))
+    check("PURGE_UNPARSEABLE_CONTROL_ENTRY_TAIL_NOT_BLOCKING",
+          ui.is_purged(promoted) is False,
+          "the address smuggled in the rejected entry answers is_purged=%r" % (ui.is_purged(promoted),))
+
+    poisoned = tmp / "poisoned_purged_wallets.txt"
+    write(poisoned, "zz\u0000hidden\n")
+    ui.PURGED_WALLETS_FILE = poisoned
+    disk_noise = io.StringIO()
+    with contextlib.redirect_stdout(disk_noise), contextlib.redirect_stderr(disk_noise):
+        loaded_poisoned = ui.load_purged_wallets()
+    check("PURGE_UNPARSEABLE_CONTROL_FROM_DISK_REJECTED",
+          "zz\u0000hidden" not in loaded_poisoned
+          and "PURGE_UNPARSEABLE_CONTROL_REJECTED" in disk_noise.getvalue(),
+          "loaded=%r alert=%r" % (sorted(loaded_poisoned), disk_noise.getvalue()[:200]))
+    ui.PURGED_WALLETS_FILE = tomb
 
     # ---- the operator's real file is clean: no false alarm -----------------------------------
     clean = tmp / "clean_purged_wallets.txt"

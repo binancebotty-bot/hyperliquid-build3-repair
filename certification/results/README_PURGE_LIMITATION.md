@@ -11,23 +11,40 @@ hashed tombstone, so this branch must not be deployed on its own.
 - a line that is a 64-hex tombstone is used as-is;
 - a plaintext wallet address is hashed once, so it still matches its wallet, and is rewritten hashed
   on the next save;
-- anything else (e.g. `zz-not-a-wallet`, a truncated 60-hex tombstone, a corrupted line) is kept
-  **verbatim** in the returned set, so the exact key that wrote it stays blocked, and the load emits a
+- anything else that carries no control character (e.g. `zz-not-a-wallet`, a truncated 60-hex
+  tombstone, a corrupted line) is kept **verbatim** in the returned set, so the exact key that wrote it
+  stays blocked, and the load emits a
   named event `PURGE_UNPARSEABLE_ENTRY count=… file=… entries=… treated=PURGED` and fills
   `PURGE_UNPARSEABLE_ENTRIES`, so the drop is visible instead of silent;
 - `save_purged_wallets()` carries unparseable lines over from disk verbatim. Its read, merge, and replace
   are serialized under `_FILE_WRITE_LOCK`, so saves using this lock cannot erase entries added by another
-  cooperating writer using the same lock; external or bypassing writers are not covered by this guarantee.
+  cooperating writer using the same lock; a writer in another process that does not take this lock is not
+  covered by this guarantee. `test_purge_save_race.py` pins the covered half: 50 iterations plus 20 burst
+  rounds of a cooperating writer racing the save, 0 entries lost;
+- an unparseable entry that also carries a control character (newline, tab, NUL, DEL) is **rejected**, not
+  carried over: written back verbatim it splits into several lines, so ONE supplied value would become
+  several persisted records - and the extra line could be a wallet address the next load hashes into the
+  valid set. A rejected entry is named by
+  `PURGE_UNPARSEABLE_CONTROL_REJECTED count=… file=… entries=… treated=REJECTED` and fills
+  `PURGE_UNPARSEABLE_REJECTED`;
+- both alerts print **outside** `_FILE_WRITE_LOCK`, so a blocked stdout cannot stall every
+  `atomic_write_json`/`atomic_write_csv` behind it.
 
 Blank padding is not an entry and is still skipped: it names no wallet.
 
-Proof in this branch, all run with `PAID_GUARD_ALLOW=1` and every exit code recorded:
+Proof in this branch, all run with `PAID_GUARD_ALLOW=1` and every exit code recorded. The lock check is
+bound to the disk READ (an observed `Path.read_text`), not to a helper called after it: a hook on
+`_split_tombstones` accepts a save whose `read_text` was hoisted above `_FILE_WRITE_LOCK`, and that save
+loses 50 of 50 cooperating appends in `test_purge_save_race.py` while the hooked check still passes.
 
 | command | result |
 |---|---|
-| `test_purge_unparseable_fails_closed.py` against the loader at `eba8581` | `TOTAL=10 FAILED=6`, exit 1 (RED) |
-| `test_purge_unparseable_fails_closed.py` against this branch | `TOTAL=10 FAILED=0`, exit 0 |
-| same test with the silent `continue` restored in an isolated copy | `TOTAL=10 FAILED=6`, exit 1 |
+| `test_purge_unparseable_fails_closed.py` against the module at `eba8581` | 10 checks run, 7 `_FAIL`, then `ValueError: BAD_WALLET` from the old writer, exit 1 (RED) |
+| `test_purge_unparseable_fails_closed.py` against this branch | `TOTAL=15 FAILED=0`, exit 0 |
+| same test with the silent `continue` restored in an isolated copy | `TOTAL=15 FAILED=9`, exit 1 |
+| same test with only the disk read hoisted above `_FILE_WRITE_LOCK`, merge left inside | `TOTAL=15 FAILED=1`, exit 1 |
+| same test against the whole module at `ffb41fe` (pre-fix) | `TOTAL=15 FAILED=5`, exit 1 |
+| `test_purge_save_race.py` (50 iterations + 20 burst rounds, cooperating writer) | `TOTAL=5 FAILED=0`, exit 0 |
 | `test_purge_keeps_engine_history.py` | `TOTAL=16 FAILED=0`, exit 0 |
 | `test_ui_routes_post_batch01.py` | `TOTAL=6 FAILED=0`, exit 0 |
 
