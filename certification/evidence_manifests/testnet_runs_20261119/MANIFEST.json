@@ -2,10 +2,10 @@
  "manifest_version": 1,
  "generated_utc": "2026-11-19T14:36:11+00:00",
  "subject": "testnet_runs_20261119 - preserved read-only snapshot of run3/ and run4/",
- "source_root": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence",
+ "source_root": "<evidence_root>/run3/...",
  "source_is_git_repo": false,
  "source_note": "Single copy of the evidence corpus; its branch was never pushed. Source was read only, never modified.",
- "copy_root": "C:/Users/wigmore/.hermes/cache/evidence/testnet_runs_20261119",
+ "copy_root": "<preserved_copy>/...",
  "copy_readonly": {
   "files_mode": "0o444",
   "dirs_mode": "0o555",

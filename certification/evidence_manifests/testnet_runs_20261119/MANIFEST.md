@@ -2,9 +2,9 @@
 
 Generated: 2026-11-19T14:36:11+00:00
 
-Source (read-only corpus, NOT a git repo): `C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence`
+Source (read-only corpus, NOT a git repo): `<evidence_root>/run3/...`
 
-Preserved copy (local; files chmod `0o444`, dirs `0o555`): `C:/Users/wigmore/.hermes/cache/evidence/testnet_runs_20261119`
+Preserved copy (local; files chmod `0o444`, dirs `0o555`): `<preserved_copy>/...`
 
 ## Run -> commit attribution (CLAIMS, not verified facts)
 
