@@ -13700,6 +13700,43 @@ class LiveCopyCore:
     def hot_backlog(self) -> int:
         return sum(q.qsize() for q in self._hot_queues) + sum(q.qsize() for q in getattr(self, "_prio_queues", []))
 
+    def _release_orphan_fill_claims(self) -> int:
+        """DOOR_3: release copy-fill claims whose fill has no live_fills row, so a crashed run cannot block
+        its own retry. claim_copy_fill_process_marker writes the claim BEFORE the fill is appended and nothing
+        releases it; a crash in between leaves the fill unclaimable forever (no live_fills row -> no owned
+        proof -> every close HOLDs). A claim with a row is kept: it already did its job. Never raises; an
+        unreadable CSV or claims directory keeps every claim (fail closed, never guess a release).
+        Returns the number of claims released."""
+        released = 0
+        try:
+            marker_dir = AUDIT_DIR / "copy_fill_claims"
+            if not marker_dir.is_dir():
+                return 0
+            recorded: set[str] = set()
+            for row in read_csv_rows(LIVE_FILLS_CSV):
+                for key in ("copy_fill_id", "exchange_hash", "exchange_order_id"):
+                    value = canonical_copy_fill_id(str(row.get(key) or "").strip())
+                    if value:  # the bare hash covers pre-patch rows that stored hash without :tid
+                        recorded.update({value, value.split(":", 1)[0]})
+            for marker in sorted(marker_dir.glob("*.claim")):
+                try:
+                    claim_id = marker.stem
+                    for line in marker.read_text(encoding="utf-8", errors="replace").splitlines():
+                        if line.startswith("copy_fill_id="):
+                            claim_id = line.split("=", 1)[1].strip() or claim_id
+                            break
+                    claim_id = canonical_copy_fill_id(claim_id)
+                    if claim_id in recorded or claim_id.split(":", 1)[0] in recorded:
+                        continue
+                    marker.unlink()
+                    released += 1
+                    print(f"orphan fill claim released (no live_fills row): {claim_id}", file=sys.stderr)
+                except Exception as exc:
+                    log_error("release_orphan_fill_claim", exc)  # keep the claim: a failed delete proves nothing
+        except Exception as exc:
+            log_error("release_orphan_fill_claims", exc)
+        return released
+
     def _release_queued(self, batch: List[LeaderFill], q: "queue.Queue[LeaderFill]") -> None:
         with self._queued_lock:
             for f in batch:
@@ -17834,6 +17871,8 @@ def main() -> None:
                 ) from exc
 
         write_startup_status()
+        # DOOR_3: a fill claimed by a run that died before its live_fills row must not block its own retry
+        core._release_orphan_fill_claims()
         # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
         try:
             _orphan = core.sender.startup_orphan_order_check()
