@@ -29,6 +29,36 @@ from typing import Optional, Tuple
 
 EPS = 1e-9
 
+# OD-09 accounting: a sub-minimum copy is either rounded up to the minimum and SENT, or refused by name.
+# Neither outcome is allowed to be a bare drop, so both are counted here (read by the ENG-018 proof tests).
+MIN_NOTIONAL_EVENTS = {"uplifted": 0, "refused": 0}
+
+# OD-09 bounds for the round-up: the same envelope the live sender already uses for its own uplift
+# (ratio vs absolute), so a copy is only rounded up when that is a rounding, not a new position size.
+UPLIFT_MAX_RATIO = 1.25
+UPLIFT_MAX_ABS_USD = 3.0
+
+
+def min_notional_uplift_size(delta_qty: float, mark_px: float, min_notional: float,
+                             *, max_ratio: float = UPLIFT_MAX_RATIO,
+                             max_abs_usd: float = UPLIFT_MAX_ABS_USD) -> Optional[float]:
+    """OD-09: the size that clears `min_notional` exactly, or None when rounding up is not a rounding.
+
+    The $10 threshold is NOT negotiable: a copy below the exchange minimum is still owed to the leader's
+    event, so it is rounded UP to exactly the minimum when the increase stays inside the uplift envelope
+    (<= max_ratio of the copy, or <= max_abs_usd above it). Outside that envelope the caller must refuse
+    by name -- never drop the copy silently.
+    """
+    if delta_qty <= 0 or mark_px <= 0 or min_notional <= 0:
+        return None
+    intended = abs(delta_qty) * mark_px
+    if intended >= min_notional - EPS:
+        return abs(delta_qty)  # nothing to round up
+    max_target = max(intended * max_ratio, intended + max_abs_usd)
+    if min_notional > max_target + EPS:
+        return None
+    return min_notional / mark_px
+
 
 @dataclass(frozen=True)
 class ConvergenceOrder:
@@ -111,9 +141,18 @@ def compute_convergence_order(
         return ConvergenceOrder(coin, side, abs(delta), reduce_only=True, action=action,
                                 reason=action)
 
-    # Opening or adding (reduce_only=False). Gate sub-minimal opens so we never chase dust.
+    # Opening or adding (reduce_only=False). OD-09: a copy that rounds below the minimum is still owed to
+    # the leader's event, so round the SIZE UP to the minimum and send it; refuse BY NAME (and count it)
+    # when rounding up would not be a rounding any more. Either way it never becomes a silent no-copy.
     if mark_px > 0 and min_notional > 0 and abs(delta) * mark_px < min_notional - EPS:
-        return _none(coin, "BELOW_MIN_NOTIONAL_HOLD")
+        uplift = min_notional_uplift_size(abs(delta), mark_px, min_notional)
+        action = "OPEN" if abs(a) <= EPS else "ADD"
+        if uplift is None:
+            MIN_NOTIONAL_EVENTS["refused"] += 1
+            return _none(coin, "BELOW_MIN_NOTIONAL_REFUSED")
+        MIN_NOTIONAL_EVENTS["uplifted"] += 1
+        return ConvergenceOrder(coin, side, uplift, reduce_only=False, action=action,
+                                reason=f"{action}_ROUNDED_UP_TO_MIN_NOTIONAL")
     action = "OPEN" if abs(a) <= EPS else "ADD"
     return ConvergenceOrder(coin, side, abs(delta), reduce_only=False, action=action, reason=action)
 
@@ -199,9 +238,18 @@ def run_self_test() -> None:
     o = compute_convergence_order("SOL", desired_net=0.0, actual_net=0.28, leader_known=False)
     _check("leader UNKNOWN != flat -> HOLD (never close on missing data)",
            o.action == "NONE" and o.reason == "LEADER_UNKNOWN_HOLD", o.short())
+    # OD-09: a copy too small for the minimum to be a rounding is refused BY NAME (and counted), and a copy
+    # just under the minimum is rounded UP to exactly the minimum and still sent.
+    ref_before = MIN_NOTIONAL_EVENTS["refused"]
     o = compute_convergence_order("WIF", desired_net=5.0, actual_net=0.0, mark_px=0.001, min_notional=10.0)
-    _check("sub-min-notional OPEN -> HOLD (don't chase dust opens)",
-           o.action == "NONE" and o.reason == "BELOW_MIN_NOTIONAL_HOLD", o.short())
+    _check("unroundable sub-min-notional OPEN -> NAMED refusal + counter (never a silent drop)",
+           o.action == "NONE" and o.reason == "BELOW_MIN_NOTIONAL_REFUSED"
+           and MIN_NOTIONAL_EVENTS["refused"] == ref_before + 1, o.short())
+    up_before = MIN_NOTIONAL_EVENTS["uplifted"]
+    o = compute_convergence_order("SOL", desired_net=9.6, actual_net=0.0, mark_px=1.0, min_notional=10.0)
+    _check("sub-min-notional OPEN inside the uplift envelope -> rounded UP to the $10 minimum and sent",
+           o.action == "OPEN" and o.reduce_only is False and abs(o.size - 10.0) < 1e-9
+           and MIN_NOTIONAL_EVENTS["uplifted"] == up_before + 1, o.short())
     o = compute_convergence_order("WIF", desired_net=0.0, actual_net=0.005, mark_px=0.001, min_notional=10.0)
     _check("but a tiny CLOSE below min-notional is still allowed (must be able to flatten)",
            o.action == "FLATTEN" and o.reduce_only is True, o.short())

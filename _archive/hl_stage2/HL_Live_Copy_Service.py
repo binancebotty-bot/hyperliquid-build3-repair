@@ -2494,28 +2494,23 @@ class DryRunLiveCopyService:
                      "reduce_only": bool(order.reduce_only), "side": str(order.side).upper()})
         return base
 
-    def accumulator_key(self, cfg: LiveWalletConfig, fill: LeaderFill) -> str:
-        return f"{cfg.wallet}::{fill.coin}::{fill.side}"
+    def min_notional_uplift_ceiling(self, copy_notional: float) -> float:
+        """Largest notional a copy may be rounded UP to (OD-09). Reuses the same bounded entry-uplift
+        envelope the send layer already applies for lot/symbol rounding, so a tiny copy is never
+        inflated to the $10 minimum unconditionally."""
+        ratio = max(1.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_RATIO"), 1.25))
+        abs_usd = max(0.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD"), 3.0))
+        return max(copy_notional * ratio, copy_notional + abs_usd)
 
     def handle_min_notional_for_entry(self, cfg: LiveWalletConfig, fill: LeaderFill, copy_notional: float) -> Tuple[bool, float, List[str], str]:
+        """OD-09: a below-minimum rounding must never silently become "not copied". Round UP to the
+        $10 minimum when the uplift stays inside the bounded envelope; otherwise refuse BY NAME."""
         if copy_notional >= MIN_ORDER_NOTIONAL:
             return True, copy_notional, [fill.fill_id], "DIRECT_EXECUTABLE"
-        key = self.accumulator_key(cfg, fill)
-        acc = self.state.setdefault("accumulators", {}).setdefault(key, {
-            "leader_wallet": cfg.wallet, "coin": fill.coin, "side": fill.side,
-            "notional": 0.0, "source_fill_ids": [], "updated_at": utc_now_iso(),
-        })
-        acc["notional"] = fnum(acc.get("notional")) + copy_notional
-        acc.setdefault("source_fill_ids", []).append(fill.fill_id)
-        acc["updated_at"] = utc_now_iso()
-        total = fnum(acc.get("notional"))
-        ids = list(acc.get("source_fill_ids", []))
-        if total >= MIN_ORDER_NOTIONAL:
-            acc["notional"] = 0.0
-            acc["source_fill_ids"] = []
-            acc["released_at"] = utc_now_iso()
-            return True, total, ids, "ACCUMULATED_UNTIL_EXECUTABLE"
-        return False, total, ids, "ACCUMULATED_NO_ORDER"
+        if copy_notional > 0 and MIN_ORDER_NOTIONAL <= self.min_notional_uplift_ceiling(copy_notional):
+            self.bump("entries_uplifted_to_min_notional")
+            return True, MIN_ORDER_NOTIONAL, [fill.fill_id], "UPLIFTED_TO_MIN_NOTIONAL"
+        return False, copy_notional, [fill.fill_id], "BELOW_MIN_NOTIONAL_REFUSED"
 
     def append_reconciliation(self, cfg: LiveWalletConfig, fill: LeaderFill, event: str, status: str, action: str, before: float, after: float, copy_notional: float, notes: str = "") -> None:
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, {
@@ -2915,10 +2910,13 @@ class DryRunLiveCopyService:
             if not can_order:
                 intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
                 copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
-                self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "MIN_NOTIONAL_ACCUMULATOR", "ACCUMULATED_NO_ORDER", copy_notional, copy_size, policy, "below $10; accumulated, no simulated order/fill", side_override=order_side)
-                self.append_reconciliation(cfg, fill, "ACCUMULATE", "NO_ORDER", "ACCUMULATE", before_signed, before_signed, copy_notional, "below minimum notional")
+                # OD-09: never a silent drop. Too small to round up => explicit NAMED refusal + counter.
+                notes = (f"copy notional {copy_notional:.6f} below min {MIN_ORDER_NOTIONAL} and rounding up would "
+                         f"exceed the entry-uplift envelope; nothing sent - NAMED refusal")
+                self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "BELOW_MIN_NOTIONAL", "ENTRY_BELOW_MIN_NOTIONAL_REFUSED", copy_notional, copy_size, policy, notes, side_override=order_side)
+                self.append_reconciliation(cfg, fill, "REFUSE", "ENTRY_BELOW_MIN_NOTIONAL_REFUSED", "REFUSED_BELOW_MIN_NOTIONAL", before_signed, before_signed, copy_notional, notes)
                 self.processed_ids.add(fill.fill_id)
-                self.bump("fills_accumulated_no_order")
+                self.bump("entries_refused_below_min_notional")
                 return
         elif copy_notional < MIN_ORDER_NOTIONAL:
             intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
