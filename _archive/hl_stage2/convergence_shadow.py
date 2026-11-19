@@ -23,11 +23,40 @@ Model (per coin, evaluated each reconcile tick):
 """
 from __future__ import annotations
 
+import math
+import os
 import sys
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
 EPS = 1e-9
+
+# OD-09: the ONE bounded-uplift envelope (ratio, absolute USD) for raising a below-minimum ENTRY.
+# Every layer that sizes an entry -- this planner, the service convergence seam and the live sender
+# -- reads it from here, so a change cannot leave one layer with a different bound.
+UPLIFT_RATIO_ENV = "HL_LIVE_MAX_ENTRY_UPLIFT_RATIO"
+UPLIFT_ABS_USD_ENV = "HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD"
+UPLIFT_ENVELOPE_DEFAULT = (1.25, 3.00)
+
+
+def entry_uplift_envelope() -> Tuple[float, float]:
+    """(max ratio, max absolute USD) an entry may be lifted by. Read per call, never cached."""
+    out = []
+    for name, default, floor in ((UPLIFT_RATIO_ENV, UPLIFT_ENVELOPE_DEFAULT[0], 1.0),
+                                 (UPLIFT_ABS_USD_ENV, UPLIFT_ENVELOPE_DEFAULT[1], 0.0)):
+        try:
+            value = float(os.getenv(name, default))
+        except (TypeError, ValueError):
+            value = default
+        out.append(max(floor, value) if math.isfinite(value) else default)
+    return (out[0], out[1])
+
+
+def entry_uplift_max_target(copy_notional: float) -> float:
+    """Largest notional this envelope permits for an intended entry of `copy_notional`."""
+    ratio, abs_usd = entry_uplift_envelope()
+    intended = float(copy_notional)
+    return max(intended * ratio, intended + abs_usd)
 
 
 @dataclass(frozen=True)
@@ -82,6 +111,19 @@ def compute_convergence_order(
         return _none(coin, "IN_FLIGHT_HOLD")
     if not leader_known:
         return _none(coin, "LEADER_UNKNOWN_HOLD")
+
+    # OD-09(1): a non-finite input is a REFUSAL BY NAME, decided before any order intent exists.
+    # NaN compares false against every bound, so it would otherwise slip through the gates below
+    # (that is how "SELL nan" was emitted). Checked first so a hold can never mask it.
+    for label, value in (("desired_net", desired_net), ("actual_net", actual_net),
+                         ("mark_px", mark_px), ("min_notional", min_notional),
+                         ("dust_qty", dust_qty)):
+        try:
+            ok_number = math.isfinite(float(value))
+        except (TypeError, ValueError):
+            ok_number = False
+        if not ok_number:
+            return _none(coin, f"NON_FINITE_REFUSED_{label.upper()}")
 
     d = float(desired_net)
     a = float(actual_net)
