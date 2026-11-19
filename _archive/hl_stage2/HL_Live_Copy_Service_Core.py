@@ -621,6 +621,7 @@ def sender_key_check() -> Dict[str, Any]:
 
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
 DEFAULT_MIN_NOTIONAL = float(os.getenv("HL_LIVE_MIN_NOTIONAL", "10"))
+WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP = "WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP"
 DEFAULT_MARKETABLE_BPS = float(os.getenv("HL_LIVE_MARKETABLE_BPS", "25"))
 DEFAULT_SLIPPAGE_BPS = 20.0  # Global Controls slippage when unset: Boss's 0.2 % (2026-10-09)
 DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT = float(os.getenv("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"))
@@ -9607,6 +9608,32 @@ class SenderGateway:
             if uplift_size > wire_size:
                 wire_size = uplift_size
                 wire_notional = abs(wire_size * limit_px)
+                if wire_notional > max_target_for_intent + 1e-9:
+                    detail = (
+                        f"blocked before exchange: ceiling-rounded wire notional exceeds intent uplift cap; "
+                        f"wire_notional={wire_notional:.6f}; max_allowed_target={max_target_for_intent:.6f}; "
+                        f"intent_id={intent.intent_id}"
+                    )
+                    try:
+                        self.audit.append_reconciliation(
+                            "ALERT", WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP,
+                            leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                            intent_id=intent.intent_id, coin=intent.fill.coin,
+                            action="REFUSE_CEILING_ROUNDED_UPLIFT", reject_category="SIZE_OR_NOTIONAL_REJECTED",
+                            terminal_state=WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP,
+                            engine_can_send="False", notes=detail)
+                    except Exception as exc:
+                        log_error("wire_notional_exceeds_intent_uplift_cap_alert", exc)
+                    return False, WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP, {
+                        "status": WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP,
+                        "error": detail, "exchange_response": {}, "oid": "",
+                        "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                        "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                        "terminal_state": WIRE_NOTIONAL_EXCEEDS_INTENT_UPLIFT_CAP,
+                        "operator_action": "REVIEW_INTENT_UPLIFT_CAP",
+                        "timing": timing, "limit_px": limit_px, "wire_size": 0.0,
+                        "copy_notional": 0.0,
+                    }
         if wire_size <= 0:
             _err = (f"wire_size<=0 after rounding; coin={sdk_coin}; copy_size={intent.copy_size}; "
                     f"sz_dec={sz_dec}; intent_id={intent.intent_id}")
