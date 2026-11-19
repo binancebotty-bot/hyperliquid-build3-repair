@@ -1,3 +1,5 @@
+> CORRECTION: the overlay described below is a stale historical map, not a maintained pipeline step. It reads no evidence files and would inflate PASS from 54 committed (59 at the time of that task) to ~579 (604 measured at this base). It now lives at `certification/results/_retired/apply_verified_results.py` and refuses by default. Do not re-run it against the matrix.
+
 ACK B3-SCOPE-CORRECTION-20261014-1
 
 Hermes Build 3 lane only. Correction consumed BEFORE planning (comment 6161671162,

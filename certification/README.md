@@ -28,3 +28,18 @@ The matrix is generated from copies of the cited source documents, which are not
     HL_CERT_SOURCE_DOCS=/path/to/source-docs python3 certification/gen_matrix.py
 
 `certification_matrix.json → source_sha256` lists every source file and its hash, so a regenerated matrix can be checked against the same inputs. Requirement IDs are stable; withdrawn requirements become `SUPERSEDED`, never deleted.
+
+### Verdict data: what regeneration can and cannot reproduce
+- `certification_matrix.csv` is reproducible and hash-verified from the cited source documents.
+- `certification_matrix.json` is **not reproducible today**. `gen_matrix.py` writes
+  `result="NOT_TESTED"` for every record and no maintained verdict map exists, so the committed
+  PASS/FAIL/BLOCKED verdicts cannot be recreated by regeneration.
+- `certification/results/_retired/apply_verified_results.py` is a **stale historical map**, kept
+  only as audit history. It reads no evidence files, holds 672 literal verdicts (582 PASS,
+  77 FAIL, 13 BLOCKED), and would inflate PASS from 54 committed (59 before the five-row
+  withdrawal at `c63d2299`) to roughly 579 (604 measured at this base). **It must not be run as a pipeline step.** It refuses
+  by default; the only bypass is a scratch-copy historical call with
+  `APPLY_VERIFIED_ALLOW_FABRICATION=1`.
+
+Withdrawn wording (from the old overlay docstring): “this re-runnable, idempotent overlay is
+the durable record. Re-run it after any gen_matrix.py regeneration.” Do not follow it.

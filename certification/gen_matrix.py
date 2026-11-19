@@ -2,7 +2,7 @@
 """Generate the certification test matrix (JSON + CSV) from the source documents.
 
 Every record cites its source clause(s). Nothing here grants authority or decides an open item.
-Re-runnable: output is deterministic for the same inputs.
+The CSV is reproducible and hash-verified for identical inputs. The JSON is NOT reproducible today: every generated result is NOT_TESTED and no maintained verdict map exists. The retired apply_verified_results.py is not a regeneration step - never run it.
 """
 import csv, hashlib, json, re, sys
 from pathlib import Path
