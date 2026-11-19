@@ -4290,6 +4290,102 @@ def claim_copy_fill_process_marker(copy_fill_id: str) -> bool:
         return True
 
 
+# DOOR_3: the durable proof that a copy fill reached the ledger. live_fills.csv ROTATES (a rotated file is a
+# header and no rows), so a fill whose row rotated away is indistinguishable from a crash orphan; absence from
+# this append-only index is the only usable proof. Written at the ledger commit, never rotated (rotation is
+# gated by AUDIT_ROTATING_NAMES).
+APPLIED_COPY_FILL_IDS_NAME = "applied_copy_fill_ids.jsonl"
+
+
+def applied_copy_fill_ids_path() -> Path:
+    return AUDIT_DIR / APPLIED_COPY_FILL_IDS_NAME
+
+
+def _applied_copy_fill_ids_broken_path() -> Path:
+    return AUDIT_DIR / "applied_copy_fill_ids.broken"
+
+
+def note_applied_copy_fill(copy_fill_id: str) -> None:
+    """Record durably that this copy fill was committed to the ledger. Called at the ledger commit, before the
+    caller writes its live_fills row, so the index also covers a crash between the two. A failed append marks the
+    index BROKEN: the startup claim sweep then keeps every claim, because a kept claim only blocks a replay while
+    a wrongly released one re-applies the fill and double-counts the position. Never raises."""
+    fid = canonical_copy_fill_id(str(copy_fill_id or "").strip())
+    if not fid:
+        return
+    try:
+        path = applied_copy_fill_ids_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"copy_fill_id": fid, "at": utc_now_ms()}, separators=(",", ":")) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+    except Exception as exc:
+        log_error("note_applied_copy_fill", exc)
+        try:
+            _applied_copy_fill_ids_broken_path().write_text(f"append failed: {exc}" + "\n", encoding="utf-8")
+        except Exception:
+            pass
+
+
+def applied_copy_fill_ids_read() -> Tuple[Optional[set], str]:
+    """Every copy fill id this engine has committed to the ledger. None means UNKNOWN, never an empty set: the
+    claim sweep keeps every claim on UNKNOWN. On the first run of this build the index is seeded from the whole
+    live_fills history (rotated copies included), so it also proves the fills applied before it existed.
+    Returns (ids, why_unknown)."""
+    path = applied_copy_fill_ids_path()
+    if _applied_copy_fill_ids_broken_path().exists():
+        return None, "the durable applied-fill index is marked broken by a failed append"
+    canon: set = set()
+    if path.exists():
+        try:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                fid = canonical_copy_fill_id(str(json.loads(line).get("copy_fill_id") or "").strip())
+                if fid:
+                    canon.add(fid)
+        except Exception as exc:  # a half-written or corrupt index proves nothing
+            log_error("applied_copy_fill_ids_read", exc)
+            return None, f"the durable applied-fill index is unreadable: {exc}"
+        return canon | {c.split(":", 1)[0] for c in canon}, ""
+    try:
+        for hist in audit_history_paths(LIVE_FILLS_CSV):
+            for row in read_csv_rows(hist):
+                for key in ("copy_fill_id", "exchange_hash"):
+                    fid = canonical_copy_fill_id(str(row.get(key) or "").strip())
+                    if fid:
+                        canon.add(fid)
+    except Exception as exc:
+        log_error("applied_copy_fill_ids_seed", exc)
+        return None, f"live_fills history is unreadable, so the durable index cannot be seeded: {exc}"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".seed.tmp")
+        with open(tmp, "w", encoding="utf-8") as fh:
+            for fid in sorted(canon):
+                fh.write(json.dumps({"copy_fill_id": fid, "at": utc_now_ms()}, separators=(",", ":")) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(str(tmp), str(path))
+    except Exception as exc:
+        log_error("applied_copy_fill_ids_seed_write", exc)
+        return None, f"the durable applied-fill index could not be seeded: {exc}"
+    return canon | {c.split(":", 1)[0] for c in canon}, ""
+
+
+def claim_marker_copy_fill_id(marker: Path) -> str:
+    """The copy fill id written INSIDE a claim file, "" when it cannot be read with certainty. The filename is
+    _safe_marker_name(id), which turns ':' into '_', so the stem is NOT a substitute for the id."""
+    try:
+        for line in marker.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("copy_fill_id="):
+                return canonical_copy_fill_id(line.split("=", 1)[1].strip())
+    except Exception as exc:
+        log_error("claim_marker_copy_fill_id", exc)
+    return ""
+
+
 DEDUPE_IDS_JSONL_NAME = "dedupe_ids.jsonl"
 DEDUPE_TAIL_LIMIT = 5000
 # schema 2 = bounded recency tail in the JSON + full sets in the append-only JSONL; a loader that
@@ -4693,6 +4789,7 @@ class ManualLedger:
         })
         self._recompute_net(self.data)
         self.save(touched_sleeves=[(wallet, coin)])
+        note_applied_copy_fill(fill_id)  # DOOR_3: durable proof of this commit, read by the startup claim sweep
         return {
             "copy_fill_id": fill_id,
             "wallet_position_before": before,
@@ -4880,6 +4977,7 @@ class AuditLogWriter:
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
         append_csv(LIVE_FILLS_CSV, LIVE_FILL_FIELDS, row)
+        note_applied_copy_fill(row.get("copy_fill_id"))  # DOOR_3: durable proof, read by the startup claim sweep
 
     def append_live_fill_repair_close(self, result: Dict[str, Any], notes: str) -> None:
         now = utc_now_ms()
@@ -12285,6 +12383,7 @@ class CopyFillMatcher:
         wallet, sleeve, manual_size = candidates[0]
         result = self.ledger.close_sleeve_as_exchange_flat(wallet, coin)
         self.matched_copy_fill_ids.add(copy_id)
+        note_applied_copy_fill(copy_id)  # DOOR_3: durable proof of this commit, read by the startup claim sweep
         oid = CopyFillMatcher._normalize_oid(self._copy_fill_oid(copy_fill))
         notes = (
             "Core-owned audited ledger repair from unmatched copy-account XYZ flat close: "
@@ -13701,36 +13800,55 @@ class LiveCopyCore:
         return sum(q.qsize() for q in self._hot_queues) + sum(q.qsize() for q in getattr(self, "_prio_queues", []))
 
     def _release_orphan_fill_claims(self) -> int:
-        """DOOR_3: release copy-fill claims whose fill has no live_fills row, so a crashed run cannot block
-        its own retry. claim_copy_fill_process_marker writes the claim BEFORE the fill is appended and nothing
-        releases it; a crash in between leaves the fill unclaimable forever (no live_fills row -> no owned
-        proof -> every close HOLDs). A claim with a row is kept: it already did its job. Never raises; an
-        unreadable CSV or claims directory keeps every claim (fail closed, never guess a release).
+        """DOOR_3: release a copy-fill claim only when a DURABLE record proves the fill was never applied.
+
+        claim_copy_fill_process_marker writes the claim BEFORE the ledger commit and nothing releases it; a crash
+        in between leaves the fill unclaimable forever (no owned proof -> every close HOLDs). live_fills.csv can
+        NOT prove absence: it ROTATES, so a fill that was applied and whose row rotated away looks exactly like a
+        crash orphan, and releasing it re-applies the fill (a double-counted position; matched_copy_fill_ids only
+        protects a live process). Absence is proven against applied_copy_fill_ids.jsonl, written at the ledger
+        commit and never rotated. Everything else is UNKNOWN and keeps the claim: an unreadable or row-less
+        live_fills.csv, a missing/broken/unreadable index, and a claim whose own id cannot be read (its filename
+        is _safe_marker_name(id), NOT the id). exchange_order_id names an order, not a fill, so it proves nothing
+        here. A kept claim only blocks a replay; a wrongly released one corrupts the ledger. Never raises.
         Returns the number of claims released."""
         released = 0
         try:
             marker_dir = AUDIT_DIR / "copy_fill_claims"
             if not marker_dir.is_dir():
                 return 0
-            recorded: set[str] = set()
-            for row in read_csv_rows(LIVE_FILLS_CSV):
-                for key in ("copy_fill_id", "exchange_hash", "exchange_order_id"):
+            claims = sorted(marker_dir.glob("*.claim"))
+            if not claims:
+                return 0
+            durable, unknown_why = applied_copy_fill_ids_read()
+            live_rows = None
+            try:
+                live_rows = read_csv_rows(LIVE_FILLS_CSV)
+            except Exception as exc:
+                unknown_why = unknown_why or f"live_fills.csv is unreadable: {exc}"
+            if durable is None or live_rows is None or not live_rows:
+                # a rotated live_fills.csv is a header and no rows, so an empty read is UNKNOWN, not absence
+                print(f"orphan fill claim sweep: {len(claims)} claim(s) kept, absence unproven: "
+                      f"{unknown_why or 'live_fills.csv has no rows'}", file=sys.stderr)
+                return 0
+            recorded = set(durable)
+            for row in live_rows:
+                for key in ("copy_fill_id", "exchange_hash"):
                     value = canonical_copy_fill_id(str(row.get(key) or "").strip())
                     if value:  # the bare hash covers pre-patch rows that stored hash without :tid
                         recorded.update({value, value.split(":", 1)[0]})
-            for marker in sorted(marker_dir.glob("*.claim")):
+            for marker in claims:
                 try:
-                    claim_id = marker.stem
-                    for line in marker.read_text(encoding="utf-8", errors="replace").splitlines():
-                        if line.startswith("copy_fill_id="):
-                            claim_id = line.split("=", 1)[1].strip() or claim_id
-                            break
-                    claim_id = canonical_copy_fill_id(claim_id)
+                    claim_id = claim_marker_copy_fill_id(marker)
+                    if not claim_id:  # an unreadable own id: the mangled stem is not evidence of anything
+                        print(f"orphan fill claim kept (own id unreadable): {marker.name}", file=sys.stderr)
+                        continue
                     if claim_id in recorded or claim_id.split(":", 1)[0] in recorded:
                         continue
                     marker.unlink()
                     released += 1
-                    print(f"orphan fill claim released (no live_fills row): {claim_id}", file=sys.stderr)
+                    print(f"orphan fill claim released (absent from the durable applied-fill record): {claim_id}",
+                          file=sys.stderr)
                 except Exception as exc:
                     log_error("release_orphan_fill_claim", exc)  # keep the claim: a failed delete proves nothing
         except Exception as exc:
