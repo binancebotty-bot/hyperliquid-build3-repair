@@ -2851,6 +2851,16 @@ def service_position_evidence_by_coin(
     return evidence
 
 
+def _extract_exchange_size(value: Any) -> float:
+    """Read signed position size from exchange snapshot values or position dicts."""
+    if isinstance(value, dict):
+        for key in ("signed_size", "szi", "size", "qty", "position_size"):
+            if key in value:
+                return fnum(value.get(key), 0.0)
+        return 0.0
+    return fnum(value, 0.0)
+
+
 def build_live_integrity_status() -> Dict[str, Any]:
     now = utc_now_ms()
     pending_grace_ms = int(os.getenv("HL_LIVE_COPY_FILL_PENDING_GRACE_MS", "600000"))
@@ -3479,7 +3489,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             coin_key = canonical_coin_key(coin)
             if coin_key.startswith("XYZ:") and coin_key not in exchange_positions and coin_key not in xyz_known:
                 continue
-            exchange_size = fnum(exchange_positions.get(coin), 0.0)
+            exchange_size = _extract_exchange_size(exchange_positions.get(coin))
             manual_size = 0.0
             manual_row = manual_by_coin.get(coin)
             if isinstance(manual_row, dict):
@@ -3761,6 +3771,8 @@ def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]
         if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
             return _INTEGRITY_LAST["payload"]
         payload = build_live_integrity_status()
+        payload["created_at_ms"] = utc_now_ms()
+        payload["created_at"] = datetime.fromtimestamp(payload["created_at_ms"] / 1000, tz=timezone.utc).isoformat()
         atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
         _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
         return payload
@@ -15425,6 +15437,14 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
+            # Gate 4: only a fresh prior-cycle mismatch blocks; 120s covers slow cycles without trusting stale state.
+            if not _block:
+                _prev_integrity = load_json(LIVE_INTEGRITY_STATUS_FILE, {})
+                _stamp = int(fnum((_prev_integrity or {}).get("created_at_ms"), 0)) if isinstance(_prev_integrity, dict) else 0
+                if _stamp > 0 and 0 <= utc_now_ms() - _stamp <= 120_000:
+                    _counts = _prev_integrity.get("counts") or {}
+                    if int(fnum(_counts.get("exchange_manual_mismatch"), 0)) > 0:
+                        _block = "LEDGER_EXCHANGE_DIVERGENCE"
             # Gate 4: startup safety only - no wallet holds a stream slot (genuinely unsafe). Per-wallet entry
             # blocking for extras lives in wallet_over_stream_cap() / send_if_allowed / blocked_locally.
             if not _block and self.cfg.live_over_stream_cap() and not self.cfg.stream_entry_allowed_wallets():
