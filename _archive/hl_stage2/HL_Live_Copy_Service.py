@@ -144,6 +144,10 @@ except Exception:  # pragma: no cover - fail closed if the sibling planner is un
     NON_FINITE_REFUSAL = "NON_FINITE_INPUT_REFUSED"
     MIN_NOTIONAL_EVENT_UPLIFTED = "uplifted"
 
+# ENG-018 review: the planner's size is the ONLY size. A sendable ENTRY whose planner decision carries
+# no usable size is a broken decision, refused by this name. Service-side: the planner never emits it.
+PLANNER_SIZE_MISSING = "PLANNER_SIZE_MISSING"
+
 LIVE_ORDER_ENDPOINT = os.getenv("HL_LIVE_ORDER_ENDPOINT", "https://api.hyperliquid.xyz/exchange")
 LIVE_AUTO_SEND_ENABLED = os.getenv("HL_LIVE_AUTO_SEND_ENABLED", "0") == "1"
 LIVE_AUTO_SEND_WALLET = os.getenv("HL_LIVE_AUTO_SEND_WALLET", "").lower().strip()
@@ -2993,7 +2997,25 @@ class DryRunLiveCopyService:
             self.bump("exits_below_min_review")
             return
 
-        # the planner's own size is authoritative: notional/price can round-trip a ceilinged size DOWN.
+        # ENG-018 review: on an ENTRY the planner's size is the ONLY size. No size means a broken decision,
+        # not something to reconstruct: notional/price can round-trip a ceiling-quantised size DOWN and put
+        # a floored size on the wire. Refuse by name, before mark_in_flight / append_would_send / any send.
+        if intent_type == "ENTRY" and copy_size_planned <= 0:
+            intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
+            notes = (f"planner ENTRY carried no usable size ({auth.get('size')!r} for notional "
+                     f"{copy_notional_raw}); size is never derived, nothing sent - NAMED refusal")
+            self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type,
+                                     PLANNER_SIZE_MISSING, f"{intent_type}_{PLANNER_SIZE_MISSING}",
+                                     0.0, 0.0, PLANNER_SIZE_MISSING, notes, side_override=order_side)
+            self.append_reconciliation(cfg, fill, "REFUSE", f"{intent_type}_{PLANNER_SIZE_MISSING}",
+                                       refusal_action(PLANNER_SIZE_MISSING), before_signed, before_signed,
+                                       0.0, notes)
+            self.processed_ids.add(fill.fill_id)
+            self.bump("entries_blocked_" + PLANNER_SIZE_MISSING.lower())
+            return
+
+        # EXIT/reduce is unchanged: a reduce must always be able to reach the exchange, and a floored exit
+        # cannot breach an entry minimum, so this fallback stays exactly as it was before this fix.
         copy_size = copy_size_planned if copy_size_planned > 0 else (copy_notional / fill.price if fill.price > 0 else 0.0)
         intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
         decision = dry_run_intent_audit_decision(cfg, fill, intent_type, planner_reduce_only, replay_history=replay_history, quote_getter=self.get_public_quote, side=order_side)
