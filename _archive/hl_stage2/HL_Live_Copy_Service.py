@@ -2527,9 +2527,9 @@ class DryRunLiveCopyService:
         """Operator global control max_order_notional_usd, read from the EXISTING live_config.json
         (APP_CONFIG_FILE) that the restored UI already writes under global_controls.
 
-        Returns a finite positive float, else 0.0. The UI's off/unset meaning is 0; zero, negative,
-        NaN, infinite or non-numeric values are NOT authority and are treated as 0. No new store and
-        no second writer - this is a read of the same file the UI maintains.
+        Returns a finite positive float, else 0.0 for an off/unset or non-positive cap. Read or
+        parse errors return None so callers can fail closed. No new store and no second writer -
+        this is a read of the same file the UI maintains.
         """
         try:
             cfg = load_json(APP_CONFIG_FILE, {}) or {}
@@ -2547,7 +2547,7 @@ class DryRunLiveCopyService:
                 return 0.0
             return cap
         except Exception:
-            return 0.0
+            return None
 
     def global_order_cap_block(self, intent_type: str, copy_notional: float, reduce_only: Optional[bool],
                                decision: Optional[Dict[str, Any]]) -> str:
@@ -2836,8 +2836,24 @@ class DryRunLiveCopyService:
         # CLOSED for the whole fill: explicit status + reconciliation row, NO position change, NO
         # intent, NO executable/sent order. A "new entry" is an event that increases the leader's
         # exposure magnitude; reduce/close events are NEVER blocked by an entry-size cap so a safe
-        # exit always remains available. Zero/unset/invalid cap -> unchanged behaviour.
+        # exit always remains available. Zero/unset cap -> unchanged behaviour.
         _cap = self.global_order_cap()
+        if _cap is None:
+            cap_status = "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL_CAP_READ_ERROR"
+            self.append_order_intent(
+                cfg, fill, "CAPBLOCK-%s" % str(fill.fill_id), [str(fill.fill_id)], "ENTRY",
+                "GLOBAL_MAX_ORDER_NOTIONAL_CAP_READ_ERROR", cap_status,
+                fnum(copy_notional_raw), 0.0, "BLOCKED",
+                notes="global max_order_notional_usd could not be read",
+                decision={"execution_decision": cap_status,
+                          "decision_reason": "GLOBAL_MAX_ORDER_NOTIONAL_CAP_READ_ERROR"},
+                reduce_only=False,
+            )
+            self.append_reconciliation(cfg, fill, "SKIP", cap_status, cap_status,
+                                       before_signed, before_signed, copy_notional_raw,
+                                       "global max_order_notional_usd could not be read")
+            self.processed_ids.add(fill.fill_id)
+            return
         if _cap > 0:
             _led = self.state.get("leader_event_positions") or {}
             _key = self.position_key(cfg.wallet, fill.coin)
