@@ -2018,6 +2018,8 @@ class DryRunLiveCopyService:
         out: Dict[str, LiveWalletConfig] = {}
         eligible_count = 0
         for wallet, cfg in wallets.items():
+            if not isinstance(cfg, dict):
+                continue
             item = LiveWalletConfig.from_raw(wallet, cfg)
             if not item.wallet:
                 continue
