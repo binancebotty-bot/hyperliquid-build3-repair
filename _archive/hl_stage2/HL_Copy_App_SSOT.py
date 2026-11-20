@@ -7373,8 +7373,9 @@ function renderBanner(){
  const set=(id,html,cls,title)=>{const el=root.querySelector('#'+id);if(!el)return;el.innerHTML=html;el.className='value '+(cls||'');if(title!=null)el.title=title;};
  const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
  set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
- const armed=lcAudit.effective_real_orders_enabled===true;
- set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
+ const armed=lcAudit.master_real_orders_enabled===true;
+ const effective=lcAudit.effective_real_orders_enabled===true;
+ set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',effective?'real orders are being sent':armed?'master switch ON but effective sending is OFF':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
  const pl=root.querySelector('#lcBannerPnlLabel');if(pl)pl.textContent='Account change since '+(b.net_pnl_start_time?fmtWhen(Date.parse(b.net_pnl_start_time)):'run start');
  set('lcBannerPnl',(b.net_pnl_since_start!=null?signedMoney(b.net_pnl_since_start):dash(b.net_pnl_reason||'start value unknown'))+(b.net_pnl_partial?' <span class="lc-tag lc-amber" title="part of the exchange history could not be read">partial</span>':''),signCls(b.net_pnl_since_start),'actual change in account value; breakdown in "Does the P&L add up?"');
