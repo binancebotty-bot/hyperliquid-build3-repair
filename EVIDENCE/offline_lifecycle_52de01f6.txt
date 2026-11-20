@@ -1,0 +1,96 @@
+# offline lifecycle at 52de01f682475cc453e02d1e5b6367751d34bec1
+# test_g2_copy_correctness.py (open, add, reduce, close, flat; fake exchange; no network)
+=== t1) repeated genuine ADDs -> event-authorised desired, delta-sized ===
+  PASS: three ADDs converge follower to desired 3.0 (delta, not fixed per-fill)  ::  signed_size=3.0
+  PASS: duplicate genuine event -> zero new orders  ::  counters=3
+
+=== t2) reductions and closes move toward desired without sign error ===
+  PASS: reduction moves follower 3.0 -> 2.0 without flipping
+  PASS: unrelated coin inventory untouched
+  PASS: leader full close flattens follower to 0 (no flip)
+
+=== t3) proportional sizing unit semantics ===
+  PASS: scale == norm_base/leader_equity_base  ::  scale=0.1
+  PASS: sleeve == leader_signed * scale (25*0.1==2.5)
+  PASS: single-wallet desired_net == 3.0  ::  {'ok': True, 'status': 'OK', 'coin': 'BTC', 'desired_net': 3.0, 'sleeves': {'0xw1': 3.0}}
+
+=== t4) fixed mode -> FIXED_MODE_AUTHORITY_HOLD, ZERO order ===
+  PASS: fixed mode returns FIXED_MODE_AUTHORITY_HOLD  ::  {'ok': False, 'status': 'FIXED_MODE_AUTHORITY_HOLD', 'coin': 'BTC', 'detail': "fixed-mode target exposure semantics ambiguous for wallet='0xfixed': no attributed sleeve ledger available"}
+  PASS: fixed-mode plans ONE properly sized order intent from its attributed sleeve  ::  intents=[{'created_at': '2026-11-20T16:05:55.789016+00:00', 'intent_id': 'DRYRUN-1795190755789-1', 'dry_run': 'True', 'leader_wallet': '0xfixed', 'leader_fill_id': 'g1', 'linked_leader_fill_ids': 'g1', 'mode': 'LIVE', 'copy_mode': 'fixed', 'coin': 'BTC', 'side': 'BUY', 'intent_type': 'ENTRY', 'reason': 'SOURCE_CSV_FORWARD', 'status': 'DRY_RUN_FILLED', 'leader_price': '100.0', 'target_price': '100.0', 'leader_size': '10.0', 'leader_notional': '1000.0', 'copy_notional': '1000.0', 'copy_size': '10.0', 'min_notional_policy': 'DIRECT_EXECUTABLE', 'diff_pct': '0.0', 'max_diff_pct': '0.1', 'daily_loss_limit': '0.0', 'notes': 'leader source CSV event; source=source_csv_forward; no order implied by this note', 'execution_decision': 'DRY_RUN_FILLED', 'decision_reason': 'SOURCE_CSV_FORWARD', 'executable_price': '100.0', 'adverse_diff_pct': '0.0', 'suggested_order_type': '', 'suggested_limit_price': '100.0', 'manual_reconcile_required': 'False', 'market_data_source': '', 'market_data_error': '', 'reduce_only': 'False'}]
+  PASS: fixed-mode duplicate fragment places NO second order  ::  intents=[{'created_at': '2026-11-20T16:05:55.789016+00:00', 'intent_id': 'DRYRUN-1795190755789-1', 'dry_run': 'True', 'leader_wallet': '0xfixed', 'leader_fill_id': 'g1', 'linked_leader_fill_ids': 'g1', 'mode': 'LIVE', 'copy_mode': 'fixed', 'coin': 'BTC', 'side': 'BUY', 'intent_type': 'ENTRY', 'reason': 'SOURCE_CSV_FORWARD', 'status': 'DRY_RUN_FILLED', 'leader_price': '100.0', 'target_price': '100.0', 'leader_size': '10.0', 'leader_notional': '1000.0', 'copy_notional': '1000.0', 'copy_size': '10.0', 'min_notional_policy': 'DIRECT_EXECUTABLE', 'diff_pct': '0.0', 'max_diff_pct': '0.1', 'daily_loss_limit': '0.0', 'notes': 'leader source CSV event; source=source_csv_forward; no order implied by this note', 'execution_decision': 'DRY_RUN_FILLED', 'decision_reason': 'SOURCE_CSV_FORWARD', 'executable_price': '100.0', 'adverse_diff_pct': '0.0', 'suggested_order_type': '', 'suggested_limit_price': '100.0', 'manual_reconcile_required': 'False', 'market_data_source': '', 'market_data_error': '', 'reduce_only': 'False'}]
+
+=== t5) restart does not seed authority from a snapshot ===
+  PASS: restart lineage == persisted lineage (not a snapshot/current position)  ::  store={'0xw1::BTC': 0.0, '0xw1::ETH': 5.0}
+  PASS: actual == desired -> NONE (no order minted)  ::  ConvergenceOrder(coin='BTC', side='', size=0.0, reduce_only=False, action='NONE', reason='CONVERGED', pending_open=None)
+
+=== t6) legacy sender has no physical .order() call site ===
+  PASS: legacy module has no direct .order() call site  ::  found 0 .order() references
+
+=== t7) sign flip: planner side preserved, first leg only flattens ===
+  PASS: sign flip -> FLATTEN_THEN_OPEN, SELL, reduce_only, size == |actual|  ::  SELL 3 [reduce_only] FLATTEN_THEN_OPEN  +deferred OPEN SELL 3
+  PASS: first leg only flattens; follower never crosses zero  ::  signed=0.0
+
+=== t8) short OPEN from flat sends SELL, not positive BUY state ===
+  PASS: short OPEN from flat -> OPEN SELL 3.0  ::  SELL 3 [open] OPEN
+  PASS: follower position is short (-3.0), never positive  ::  signed=-3.0
+
+=== t9) same-coin multi-wallet sleeves aggregate to one account-net target ===
+  PASS: two wallets aggregate (1.0 + 3.0 == 4.0)  ::  {'ok': True, 'status': 'OK', 'coin': 'BTC', 'desired_net': 4.0, 'sleeves': {'0xw1': 1.0, '0xw2': 3.0}}
+
+=== t10) account-net truth UNAVAILABLE -> HOLD (never wallet-local fallback) ===
+  PASS: production default provider is None (no live account-net plumbing in G2)
+  PASS: account_net_actual -> ACCOUNT_NET_TRUTH_UNAVAILABLE  ::  {'ok': False, 'status': 'ACCOUNT_NET_TRUTH_UNAVAILABLE'}
+  PASS: unavailable account-net -> ZERO order authority  ::  counters=6
+
+=== t11) in-flight suppression blocks overlapping authorisation ===
+  PASS: existing in-flight exposure -> planner returns NONE  ::  NONE (CONVERGED)
+  PASS: overlapping send not authorised (zero new orders, position unchanged)
+
+=== t12) lineage checkpoint: valid reload / corrupt + missing fail closed ===
+  PASS: restart reloads a valid event-coupled checkpoint  ::  ck={'last_fill_id': 'k1', 'seq': 7}
+  PASS: corrupt/inconsistent checkpoint fails closed
+  PASS: failed checkpoint -> account-net authority held
+  PASS: missing checkpoint (with lineage present) fails closed
+  PASS: snapshot (no lineage) -> valid-but-empty, zero authority
+
+=== t13) LIVE-SEND SEAM: planner side/reduce_only + in-flight BEFORE the sender ===
+  PASS: planner side reaches the SENDER payload unchanged (OPEN BUY)  ::  [{'side': 'BUY', 'reduce_only': False, 'in_flight': {'BTC': {'intent_id': 'DRYRUN-1795190756325-1', 'side': 'BUY', 'size': 1.0, 'reduce_only': False, 'action': 'OPEN'}}, 'size': 1.0}]
+  PASS: in-flight reservation is PRESENT at the sender boundary  ::  [{'side': 'BUY', 'reduce_only': False, 'in_flight': {'BTC': {'intent_id': 'DRYRUN-1795190756325-1', 'side': 'BUY', 'size': 1.0, 'reduce_only': False, 'action': 'OPEN'}}, 'size': 1.0}]
+  PASS: real send is NOT settled by the local dry-run mutation (reservation retained)  ::  {'BTC': {'intent_id': 'DRYRUN-1795190756325-1', 'side': 'BUY', 'size': 1.0, 'reduce_only': False, 'action': 'OPEN'}}
+  PASS: planner reduce_only + side reach the SENDER payload (FLATTEN SELL)  ::  [{'side': 'SELL', 'reduce_only': True, 'in_flight': {'BTC': {'intent_id': 'DRYRUN-1795190756348-2', 'side': 'SELL', 'size': 1.0, 'reduce_only': True, 'action': 'FLATTEN'}}, 'size': 1.0}]
+
+=== t14) manual send cannot overwrite planner side (contradiction => FAIL CLOSED) ===
+  PASS: planner side vs local position contradiction FAILS CLOSED (never rewritten)  ::  {'ok': False, 'status': 'PLANNER_LOCAL_DIRECTION_CONFLICT', 'intent_id': 'planner-conflict', 'planner_side': 'BUY', 'position_before': 2.0}
+  PASS: planner side preserved and local position only CAPS size  ::  {'coin': 'BTC', 'side': 'SELL', 'order_type': 'IOC_LIMIT', 'limit_price': 100.0, 'copy_size': 2.0, 'copy_notional': 200.0, 'reduce_only': True, 'price_source': 'intent_price', 'use_current_quote': False, 'current_quote_price': '', 'position_before': 2.0, 'close_position': True, 'size_source': 'planner_reduce_local_cap', 'manual_open_cap': 25.0, 'limit_source': 'env_fallback', 'copy_mode': 'proportional', 'fixed_notional': '', 'intended_notional': 200.0, 'max_notional_used': 25.0, 'global_max_notional': 25.0, 'cap_source': 'env_fallback', 'notional_cap_reason': 'manual_open_cap', 'marketable_bps': 0.0, 'adjusted_limit_price': 100.0}
+
+=== t15) manual (operator) close without planner side keeps local derivation ===
+  PASS: operator close (no planner side) still derives side from local position  ::  {'coin': 'ETH', 'side': 'BUY', 'order_type': 'IOC_LIMIT', 'limit_price': 2000.0, 'copy_size': 1.5, 'copy_notional': 3000.0, 'reduce_only': True, 'price_source': 'intent_price', 'use_current_quote': False, 'current_quote_price': '', 'position_before': -1.5, 'close_position': True, 'size_source': 'manual_position_close', 'manual_open_cap': 25.0, 'limit_source': 'env_fallback', 'copy_mode': 'proportional', 'fixed_notional': '', 'intended_notional': 3000.0, 'max_notional_used': 25.0, 'global_max_notional': 25.0, 'cap_source': 'env_fallback', 'notional_cap_reason': 'manual_close_diff_guard', 'marketable_bps': 0.0, 'adjusted_limit_price': 2000.0, 'close_notional_cap_bypassed': True}
+
+=== t16) CLO executes planner reductions only ===
+  PASS: CLO BLOCKS a planner OPEN (leader-side entry) with zero orders  ::  counters={'fills_skipped_clo_entry': 1}
+  PASS: CLO ALLOWS a planner-authorised FLATTEN (reduce_only, SELL) and flattens to 0  ::  pos=0.0 row={'created_at': '2026-11-20T16:05:56.960973+00:00', 'intent_id': 'DRYRUN-1795190756960-2', 'dry_run': 'True', 'leader_wallet': '0xw1', 'leader_fill_id': 'c3', 'linked_leader_fill_ids': 'c3', 'mode': 'CLO', 'copy_mode': 'proportional', 'coin': 'BTC', 'side': 'SELL', 'intent_type': 'EXIT', 'reason': 'SOURCE_CSV_FORWARD', 'status': 'WOULD_EXIT', 'leader_price': '100.0', 'target_price': '100.0', 'leader_size': '10.0', 'leader_notional': '1000.0', 'copy_notional': '100.0', 'copy_size': '1.0', 'min_notional_policy': 'DIRECT_EXECUTABLE', 'diff_pct': '0.0', 'max_diff_pct': '0.1', 'daily_loss_limit': '0.0', 'notes': 'leader source CSV event; source=source_csv_forward; no order implied by this note; reducing/exit path; risk-reducing dry-run', 'execution_decision': 'WOULD_REDUCE_OR_EXIT', 'decision_reason': 'RISK_REDUCING_EXIT', 'executable_price': '100.0', 'adverse_diff_pct': '0.0', 'suggested_order_type': 'IOC_LIMIT', 'suggested_limit_price': '100.0', 'manual_reconcile_required': 'False', 'market_data_source': 'LEADER_FILL_PRICE', 'market_data_error': '', 'reduce_only': 'True'}
+
+=== t17) DURABLE AUDIT SURFACES retain planner reduce_only and planner follower side ===
+  PASS: durable order_intents.csv retains planner reduce_only (read back from disk)  ::  {'created_at': '2026-11-20T16:05:56.972989+00:00', 'intent_id': 'DRYRUN-1795190756972-1', 'dry_run': 'True', 'leader_wallet': '0xw1', 'leader_fill_id': 'o1', 'linked_leader_fill_ids': 'o1', 'mode': 'LIVE', 'copy_mode': 'proportional', 'coin': 'BTC', 'side': 'SELL', 'intent_type': 'EXIT', 'reason': 'SOURCE_CSV_FORWARD', 'status': 'WOULD_EXIT', 'leader_price': '100.0', 'target_price': '100.0', 'leader_size': '20.0', 'leader_notional': '2000.0', 'copy_notional': '400.0', 'copy_size': '4.0', 'min_notional_policy': 'DIRECT_EXECUTABLE', 'diff_pct': '0.0', 'max_diff_pct': '0.1', 'daily_loss_limit': '0.0', 'notes': 'leader source CSV event; source=source_csv_forward; no order implied by this note; reducing/exit path; risk-reducing dry-run', 'execution_decision': 'WOULD_REDUCE_OR_EXIT', 'decision_reason': 'RISK_REDUCING_EXIT', 'executable_price': '100.0', 'adverse_diff_pct': '0.0', 'suggested_order_type': 'IOC_LIMIT', 'suggested_limit_price': '100.0', 'manual_reconcile_required': 'False', 'market_data_source': 'LEADER_FILL_PRICE', 'market_data_error': '', 'reduce_only': 'True'}
+  PASS: durable live_fills.csv records the PLANNER follower side, not the leader fill side  ::  leader_fill_side=BUY durable_live_fill_side=SELL
+
+=== Result ===
+  checks: 40 passed, 0 failed
+RESULT::G2_EVENT_AUTHORISED_DESIRED_PASS
+RESULT::G2_DELTA_SIZED_NOT_FIXED_PER_FILL_PASS
+RESULT::G2_REDUCE_NEVER_FLIPS_PASS
+RESULT::G2_SIDE_PRESERVED_SIGN_FLIP_FIRST_LEG_FLATTENS_PASS
+RESULT::G2_SHORT_OPEN_SELL_FROM_FLAT_PASS
+RESULT::G2_MULTI_WALLET_ACCOUNT_NET_AGGREGATE_PASS
+RESULT::G2_ACCOUNT_NET_REQUIRED_FAIL_CLOSED_PASS
+RESULT::G2_IN_FLIGHT_SUPPRESSION_PASS
+RESULT::G2_LINEAGE_CHECKPOINT_COUPLED_PASS
+RESULT::G2_FIXED_MODE_AUTHORITY_HOLD_PASS
+RESULT::G2_LIVE_SEND_SEAM_SIDE_REDUCE_ONLY_PASS
+RESULT::G2_IN_FLIGHT_BEFORE_SENDER_PASS
+RESULT::G2_MANUAL_SIDE_NOT_OVERWRITTEN_PASS
+RESULT::G2_CLO_PLANNER_REDUCTION_ONLY_PASS
+RESULT::G2_DURABLE_ORDER_INTENT_REDUCE_ONLY_PASS
+RESULT::G2_DURABLE_LIVE_FILL_PLANNER_SIDE_PASS
+RESULT::G2_SINGLE_ORDER_CALL_SITE_PASS
+exit=0
