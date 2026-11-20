@@ -7452,12 +7452,13 @@ function renderWallets(){
 function walletDetailHtml(wallet){
  const w=String(wallet).toLowerCase();
  const perf=(lcAudit.live_leader_performance||{})[w]||{};
+ const actual=lcAudit.account_reconciliation||{};
  const allAttempts=(lcAudit.recent_send_attempts||[]).filter(a=>(a.leader_wallet||a.auto_send_wallet||'').toLowerCase()===w);
  const fills=allAttempts.filter(a=>a.status==='ORDER_FILLED').slice().reverse();
  const exchRej=allAttempts.filter(a=>a.status==='ORDER_REJECTED').slice().reverse();
  const localBlk=allAttempts.filter(a=>a.status&&a.status!=='ORDER_FILLED'&&a.status!=='ORDER_REJECTED'&&a.status!=='CONFIRM_REQUIRED').slice().reverse();
  const intents=(lcAudit.last_rows||[]).filter(r=>(r.leader_wallet||r.wallet||'').toLowerCase()===w).slice(-10).reverse();
- const openPos=perf.current_open_positions||[];
+ const openPos=(lcAudit.exchange_account_snapshot||{}).open_positions||[];
  const wCfg=(lcConfig.wallets||{})[wallet]||{}, modeNow=String(wCfg.mode||'OFF').toUpperCase();
  const isOff=modeNow==='OFF';
  const hasActivity=(fills.length>0||exchRej.length>0||localBlk.length>0);
@@ -7467,10 +7468,10 @@ function walletDetailHtml(wallet){
  // A) Live Performance
  out+=`<div style="padding:6px 8px;border-bottom:1px solid #223342"><b style="color:#58a6ff">A — Live Performance</b>`;
  out+=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">`;
- out+=`<span>Closed: <b class="${signCls(perf.live_realized_pnl)}">${moneyOrDash(perf.live_realized_pnl,perf.realized_reason)}</b></span>`;
- out+=`<span>Open: <b class="${signCls(perf.live_unrealized_pnl)}">${moneyOrDash(perf.live_unrealized_pnl,perf.unrealized_reason)}</b></span>`;
+ out+=`<span>Closed: <b class="${signCls(actual.exchange_realized_pnl_since_baseline)}">${moneyOrDash(actual.exchange_realized_pnl_since_baseline,actual.exchange_realized_pnl_source)}</b></span>`;
+ out+=`<span>Open: <b class="${signCls(actual.exchange_unrealized_pnl)}">${moneyOrDash(actual.exchange_unrealized_pnl,'exchange account P&L unavailable')}</b></span>`;
  out+=`<span>Fees: <b>${moneyOrDash(perf.fees,perf.realized_reason)}</b></span>`;
- out+=`<span>Net: <b class="${signCls(perf.live_net_pnl)}">${perf.live_net_pnl!=null?h(signedMoney(perf.live_net_pnl)):dash(perf.net_pnl_reason)}</b></span>`;
+ out+=`<span>Net: <b class="${signCls(actual.net_account_value_change_unadjusted)}">${moneyOrDash(actual.net_account_value_change_unadjusted,'account change unavailable')}</b></span>`;
  out+=`<span>Exposure: <b>${moneyFmt(perf.current_exposure)||'n/a'}</b></span>`;
  out+=`<span>DD: <b>${moneyOrDash(perf.drawdown,perf.drawdown_reason)}</b></span>`;
  out+=`<span>MaxDD: <b>${moneyOrDash(perf.max_drawdown,perf.drawdown_reason)}</b></span>`;
