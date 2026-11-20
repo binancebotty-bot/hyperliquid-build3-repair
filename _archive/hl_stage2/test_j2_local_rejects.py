@@ -361,6 +361,27 @@ check("J2_4F_IOC_NOT_GTC", len(calls4b) > 0 and calls4b[0].get("tif") == "Ioc",
 
 
 # ============================================================================
+# TEST 5: Rounded wire notional cannot exceed the configured order cap
+# ============================================================================
+print("\n=== TEST 5: Rounded wire notional cannot exceed the configured order cap ===")
+
+fake5 = FakeExchange()
+gw5 = make_gateway(fake5)
+gw5._validate_final_wire_order = c.SenderGateway._validate_final_wire_order.__get__(gw5, c.SenderGateway)
+gw5.cfg.max_order_notional = lambda: 61121.99
+intent5 = make_intent("ENTRY", "BUY", 611.2199, price=100.0)
+ok5, block5 = gw5._validate_final_wire_order(intent5, dict(RESOLVED_BTC), "BTC", 611.22, 100.0, {})
+check("J2_5A_ROUNDED_61122_OVER_CAP_REFUSED",
+      not ok5 and block5.get("status") == "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE",
+      f"ok={ok5}, status={block5.get('status')}, calls={fake5.calls}")
+gw5.cfg.max_order_notional = lambda: 61122.0
+ok5b, block5b = gw5._validate_final_wire_order(intent5, dict(RESOLVED_BTC), "BTC", 611.22, 100.0, {})
+check("J2_5B_ROUNDED_NOTIONAL_WITHIN_CAP_PASSES",
+      ok5b,
+      f"ok={ok5b}, status={block5b.get('status')}, calls={fake5.calls}")
+
+
+# ============================================================================
 # SUMMARY
 # ============================================================================
 print("\n=== SUMMARY ===")
