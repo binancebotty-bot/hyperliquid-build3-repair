@@ -6325,14 +6325,21 @@ class SenderGateway:
             }
         # â"€â"€ Final pre-exchange invariant gate â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         if lifecycle in {"ENTRY", "ADD"}:
+            max_order_lookup_failed = False
             try:
                 max_order = fnum(self.cfg.max_order_notional(), 0.0)
             except Exception:
                 max_order = 0.0
+                max_order_lookup_failed = True
             wire_notional = abs(wire_size * limit_px)
-            if max_order > 0 and wire_notional > max_order + 1e-9:
-                detail = (f"final wire notional {wire_notional:.6f} > max order {max_order}; "
-                          f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
+            if max_order_lookup_failed or (max_order > 0 and wire_notional > max_order + 1e-9):
+                detail = (
+                    f"OPERATOR ALERT: max order notional lookup failed; refusing ENTRY/ADD; "
+                    f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}"
+                    if max_order_lookup_failed else
+                    f"final wire notional {wire_notional:.6f} > max order {max_order}; "
+                    f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}"
+                )
                 return False, "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL", {
                     "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE",
                     "error": detail,
