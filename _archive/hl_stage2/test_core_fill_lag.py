@@ -267,6 +267,7 @@ def main() -> None:
     new.stop()
 
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
+    assert new.state_writer._worker.join_until(time.monotonic() + 5)
     before = c.load_json(c.COPY_POLL_STATE_FILE, {})
     new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
     writer_drained = new.state_writer._worker.join_until(time.monotonic() + 5)
@@ -274,11 +275,11 @@ def main() -> None:
           writer_drained and c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
           and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
     # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
-    assert new.state_writer._worker.join_until(time.monotonic() + 5)
     rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
     oid2, side2 = engine_order()
     land(oid2, side2)
     st2 = new.copy_poll_once(hot=True)
+    assert new.state_writer._worker.join_until(time.monotonic() + 5)
     check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns == rt_mtime)
     check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
           and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
