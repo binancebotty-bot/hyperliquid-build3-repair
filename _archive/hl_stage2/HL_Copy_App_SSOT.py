@@ -7334,7 +7334,7 @@ function renderCards(){
  const exp='$'+Number(expVal).toLocaleString(undefined,{maximumFractionDigits:2});
  const expCls='';
  // Last fill / last reject live once, in the Live Copy Status strip above
- const cards=[['Portfolio Value ('+String(lcAudit.follower_network||'').toUpperCase()+')',unified,''],['Open positions P&L (unrealised)',upnl,upnlCls],['Closed P&L (realised)',rpnl,rpnlCls],['Open Positions',exPos,''],['Live Exposure',exp,expCls]];
+ const cards=[['Portfolio Value ('+String(lcAudit.follower_network||'').toUpperCase()+')',unified,''],['Open positions P&L (unrealised)',upnl,upnlCls],['Closed P&L (realised)',rpnl,rpnlCls],['Open Positions',exPos,''],['Engine-tracked exposure',exp,expCls]];
  root.querySelector('#lcRealCards').innerHTML=cards.map(([l,v,cls])=>`<div class="lc-stat"><div class="label">${h(l)}</div><div class="value ${cls||''}" style="font-size:12px;word-break:break-all">${v}</div></div>`).join('');
  renderGraph();
 }
