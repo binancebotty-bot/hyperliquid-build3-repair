@@ -10943,10 +10943,9 @@ class LiveCopyCore:
             # Gate 6: the full-DEX sweep must have covered the whole follower account recently (fails closed)
             if not _block:
                 _block = self._scope_sweep_block()
-            # Boss rule 16 Oct (decision card, testnet): nothing that was not in the two-month engine blocks an entry. A cycle
-            # gate (feed stale, poll stale, unreconciled sends, wallet slots, sweep, unreadable P&L, rejected key) is an ALERT:
-            # one GATE_WOULD_BLOCK row, the entry proceeds. The daily loss LIMIT the operator sets stays a hard stop (old build).
-            if _block and _block != "DAILY_LOSS_LIMIT_REACHED" and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True):
+            # Cycle warnings stay alert-only, while an explicitly stale WS feed and the daily loss limit block entries.
+            if (_block and _block not in {"DAILY_LOSS_LIMIT_REACHED", "WS_FEED_STALE"}
+                    and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True)):
                 self._gate_would_block(_block)
                 _block = ""
             self._entry_sends_blocked_reason = _block
