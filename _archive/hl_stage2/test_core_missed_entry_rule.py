@@ -67,8 +67,8 @@ def main() -> None:
         c._FOLLOWER_MIDS.update(px={}, ms=0)
         c._LEADER_MIDS.update(px={}, ms=0)
 
-    def config(**gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
+    def config(auto_send_enabled=False, **gc):
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto_send_enabled, "global_controls": gc, "wallets": {
             LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
 
     seq = [0]
@@ -121,8 +121,8 @@ def main() -> None:
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
         return gw
 
-    def send(gc, side="BUY", follower=100.0, leader=None, replies=None, f=None, sleeve=0.0):
-        config(**gc)
+    def send(gc, side="BUY", follower=100.0, leader=None, replies=None, f=None, sleeve=0.0, auto_send_enabled=False):
+        config(auto_send_enabled=auto_send_enabled, **gc)
         led = c.ManualLedger(path=tmp / f"l{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
@@ -174,7 +174,7 @@ def main() -> None:
         os.environ.pop("HL_LIVE_MISSED_ENTRY_RULE", None)
 
         # ---- M3: no match while sending ---------------------------------------------------------------
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=99.9, replies=[NO_MATCH, NO_MATCH])
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=99.9, replies=[NO_MATCH, NO_MATCH], auto_send_enabled=True)
         pxs = [(x["tif"], x["px"]) for x in fake.calls]
         check("M3_RETRY_CAPPED_AT_LEADER_PLUS_TOLERANCE_NOT_1PCT",
               len(fake.calls) == 3 and fake.calls[1]["tif"] == "Ioc" and fake.calls[1]["px"] <= 100.2 + 1e-9
@@ -182,7 +182,7 @@ def main() -> None:
         check("M3_THEN_LIMIT_RESTS_AT_LEADER_PRICE_WITH_DIFF",
               pxs[-1] == ("Gtc", 100.0) and status == "ORDER_RESTING" and res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED",
               f"{status} {pxs}")
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH], auto_send_enabled=True)
         check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
         check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
