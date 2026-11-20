@@ -7373,7 +7373,7 @@ function renderBanner(){
  const set=(id,html,cls,title)=>{const el=root.querySelector('#'+id);if(!el)return;el.innerHTML=html;el.className='value '+(cls||'');if(title!=null)el.title=title;};
  const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
  set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
- const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
+ const armed=lcAudit.effective_real_orders_enabled===true;
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
  const pl=root.querySelector('#lcBannerPnlLabel');if(pl)pl.textContent='Account change since '+(b.net_pnl_start_time?fmtWhen(Date.parse(b.net_pnl_start_time)):'run start');
