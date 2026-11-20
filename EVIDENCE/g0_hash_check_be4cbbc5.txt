@@ -1,0 +1,3 @@
+G0 HASH CHECK, clean clone at be4cbbc5
+Command: sha256sum EVIDENCE/g0_process_snapshot.txt
+Output: 5ef8796f5468f3a38f2123fd83c1794ae969dcb344a09e4cd7730db749d7175d *EVIDENCE/g0_process_snapshot.txt
