@@ -5187,6 +5187,18 @@ class SenderGateway:
         sleeves = self._manual_sleeves_for_coin(coin_key)
         live_sleeves = [(w, s) for w, s in sleeves if abs(fnum(s.get("signed_size"), 0.0)) > POSITION_EPSILON]
 
+        if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
+            wallet = normalise_wallet(intent.fill.leader_wallet)
+            sleeve = next((s for w, s in sleeves if w == wallet), None)
+            wallet_pos = fnum((sleeve or {}).get("signed_size"), 0.0)
+            close_delta = ManualLedger.signed_delta(intent.copy_side, max(abs(intent.copy_size), 1.0))
+            if sleeve is None or abs(wallet_pos) <= POSITION_EPSILON or wallet_pos * close_delta >= 0:
+                return False, self._ownership_gate_block(
+                    intent, "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE",
+                    "close intent has no matching manual wallet sleeve for coin/direction",
+                    manual_net, exchange_net,
+                )
+
         # ENTRY/ADD creates or increases this wallet's own sleeve and is matched
         # by the resulting exchange order id. Shared-symbol ambiguity is a close
         # ownership problem, not an entry permission problem. Blocking entries
@@ -5255,7 +5267,11 @@ class SenderGateway:
             action = "NO_SEND_NO_WALLET_OWNED_POSITION"
         else:
             action = default_action
-        event = "OWNERSHIP_GATE" if reject_category == "OWNERSHIP_CONTRACT_BLOCK" else "SEND_TERMINAL"
+        event = (
+            "ALERT" if terminal == "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
+            else "OWNERSHIP_GATE" if reject_category == "OWNERSHIP_CONTRACT_BLOCK"
+            else "SEND_TERMINAL"
+        )
         self.audit.append_reconciliation(
             event,
             terminal,
