@@ -1,0 +1,12 @@
+G0 DECISIVE HASH CHECK at commit fa97ab7f7b423d5e214599d74cad44f4a90888de (fresh clone)
+[A] checked out in clone:
+  sha256=5ef8796f5468f3a38f2123fd83c1794ae969dcb344a09e4cd7730db749d7175d
+  bytes=7971
+  bom_hex=efbbbf
+  crlf_lines=60 lf_total_lines=60
+[B] raw downloaded: https://raw.githubusercontent.com/binancebotty-bot/hyperliquid-build3-repair/fa97ab7f7b423d5e214599d74cad44f4a90888de/EVIDENCE/g0_process_snapshot.txt
+  sha256=5ef8796f5468f3a38f2123fd83c1794ae969dcb344a09e4cd7730db749d7175d
+  bytes=7971
+  bom_hex=efbbbf
+  crlf_lines=60 lf_total_lines=60
+[C] same bytes A vs B: YES
