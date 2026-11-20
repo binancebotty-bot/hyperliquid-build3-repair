@@ -23,6 +23,7 @@ Model (per coin, evaluated each reconcile tick):
 """
 from __future__ import annotations
 
+import math
 import sys
 from dataclasses import dataclass
 from typing import Optional, Tuple
@@ -85,6 +86,8 @@ def compute_convergence_order(
 
     d = float(desired_net)
     a = float(actual_net)
+    if not math.isfinite(d) or not math.isfinite(a):
+        return _none(coin, "NON_FINITE_HOLDINGS_REFUSED")
 
     # --- Sign flip: opposite signs, both materially non-zero -> two legs. ---
     if (a > EPS and d < -EPS) or (a < -EPS and d > EPS):
@@ -196,6 +199,15 @@ def run_self_test() -> None:
            ", ".join(x.short() for x in orders_after))
 
     print("\n=== Guard cases ===")
+    o = compute_convergence_order("BTC", desired_net=1.0, actual_net=float("nan"))
+    _check("NaN actual holdings -> named non-finite refusal",
+           o.action == "NONE" and "NON_FINITE" in o.reason, o.short())
+    o = compute_convergence_order("BTC", desired_net=1.0, actual_net=float("inf"))
+    _check("infinite actual holdings -> named non-finite refusal",
+           o.action == "NONE" and "NON_FINITE" in o.reason, o.short())
+    o = compute_convergence_order("BTC", desired_net=1.0, actual_net=0.0)
+    _check("finite actual holdings still produce expected open",
+           o.action == "OPEN" and o.side == "BUY" and o.size == 1.0, o.short())
     o = compute_convergence_order("SOL", desired_net=0.0, actual_net=0.28, leader_known=False)
     _check("leader UNKNOWN != flat -> HOLD (never close on missing data)",
            o.action == "NONE" and o.reason == "LEADER_UNKNOWN_HOLD", o.short())
