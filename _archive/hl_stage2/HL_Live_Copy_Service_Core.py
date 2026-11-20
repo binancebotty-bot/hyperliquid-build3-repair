@@ -6422,6 +6422,20 @@ class SenderGateway:
                     retry_notional = abs(wire_size * retry_px)
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
+                        if not self.cfg.master_switch_now():
+                            return False, "MASTER_REAL_ORDERS_OFF", {
+                                "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                                "wire_size": wire_size, "copy_notional": wire_notional,
+                                "exchange_called": True, "error": parsed_error, "timing": timing,
+                                "reject_category": reject_category, "reduce_only_sent": use_reduce_only,
+                            }
+                        if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
+                            return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY", {
+                                "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                                "wire_size": wire_size, "copy_notional": wire_notional,
+                                "exchange_called": True, "error": parsed_error, "timing": timing,
+                                "reject_category": reject_category, "reduce_only_sent": use_reduce_only,
+                            }
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
                                                            retry_px, "Ioc", False)
@@ -6447,6 +6461,20 @@ class SenderGateway:
                 rest_safe, _rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
+                    if not self.cfg.master_switch_now():
+                        return False, "MASTER_REAL_ORDERS_OFF", {
+                            "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                            "wire_size": wire_size, "copy_notional": wire_notional,
+                            "exchange_called": True, "error": parsed_error, "timing": timing,
+                            "reject_category": reject_category, "reduce_only_sent": use_reduce_only,
+                        }
+                    if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
+                        return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY", {
+                            "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                            "wire_size": wire_size, "copy_notional": wire_notional,
+                            "exchange_called": True, "error": parsed_error, "timing": timing,
+                            "reject_category": reject_category, "reduce_only_sent": use_reduce_only,
+                        }
                     gtc_px = rest_px
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
                                                       "Gtc", False, timing, "missed_entry_limit_started_ms")
