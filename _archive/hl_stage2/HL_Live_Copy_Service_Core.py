@@ -5931,7 +5931,8 @@ class SenderGateway:
         timing["ownership_gate_started_ms"] = utc_now_ms()
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
         lag_statuses = {"OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION", "OWNERSHIP_GATE_SIGN_CONFLICT"}
-        if not gate_ok and gate_block.get("status") in lag_statuses:
+        unowned_close = lifecycle in {"REDUCE", "EXIT"} and abs(fnum(gate_block.get("manual_net"), 0.0)) <= POSITION_EPSILON
+        if not gate_ok and gate_block.get("status") in lag_statuses and not unowned_close:
             # often only the ledger (copy poll) or the exchange snapshot lagging the other by a few seconds: bring
             # both up to date and look again; only a mismatch that survives fresh records is a real one
             deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_UNEXPLAINED_WAIT_SEC"), 6.0))
