@@ -1,0 +1,60 @@
+﻿G0 PROCESS SNAPSHOT (read-only) captured_utc=2026-11-20T04:57:32Z host=DESKTOP-DLTR4OD
+METHOD: Win32_Process via CIM, filter Name LIKE 'python%' plus engine-pattern match (HL_Live|Live_Copy|hyperliquid|copy_engine|Core.py|walletproof|8012|8014)
+ENGINE_PATTERN_MATCHES: none
+ROW ts=2026-11-20T04:57:32Z PID=24628 EXE=C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\pythonw.exe CMD=C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\pythonw.exe C:\Users\wigmore\trading_stack\free-compute-task-manager\router_supervisor.py
+ROW ts=2026-11-20T04:57:32Z PID=10900 EXE=C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\pythonw.exe CMD=C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\pythonw.exe C:\Users\wigmore\trading_stack\_tools\hl_monitor.py
+ROW ts=2026-11-20T04:57:32Z PID=6680 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe"  "C:\Users\wigmore\.hermes\scripts\gpt_pulse_supervise.py"
+ROW ts=2026-11-20T04:57:32Z PID=28504 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe"  "C:\Users\wigmore\.hermes\scripts\mutual_watch.py"
+ROW ts=2026-11-20T04:57:32Z PID=2616 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe CMD=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe -u C:\Users\wigmore\.hermes\scripts\build4_wake_controller.py
+ROW ts=2026-11-20T04:57:32Z PID=4984 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe"  "C:\Users\wigmore\.hermes\scripts\hermesd.py" run
+ROW ts=2026-11-20T04:57:32Z PID=23600 EXE=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\python.exe CMD="C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\python.exe"  "C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\hermes.exe" serve --skip-build
+ROW ts=2026-11-20T04:57:32Z PID=23092 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\python.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\python.exe" "C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\hermes.exe" serve --skip-build
+ROW ts=2026-11-20T04:57:32Z PID=18936 EXE=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe CMD=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe -I -c "import sys, runpy; sys.path.insert(0, 'C:\\Users\\wigmore\\.hermes\\hermes-agent'); sys.argv = ['C:\\Users\\wigmore\\.hermes\\hermes-agent\\.venv\\Scripts\\hermes.exe', 'serve', '--skip-build']; sys._hermes_relaunched = True; runpy.run_path('C:\\Users\\wigmore\\.hermes\\hermes-agent\\.venv\\Scripts\\hermes.exe', run_name='__main__')"
+ROW ts=2026-11-20T04:57:32Z PID=28932 EXE=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\pythonw.exe CMD=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\pythonw.exe C:\Users\wigmore\.hermes\scripts\gh_event_sink.py
+ROW ts=2026-11-20T04:57:32Z PID=26356 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe" C:\Users\wigmore\.hermes\scripts\gh_event_sink.py
+ROW ts=2026-11-20T04:57:32Z PID=28768 EXE=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\pythonw.exe CMD=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\pythonw.exe C:\Users\wigmore\.hermes\scripts\ingress_consumer.py
+ROW ts=2026-11-20T04:57:32Z PID=17576 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\pythonw.exe" C:\Users\wigmore\.hermes\scripts\ingress_consumer.py
+ROW ts=2026-11-20T04:57:32Z PID=40292 EXE=C:\Users\wigmore\AppData\Local\Python\bin\python.exe CMD=python C:/Users/wigmore/trading_stack/hermes-host-tooling/hermes-mcp-coordinator/server.py
+ROW ts=2026-11-20T04:57:32Z PID=19024 EXE=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\python.exe CMD=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\python.exe C:\Users\wigmore\.hermes\mcp\hermes_tools_launch.py
+ROW ts=2026-11-20T04:57:32Z PID=39940 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\python.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\python.exe" C:\Users\wigmore\.hermes\mcp\hermes_tools_launch.py
+ROW ts=2026-11-20T04:57:32Z PID=32624 EXE=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe CMD=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe -m browser_harness.daemon
+ROW ts=2026-11-20T04:57:32Z PID=37892 EXE=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe CMD="C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe" -m hermes_cli.main gateway run
+ROW ts=2026-11-20T04:57:32Z PID=19104 EXE=C:\Users\wigmore\AppData\Local\Python\bin\python.exe CMD=python C:/Users/wigmore/trading_stack/hermes-host-tooling/hermes-mcp-coordinator/server.py
+ROW ts=2026-11-20T04:57:32Z PID=41696 EXE=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\python.exe CMD=C:\Users\wigmore\.hermes\hermes-agent\.venv\Scripts\python.exe C:\Users\wigmore\.hermes\mcp\hermes_tools_launch.py
+ROW ts=2026-11-20T04:57:32Z PID=33920 EXE=C:\Users\wigmore\AppData\Local\Programs\Python\Python311\python.exe CMD="C:\Users\wigmore\AppData\Local\Programs\Python\Python311\python.exe" C:\Users\wigmore\.hermes\mcp\hermes_tools_launch.py
+ROW ts=2026-11-20T04:57:32Z PID=33632 EXE=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe CMD=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe -P -u -c "
+import json, os, sys
+from contextlib import redirect_stdout
+from pathlib import Path
+from types import SimpleNamespace
+with redirect_stdout(sys.stderr):
+    from hermes_cli.gateway_client import _session_ticket
+    from hermes_cli.gateway_runtime_discovery import DiscoveryError, _private_node
+while True:
+    line = sys.stdin.buffer.readline(65537)
+    if not line:
+        break
+    if len(line) > 65536 or not line.endswith(b'\n'):
+        break
+    request = json.loads(line)
+    try:
+        with redirect_stdout(sys.stderr):
+            endpoint = SimpleNamespace(**{'control_home': None, **request['endpoint']})
+            home = Path(endpoint.profile_id)
+            if str(home.resolve()) != endpoint.profile_id or endpoint.runtime_protocol != 1:
+                raise ValueError('invalid ticket endpoint')
+            if os.name != 'nt':
+                _private_node(home, kind='directory', home=True)
+            ticket = _session_ticket(home, endpoint, purpose=request['purpose'],
+                                     scope='host' if request['purpose'] == 'interactive' else None)
+        reply = {'id': request['id'], 'ticket': ticket}
+    except DiscoveryError as exc:
+        reply = {'id': request['id'], 'error': exc.reason}
+    except Exception:
+        reply = {'id': request['id'], 'error': 'ticket_failed'}
+    print(json.dumps(reply), flush=True)
+"
+ROW ts=2026-11-20T04:57:32Z PID=29536 EXE=C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe CMD="C:\Users\wigmore\.hermes\tools\python-3.14.9+20261021-win32-x64\python.exe" -I "C:\Users\wigmore\.hermes\bin\hermes.exe" kanban --board free-compute archive t_1f0966d8
+HL_MONITOR_SCRIPT_SHA256=7A16BC0562A9AA6D60C0C63E211F0BEC01CFE239814ED859945C7FD899DC80EC  C:\Users\wigmore\trading_stack\_tools\hl_monitor.py
+HL_MONITOR_EXE_SHA256=D278B258A6D565AA014A4CAB0731134FACDEC77E9B25D97D0C235922353464B3  C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\pythonw.exe
+COVERAGE_LIMITS: single Windows host only; non-python processes not enumerated; no elevation; no remote hosts; no port scan beyond earlier Get-NetTCPConnection 8000-8999 listen check (8012 and 8014 not listening at that time); CMD lines may be truncated by CIM; snapshot is a point in time.
