@@ -179,6 +179,16 @@ def main() -> None:
     # ---- D1: the copy thread owns a fill while the main cycle is stuck -----------------------------------------
     gate = threading.Event()
     blocked = threading.Event()
+    fill_owned = threading.Event()
+    watched_oid = {"value": ""}
+    real_append_live_fill = new.audit.append_live_fill
+
+    def signal_owned_fill(row):
+        real_append_live_fill(row)
+        if str(row.get("exchange_order_id") or "") == watched_oid["value"]:
+            fill_owned.set()
+
+    new.audit.append_live_fill = signal_owned_fill
     real_refresh_assets = new.sender.refresh_asset_universe
 
     def stuck_refresh_assets(*a, **k):
@@ -188,16 +198,15 @@ def main() -> None:
     new.sender.refresh_asset_universe = stuck_refresh_assets
     cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)
     cyc.start()
-    blocked.wait(30)
+    cycle_blocked = blocked.wait(30)
     oid1, side1 = engine_order()
+    watched_oid["value"] = str(oid1)
     land(oid1, side1)
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline and str(oid1) not in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}:
-        time.sleep(0.1)
-    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set() and cyc.is_alive()
-          and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
+    fill_owned.wait(30)
+    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", cycle_blocked and cyc.is_alive() and fill_owned.is_set())
     gate.set()
-    cyc.join(30)
+    cyc.join()
+    new.audit.append_live_fill = real_append_live_fill
     new.sender.refresh_asset_universe = real_refresh_assets
 
     # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
@@ -275,12 +284,24 @@ def main() -> None:
           writer_drained and c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
           and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
     # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
-    rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
+    assert new.state_writer._worker.join_until(time.monotonic() + 5)
+    runtime_state_writes = []
+    real_atomic_write_json = c.atomic_write_json
+
+    def track_runtime_state_write(path, *a, **k):
+        if Path(path) == Path(c.CORE_RUNTIME_STATE_FILE):
+            runtime_state_writes.append(path)
+        return real_atomic_write_json(path, *a, **k)
+
     oid2, side2 = engine_order()
     land(oid2, side2)
-    st2 = new.copy_poll_once(hot=True)
-    assert new.state_writer._worker.join_until(time.monotonic() + 5)
-    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns == rt_mtime)
+    c.atomic_write_json = track_runtime_state_write
+    try:
+        st2 = new.copy_poll_once(hot=True)
+        assert new.state_writer._worker.join_until(time.monotonic() + 5)
+    finally:
+        c.atomic_write_json = real_atomic_write_json
+    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", not runtime_state_writes)
     check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
           and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
           and all({"section", "n", "total_ms", "max_ms"} <= set(s) for s in st2["slowest_sections"]),
