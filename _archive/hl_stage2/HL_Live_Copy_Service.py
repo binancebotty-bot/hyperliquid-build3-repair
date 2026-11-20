@@ -2525,7 +2525,7 @@ class DryRunLiveCopyService:
             "action": action, "notes": notes,
         })
 
-    def global_order_cap(self) -> float:
+    def global_order_cap(self) -> Optional[float]:
         """Operator global control max_order_notional_usd, read from the EXISTING live_config.json
         (APP_CONFIG_FILE) that the restored UI already writes under global_controls.
 
@@ -2535,6 +2535,9 @@ class DryRunLiveCopyService:
         """
         try:
             cfg = load_json(APP_CONFIG_FILE, {}) or {}
+        except Exception:
+            return None
+        try:
             gc = cfg.get("global_controls")
             if not isinstance(gc, dict):
                 return 0.0
@@ -2554,15 +2557,18 @@ class DryRunLiveCopyService:
 
         Reduce/close paths are NEVER blocked by an entry-size cap, so a safe exit is always allowed.
         """
-        cap = self.global_order_cap()
-        if cap <= 0:
-            return ""
         if str(intent_type or "").upper() != "ENTRY":
             return ""
         ro = reduce_only
         if ro is None:
             ro = str((decision or {}).get("execution_decision") or "") == "WOULD_REDUCE_OR_EXIT"
         if bool(ro):
+            return ""
+        cap = self.global_order_cap()
+        if cap is None:
+            self.bump("entries_blocked_global_max_order_notional_cap_read_error")
+            return "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL_CAP_READ_ERROR"
+        if cap <= 0:
             return ""
         if fnum(copy_notional) > cap + 1e-12:
             self.bump("entries_blocked_global_max_order_notional")
@@ -2601,7 +2607,11 @@ class DryRunLiveCopyService:
         if cap_status:
             row["status"] = cap_status
             row["execution_decision"] = cap_status
-            row["decision_reason"] = "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"
+            row["decision_reason"] = (
+                "GLOBAL_MAX_ORDER_NOTIONAL_CAP_READ_ERROR"
+                if cap_status == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL_CAP_READ_ERROR"
+                else "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"
+            )
             row["suggested_order_type"] = ""
             row["suggested_limit_price"] = ""
             decision = dict(decision or {})
