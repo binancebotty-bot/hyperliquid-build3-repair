@@ -1,0 +1,10 @@
+G0 ROW-COUNT VERIFICATION (read-only), clean clone at 866ee02a
+Command: sha256sum EVIDENCE/g0_process_snapshot.txt
+Output:  5ef8796f5468f3a38f2123fd83c1794ae969dcb344a09e4cd7730db749d7175d
+Command: grep -o 'PID=[0-9]*' EVIDENCE/g0_process_snapshot.txt | wc -l
+Output:  23
+Command: grep -c '^ROW ' EVIDENCE/g0_process_snapshot.txt
+Output:  23
+Command: live python count, Get-CimInstance Win32_Process Name LIKE 'python%', run after the snapshot
+Output:  21
+Finding: the file holds 23 process rows captured at 2026-11-20T04:57:32Z. The earlier 24 was a listing at about 18:xx on 19 Nov, a different time, so this is not an off-by-one in the file. The PID sets differ: 14688, 14412 and 35636 from the earlier list are absent from the file, and 33632 and 29536 are present in the file but absent from the earlier list. One row's CMD contains embedded newlines, so line counts are not row counts; use the PID count.
