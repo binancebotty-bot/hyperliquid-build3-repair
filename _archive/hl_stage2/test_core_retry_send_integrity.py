@@ -32,9 +32,13 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="rsi_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
+                       "HL_LIVE_HL_ACCOUNT_ADDRESS": FOLLOWER,
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
-                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000"})
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000",
+                       "HL_LIVE_GLOBAL_LOCK_FILE": str(tmp / "sender.lock")})
     import HL_Live_Copy_Service_Core as c
+    c.acquire_global_instance_lock(tmp / "state")
+    assert c._sender_lease_owned(), "HARNESS: isolated sender lease missing"
 
     c.USER_WALLET = FOLLOWER
     c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100"}
@@ -134,12 +138,15 @@ def main() -> None:
     # ---- S3: standing close (opposes and fits inside the net => reduce-only; never blocked)
     ex = Ex("s3", [RESTING])
     g = gw(ex)
+    g.cfg.send_mode_now = lambda: "CLOSE"
+    g._fresh_exchange_net = lambda coin: 2.0
     g.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
     it = c.IntentBuilder(c.ConfigManager(), g.ledger).build(
         c.LeaderFill("f_s3", A, "BTC", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST"))
     it.intent_id = "s3"
     g.audit.append_order_intent(it)
-    g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match")
+    g._queue_exit_recovery_if_needed(ex, "BTC", it, 99.0, 2.0, {}, "could not immediately match",
+                                    sz_dec=resolved["sz_decimals"])
     check("S3_STANDING_CLOSE_SENT", len(ex.calls) == 1, str(ex.calls))
     check("S3_STANDING_CLOSE_OWN_CLOID_AND_PENDING_ROW_BEFORE_CALL", own_cloid_each(ex, "s3", 1), str(ex.calls))
     check("S3_STANDING_CLOSE_STILL_REDUCE_ONLY", bool(ex.calls) and ex.calls[0]["ro"] is True)
@@ -148,7 +155,7 @@ def main() -> None:
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     sites = re.findall(r"self\._place_order\((.*?)\)\n", src, re.S)
     bad = [s[:70] for s in sites if "pre_send=" not in s or "cloid=" not in s]
-    check("S4_ALL_SIX_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 7 and not bad, "%d %s" % (len(sites), bad))
+    check("S4_ALL_EIGHT_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 8 and not bad, "%d %s" % (len(sites), bad))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
