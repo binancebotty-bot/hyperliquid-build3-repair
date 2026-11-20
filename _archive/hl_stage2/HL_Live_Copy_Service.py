@@ -2758,36 +2758,50 @@ class DryRunLiveCopyService:
         })
         return pos, before, realized_pnl
 
-    def wallet_gate(self) -> Dict[str, Any]:
+    def wallet_gate(self) -> Optional[Dict[str, Any]]:
         """READ-ONLY UI compatibility bridge (restored Build3 UI -> repaired engine).
 
         The UI writes wallet_gate.json beside its own script; this engine reads
         HL_LIVE_WALLET_GATE_FILE when set, else AUDIT_DIR/wallet_gate.json. The gate can only
-        REDUCE engine authority (OFF / CLOSE_ONLY), never grant it. Absent, unreadable or
-        malformed gate returns {} => no change.
+        REDUCE engine authority (OFF / CLOSE_ONLY), never grant it. An absent gate is no change;
+        unreadable or malformed data returns None so each configured wallet fails closed.
         """
         try:
             path = Path(os.getenv("HL_LIVE_WALLET_GATE_FILE") or (AUDIT_DIR / "wallet_gate.json"))
             if not path.exists():
                 return {}
             data = json.loads(path.read_text(encoding="utf-8"))
-            return data if isinstance(data, dict) else {}
-        except Exception:
-            return {}
+            if not isinstance(data, dict):
+                raise ValueError("wallet gate must contain a JSON object")
+            return data
+        except Exception as exc:
+            self.log_error("UI_WALLET_GATE_READ", exc)
+            return None
 
     def wallet_gate_mode(self, wallet: str) -> str:
-        """Effective UI-gate mode for a wallet: ON | OFF | CLOSE_ONLY, or '' (no gate)."""
+        """Effective UI-gate mode for a wallet; unreadable or malformed gate means CLOSE_ONLY."""
         try:
-            entry = self.wallet_gate().get(str(wallet).lower()) or {}
-        except Exception:
-            return ""
-        if not isinstance(entry, dict):
-            return ""
-        mode = str(entry.get("mode") or "").upper().strip()
-        return mode if mode in {"ON", "OFF", "CLOSE_ONLY"} else ""
+            gate = self.wallet_gate()
+            if gate is None:
+                return "CLOSE_ONLY"
+            key = str(wallet).lower()
+            if key not in gate:
+                return ""
+            entry = gate[key]
+            if not isinstance(entry, dict):
+                self.log_error("UI_WALLET_GATE_READ", ValueError("wallet gate entry must be an object"))
+                return "CLOSE_ONLY"
+            mode = str(entry.get("mode") or "").upper().strip()
+            if mode not in {"ON", "OFF", "CLOSE_ONLY"}:
+                self.log_error("UI_WALLET_GATE_READ", ValueError("wallet gate entry has an invalid mode"))
+                return "CLOSE_ONLY"
+            return mode
+        except Exception as exc:
+            self.log_error("UI_WALLET_GATE_READ", exc)
+            return "CLOSE_ONLY"
 
     def apply_wallet_gate(self, cfg: LiveWalletConfig) -> LiveWalletConfig:
-        """Fold the UI gate into cfg's mode. Only ever REDUCES authority; any failure is a no-op."""
+        """Fold the UI gate into cfg's mode; any gate failure restricts it to CLOSE_ONLY."""
         try:
             gate_mode = self.wallet_gate_mode(getattr(cfg, "wallet", ""))
             if not gate_mode or gate_mode == "ON":
@@ -2804,8 +2818,12 @@ class DryRunLiveCopyService:
                 object.__setattr__(gated, "mode", target)   # honours frozen dataclasses too
             self.bump("ui_wallet_gate_applied_" + gate_mode.lower())
             return gated
-        except Exception:
-            return cfg
+        except Exception as exc:
+            try:
+                self.log_error("UI_WALLET_GATE_APPLY", exc)
+            except Exception:
+                pass
+            return replace(cfg, mode="CLO")
 
     def process_fill(self, fill: LeaderFill, cfg: LiveWalletConfig, replay_history: bool = False) -> None:
         if fill.fill_id in self.processed_ids:
