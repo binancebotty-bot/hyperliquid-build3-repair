@@ -7261,25 +7261,29 @@ class SenderGateway:
 
         # Gate B: min notional â€" applies to ENTRY, ADD, and EXIT
         wire_notional = abs(wire_size * limit_px)
-        max_order = self.cfg.max_order_notional()
-        if classify_send_lifecycle(intent) in {"ENTRY", "ADD"} and max_order > 0 and wire_notional > max_order + 1e-9:
-            error = (f"final wire notional {wire_notional:.6f} > max order {max_order}; "
-                     f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
-            return False, {
-                "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE",
-                "error": error,
-                "exchange_response": {},
-                "oid": "",
-                "exchange_called": False,
-                "write_send_attempt": True,
-                "notes": error,
-                "reject_category": "RISK_LIMIT",
-                "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
-                "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL",
-                "timing": timing,
-                "limit_px": limit_px,
-                "wire_size": wire_size,
-            }
+        if classify_send_lifecycle(intent) in {"ENTRY", "ADD"}:
+            try:
+                max_order = self.cfg.max_order_notional()
+            except Exception:
+                max_order = None
+            if max_order is None or (max_order > 0 and wire_notional > max_order + 1e-9):
+                error = (f"max order notional lookup failed or final wire notional {wire_notional:.6f} "
+                         f"exceeds max order {max_order}; sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
+                return False, {
+                    "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE",
+                    "error": error,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": error,
+                    "reject_category": "RISK_LIMIT",
+                    "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+                    "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL",
+                    "timing": timing,
+                    "limit_px": limit_px,
+                    "wire_size": wire_size,
+                }
         cfg_min = self._effective_symbol_min_notional(resolved)
         dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
                       and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
