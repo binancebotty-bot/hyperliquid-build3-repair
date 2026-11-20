@@ -3854,7 +3854,11 @@ class IntentBuilder:
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
         cached = self._leader_equity.get(wallet)
         if cached and now - cached[1] <= ttl_ms:
-            return cached[0]
+            try:
+                cached_equity = float(cached[0])
+            except (TypeError, ValueError, OverflowError):
+                return None
+            return cached_equity if math.isfinite(cached_equity) and cached_equity > 0 else None
         if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
             enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if enum.get("ok"):
@@ -4281,6 +4285,13 @@ class SenderGateway:
                      cloid: Optional[str] = None) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
+        try:
+            valid_wire_values = all(math.isfinite(float(value)) and float(value) > 0
+                                    for value in (size, limit_px))
+        except (TypeError, ValueError, OverflowError):
+            valid_wire_values = False
+        if not valid_wire_values:
+            raise ValueError("refusing exchange order with invalid size or limit price")
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
