@@ -7469,10 +7469,10 @@ function walletDetailHtml(wallet){
  // A) Live Performance
  out+=`<div style="padding:6px 8px;border-bottom:1px solid #223342"><b style="color:#58a6ff">A — Live Performance</b>`;
  out+=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">`;
- out+=`<span>Closed: <b class="${signCls(actual.exchange_realized_pnl_since_baseline)}">${moneyOrDash(actual.exchange_realized_pnl_since_baseline,actual.exchange_realized_pnl_source)}</b></span>`;
- out+=`<span>Open: <b class="${signCls(actual.exchange_unrealized_pnl)}">${moneyOrDash(actual.exchange_unrealized_pnl,'exchange account P&L unavailable')}</b></span>`;
+ out+=`<span>Account closed: <b class="${signCls(actual.exchange_realized_pnl_since_baseline)}">${moneyOrDash(actual.exchange_realized_pnl_since_baseline,actual.exchange_realized_pnl_source)}</b></span>`;
+ out+=`<span>Account open: <b class="${signCls(actual.exchange_unrealized_pnl)}">${moneyOrDash(actual.exchange_unrealized_pnl,'exchange account P&L unavailable')}</b></span>`;
  out+=`<span>Fees: <b>${moneyOrDash(perf.fees,perf.realized_reason)}</b></span>`;
- out+=`<span>Net: <b class="${signCls(actual.net_account_value_change_unadjusted)}">${moneyOrDash(actual.net_account_value_change_unadjusted,'account change unavailable')}</b></span>`;
+ out+=`<span>Account net: <b class="${signCls(actual.net_account_value_change_unadjusted)}">${moneyOrDash(actual.net_account_value_change_unadjusted,'account change unavailable')}</b></span>`;
  out+=`<span>Exposure: <b>${moneyFmt(perf.current_exposure)||'n/a'}</b></span>`;
  out+=`<span>DD: <b>${moneyOrDash(perf.drawdown,perf.drawdown_reason)}</b></span>`;
  out+=`<span>MaxDD: <b>${moneyOrDash(perf.max_drawdown,perf.drawdown_reason)}</b></span>`;
@@ -7484,7 +7484,7 @@ function walletDetailHtml(wallet){
  out+='</div></div>';
 
  // B) Open Positions
- out+=`<div style="padding:6px 8px;border-bottom:1px solid #223342"><b style="color:#58a6ff">B — Open Positions (${openPos.length})</b>`;
+ out+=`<div style="padding:6px 8px;border-bottom:1px solid #223342"><b style="color:#58a6ff">B — Account-wide Open Positions (${openPos.length})</b>`;
  if(openPos.length){
   out+='<table style="margin-top:4px;min-width:auto"><thead><tr><th>Coin</th><th>Side</th><th>Size</th><th>Entry px</th><th>Mark px</th><th>Unrealized PnL</th><th>Exposure</th><th>Exchange match</th></tr></thead><tbody>';
   out+=openPos.map(p=>{const em=String(p.exchange_match||'');const stCls=(em==='MATCH'||em==='OWNED_FULLY_SUPPORTED')?'lc-green':(em.indexOf('PENDING')>=0||em.indexOf('UNSUPPORTED')>=0)?'lc-amber':'lc-grey';return `<tr><td><b>${h(p.coin)}</b></td><td>${pill(p.side||'—',p.side||'')}</td><td class="${p.signed_size>0?'lc-pos':'lc-neg'}">${h(p.signed_size)}</td><td>${p.entry_px!=null?h(p.entry_px):'n/a'}</td><td>${p.mark_px!=null?h(p.mark_px):'n/a'}</td><td class="${signCls(p.unrealized_pnl)}">${moneyOrDash(p.unrealized_pnl,'no live price or ledger/exchange disagree')}</td><td>${moneyFmt(p.exposure)||'n/a'}</td><td><span class="lc-pill ${stCls}">${h(p.exchange_match||'?')}</span></td></tr>`;}).join('');
