@@ -6324,19 +6324,6 @@ class SenderGateway:
                 "exchange_called": False, "error": repr(exc), "timing": timing,
             }
         # â"€â"€ Final pre-exchange invariant gate â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
-        # Runs after exchange client creation so sdk_coin/wire_size/limit_px are
-        # all final. Catches: raw numbered assets that slipped through resolution,
-        # and EXIT closes whose notional dusted below the exchange minimum.
-        _max_order = self.cfg.max_order_notional()
-        if lifecycle in {"ENTRY", "ADD"} and _max_order > 0 and abs(wire_size * limit_px) > _max_order + 1e-9:
-            detail = (f"final wire notional {abs(wire_size * limit_px):.6f} > max order {_max_order}; "
-                      f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
-            return False, "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL", {
-                "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE", "error": detail, "exchange_response": {}, "oid": "",
-                "exchange_called": False, "write_send_attempt": True, "notes": detail,
-                "reject_category": "RISK_LIMIT", "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
-                "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
-            }
         _gate_ok, _gate_block = self._validate_final_wire_order(
             intent, resolved, sdk_coin, wire_size, limit_px, timing
         )
@@ -7146,7 +7133,7 @@ class SenderGateway:
         Gate B: wire_notional >= effective min notional, except a reduce-only close of an owned sleeve that closes the
         account's whole position in the coin (the exchange accepts those under $10; blocking them left 4-10 dust
         positions open in run 5). Smaller slivers stay blocked as dust. HL_LIVE_DUST_CLOSE_ATTEMPT=0 restores the old
-        block.
+        block. ENTRY/ADD wire notional also must not exceed max_order_notional.
         """
         raw_coin = str(resolved.get("raw_coin") or intent.fill.coin or "").strip()
 
@@ -7220,6 +7207,25 @@ class SenderGateway:
 
         # Gate B: min notional â€" applies to ENTRY, ADD, and EXIT
         wire_notional = abs(wire_size * limit_px)
+        max_order = self.cfg.max_order_notional()
+        if classify_send_lifecycle(intent) in {"ENTRY", "ADD"} and max_order > 0 and wire_notional > max_order + 1e-9:
+            error = (f"final wire notional {wire_notional:.6f} > max order {max_order}; "
+                     f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
+            return False, {
+                "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE",
+                "error": error,
+                "exchange_response": {},
+                "oid": "",
+                "exchange_called": False,
+                "write_send_attempt": True,
+                "notes": error,
+                "reject_category": "RISK_LIMIT",
+                "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+                "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL",
+                "timing": timing,
+                "limit_px": limit_px,
+                "wire_size": wire_size,
+            }
         cfg_min = self._effective_symbol_min_notional(resolved)
         dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
                       and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
