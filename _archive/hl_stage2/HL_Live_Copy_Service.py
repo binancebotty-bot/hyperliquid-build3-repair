@@ -2249,18 +2249,9 @@ class DryRunLiveCopyService:
         if sa == 0:                      # F6 CLOSE -> attributed sleeve zero
             per[coin] = {"side": 0, "slices": []}
         elif sb != sa:                   # F1 open from flat / F7 FLIP -> exactly one new slice
-            # G4-C1 correction (Controller B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1): a FLIP reduces the
-            # absolute leader magnitude but OPENS a fresh opposite-side fixed sleeve under F7, so it
-            # is a NEW ENTRY for the cap. When that opposite entry's fixed notional exceeds the
-            # operator max_order_notional_usd it gets ZERO authority: the old side still closes (the
-            # flip's exit leg is preserved) but the new opposite slice is never minted, so desired
-            # collapses to 0 and no executable opposite entry can be planned.
-            _cap = self.global_order_cap()
-            if sb != 0 and _cap > 0 and fnum(fixed_notional) > _cap + 1e-12:
-                self.bump("entries_blocked_global_max_order_notional")
-                per[coin] = {"side": 0, "slices": []}
-            else:
-                per[coin] = {"side": sa, "slices": [slice_units]}
+            # Defer cap enforcement until planner classification: a flip's exit must remain available
+            # even when the cap cannot be read; the planner's ENTRY gate refuses the new side.
+            per[coin] = {"side": sa, "slices": [slice_units]}
         elif la > lb:                    # F2/F9 INCREASE -> exactly one more slice, magnitude-agnostic
             sl = [fnum(u) for u in (sleeve.get("slices") or [])]
             sl.append(slice_units)
@@ -2527,9 +2518,9 @@ class DryRunLiveCopyService:
         """Operator global control max_order_notional_usd, read from the EXISTING live_config.json
         (APP_CONFIG_FILE) that the restored UI already writes under global_controls.
 
-        Returns a finite positive float, else 0.0. The UI's off/unset meaning is 0; zero, negative,
-        NaN, infinite or non-numeric values are NOT authority and are treated as 0. Read errors raise
-        so ENTRY can fail closed while planner-authorised reductions avoid the cap lookup entirely.
+        Returns a finite non-negative float. The UI's off/unset meaning is 0; malformed, negative,
+        NaN or infinite values raise so ENTRY can fail closed while planner-authorised reductions
+        avoid the cap lookup entirely.
         """
         try:
             cfg = json.loads(APP_CONFIG_FILE.read_text(encoding="utf-8-sig"))
@@ -2543,10 +2534,10 @@ class DryRunLiveCopyService:
             return 0.0
         try:
             cap = float(raw)
-        except (TypeError, ValueError):
-            return 0.0
-        if cap != cap or cap in (float("inf"), float("-inf")) or cap <= 0:
-            return 0.0
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid global max_order_notional_usd") from exc
+        if cap != cap or cap in (float("inf"), float("-inf")) or cap < 0:
+            raise ValueError("invalid global max_order_notional_usd")
         return cap
 
     def global_order_cap_block(self, intent_type: str, copy_notional: float, reduce_only: Optional[bool],
