@@ -2808,6 +2808,8 @@ class DryRunLiveCopyService:
             return cfg
 
     def process_fill(self, fill: LeaderFill, cfg: LiveWalletConfig, replay_history: bool = False) -> None:
+        if str(fill.wallet).lower() != str(cfg.wallet).lower():
+            return
         if fill.fill_id in self.processed_ids:
             self.bump("fills_already_processed")
             return
