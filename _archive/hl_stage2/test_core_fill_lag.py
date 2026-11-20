@@ -179,11 +179,13 @@ def main() -> None:
     # ---- D1: the copy thread owns a fill while the main cycle is stuck -----------------------------------------
     gate = threading.Event()
     blocked = threading.Event()
+    real_refresh_assets = new.sender.refresh_asset_universe
 
-    def stuck_integrity(*a, **k):
+    def stuck_refresh_assets(*a, **k):
         blocked.set()
         gate.wait(60)
-    c.write_live_integrity_status = stuck_integrity
+        return real_refresh_assets(*a, **k)
+    new.sender.refresh_asset_universe = stuck_refresh_assets
     cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)
     cyc.start()
     blocked.wait(30)
@@ -196,7 +198,7 @@ def main() -> None:
           and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
     gate.set()
     cyc.join(30)
-    c.write_live_integrity_status = heavy_integrity
+    new.sender.refresh_asset_universe = real_refresh_assets
 
     # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
     under_lock = []
@@ -267,10 +269,12 @@ def main() -> None:
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
     before = c.load_json(c.COPY_POLL_STATE_FILE, {})
     new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
+    writer_drained = new.state_writer._worker.join_until(time.monotonic() + 5)
     check("S1_CYCLE_STATE_WRITE_KEEPS_COPY_CURSOR_AND_LAG_RECORD",
-          c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
+          writer_drained and c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
           and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
     # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
+    assert new.state_writer._worker.join_until(time.monotonic() + 5)
     rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
     oid2, side2 = engine_order()
     land(oid2, side2)
