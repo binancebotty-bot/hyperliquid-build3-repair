@@ -3168,6 +3168,15 @@ class ConfigManager:
     def max_order_notional(self) -> float:
         return max(0.0, fnum(self.global_controls.get("max_order_notional_usd"), 0.0))
 
+    def max_order_notional_invalid(self) -> bool:
+        if "max_order_notional_usd" not in self.global_controls:
+            return False
+        try:
+            value = float(self.global_controls["max_order_notional_usd"])
+        except (TypeError, ValueError, OverflowError):
+            return True
+        return not math.isfinite(value) or value < 0
+
     def marketable_bps(self) -> float:
         # Missing = Boss's default of 0.2 % (20 bps, 2026-10-09), the same default the UI shows; 0 = none.
         gc = self.global_controls
@@ -6326,17 +6335,19 @@ class SenderGateway:
         # â"€â"€ Final pre-exchange invariant gate â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         if lifecycle in {"ENTRY", "ADD"}:
             max_order_lookup_failed = False
+            max_order_invalid = False
             try:
                 max_order = fnum(self.cfg.max_order_notional(), 0.0)
+                max_order_invalid = self.cfg.max_order_notional_invalid()
             except Exception:
                 max_order = 0.0
                 max_order_lookup_failed = True
             wire_notional = abs(wire_size * limit_px)
-            if max_order_lookup_failed or (max_order > 0 and wire_notional > max_order + 1e-9):
+            if max_order_lookup_failed or max_order_invalid or (max_order > 0 and wire_notional > max_order + 1e-9):
                 detail = (
-                    f"OPERATOR ALERT: max order notional lookup failed; refusing ENTRY/ADD; "
+                    f"OPERATOR ALERT: max order notional lookup failed or invalid; refusing ENTRY/ADD; "
                     f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}"
-                    if max_order_lookup_failed else
+                    if max_order_lookup_failed or max_order_invalid else
                     f"final wire notional {wire_notional:.6f} > max order {max_order}; "
                     f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}"
                 )
