@@ -1971,6 +1971,8 @@ class DryRunLiveCopyService:
                 self.processed_id_order.append(fill_id)
                 seen_processed.add(fill_id)
         self.processed_ids = set(self.processed_id_order)
+        self.dedupe_ids = set()
+        self.dedupe_lock = threading.Lock()
         # validate the persisted lineage checkpoint ONLY after the processed-event ledger is loaded
         self.lineage_valid = self._lineage_checkpoint_valid()
         self.quote_cache: Dict[str, Dict[str, Any]] = {}
@@ -2991,18 +2993,24 @@ class DryRunLiveCopyService:
             return {"processed": False, "reason": "BASELINE_CREATED_FROM_WS"}
 
         baseline_ts_ms = inum(baseline.get("baseline_ts_ms"))
-        if fill.fill_id in self.processed_ids:
-            return {"processed": False, "reason": "DUPLICATE"}
-        if fill.timestamp_ms <= baseline_ts_ms:
-            return {"processed": False, "reason": "WS_BEFORE_BASELINE"}
+        with self.dedupe_lock:
+            if fill.fill_id in self.processed_ids or fill.fill_id in self.dedupe_ids:
+                return {"processed": False, "reason": "DUPLICATE"}
+            if fill.timestamp_ms <= baseline_ts_ms:
+                return {"processed": False, "reason": "WS_BEFORE_BASELINE"}
+            self.dedupe_ids.add(fill.fill_id)
 
-        self.process_fill(fill, cfg)
-        if fill.fill_id in self.processed_ids and fill.fill_id not in self.processed_id_order:
-            self.processed_id_order.append(fill.fill_id)
-        baseline["baseline_ts_ms"] = fill.timestamp_ms
-        baseline["baseline_fill_id"] = fill.fill_id
-        self.persist()
-        return {"processed": True, "reason": "LIVE_WS_DETECTED"}
+        try:
+            self.process_fill(fill, cfg)
+            if fill.fill_id in self.processed_ids and fill.fill_id not in self.processed_id_order:
+                self.processed_id_order.append(fill.fill_id)
+            baseline["baseline_ts_ms"] = fill.timestamp_ms
+            baseline["baseline_fill_id"] = fill.fill_id
+            self.persist()
+            return {"processed": True, "reason": "LIVE_WS_DETECTED"}
+        finally:
+            with self.dedupe_lock:
+                self.dedupe_ids.discard(fill.fill_id)
 
     def run_once(self, replay_history: bool = False) -> Dict[str, Any]:
         config = self.load_config()
