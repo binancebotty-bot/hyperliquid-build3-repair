@@ -6409,6 +6409,12 @@ class SenderGateway:
                     retry_notional = abs(wire_size * retry_px)
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
+                        retry_gate_ok, retry_gate_block = self._validate_final_wire_order(
+                            intent, resolved, sdk_coin, wire_size, retry_px, timing
+                        )
+                        if not retry_gate_ok:
+                            retry_gate_block.update(exchange_called=True, exchange_response=response)
+                            return False, retry_gate_block["status"], retry_gate_block
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
                                                            retry_px, "Ioc", False)
@@ -6435,6 +6441,12 @@ class SenderGateway:
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
                     gtc_px = rest_px
+                    rest_gate_ok, rest_gate_block = self._validate_final_wire_order(
+                        intent, resolved, sdk_coin, wire_size, rest_px, timing
+                    )
+                    if not rest_gate_ok:
+                        rest_gate_block.update(exchange_called=True, exchange_response=response)
+                        return False, rest_gate_block["status"], rest_gate_block
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
                                                       "Gtc", False, timing, "missed_entry_limit_started_ms")
                     return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
