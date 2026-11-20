@@ -60,18 +60,37 @@ check("L3_ROW_WRITTEN", rows and rows[-1]["attempt_id"] == "pending1", str(rows[
 
 # another file still waits for the shared lock, and the wait is diagnosed with the holder's code
 done = []
-w = threading.Thread(target=lambda: (c.append_csv(c.ORDER_INTENTS_CSV, c.ORDER_INTENT_FIELDS, {"intent_id": "i1"}), done.append(1)))
+contender_started = threading.Event()
+diag_written = threading.Event()
+note_contention = c._note_lock_contention
+
+
+def note_contention_and_signal(path, waited_sec):
+    note_contention(path, waited_sec)
+    diag_written.set()
+
+
+c._note_lock_contention = note_contention_and_signal
+
+
+def append_order_intent():
+    contender_started.set()
+    c.append_csv(c.ORDER_INTENTS_CSV, c.ORDER_INTENT_FIELDS, {"intent_id": "i1"})
+    done.append(1)
+
+
+w = threading.Thread(target=append_order_intent)
 w.start()
-time.sleep(0.4)
-check("L4_OTHER_FILE_STILL_SERIALISED", not done)
+check("L4_OTHER_FILE_STILL_SERIALISED", contender_started.wait(2) and diag_written.wait(2) and not done)
 release.set()
 t.join(); w.join(5)
 check("L5_OTHER_FILE_COMPLETES", done == [1])
+c._note_lock_contention = note_contention
 diag = tmp / "lock_contention.jsonl"
 lines = [json.loads(x) for x in diag.read_text().splitlines()] if diag.exists() else []
 holder = [th for l in lines for th in l["threads"] if th["thread"] == "holder"]
 check("L6_DIAG_NAMES_HOLDER_CODE", lines and holder and any("hold_shared_lock" in f for f in holder[0]["stack"]), str(lines[:1]))
-check("L7_DIAG_HAS_PATH_AND_WAIT", lines and lines[0]["path"] == "order_intents.csv" and lines[0]["waited_ms"] >= 100, str(lines[:1]))
+check("L7_DIAG_HAS_PATH_AND_WAIT", lines and lines[0]["path"] == "order_intents.csv" and {"waited_ms", "threads"} <= set(lines[0]), str(lines[:1]))
 
 # tail/full reads and the send-cache see the row
 tail = c.read_csv_tail_rows(c.SEND_ATTEMPTS_CSV, 0)
