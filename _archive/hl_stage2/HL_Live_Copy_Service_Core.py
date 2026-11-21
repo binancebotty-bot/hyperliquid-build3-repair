@@ -7143,6 +7143,7 @@ class SenderGateway:
         Gate A: sdk_coin is canonical (not #N / @N / blank).
         Gate C: wire_size > 0 and finite.
         Gate D: limit_px > 0 and finite.
+        Gate E: ENTRY/ADD final wire notional does not exceed the configured order cap.
         Gate B: wire_notional >= effective min notional, except a reduce-only close of an owned sleeve that closes the
         account's whole position in the coin (the exchange accepts those under $10; blocking them left 4-10 dust
         positions open in run 5). Smaller slivers stay blocked as dust. HL_LIVE_DUST_CLOSE_ATTEMPT=0 restores the old
@@ -7219,7 +7220,31 @@ class SenderGateway:
             }
 
         # Gate B: min notional â€" applies to ENTRY, ADD, and EXIT
+        lifecycle = classify_send_lifecycle(intent)
+        max_order = 0.0
+        try:
+            max_order = fnum(self.cfg.max_order_notional(), 0.0)
+        except Exception:
+            pass
         wire_notional = abs(wire_size * limit_px)
+        if lifecycle in {"ENTRY", "ADD"} and max_order > 0 and wire_notional > max_order + 1e-9:
+            error = (f"final wire notional {wire_notional:.6f} > max order {max_order}; "
+                     f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
+            return False, {
+                "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE",
+                "error": error,
+                "exchange_response": {},
+                "oid": "",
+                "exchange_called": False,
+                "write_send_attempt": True,
+                "notes": error,
+                "reject_category": "RISK_LIMIT",
+                "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+                "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL",
+                "timing": timing,
+                "limit_px": limit_px,
+                "wire_size": wire_size,
+            }
         cfg_min = self._effective_symbol_min_notional(resolved)
         dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
                       and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
