@@ -124,41 +124,37 @@ def main() -> None:
     import exchange_truth as et
 
     # ---------------------------------------------------------------- 1. slot ranking
-    # 15 wallets: 7 active (idle volume) + 8 OFF. Today the 7 active + first 3 OFF take the 10 slots.
+    # 15 wallets: 12 LIVE + 3 OFF. Only LIVE holds a WS slot; CLO and OFF ride REST polling.
     modes = {}
-    for i in range(7):
-        modes[c.normalise_wallet(wallet(i))] = "CLO"
-    for i in range(7, 15):
+    for i in range(12):
+        modes[c.normalise_wallet(wallet(i))] = "LIVE"
+    for i in range(12, 15):
         modes[c.normalise_wallet(wallet(i))] = "OFF"
-    # fill volume: the OFF wallets 8..15 are the busy leaders, the active ones are near-idle
-    rank_rows = [(c.normalise_wallet(wallet(i)), 16000 - 100 * i) for i in range(7, 15)]
-    rank_rows += [(c.normalise_wallet(wallet(i)), 500 - 10 * i) for i in range(7)]
+    rank_rows = [(c.normalise_wallet(wallet(i)), 16000 - 100 * i) for i in range(12)]
     rank_rows.sort(key=lambda r: -r[1])           # CSV sorted busiest-first, as wallet_rank_24h.csv is
 
     cfg_path, rank_path = build_cfg(tmp, modes, rank_rows)
     cfg = c.ConfigManager(cfg_path)
     baseline = cfg.stream_wallets()               # env unset -> today's order
-    today_expected = ([w for w in cfg.wallets() if modes.get(w) != "OFF"]
-                      + [w for w in cfg.wallets() if modes.get(w) == "OFF"])[:10]
+    today_expected = [w for w in cfg.wallets() if modes.get(w) == "LIVE"][:10]
     check("H_SLOTS_UNRANKED_ORDER_UNCHANGED", baseline == today_expected,
           "baseline=%s expected=%s" % (baseline, today_expected))
 
     os.environ["HL_LIVE_WS_RANK_CSV"] = str(rank_path)
     ranked = cfg.stream_wallets()
     busiest_first = [w for w, _ in rank_rows]
-    active_ranked = [w for w in busiest_first if modes.get(w) != "OFF"]
-    off_ranked = [w for w in busiest_first if modes.get(w) == "OFF"]
-    expected = active_ranked[:10] + off_ranked[:max(0, 10 - len(active_ranked))]
+    expected = [w for w in busiest_first if modes.get(w) == "LIVE"][:10]
     check("H_SLOTS_RANKED_BY_FILLS",
           ranked == expected,
           "ranked=%s expected=%s" % (ranked, expected))
     check("H_SLOTS_ACTIVE_IN_FILL_ORDER",
-          [w for w in ranked if modes.get(w) != "OFF"] == [w for w in busiest_first if modes.get(w) != "OFF"],
+          ranked == [w for w in busiest_first if modes.get(w) == "LIVE"][:10],
           "active wallets not in fill-rank order: %s" % (ranked,))
-    check("H_SLOTS_ACTIVE_ALL_IN_RATED", all(c.normalise_wallet(wallet(i)) in ranked for i in range(7)),
-          "missing an active leader: %s" % (ranked,))
-    check("H_SLOTS_REMAINING_FROM_OFF", all(c.normalise_wallet(wallet(i)) in ranked for i in range(7, 10)),
-          "missing a busy OFF leader: %s" % (ranked,))
+    check("H_SLOTS_ACTIVE_ALL_IN_RATED", all(c.normalise_wallet(wallet(i)) in ranked for i in range(10)),
+          "missing a top-10 LIVE leader: %s" % (ranked,))
+    # CLO/OFF must never be handed a websocket slot (controller ruling 6313307039)
+    check("H_SLOTS_NEVER_FROM_NON_LIVE", all(modes.get(w) == "LIVE" for w in ranked),
+          "non-LIVE wallet in slots: %s" % (ranked,))
 
     # missing file / no rows / garbage -> strict no-op (byte-identical to today)
     os.environ["HL_LIVE_WS_RANK_CSV"] = str(tmp / "does_not_exist.csv")
@@ -195,7 +191,7 @@ def main() -> None:
           "unpolled WS holders: %s" % ([w for w in ws_active if w not in polled],))
     check("H_NO_ACTIVE_WALLET_MISSING_FROM_POLL", not (set(active) - set(polled)),
           "active but unpolled: %s" % (sorted(set(active) - set(polled)),))
-    check("H_SPLIT_EXISTS", len(core.wallets) == 10 and len(polled) == 7, "ws=%d poll=%d" % (len(core.wallets), len(polled)))
+    check("H_SPLIT_EXISTS", len(core.wallets) == 10 and len(polled) == 12, "ws=%d poll=%d" % (len(core.wallets), len(polled)))
     os.environ["HL_LIVE_POLL_ALL_ACTIVE"] = "0"
     # Fix for Finding 5: use a DIFFERENT wallets list so the assertion is not tautological.
     # poll_wallets() must return exactly self.wallets when HL_LIVE_POLL_ALL_ACTIVE=0,

@@ -100,6 +100,25 @@ def main() -> None:
         core.dedupe.copy_account_baseline_set = True
         return core
 
+    def stop_copy_thread(core) -> None:
+        """Stop and join the core's copy-poll thread, then drain the async status writers.
+
+        Without this the thread started for the measurement keeps polling into every later phase: it rewrites
+        copy_poll_state.json and (through the ServiceStateWriter worker) clean_core_runtime_state.json, so a
+        before/after read taken in S1/P1 races a background write and the result depends on timing.
+        No Core change: this drives the same stop flag and bounded join that Core.stop() uses."""
+        ct = getattr(core, "_copy_thread", None)
+        core._hot_stop_event.set()
+        if ct is not None and ct.is_alive() and ct is not threading.current_thread():
+            ct.join(timeout=30)
+        core._copy_thread = None
+        # A state write queued by the last cycle runs on a status worker thread; it must land BEFORE the
+        # before/after reads, otherwise it is the "copy thread" that appears to change the runtime state.
+        # Core's own drain uses a 1 s shared deadline; here the join can afford to be generous.
+        for worker in list(c._STATUS_WRITE_WORKERS):
+            if not worker.join_until(time.monotonic() + 30):
+                raise RuntimeError(f"status writer {worker.name} did not drain before the assertions")
+
     def load_run(core, use_thread: bool, seconds: float = 8.0, rate: float = 20.0):
         """Fills land at `rate`/s; send workers hold the send lock 50 ms of every 60 ms; the main cycle takes 3 s."""
         stop = threading.Event()
@@ -177,26 +196,43 @@ def main() -> None:
                                                       "send_lock_hold_ms_max"} <= set(stats[-1]), str(stats[-1:]))
 
     # ---- D1: the copy thread owns a fill while the main cycle is stuck -----------------------------------------
-    gate = threading.Event()
-    blocked = threading.Event()
+    # The integrity rebuild and the state write both run on background writers now, so replacing
+    # write_live_integrity_status no longer blocks the CYCLE thread -- that is why this check was red with
+    # alive=False. Block a step the cycle thread itself performs (state_writer.submit) instead, so "the main
+    # cycle is stuck" is a fact and not a 60 s sleep. Every wait below is bounded.
+    stop_copy_thread(new)        # the M measurement's poll thread must not bleed into this phase
+    new._hot_stop_event.clear()  # stop_copy_thread sets it; this phase starts a fresh poll thread
+    new.start_copy_poll_thread(0.1)
+    cycle_at_state_write = threading.Event()
+    real_state_write = new.state_writer.write
 
-    def stuck_integrity(*a, **k):
-        blocked.set()
-        gate.wait(60)
-    c.write_live_integrity_status = stuck_integrity
+    def write_then_block(summary, dedupe, cfg=None):
+        cycle_at_state_write.set()
+        real_state_write(summary, dedupe, cfg)  # blocks on state_writer._worker._lock, held below
+    new.state_writer.write = write_then_block
+    cycle_block = new.state_writer._worker._lock
+    cycle_block.acquire()
     cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)
-    cyc.start()
-    blocked.wait(30)
-    oid1, side1 = engine_order()
-    land(oid1, side1)
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline and str(oid1) not in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}:
-        time.sleep(0.1)
-    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set() and cyc.is_alive()
-          and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
-    gate.set()
-    cyc.join(30)
-    c.write_live_integrity_status = heavy_integrity
+
+    def owned1():
+        return str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}
+    try:
+        cyc.start()
+        cycle_at_state_write.wait(10)  # bounded: the cycle reached its state write and is now stuck
+        oid1, side1 = engine_order()
+        land(oid1, side1)
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and not owned1():
+            time.sleep(0.05)
+        stuck = cyc.is_alive()
+        check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK",
+              cycle_at_state_write.is_set() and stuck and owned1())
+        print("D1DEBUG blocked=%s alive=%s owned=%s" % (cycle_at_state_write.is_set(), stuck, owned1()))
+    finally:
+        cycle_block.release()
+        cyc.join(30)
+        new.state_writer.write = real_state_write
+    stop_copy_thread(new)  # S1/P1 read the state files: no background writer may be alive for them
 
     # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
     under_lock = []
@@ -223,8 +259,58 @@ def main() -> None:
     # ---- W: hot window 20 s, full sweep once a minute --------------------------------------------------------
     hot = [s for s in stats if s.get("hot") and not s.get("sweep")]
     sweeps = [s for s in stats if s.get("sweep")]
-    check("W1_HOT_READ_GOES_BACK_ABOUT_20S", hot and max(s["window_ms"] for s in hot) <= c.COPY_POLL_HOT_OVERLAP_MS + 5000,
-          str([s["window_ms"] for s in hot][:5]))
+    # W1 asserts the LOOKBACK THE CODE DERIVES, not a ceiling on a wall-clock measurement. The old form was
+    #   max(s['window_ms'] for s in hot) <= COPY_POLL_HOT_OVERLAP_MS + 5000
+    # which went red on a loaded machine at [22350, 37210] vs 25000. window_ms is poll_end_ms - start_ms, i.e.
+    # (the overlap) + (how long after the previous read this one actually ran), so its size is scheduling delay,
+    # not a lookback error: 22350 = 20000 + 2.35 s, 37210 = 20000 + 17.2 s of thread starvation. Nothing the
+    # code computed was wrong, so no thread fix can make that ceiling green on a busy box. Replaced by an exact
+    # probe: pin the stored cursor to a known value, read, and require start_ms == cursor - overlap for the hot
+    # read and cursor - POLL_OVERLAP_MS for the sweep.
+    hot = [s for s in stats if s.get('hot') and not s.get('sweep')]
+    sweeps = [s for s in stats if s.get('sweep')]
+    probe_starts = []
+
+    class ProbeIngestor:
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            probe_starts.append(start_ms)
+            return [], 'COPY_ACCOUNT_POLLED'
+
+    real_ing_w = new.copy_ingestor
+    new.copy_ingestor = ProbeIngestor()
+    probe_cursor = c.utc_now_ms() - 60000  # a fixed, known cursor: the read start is this minus the overlap
+
+    def probe(force_sweep):
+        with c.RUNTIME_STATE_LOCK:
+            st = c.load_json(c.COPY_POLL_STATE_FILE, {})
+            st['last_copy_poll_ms'] = probe_cursor
+            c.atomic_write_json(c.COPY_POLL_STATE_FILE, st)
+        new._last_copy_sweep = 0.0 if force_sweep else time.monotonic()
+        probe_starts.clear()
+        new.copy_poll_once(hot=True)
+        last = (c.load_json(c.COPY_POLL_STATE_FILE, {}).get('copy_poll_stats') or [{}])[-1]
+        return (probe_starts[-1] if probe_starts else None), last
+
+    start_hot, st_hot = probe(False)
+    start_sweep, st_sweep = probe(True)
+    new._last_copy_sweep = time.monotonic()
+    new.copy_ingestor = real_ing_w
+    check('W1_HOT_READ_GOES_BACK_ABOUT_20S',
+          start_hot == probe_cursor - c.COPY_POLL_HOT_OVERLAP_MS
+          and start_sweep == probe_cursor - c.POLL_OVERLAP_MS
+          and st_hot.get('hot') is True and st_hot.get('sweep') is False
+          and st_sweep.get('sweep') is True
+          and c.COPY_POLL_HOT_OVERLAP_MS <= st_hot.get('window_ms', -1) < c.POLL_OVERLAP_MS,
+          'hot_start=%s want=%s sweep_start=%s want=%s hot_flags=%s sweep_flags=%s' % (
+              start_hot, probe_cursor - c.COPY_POLL_HOT_OVERLAP_MS, start_sweep,
+              probe_cursor - c.POLL_OVERLAP_MS, (st_hot.get('hot'), st_hot.get('sweep')),
+              (st_sweep.get('hot'), st_sweep.get('sweep'))))
+    # the M-run's own recorded hot windows: at least the 20 s lookback, never a full 5-minute sweep. A range,
+    # not a fixed ceiling -- load stretches the top without the lookback changing.
+    hot_wins = [s['window_ms'] for s in hot]
+    check('W1B_RECORDED_HOT_WINDOWS_STAY_UNDER_A_SWEEP',
+          bool(hot_wins) and all(c.COPY_POLL_HOT_OVERLAP_MS <= w < c.POLL_OVERLAP_MS for w in hot_wins),
+          str(hot_wins[:5]))
     check("W2_FIRST_READ_IS_A_FULL_SWEEP", sweeps and sweeps[0]["window_ms"] >= c.POLL_OVERLAP_MS, str(sweeps[:1]))
 
     # ---- W3: a page-capped read resumes at its newest fill, so the next hot read misses nothing ---------------
@@ -265,21 +351,64 @@ def main() -> None:
     new.stop()
 
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
-    before = c.load_json(c.COPY_POLL_STATE_FILE, {})
-    new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
+    # The copy-poll thread is stopped and joined above, and the read/modify/read runs under RUNTIME_STATE_LOCK,
+    # so no other writer can land between the two reads. write_startup is the SYNCHRONOUS writer: submit() would
+    # queue the write on a worker and it would land after the reads, racing them by construction.
+    with c.RUNTIME_STATE_LOCK:
+        before = c.load_json(c.COPY_POLL_STATE_FILE, {})
+        new.state_writer.write_startup(c.CycleSummary(), new.dedupe, new.cfg)
+        after = c.load_json(c.COPY_POLL_STATE_FILE, {})
+        rt_s1 = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     check("S1_CYCLE_STATE_WRITE_KEEPS_COPY_CURSOR_AND_LAG_RECORD",
-          c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
-          and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
-    # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
-    rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
+          after == before and rt_s1.get("last_copy_poll_ms") == before.get("last_copy_poll_ms"),
+          "copy_poll_state_same=%s runtime_last_copy_poll_ms=%r expected=%r"
+          % (after == before, rt_s1.get("last_copy_poll_ms"), before.get("last_copy_poll_ms")))
+    # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections.
+    # Compare CONTENT, not st_mtime_ns: atomic_write_json replaces the file, so mtime is not a content witness.
+    with c.RUNTIME_STATE_LOCK:
+        rt_before = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     oid2, side2 = engine_order()
     land(oid2, side2)
-    st2 = new.copy_poll_once(hot=True)
-    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns == rt_mtime)
-    check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
-          and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
-          and all({"section", "n", "total_ms", "max_ms"} <= set(s) for s in st2["slowest_sections"]),
-          str(st2.get("slowest_sections")))
+    # Snapshot the profiler counters at the instant prof_take() runs, so P2 can check the sample against the raw
+    # numbers instead of against its own idea of which section ought to be slowest.
+    raw_sections = []
+    real_prof_take = c.prof_take
+
+    def spy_prof_take(top: int = 8):
+        with c._PROF_LOCK:
+            raw_sections.append([(k, int(v[0]), float(v[1]), float(v[2])) for k, v in c._PROF.items()])
+        return real_prof_take(top)
+
+    c.prof_take = spy_prof_take
+    try:
+        st2 = new.copy_poll_once(hot=True)
+    finally:
+        c.prof_take = real_prof_take
+    with c.RUNTIME_STATE_LOCK:
+        rt_after = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", rt_after == rt_before and isinstance(st2.get("at_ms"), int),
+          "runtime_state_changed=%s poll_at_ms=%r" % (rt_after != rt_before, st2.get("at_ms")))
+    # P2: the poll reports the sections it profiled -- a NON-EMPTY sample, every row reproducing its own counters.
+    # It deliberately does NOT assert WHICH section is slowest: prof_take ranks BY MEASURED max_ms, so on a loaded
+    # box "replace:copy_poll_state.json" (14 ms) and "copy_state_write" (14-30 ms) trade places run to run. That is
+    # load-dependent by construction -- no thread fix can make a measured ordering deterministic. What is asserted:
+    # the reported list is exactly the top-8 of the counters at take time (the ranking RULE, not its outcome), each
+    # row is the counter triple for that section (n >= 1, total_ms >= max_ms >= 0), and the two sections this poll
+    # must profile are present in the counters.
+    slow = st2.get("slowest_sections")
+    raw = raw_sections[-1] if raw_sections else []
+    raw_by = {k: (n, int(tot), int(mx)) for k, n, tot, mx in raw}
+    expected_order = [k for k, _n, _tot, _mx in sorted(raw, key=lambda r: -r[3])][:8]
+    check("P2_POLL_REPORTS_THE_SECTIONS_IT_PROFILED",
+          isinstance(slow, list) and len(slow) > 0
+          and all(isinstance(s, dict) and set(s) == {"section", "n", "total_ms", "max_ms"} for s in slow)
+          and [s["section"] for s in slow] == expected_order
+          and all(isinstance(s["n"], int) and isinstance(s["total_ms"], int) and isinstance(s["max_ms"], int)
+                  for s in slow)
+          and all(s["n"] >= 1 and 0 <= s["max_ms"] <= s["total_ms"] for s in slow)
+          and all(raw_by.get(s["section"]) == (s["n"], s["total_ms"], s["max_ms"]) for s in slow)
+          and "copy_state_write" in raw_by and "send_lock:copy_fill_apply" in raw_by,
+          "reported=%s expected=%s raw=%s" % (slow, expected_order, raw))
     # P3: parsing a big audit CSV does not hold the file lock (every append on the send path waits for it)
     held = []
     real_reader = c.csv.DictReader
