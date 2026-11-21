@@ -1,0 +1,1548 @@
+﻿--- RED: new test vs HEAD source
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\wigmore\r4-worktrees\lanes\emit-cap-d
+plugins: anyio-4.12.1, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 2 items
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange 
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange FAILED [ 50%]
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_over_cap_entry_has_zero_exchange_calls PASSED [100%]
+
+================================== FAILURES ===================================
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.read_error at 0x000002A0E324A090>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+>               exchange, result = run_send(lifecycle, cap_reader)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_archive\hl_stage2\test_emitter_gates_matrix.py:71: in run_send
+    result = gateway._send_real(intent, {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_archive\hl_stage2\HL_Live_Copy_Service_Core.py:6330: in _send_real
+    _max_order = self.cfg.max_order_notional()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def read_error():
+>       raise RuntimeError("cap unavailable")
+E       RuntimeError: cap unavailable
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:75: RuntimeError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.read_error at 0x000002A0E324A090>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+>               exchange, result = run_send(lifecycle, cap_reader)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_archive\hl_stage2\test_emitter_gates_matrix.py:71: in run_send
+    result = gateway._send_real(intent, {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_archive\hl_stage2\HL_Live_Copy_Service_Core.py:6330: in _send_real
+    _max_order = self.cfg.max_order_notional()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def read_error():
+>       raise RuntimeError("cap unavailable")
+E       RuntimeError: cap unavailable
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:75: RuntimeError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A1F0>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+>               exchange, result = run_send(lifecycle, cap_reader)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_archive\hl_stage2\test_emitter_gates_matrix.py:71: in run_send
+    result = gateway._send_real(intent, {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <HL_Live_Copy_Service_Core.SenderGateway object at 0x000002A0E322A120>
+intent = namespace(fill=namespace(coin='BTC', price=100.0, leader_wallet='test', leader_fill_id='fill'), notes='lifecycle=ENTRY...ion_before=0.0, copy_side='BUY', copy_size=1.0, copy_notional=100.0, intent_id='cap-entry', reduce_only_intended=False)
+timing = {'send_real_started_ms': 1795226209885, 'send_attempt_id': 'ce64c786240b6c71e80740c63a7f6797', 'send_cloid': '0xb3e101a73251084783a2b708e1ff4188', 'symbol_resolve_started_ms': 1795226209885, ...}
+
+    def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
+        timing = timing if isinstance(timing, dict) else self._base_timing(intent)
+        timing.setdefault("send_real_started_ms", utc_now_ms())
+        # T1a: one deterministic attempt_id + cloid for this send; the pending row and the final update share them
+        timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
+        timing.setdefault("send_cloid", generate_cloid(intent.intent_id))
+        timing["symbol_resolve_started_ms"] = utc_now_ms()
+        resolved = self._resolve_coin(intent.fill.coin)
+        timing["symbol_resolve_finished_ms"] = utc_now_ms()
+        if not resolved.get("ok"):
+            raw_coin = str(intent.fill.coin or "").strip()
+            status_code = str(resolved.get("status") or "SYMBOL_UNRESOLVED")
+            if status_code == "SPOT_MARKET_SKIPPED":
+                detail = (
+                    f"raw_coin={raw_coin}; reason={resolved.get('error', 'spot/index market not copyable by perp sender')}; "
+                    f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_SPOT_MARKET_SKIPPED", {
+                    "status": "SPOT_MARKET_SKIPPED",
+                    "error": detail,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": detail,
+                    "reject_category": "SPOT_MARKET_SKIPPED",
+                    "terminal_state": "SPOT_MARKET_SKIPPED",
+                    "operator_action": "NO_ACTION_SPOT_SKIP",
+                    "timing": timing,
+                }
+            if status_code in {"SYMBOL_CACHE_MISS", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "PERP_INDEX_MAPPING_UNVERIFIED", "SYMBOL_NOT_COPYABLE", "SYMBOL_NOT_TRADABLE_BY_SENDER"}:
+                if status_code == "PERP_INDEX_MAPPING_UNVERIFIED":
+                    terminal = "PERP_INDEX_MAPPING_UNVERIFIED"
+                    action = "REFRESH_ASSET_UNIVERSE_CACHE"
+                else:
+                    terminal = "SYMBOL_CACHE_MISS_NEEDS_REFRESH" if "CACHE_MISS" in status_code else "SYMBOL_NOT_TRADABLE_BY_SENDER"
+                    action = "REFRESH_ASSET_UNIVERSE_CACHE" if terminal == "SYMBOL_CACHE_MISS_NEEDS_REFRESH" else "NO_SEND_SYMBOL_NOT_TRADABLE_BY_SENDER"
+                detail = (
+                    f"raw_coin={raw_coin}; reason={resolved.get('error', 'symbol not copyable from local asset cache')}; "
+                    f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                    "status": terminal,
+                    "error": detail,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": detail,
+                    "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "terminal_state": terminal,
+                    "operator_action": action,
+                    "timing": timing,
+                }
+            if raw_coin.startswith("#") or raw_coin.startswith("@"):
+                detail = (
+                    f"raw_coin={raw_coin}; resolved_coin=; reason={resolved.get('error', 'symbol metadata unresolved')}; "
+                    f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                    "status": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "error": detail,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": detail,
+                    "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "terminal_state": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "operator_action": "NO_SEND_UNSUPPORTED_SYMBOL",
+                    "timing": timing,
+                }
+            return False, "REAL_SENDER_NOT_CONFIGURED", {
+                "status": resolved.get("status", "SYMBOL_UNRESOLVED"),
+                "error": resolved.get("error", ""),
+                "exchange_called": False,
+                "timing": timing,
+            }
+        private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+        if not private_key:
+            return False, "REAL_SENDER_NOT_CONFIGURED", {"status": "CREDENTIALS_MISSING", "exchange_called": False, "timing": timing}
+        if HLAccount is None or HLExchange is None:
+            return False, "REAL_SENDER_NOT_CONFIGURED", {"status": "SDK_UNAVAILABLE", "error": HL_SDK_IMPORT_ERROR, "exchange_called": False, "timing": timing}
+        sdk_coin = resolved["sdk_coin"]
+        sz_dec = resolved["sz_decimals"]
+        price_max_dec = resolved["price_max_decimals"]
+        perp_dexs = resolved.get("perp_dexs")
+        lifecycle = classify_send_lifecycle(intent)
+        if resolved.get("sdk_order_compatible") is False:
+            detail = (
+                f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; reason={resolved.get('reason') or 'sdk_order_compatible=false'}; "
+                f"intent_id={intent.intent_id}"
+            )
+            return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                "status": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                "error": detail, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                "terminal_state": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
+                "timing": timing,
+            }
+        if lifecycle in {"ENTRY", "ADD"} and self._symbol_reject_circuit_active(resolved):
+            detail = (
+                f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; reason=size/notional reject circuit active; "
+                f"last_error={resolved.get('reject_circuit_reason', '')}; intent_id={intent.intent_id}"
+            )
+            return False, "SEND_NOT_ATTEMPTED_SYMBOL_REJECT_CIRCUIT", {
+                "status": "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
+                "error": detail, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                "terminal_state": "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
+                "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
+                "timing": timing,
+            }
+        bps = self.cfg.marketable_bps()
+        mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
+        base_px = intent.fill.price
+        close_adv_limit = self.cfg.max_close_adverse_diff_pct() if lifecycle == "EXIT" else 0.0
+        follower_px = 0.0
+        # OD-01 (Boss ruling 2026-10-09): an entry/add is priced from a FRESH follower-market mid, never the
+        # leader's fill price; a stale or missing mid means no order. Cross-network, every order is.
+        fresh_required = LEADER_NETWORK != FOLLOWER_NETWORK or lifecycle in {"ENTRY", "ADD"}
+        if fresh_required or close_adv_limit > 0:
+            # fresh follower mid (age-bounded, every DEX); a close falls back to its own position's mark
+            follower_px = follower_mid(sdk_coin)
+            if follower_px <= 0 and lifecycle in {"EXIT", "REDUCE"}:
+                follower_px = follower_position_mark(sdk_coin)
+        if fresh_required:
+            # a leader fill price is not our market's price: units stay as sized, the limit is
+            # based on the follower's own fresh price; no follower price -> no order (a close goes RED)
+            if follower_px <= 0:
+                closing = lifecycle in {"EXIT", "REDUCE"}
+                detail = (f"no fresh follower-network ({FOLLOWER_NETWORK}) price for {sdk_coin}; leader on {LEADER_NETWORK}; "
+                          f"intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE", {
+                    "status": "FOLLOWER_PRICE_UNAVAILABLE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED",
+                    "terminal_state": "MANUAL_EXIT_RECOVERY_REQUIRED" if closing else "FOLLOWER_PRICE_UNAVAILABLE",
+                    "operator_action": "CLOSE_MANUALLY_NO_FOLLOWER_PRICE" if closing else "NO_SEND_FOLLOWER_PRICE_UNAVAILABLE",
+                    "timing": timing,
+                }
+            base_px = follower_px
+        missed: Optional[Dict[str, Any]] = None
+        if lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
+            market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
+            missed = missed_entry_decision(intent.copy_side, fnum(intent.fill.price, 0.0), market_px, follower_px, bps)
+            if not missed.get("ok"):
+                detail = (f"no fresh {LEADER_NETWORK} price for {intent.fill.coin} to compare with the leader's price "
+                          f"{intent.fill.price}; intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_LEADER_PRICE_UNAVAILABLE", {
+                    "status": "LEADER_PRICE_UNAVAILABLE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "MISSED_ENTRY_LEADER_PRICE_UNAVAILABLE",
+                    "operator_action": "MISSED_ENTRY_MANUAL_REVIEW", "timing": timing,
+                }
+            # Boss: a trade at the same price, better, or within tolerance executes at once however late it is;
+            # only one beyond tolerance rests a limit at the leader's price (the 30 s stale cutoff is withdrawn)
+            if missed["take"]:  # same, better or within tolerance: never pay beyond leader price + tolerance
+                base_px = min(follower_px, missed["desired_px"]) if intent.copy_side == "BUY" else max(follower_px, missed["desired_px"])
+            else:  # moved too far: no chase, rest a limit at the leader's price
+                base_px, mult = missed["desired_px"], 1.0
+        rest_now = missed is not None and not missed["take"]
+        if rest_now:
+            already = self._already_resting_block(intent, timing)
+            if already is not None:
+                return already
+        raw_px = base_px * mult
+        limit_px = self._format_limit_px(raw_px, price_max_dec)
+        if rest_now:  # never worse than the leader's price
+            limit_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
+        elif missed is not None:  # never beyond leader price + tolerance (a SELL floor would go one tick past it)
+            cap_px = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
+            limit_px = min(limit_px, cap_px) if intent.copy_side == "BUY" else max(limit_px, cap_px)
+        if close_adv_limit > 0:
+            # UI "Adverse close diff %": a close limit may not sit further than this through the follower mid
+            adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
+                       / follower_px * 100.0) if follower_px > 0 else float("inf")
+            if adverse > close_adv_limit + 1e-12:
+                detail = (f"close limit {limit_px} vs follower price {follower_px} is {adverse:.4f}% adverse > "
+                          f"{close_adv_limit}%; intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
+                    "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
+                    "operator_action": "REVIEW_CLOSE_ADVERSE_DIFF_CONTROL", "timing": timing,
+                }
+        wire_size = self._floor_wire_size(intent.copy_size, sz_dec)
+        wire_notional = abs(wire_size * limit_px)
+        cfg_min_for_uplift = DEFAULT_MIN_NOTIONAL
+        try:
+            cfg_min_for_uplift = max(DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
+        except Exception:
+            pass
+        symbol_min = fnum(resolved.get("min_order_value_usd"), 0.0)
+        effective_min = max(cfg_min_for_uplift, symbol_min)
+        intended_notional = abs(fnum(getattr(intent, "copy_notional", 0.0), 0.0))
+        should_uplift = intended_notional + 1e-9 >= cfg_min_for_uplift
+        if lifecycle in {"ENTRY", "ADD"} and should_uplift and limit_px > 0 and wire_notional < effective_min:
+            target_notional = effective_min * 1.01
+            max_uplift_ratio = max(1.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_RATIO"), 1.25))
+            max_uplift_abs = max(0.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD"), 3.0))
+            max_target_for_intent = max(intended_notional * max_uplift_ratio, intended_notional + max_uplift_abs)
+            if intended_notional > 0 and target_notional > max_target_for_intent:
+                detail = (
+                    f"blocked before exchange: symbol min/lot uplift would exceed intended copy notional; "
+                    f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; current_notional={wire_notional:.6f}; "
+                    f"required_min={effective_min:.6f}; target_with_buffer={target_notional:.6f}; "
+                    f"intended_copy_notional={intended_notional:.6f}; max_allowed_target={max_target_for_intent:.6f}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL", {
+                    "status": "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                    "terminal_state": "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL",
+                    "operator_action": "COPY_NOTIONAL_TOO_SMALL_FOR_SYMBOL",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                    "copy_notional": wire_notional,
+                }
+            max_order = 0.0
+            try:
+                max_order = fnum(self.cfg.max_order_notional(), 0.0)
+            except Exception:
+                max_order = 0.0
+            if max_order > 0 and target_notional > max_order:
+                detail = (
+                    f"blocked before exchange: symbol min exceeds max_order_notional; raw_coin={intent.fill.coin}; "
+                    f"sdk_coin={sdk_coin}; current_notional={wire_notional:.6f}; required_min={effective_min:.6f}; "
+                    f"target_with_buffer={target_notional:.6f}; max_order_notional={max_order:.6f}; intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER", {
+                    "status": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                    "terminal_state": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+                    "operator_action": "ADJUST_RISK_CAP_OR_SKIP_SYMBOL",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                    "copy_notional": wire_notional,
+                }
+            uplift_size = self._ceil_wire_size(target_notional / limit_px, sz_dec)
+            min_size = fnum(resolved.get("min_size"), 0.0)
+            if min_size > 0:
+                uplift_size = max(uplift_size, self._ceil_wire_size(min_size, sz_dec))
+            if uplift_size > wire_size:
+                wire_size = uplift_size
+                wire_notional = abs(wire_size * limit_px)
+        if wire_size <= 0:
+            _err = (f"wire_size<=0 after rounding; coin={sdk_coin}; copy_size={intent.copy_size}; "
+                    f"sz_dec={sz_dec}; intent_id={intent.intent_id}")
+            return False, "SEND_NOT_ATTEMPTED_INVALID_SIZE", {
+                "status": "SEND_NOT_ATTEMPTED_INVALID_SIZE",
+                "error": _err, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": _err,
+                "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                "terminal_state": "INVALID_WIRE_SIZE",
+                "operator_action": "NO_SEND_INVALID_SIZE",
+                "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+            }
+        safe, unsafe = self._pre_exchange_asset_safety(intent, resolved, limit_px, wire_size)
+        if not safe:
+            unsafe["timing"] = timing
+            unsafe["limit_px"] = limit_px
+            unsafe["wire_size"] = wire_size
+            unsafe["exchange_called"] = False
+            unsafe["write_reconciliation"] = True
+            return False, unsafe.get("status", "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL"), unsafe
+        try:
+            timing["sdk_client_started_ms"] = utc_now_ms()
+            base_url = HL_EXCHANGE_URL
+            if base_url.endswith("/exchange"):
+                base_url = base_url[:-len("/exchange")]
+            account_address = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip() or None
+            exchange = self._get_exchange_client(HLAccount, HLExchange, private_key, base_url, account_address, perp_dexs)
+            timing["sdk_client_finished_ms"] = utc_now_ms()
+            if not self._exchange_client_has_symbol(exchange, sdk_coin):
+                self._learn_sdk_incompatible(intent.fill.coin, resolved, f"SDK symbol map missing {sdk_coin!r}")
+                detail = (
+                    f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; perp_dexs={perp_dexs}; "
+                    f"reason=SDK symbol map missing before exchange.order; intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                    "status": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "terminal_state": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                    "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                }
+        except ValueError as exc:
+            timing["sdk_client_finished_ms"] = utc_now_ms()
+            return False, "REAL_SENDER_NOT_CONFIGURED", {
+                "status": "CREDENTIALS_INVALID", "error": repr(exc), "exchange_called": False, "timing": timing,
+            }
+        except Exception as exc:
+            timing["sdk_client_finished_ms"] = utc_now_ms()
+            log_error("send_real", exc)
+            return False, "EXCHANGE_ERROR", {
+                "exchange_response": {}, "oid": "",
+                "limit_px": limit_px, "wire_size": wire_size,
+                "exchange_called": False, "error": repr(exc), "timing": timing,
+            }
+        # â"€â"€ Final pre-exchange invariant gate â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+        # Runs after exchange client creation so sdk_coin/wire_size/limit_px are
+        # all final. Catches: raw numbered assets that slipped through resolution,
+        # and EXIT closes whose notional dusted below the exchange minimum.
+        _max_order = self.cfg.max_order_notional()
+>       if lifecycle in {"ENTRY", "ADD"} and _max_order > 0 and abs(wire_size * limit_px) > _max_order + 1e-9:
+                                             ^^^^^^^^^^^^^^
+E       TypeError: '>' not supported between instances of 'str' and 'int'
+
+_archive\hl_stage2\HL_Live_Copy_Service_Core.py:6331: TypeError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A2A0>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+                exchange, result = run_send(lifecycle, cap_reader)
+>               self.assertEqual(exchange.calls, [])
+E               AssertionError: Lists differ: [(('BTC', True, 1.0, 100.0, {'limit': {'ti[78 chars]88})] != []
+E               
+E               First list contains 1 additional elements.
+E               First extra element 0:
+E               (('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}), {'reduce_only': False, 'cloid': 0xb3e101a73251084783a2b708e1ff4188})
+E               
+E               + []
+E               - [(('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}),
+E               -   {'cloid': 0xb3e101a73251084783a2b708e1ff4188, 'reduce_only': False})]
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:89: AssertionError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A350>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+                exchange, result = run_send(lifecycle, cap_reader)
+>               self.assertEqual(exchange.calls, [])
+E               AssertionError: Lists differ: [(('BTC', True, 1.0, 100.0, {'limit': {'ti[78 chars]88})] != []
+E               
+E               First list contains 1 additional elements.
+E               First extra element 0:
+E               (('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}), {'reduce_only': False, 'cloid': 0xb3e101a73251084783a2b708e1ff4188})
+E               
+E               + []
+E               - [(('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}),
+E               -   {'cloid': 0xb3e101a73251084783a2b708e1ff4188, 'reduce_only': False})]
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:89: AssertionError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A400>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+>               exchange, result = run_send(lifecycle, cap_reader)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_archive\hl_stage2\test_emitter_gates_matrix.py:71: in run_send
+    result = gateway._send_real(intent, {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <HL_Live_Copy_Service_Core.SenderGateway object at 0x000002A0E322A270>
+intent = namespace(fill=namespace(coin='BTC', price=100.0, leader_wallet='test', leader_fill_id='fill'), notes='lifecycle=ADD',...ition_before=0.0, copy_side='BUY', copy_size=1.0, copy_notional=100.0, intent_id='cap-add', reduce_only_intended=False)
+timing = {'send_real_started_ms': 1795226210354, 'send_attempt_id': '2252530ca524fac3377c8c7e064caf2c', 'send_cloid': '0x4c731b958057d5759eb82005fc658cde', 'symbol_resolve_started_ms': 1795226210354, ...}
+
+    def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
+        timing = timing if isinstance(timing, dict) else self._base_timing(intent)
+        timing.setdefault("send_real_started_ms", utc_now_ms())
+        # T1a: one deterministic attempt_id + cloid for this send; the pending row and the final update share them
+        timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
+        timing.setdefault("send_cloid", generate_cloid(intent.intent_id))
+        timing["symbol_resolve_started_ms"] = utc_now_ms()
+        resolved = self._resolve_coin(intent.fill.coin)
+        timing["symbol_resolve_finished_ms"] = utc_now_ms()
+        if not resolved.get("ok"):
+            raw_coin = str(intent.fill.coin or "").strip()
+            status_code = str(resolved.get("status") or "SYMBOL_UNRESOLVED")
+            if status_code == "SPOT_MARKET_SKIPPED":
+                detail = (
+                    f"raw_coin={raw_coin}; reason={resolved.get('error', 'spot/index market not copyable by perp sender')}; "
+                    f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_SPOT_MARKET_SKIPPED", {
+                    "status": "SPOT_MARKET_SKIPPED",
+                    "error": detail,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": detail,
+                    "reject_category": "SPOT_MARKET_SKIPPED",
+                    "terminal_state": "SPOT_MARKET_SKIPPED",
+                    "operator_action": "NO_ACTION_SPOT_SKIP",
+                    "timing": timing,
+                }
+            if status_code in {"SYMBOL_CACHE_MISS", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "PERP_INDEX_MAPPING_UNVERIFIED", "SYMBOL_NOT_COPYABLE", "SYMBOL_NOT_TRADABLE_BY_SENDER"}:
+                if status_code == "PERP_INDEX_MAPPING_UNVERIFIED":
+                    terminal = "PERP_INDEX_MAPPING_UNVERIFIED"
+                    action = "REFRESH_ASSET_UNIVERSE_CACHE"
+                else:
+                    terminal = "SYMBOL_CACHE_MISS_NEEDS_REFRESH" if "CACHE_MISS" in status_code else "SYMBOL_NOT_TRADABLE_BY_SENDER"
+                    action = "REFRESH_ASSET_UNIVERSE_CACHE" if terminal == "SYMBOL_CACHE_MISS_NEEDS_REFRESH" else "NO_SEND_SYMBOL_NOT_TRADABLE_BY_SENDER"
+                detail = (
+                    f"raw_coin={raw_coin}; reason={resolved.get('error', 'symbol not copyable from local asset cache')}; "
+                    f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                    "status": terminal,
+                    "error": detail,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": detail,
+                    "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "terminal_state": terminal,
+                    "operator_action": action,
+                    "timing": timing,
+                }
+            if raw_coin.startswith("#") or raw_coin.startswith("@"):
+                detail = (
+                    f"raw_coin={raw_coin}; resolved_coin=; reason={resolved.get('error', 'symbol metadata unresolved')}; "
+                    f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                    "status": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "error": detail,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": detail,
+                    "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "terminal_state": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "operator_action": "NO_SEND_UNSUPPORTED_SYMBOL",
+                    "timing": timing,
+                }
+            return False, "REAL_SENDER_NOT_CONFIGURED", {
+                "status": resolved.get("status", "SYMBOL_UNRESOLVED"),
+                "error": resolved.get("error", ""),
+                "exchange_called": False,
+                "timing": timing,
+            }
+        private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+        if not private_key:
+            return False, "REAL_SENDER_NOT_CONFIGURED", {"status": "CREDENTIALS_MISSING", "exchange_called": False, "timing": timing}
+        if HLAccount is None or HLExchange is None:
+            return False, "REAL_SENDER_NOT_CONFIGURED", {"status": "SDK_UNAVAILABLE", "error": HL_SDK_IMPORT_ERROR, "exchange_called": False, "timing": timing}
+        sdk_coin = resolved["sdk_coin"]
+        sz_dec = resolved["sz_decimals"]
+        price_max_dec = resolved["price_max_decimals"]
+        perp_dexs = resolved.get("perp_dexs")
+        lifecycle = classify_send_lifecycle(intent)
+        if resolved.get("sdk_order_compatible") is False:
+            detail = (
+                f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; reason={resolved.get('reason') or 'sdk_order_compatible=false'}; "
+                f"intent_id={intent.intent_id}"
+            )
+            return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                "status": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                "error": detail, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                "terminal_state": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
+                "timing": timing,
+            }
+        if lifecycle in {"ENTRY", "ADD"} and self._symbol_reject_circuit_active(resolved):
+            detail = (
+                f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; reason=size/notional reject circuit active; "
+                f"last_error={resolved.get('reject_circuit_reason', '')}; intent_id={intent.intent_id}"
+            )
+            return False, "SEND_NOT_ATTEMPTED_SYMBOL_REJECT_CIRCUIT", {
+                "status": "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
+                "error": detail, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                "terminal_state": "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
+                "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
+                "timing": timing,
+            }
+        bps = self.cfg.marketable_bps()
+        mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
+        base_px = intent.fill.price
+        close_adv_limit = self.cfg.max_close_adverse_diff_pct() if lifecycle == "EXIT" else 0.0
+        follower_px = 0.0
+        # OD-01 (Boss ruling 2026-10-09): an entry/add is priced from a FRESH follower-market mid, never the
+        # leader's fill price; a stale or missing mid means no order. Cross-network, every order is.
+        fresh_required = LEADER_NETWORK != FOLLOWER_NETWORK or lifecycle in {"ENTRY", "ADD"}
+        if fresh_required or close_adv_limit > 0:
+            # fresh follower mid (age-bounded, every DEX); a close falls back to its own position's mark
+            follower_px = follower_mid(sdk_coin)
+            if follower_px <= 0 and lifecycle in {"EXIT", "REDUCE"}:
+                follower_px = follower_position_mark(sdk_coin)
+        if fresh_required:
+            # a leader fill price is not our market's price: units stay as sized, the limit is
+            # based on the follower's own fresh price; no follower price -> no order (a close goes RED)
+            if follower_px <= 0:
+                closing = lifecycle in {"EXIT", "REDUCE"}
+                detail = (f"no fresh follower-network ({FOLLOWER_NETWORK}) price for {sdk_coin}; leader on {LEADER_NETWORK}; "
+                          f"intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE", {
+                    "status": "FOLLOWER_PRICE_UNAVAILABLE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED",
+                    "terminal_state": "MANUAL_EXIT_RECOVERY_REQUIRED" if closing else "FOLLOWER_PRICE_UNAVAILABLE",
+                    "operator_action": "CLOSE_MANUALLY_NO_FOLLOWER_PRICE" if closing else "NO_SEND_FOLLOWER_PRICE_UNAVAILABLE",
+                    "timing": timing,
+                }
+            base_px = follower_px
+        missed: Optional[Dict[str, Any]] = None
+        if lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
+            market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
+            missed = missed_entry_decision(intent.copy_side, fnum(intent.fill.price, 0.0), market_px, follower_px, bps)
+            if not missed.get("ok"):
+                detail = (f"no fresh {LEADER_NETWORK} price for {intent.fill.coin} to compare with the leader's price "
+                          f"{intent.fill.price}; intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_LEADER_PRICE_UNAVAILABLE", {
+                    "status": "LEADER_PRICE_UNAVAILABLE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "MISSED_ENTRY_LEADER_PRICE_UNAVAILABLE",
+                    "operator_action": "MISSED_ENTRY_MANUAL_REVIEW", "timing": timing,
+                }
+            # Boss: a trade at the same price, better, or within tolerance executes at once however late it is;
+            # only one beyond tolerance rests a limit at the leader's price (the 30 s stale cutoff is withdrawn)
+            if missed["take"]:  # same, better or within tolerance: never pay beyond leader price + tolerance
+                base_px = min(follower_px, missed["desired_px"]) if intent.copy_side == "BUY" else max(follower_px, missed["desired_px"])
+            else:  # moved too far: no chase, rest a limit at the leader's price
+                base_px, mult = missed["desired_px"], 1.0
+        rest_now = missed is not None and not missed["take"]
+        if rest_now:
+            already = self._already_resting_block(intent, timing)
+            if already is not None:
+                return already
+        raw_px = base_px * mult
+        limit_px = self._format_limit_px(raw_px, price_max_dec)
+        if rest_now:  # never worse than the leader's price
+            limit_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
+        elif missed is not None:  # never beyond leader price + tolerance (a SELL floor would go one tick past it)
+            cap_px = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
+            limit_px = min(limit_px, cap_px) if intent.copy_side == "BUY" else max(limit_px, cap_px)
+        if close_adv_limit > 0:
+            # UI "Adverse close diff %": a close limit may not sit further than this through the follower mid
+            adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
+                       / follower_px * 100.0) if follower_px > 0 else float("inf")
+            if adverse > close_adv_limit + 1e-12:
+                detail = (f"close limit {limit_px} vs follower price {follower_px} is {adverse:.4f}% adverse > "
+                          f"{close_adv_limit}%; intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
+                    "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
+                    "operator_action": "REVIEW_CLOSE_ADVERSE_DIFF_CONTROL", "timing": timing,
+                }
+        wire_size = self._floor_wire_size(intent.copy_size, sz_dec)
+        wire_notional = abs(wire_size * limit_px)
+        cfg_min_for_uplift = DEFAULT_MIN_NOTIONAL
+        try:
+            cfg_min_for_uplift = max(DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
+        except Exception:
+            pass
+        symbol_min = fnum(resolved.get("min_order_value_usd"), 0.0)
+        effective_min = max(cfg_min_for_uplift, symbol_min)
+        intended_notional = abs(fnum(getattr(intent, "copy_notional", 0.0), 0.0))
+        should_uplift = intended_notional + 1e-9 >= cfg_min_for_uplift
+        if lifecycle in {"ENTRY", "ADD"} and should_uplift and limit_px > 0 and wire_notional < effective_min:
+            target_notional = effective_min * 1.01
+            max_uplift_ratio = max(1.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_RATIO"), 1.25))
+            max_uplift_abs = max(0.0, fnum(os.getenv("HL_LIVE_MAX_ENTRY_UPLIFT_ABS_USD"), 3.0))
+            max_target_for_intent = max(intended_notional * max_uplift_ratio, intended_notional + max_uplift_abs)
+            if intended_notional > 0 and target_notional > max_target_for_intent:
+                detail = (
+                    f"blocked before exchange: symbol min/lot uplift would exceed intended copy notional; "
+                    f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; current_notional={wire_notional:.6f}; "
+                    f"required_min={effective_min:.6f}; target_with_buffer={target_notional:.6f}; "
+                    f"intended_copy_notional={intended_notional:.6f}; max_allowed_target={max_target_for_intent:.6f}; "
+                    f"intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL", {
+                    "status": "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                    "terminal_state": "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL",
+                    "operator_action": "COPY_NOTIONAL_TOO_SMALL_FOR_SYMBOL",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                    "copy_notional": wire_notional,
+                }
+            max_order = 0.0
+            try:
+                max_order = fnum(self.cfg.max_order_notional(), 0.0)
+            except Exception:
+                max_order = 0.0
+            if max_order > 0 and target_notional > max_order:
+                detail = (
+                    f"blocked before exchange: symbol min exceeds max_order_notional; raw_coin={intent.fill.coin}; "
+                    f"sdk_coin={sdk_coin}; current_notional={wire_notional:.6f}; required_min={effective_min:.6f}; "
+                    f"target_with_buffer={target_notional:.6f}; max_order_notional={max_order:.6f}; intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER", {
+                    "status": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                    "terminal_state": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+                    "operator_action": "ADJUST_RISK_CAP_OR_SKIP_SYMBOL",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                    "copy_notional": wire_notional,
+                }
+            uplift_size = self._ceil_wire_size(target_notional / limit_px, sz_dec)
+            min_size = fnum(resolved.get("min_size"), 0.0)
+            if min_size > 0:
+                uplift_size = max(uplift_size, self._ceil_wire_size(min_size, sz_dec))
+            if uplift_size > wire_size:
+                wire_size = uplift_size
+                wire_notional = abs(wire_size * limit_px)
+        if wire_size <= 0:
+            _err = (f"wire_size<=0 after rounding; coin={sdk_coin}; copy_size={intent.copy_size}; "
+                    f"sz_dec={sz_dec}; intent_id={intent.intent_id}")
+            return False, "SEND_NOT_ATTEMPTED_INVALID_SIZE", {
+                "status": "SEND_NOT_ATTEMPTED_INVALID_SIZE",
+                "error": _err, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": _err,
+                "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                "terminal_state": "INVALID_WIRE_SIZE",
+                "operator_action": "NO_SEND_INVALID_SIZE",
+                "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+            }
+        safe, unsafe = self._pre_exchange_asset_safety(intent, resolved, limit_px, wire_size)
+        if not safe:
+            unsafe["timing"] = timing
+            unsafe["limit_px"] = limit_px
+            unsafe["wire_size"] = wire_size
+            unsafe["exchange_called"] = False
+            unsafe["write_reconciliation"] = True
+            return False, unsafe.get("status", "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL"), unsafe
+        try:
+            timing["sdk_client_started_ms"] = utc_now_ms()
+            base_url = HL_EXCHANGE_URL
+            if base_url.endswith("/exchange"):
+                base_url = base_url[:-len("/exchange")]
+            account_address = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip() or None
+            exchange = self._get_exchange_client(HLAccount, HLExchange, private_key, base_url, account_address, perp_dexs)
+            timing["sdk_client_finished_ms"] = utc_now_ms()
+            if not self._exchange_client_has_symbol(exchange, sdk_coin):
+                self._learn_sdk_incompatible(intent.fill.coin, resolved, f"SDK symbol map missing {sdk_coin!r}")
+                detail = (
+                    f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; perp_dexs={perp_dexs}; "
+                    f"reason=SDK symbol map missing before exchange.order; intent_id={intent.intent_id}"
+                )
+                return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
+                    "status": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "UNSUPPORTED_SYMBOL_OR_METADATA",
+                    "terminal_state": "SYMBOL_NOT_TRADABLE_BY_SENDER",
+                    "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                }
+        except ValueError as exc:
+            timing["sdk_client_finished_ms"] = utc_now_ms()
+            return False, "REAL_SENDER_NOT_CONFIGURED", {
+                "status": "CREDENTIALS_INVALID", "error": repr(exc), "exchange_called": False, "timing": timing,
+            }
+        except Exception as exc:
+            timing["sdk_client_finished_ms"] = utc_now_ms()
+            log_error("send_real", exc)
+            return False, "EXCHANGE_ERROR", {
+                "exchange_response": {}, "oid": "",
+                "limit_px": limit_px, "wire_size": wire_size,
+                "exchange_called": False, "error": repr(exc), "timing": timing,
+            }
+        # â"€â"€ Final pre-exchange invariant gate â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+        # Runs after exchange client creation so sdk_coin/wire_size/limit_px are
+        # all final. Catches: raw numbered assets that slipped through resolution,
+        # and EXIT closes whose notional dusted below the exchange minimum.
+        _max_order = self.cfg.max_order_notional()
+>       if lifecycle in {"ENTRY", "ADD"} and _max_order > 0 and abs(wire_size * limit_px) > _max_order + 1e-9:
+                                             ^^^^^^^^^^^^^^
+E       TypeError: '>' not supported between instances of 'str' and 'int'
+
+_archive\hl_stage2\HL_Live_Copy_Service_Core.py:6331: TypeError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A4B0>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+                exchange, result = run_send(lifecycle, cap_reader)
+>               self.assertEqual(exchange.calls, [])
+E               AssertionError: Lists differ: [(('BTC', True, 1.0, 100.0, {'limit': {'ti[78 chars]de})] != []
+E               
+E               First list contains 1 additional elements.
+E               First extra element 0:
+E               (('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}), {'reduce_only': False, 'cloid': 0x4c731b958057d5759eb82005fc658cde})
+E               
+E               + []
+E               - [(('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}),
+E               -   {'cloid': 0x4c731b958057d5759eb82005fc658cde, 'reduce_only': False})]
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:89: AssertionError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange (lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A560>) _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+                exchange, result = run_send(lifecycle, cap_reader)
+>               self.assertEqual(exchange.calls, [])
+E               AssertionError: Lists differ: [(('BTC', True, 1.0, 100.0, {'limit': {'ti[78 chars]de})] != []
+E               
+E               First list contains 1 additional elements.
+E               First extra element 0:
+E               (('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}), {'reduce_only': False, 'cloid': 0x4c731b958057d5759eb82005fc658cde})
+E               
+E               + []
+E               - [(('BTC', True, 1.0, 100.0, {'limit': {'tif': 'Ioc'}}),
+E               -   {'cloid': 0x4c731b958057d5759eb82005fc658cde, 'reduce_only': False})]
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:89: AssertionError
+_ EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange _
+
+self = <test_emitter_gates_matrix.EmitterGatesMatrixTest testMethod=test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange>
+
+    def test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange(self):
+        class FakeExchange:
+            def __init__(self):
+                self.calls = []
+                self.info = SimpleNamespace(name_to_coin={"BTC": 0})
+    
+            def order(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return {"status": "err", "response": "fake exchange rejection"}
+    
+        def run_send(lifecycle, cap_reader):
+            gateway = object.__new__(c.SenderGateway)
+            gateway.cfg = SimpleNamespace(
+                max_order_notional=cap_reader,
+                marketable_bps=lambda: 0.0,
+                max_close_adverse_diff_pct=lambda: 0.0,
+                min_notional=lambda: 1.0,
+            )
+            exchange = FakeExchange()
+            resolved = {
+                "ok": True,
+                "raw_coin": "BTC",
+                "sdk_coin": "BTC",
+                "sz_decimals": 3,
+                "price_max_decimals": 2,
+                "perp_dexs": None,
+                "min_order_value_usd": 1.0,
+                "min_size": 0.0,
+            }
+            gateway._resolve_coin = lambda _coin: resolved
+            gateway._get_exchange_client = lambda *_args: exchange
+            gateway._effective_symbol_min_notional = lambda _resolved: 1.0
+            gateway._pre_exchange_asset_safety = lambda *_args: (True, {})
+            gateway._ensure_margin_mode = lambda *_args: None
+            gateway._begin_pending_send = lambda *_args: None
+            gateway._reserve_exchange_order_slot = lambda: 0
+            gateway._note_sender_key_rejection = lambda _response: None
+            gateway._withdraw_standing_close = lambda _exchange, _intent, size, *_args: (size, None)
+            gateway._close_wire_plan = lambda _intent, size, *_args: (True, size, "")
+            gateway._closes_whole_account_position = lambda *_args: False
+            intent = SimpleNamespace(
+                fill=SimpleNamespace(coin="BTC", price=100.0, leader_wallet="test", leader_fill_id="fill"),
+                notes=f"lifecycle={lifecycle}",
+                reason=lifecycle,
+                wallet_position_before=1.0 if lifecycle == "EXIT" else 0.0,
+                copy_side="SELL" if lifecycle == "EXIT" else "BUY",
+                copy_size=1.0,
+                copy_notional=100.0,
+                intent_id=f"cap-{lifecycle.lower()}",
+                reduce_only_intended=lifecycle == "EXIT",
+            )
+            with (
+                patch.dict("os.environ", {
+                    "HL_LIVE_HL_PRIVATE_KEY": "test-only-placeholder",
+                    "HL_LIVE_MISSED_ENTRY_RULE": "0",
+                }),
+                patch.object(c, "HLAccount", object()),
+                patch.object(c, "HLExchange", object()),
+                patch.object(c, "follower_mid", return_value=100.0),
+            ):
+                result = gateway._send_real(intent, {})
+            return exchange, result
+    
+        def read_error():
+            raise RuntimeError("cap unavailable")
+    
+        scenarios = [
+            (lifecycle, read_error)
+            for lifecycle in ("ENTRY", "ADD")
+        ]
+        scenarios.extend(
+            (lifecycle, lambda value=value: value)
+            for lifecycle in ("ENTRY", "ADD")
+            for value in ("not-a-cap", float("nan"), float("inf"))
+        )
+        for lifecycle, cap_reader in scenarios:
+            with self.subTest(lifecycle=lifecycle, cap_reader=cap_reader):
+                exchange, result = run_send(lifecycle, cap_reader)
+                self.assertEqual(exchange.calls, [])
+                self.assertFalse(result[2]["exchange_called"])
+    
+>       exchange, result = run_send("EXIT", read_error)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_archive\hl_stage2\test_emitter_gates_matrix.py:71: in run_send
+    result = gateway._send_real(intent, {})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_archive\hl_stage2\HL_Live_Copy_Service_Core.py:6330: in _send_real
+    _max_order = self.cfg.max_order_notional()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def read_error():
+>       raise RuntimeError("cap unavailable")
+E       RuntimeError: cap unavailable
+
+_archive\hl_stage2\test_emitter_gates_matrix.py:75: RuntimeError
+---------------------------- Captured stdout call -----------------------------
+SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.read_error at 0x000002A0E324A090>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.read_error at 0x000002A0E324A090>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A1F0>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A2A0>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A350>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A400>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A4B0>) [ 50%]
+
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A560>) [ 50%]
+=========================== short test summary info ===========================
+SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.read_error at 0x000002A0E324A090>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.read_error at 0x000002A0E324A090>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A1F0>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A2A0>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ENTRY', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A350>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A400>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A4B0>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+SUBFAILED(lifecycle='ADD', cap_reader=<function EmitterGatesMatrixTest.test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange.<locals>.<genexpr>.<lambda> at 0x000002A0E324A560>) _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+FAILED _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
+========================= 9 failed, 1 passed in 3.32s =========================

@@ -6327,16 +6327,6 @@ class SenderGateway:
         # Runs after exchange client creation so sdk_coin/wire_size/limit_px are
         # all final. Catches: raw numbered assets that slipped through resolution,
         # and EXIT closes whose notional dusted below the exchange minimum.
-        _max_order = self.cfg.max_order_notional()
-        if lifecycle in {"ENTRY", "ADD"} and _max_order > 0 and abs(wire_size * limit_px) > _max_order + 1e-9:
-            detail = (f"final wire notional {abs(wire_size * limit_px):.6f} > max order {_max_order}; "
-                      f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
-            return False, "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL", {
-                "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE", "error": detail, "exchange_response": {}, "oid": "",
-                "exchange_called": False, "write_send_attempt": True, "notes": detail,
-                "reject_category": "RISK_LIMIT", "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
-                "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
-            }
         _gate_ok, _gate_block = self._validate_final_wire_order(
             intent, resolved, sdk_coin, wire_size, limit_px, timing
         )
@@ -7221,12 +7211,34 @@ class SenderGateway:
 
         # Gate B: min notional â€" applies to ENTRY, ADD, and EXIT
         lifecycle = classify_send_lifecycle(intent)
-        max_order = 0.0
-        try:
-            max_order = fnum(self.cfg.max_order_notional(), 0.0)
-        except Exception:
-            pass
         wire_notional = abs(wire_size * limit_px)
+        if lifecycle in {"ENTRY", "ADD"}:
+            try:
+                raw_max_order = self.cfg.max_order_notional()
+                if isinstance(raw_max_order, bool):
+                    raise ValueError("boolean is not a valid notional cap")
+                max_order = float(raw_max_order)
+                if not math.isfinite(max_order) or max_order < 0:
+                    raise ValueError("notional cap must be finite and non-negative")
+            except Exception as exc:
+                error = f"entry/add refused: max order notional unavailable or invalid ({exc!r}); intent_id={intent.intent_id}"
+                return False, {
+                    "status": "MAX_ORDER_NOTIONAL_UNAVAILABLE",
+                    "error": error,
+                    "exchange_response": {},
+                    "oid": "",
+                    "exchange_called": False,
+                    "write_send_attempt": True,
+                    "notes": error,
+                    "reject_category": "RISK_LIMIT",
+                    "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+                    "operator_action": "REVIEW_MAX_ORDER_NOTIONAL_CONTROL",
+                    "timing": timing,
+                    "limit_px": limit_px,
+                    "wire_size": wire_size,
+                }
+        else:
+            max_order = 0.0
         if lifecycle in {"ENTRY", "ADD"} and max_order > 0 and wire_notional > max_order + 1e-9:
             error = (f"final wire notional {wire_notional:.6f} > max order {max_order}; "
                      f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
