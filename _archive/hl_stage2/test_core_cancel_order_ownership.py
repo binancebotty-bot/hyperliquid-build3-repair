@@ -174,6 +174,18 @@ class CancelOwnershipTests(unittest.TestCase):
             "oid": 107, "coin": "BTC", "cloid": cloid})
         self.assertEqual(self.wire.cancels, [("BTC", 107)])
 
+    def test_startup_cloid_matching_different_coin_never_cancels(self):
+        self.mode = "CLOSE"
+        # A known engine client ID is not authority to cancel a different coin.
+        cloid = c.generate_cloid("eth-only-intent")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "eth-attempt", "intent_id": "eth-only-intent",
+            "coin": "ETH", "cloid": cloid, "status": "pending_send"})
+        self.sender._cancel_orphan_order("", {
+            "oid": 120, "coin": "BTC", "cloid": cloid})
+        self.assertEqual(self.wire.cancels, [])
+        self.assertTrue(any("OWNERSHIP" in status for _, status, _ in self.audit.rows))
+
     def test_real_standing_guard_cancels_owned_order_with_mismatched_nets(self):
         self.own_standing(110)
         self.sender._standing_closes["sleeve"].update({
