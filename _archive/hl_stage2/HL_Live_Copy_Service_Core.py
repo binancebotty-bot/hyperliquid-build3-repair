@@ -4611,6 +4611,7 @@ class SenderGateway:
         """Known engine client IDs and order IDs backed by a confirmed order record."""
         cloids, oids = set(), set()
         cloid_coins: Dict[str, set] = {}
+        oid_coins: Dict[str, set] = {}
         for row in read_csv_rows(SEND_ATTEMPTS_CSV):
             if str(row.get("status") or "").upper() not in _SEND_OID_STATUSES:
                 continue  # a blocked/rejected intent is not proof of an exchange order
@@ -4621,17 +4622,48 @@ class SenderGateway:
             oid = str(row.get("exchange_order_id") or "").strip()
             if oid and UNVERIFIED_RESTING_ENTRY_REASON not in str(row.get("notes") or ""):
                 oids.add(oid)
+                oid_coins.setdefault(oid, set()).add(canonical_coin_key(row.get("coin")))
         with self._resting_lock:
             for oid, row in self._resting_entries.items():
-                if not str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
-                    oids.add(str(oid))
+                if str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
+                    continue
+                coin_key = canonical_coin_key(row.get("coin") or row.get("sdk_coin"))
+                oids.add(str(oid))
+                oid_coins.setdefault(str(oid), set()).add(coin_key)
                 cl = str(row.get("cloid") or "").strip().lower()
-                if cl and not str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
+                if cl:
                     cloids.add(cl)
-                    cloid_coins.setdefault(cl, set()).add(
-                        canonical_coin_key(row.get("sdk_coin") or row.get("coin")))
+                    cloid_coins.setdefault(cl, set()).add(coin_key)
         self._cancel_cloid_coins = cloid_coins
+        self._startup_oid_coins = oid_coins
         return cloids, oids
+
+    @staticmethod
+    def _startup_scoped_coin(dex: str, coin: str) -> str:
+        raw = str(coin or "").strip()
+        if not raw:
+            return ""
+        dex_name = str(dex or "").strip()
+        return canonical_coin_key(f"{dex_name}:{raw}" if dex_name and ":" not in raw else raw)
+
+    def _startup_order_owned(self, dex: str, order: Dict[str, Any]) -> bool:
+        """Own a startup order only when its cloid/OID AND exact coin/DEX match our records."""
+        coin = self._startup_scoped_coin(dex, order.get("coin"))
+        if not coin:
+            return False
+        known_cloids = getattr(self, "_startup_owned_cloids", None)
+        known_oids = getattr(self, "_startup_owned_oids", None)
+        if known_cloids is None or known_oids is None:
+            known_cloids, known_oids = self._engine_owned_cloids_and_oids()
+            self._startup_owned_cloids = known_cloids
+            self._startup_owned_oids = known_oids
+        cloid = str(order.get("cloid") or "").strip().lower()
+        if cloid:
+            return (cloid in known_cloids
+                    and coin in getattr(self, "_cancel_cloid_coins", {}).get(cloid, set()))
+        oid = str(order.get("oid") or "").strip()
+        return (oid in known_oids
+                and coin in getattr(self, "_startup_oid_coins", {}).get(oid, set()))
 
     def _read_open_orders(self):
         """Read the follower's open orders on every dex the engine reads. Returns (ok, [(dex, order)], detail).
@@ -4673,32 +4705,38 @@ class SenderGateway:
             return {"ok": False, "skipped": False, "adopted": [], "cancelled": [], "reported": [],
                     "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
         cloids, oids = self._engine_owned_cloids_and_oids()
-        self._startup_owned_cloids = cloids  # proven once for this startup read
+        self._startup_owned_cloids = cloids
+        self._startup_owned_oids = oids
         adopted, cancelled, reported = [], [], []
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
             if not oid:
                 continue
             cloid = str(o.get("cloid") or "").strip().lower()
-            client_id_matches = cloid in cloids
+            record_owned = self._startup_order_owned(dex, o)
+            client_id_matches = bool(cloid) and record_owned
             if client_id_matches and self.cfg.send_mode_now() == "CLOSE":
                 outcome = self._cancel_orphan_order(dex, o)
                 cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
-            elif client_id_matches or (not cloid and oid in oids):
+            elif record_owned:
                 self._adopt_orphan_order(dex, o)
                 adopted.append({"oid": oid, "cloid": cloid})
             else:
                 coin = str(o.get("coin") or "")
+                status = ("ORPHAN_ORDER_OWNERSHIP_UNVERIFIED"
+                          if cloid in cloids else "ORPHAN_ORDER_UNMATCHED")
                 self.audit.append_reconciliation(
-                    "STARTUP_ORPHAN", "ORPHAN_ORDER_UNMATCHED", coin=coin, exchange_order_id=oid,
-                    action="REPORT_ONLY", terminal_state="ORPHAN_ORDER_UNMATCHED",
-                    notes=f"startup open order {oid} on dex {dex!r} has no matching engine record (cloid={cloid})")
+                    "STARTUP_ORPHAN", status, coin=coin, exchange_order_id=oid,
+                    action="REPORT_ONLY", terminal_state=status,
+                    notes=f"startup open order {oid} on dex {dex!r} lacks same-coin engine proof (cloid={cloid})")
                 reported.append({"oid": oid, "cloid": cloid, "coin": coin, "dex": dex})
         return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled, "reported": reported,
                 "detail": f"{detail}; adopted={len(adopted)} cancel_attempts={len(cancelled)} reported={len(reported)}"}
 
     def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
-        """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
+        """Record only an independently proven startup order as engine-owned."""
+        if not self._startup_order_owned(dex, o):
+            raise RuntimeError("STARTUP_ORPHAN_OWNERSHIP_UNVERIFIED: no adoption")
         oid = str(o.get("oid", ""))
         coin = str(o.get("coin") or "")
         side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
@@ -4711,18 +4749,18 @@ class SenderGateway:
         with self._resting_lock:
             self._resting_entries[oid] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
-        promoted = self._promote_pending_row_to_resting(cloid, oid)
+        promoted = self._promote_pending_row_to_resting(cloid, oid, self._startup_scoped_coin(dex, coin))
         self.audit.append_reconciliation(
             "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=coin, exchange_order_id=oid,
             action="NO_ACTION_ORPHAN_ADOPTED", terminal_state="ORPHAN_ORDER_ADOPTED",
             notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches an engine record (cloid={cloid}); "
                    f"adopted as a resting engine order; pending_row_promoted={promoted}"))
 
-    def _promote_pending_row_to_resting(self, cloid: str, oid: str) -> bool:
-        """A pending_send row owning this cloid becomes ORDER_RESTING with the order id, so the matcher treats
-        the order (and any fill it later gets) as engine-owned."""
+    def _promote_pending_row_to_resting(self, cloid: str, oid: str, coin: str) -> bool:
+        """Promote only a pending send for this exact cloid AND scoped coin, never a foreign OID."""
         cl = str(cloid or "").strip().lower()
-        if not cl:
+        coin_key = canonical_coin_key(coin)
+        if not cl or not coin_key:
             return False
         rows = read_csv_rows(SEND_ATTEMPTS_CSV)
         latest = {}
@@ -4730,6 +4768,7 @@ class SenderGateway:
             latest[str(row.get("attempt_id") or "")] = row  # append-only: the newest row per attempt is its state
         for row in latest.values():
             if (str(row.get("cloid") or "").strip().lower() == cl
+                    and canonical_coin_key(row.get("coin")) == coin_key
                     and str(row.get("status") or "").lower() == "pending_send"):
                 return update_send_attempt_row(str(row.get("attempt_id") or ""),
                                                {"status": "ORDER_RESTING", "exchange_order_id": oid,
@@ -4744,7 +4783,16 @@ class SenderGateway:
         coin = str(o.get("coin") or "")
         cloid = str(o.get("cloid") or "").strip().lower()
         raw_coin = f"{dex}:{coin}" if dex and ":" not in coin else coin
+        if not self._startup_order_owned(dex, o):
+            self.audit.append_reconciliation(
+                "STARTUP_ORPHAN", "ORPHAN_ORDER_OWNERSHIP_UNVERIFIED",
+                coin=raw_coin, exchange_order_id=oid,
+                action="REPORT_ONLY_NO_CANCEL", terminal_state="ORPHAN_ORDER_OWNERSHIP_UNVERIFIED",
+                engine_can_send="False",
+                notes=f"no same-coin, same-dex ownership proof for cloid={cloid}; no order linked")
+            return "ORPHAN_ORDER_OWNERSHIP_UNVERIFIED"
         error, outcome = "", "ORPHAN_ORDER_CANCELLED"
+        ownership_refused = False
         try:
             self._require_cancel_enabled(required_mode="CLOSE")
             exchange, sdk_coin = self._exchange_client_for_coin(raw_coin)
@@ -4759,13 +4807,14 @@ class SenderGateway:
                 outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", json.dumps(response, default=str)[:300]
         except Exception as exc:
             outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", repr(exc)
-        # The order may have part-filled before the cancel (or still rests if the cancel failed): link its order id
-        # to the engine's pending send row so a copy-account fill carrying this oid is matched as engine-owned,
-        # exactly as the adoption path does.
-        try:
-            self._promote_pending_row_to_resting(cloid, oid)
-        except Exception as exc:
-            log_error("startup_orphan_cancel_link_oid", exc)
+            ownership_refused = "OWNERSHIP_UNVERIFIED" in str(exc)
+        # A legitimate engine-owned order may have part-filled even when cancel
+        # failed. Never promote after an ownership refusal or a coin/DEX mismatch.
+        if not ownership_refused and self._startup_order_owned(dex, o):
+            try:
+                self._promote_pending_row_to_resting(cloid, oid, self._startup_scoped_coin(dex, coin))
+            except Exception as exc:
+                log_error("startup_orphan_cancel_link_oid", exc)
         self.audit.append_reconciliation(
             "STARTUP_ORPHAN", outcome, coin=coin, exchange_order_id=oid,
             action=("MANUAL_REVIEW_ORPHAN_CANCEL_FAILED" if outcome == "ORPHAN_ORDER_CANCEL_FAILED"
