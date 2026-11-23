@@ -235,6 +235,38 @@ class CancelOwnershipTests(unittest.TestCase):
         self.assertEqual(rows[-1]["exchange_order_id"], "122")
         self.assertEqual(self.wire.cancels, [])
 
+    def test_adopted_dex_scoped_order_cannot_cancel_on_default_dex(self):
+        # The startup gate correctly adopts an order on dex 'one'. Its
+        # persisted identity must still include that dex at cancellation time.
+        self.mode = "ON"
+        cloid = c.generate_cloid("owned-dex-one-btc")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "dex-one-adoption", "intent_id": "owned-dex-one-btc",
+            "coin": "one:BTC", "cloid": cloid, "status": "pending_send"})
+        result = self.startup_check("one", {"oid": 127, "coin": "BTC",
+                                          "cloid": cloid, "side": "B",
+                                          "sz": "1", "limitPx": "100"})
+        self.assertEqual(len(result["adopted"]), 1)
+        self.assertIn("127", self.sender._resting_entries)
+        # A separate (default) DEX uses the same SDK ticker 'BTC'.
+        # Cancelling via that unscoped route must NOT inherit dex-one ownership.
+        wrong_dex_wire = Wire()
+        with self.assertRaisesRegex(RuntimeError, "OWNERSHIP_UNVERIFIED"):
+            self.sender._cancel_order(wrong_dex_wire, "BTC", "127")
+        self.assertEqual(wrong_dex_wire.cancels, [])
+        self.assertTrue(any(status == "CANCEL_ORDER_OWNERSHIP_UNVERIFIED"
+                            and fields.get("exchange_order_id") == "127"
+                            for _, status, fields in self.audit.rows))
+        row = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {})["127"]
+        self.assertEqual(c.canonical_coin_key(row["coin"]),
+                         c.canonical_coin_key("one:BTC"))
+        # Properly routed withdrawal of that same, engine-owned dex-one order
+        # remains possible; SDK wire still receives the native 'BTC' ticker.
+        withdrawn = self.sender._withdraw_rows([dict(self.sender._resting_entries["127"])],
+                                               "owner verified", "")
+        self.assertEqual([r["oid"] for r in withdrawn], ["127"])
+        self.assertEqual(self.wire.cancels, [("BTC", 127)])
+
     def test_startup_ON_same_coin_different_dex_is_not_owned(self):
         self.mode = "ON"
         cloid = c.generate_cloid("dex-one-btc")
