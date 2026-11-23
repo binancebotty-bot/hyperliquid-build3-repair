@@ -179,8 +179,8 @@ def global_controls_tests() -> None:
             mids["BTC"] = px
         c._FOLLOWER_MIDS.update(px={}, ms=0)
 
-    def config(**gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
+    def config(_armed=False, **gc):
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": _armed, "global_controls": gc, "wallets": {
             LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
 
     seq = [0]
@@ -265,8 +265,8 @@ def global_controls_tests() -> None:
     resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
-    def send(gc, side="BUY", mid=93.0, sleeve=0.0):
-        config(**gc)
+    def send(gc, side="BUY", mid=93.0, sleeve=0.0, gate=False):
+        config(_armed=True, **gc)
         led = c.ManualLedger(path=tmp / f"send{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
@@ -276,7 +276,8 @@ def global_controls_tests() -> None:
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
-        gw._validate_final_wire_order = lambda *a, **k: (True, {})
+        if not gate:  # gate=True exercises the real final wire gate
+            gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         set_mid(mid)
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
@@ -318,8 +319,8 @@ def global_controls_tests() -> None:
     d = decide({})
     check("R1_NO_FOLLOWER_PRICE_NO_ENTRY", d[0] == "SEND_BLOCKED_RISK" and "no fresh follower" in d[1], str(d))
     set_mid(100.0)
-    status, calls, _ = send({"max_order_notional_usd": 1005}, mid=110.0)   # price moved between decision and wire
-    check("R1_FINAL_WIRE_NOTIONAL_RECHECKED", status == "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL" and not calls, f"{status} {calls}")
+    status, calls, _ = send({"max_order_notional_usd": 1005}, mid=110.0, gate=True)   # price moved between decision and wire
+    check("R1_FINAL_WIRE_NOTIONAL_RECHECKED", status == "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE" and not calls, f"{status} {calls}")
 
     # R2 (ENG-016): never net into inventory the engine does not own
     def armed(**gc):
