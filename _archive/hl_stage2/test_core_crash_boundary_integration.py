@@ -253,6 +253,29 @@ class CrashBoundaryIntegration(unittest.TestCase):
         self.assertEqual(self.wire_calls, [])
         self.assertEqual(self.attempts(), [])
 
+    def test_stale_entry_journal_is_not_replayed_as_an_order(self):
+        ts = max(1, c.utc_now_ms() - c.STALE_REPLAY_GRACE_MS - 60000)
+        old = replace(self.fill, timestamp_ms=ts)
+        c.append_leader_crash_journal(old)
+        restarted = self.new_core()
+        restarted._replay_crashed_leader_fills_once()
+        self.assertEqual(self.wire_calls, [])
+        recon = list(c.iter_csv_rows(c.RECONCILIATION_CSV))
+        self.assertTrue(any(r.get("status") == "STALE_CRASH_ENTRY_NOT_SENT" for r in recon))
+
+    def test_foreign_oid_with_matching_intent_hint_is_not_adopted(self):
+        ledger = c.ManualLedger(path=c.MANUAL_LIVE_POSITIONS_FILE)
+        matcher = c.CopyFillMatcher(ledger, c.AuditLogWriter())
+        # Intent id and matching side/time cannot establish ownership of a
+        # different exchange order ID. No send_attempt owns this OID.
+        raw = {"copy_fill_id": "foreign-oid-1", "hash": "foreign-oid-1",
+               "tid": 1, "oid": "999999999", "intent_id": self.intent.intent_id,
+               "coin": "BTC", "side": "BUY", "price": 100, "size": 0.25,
+               "time": self.fill.timestamp_ms}
+        self.assertFalse(matcher.match_and_apply(raw, {self.intent.intent_id: self.intent}))
+        self.assertEqual(ledger.wallet_coin_position(self.wallet, "BTC"), 0)
+        self.assertFalse(c.LIVE_FILLS_CSV.exists())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
