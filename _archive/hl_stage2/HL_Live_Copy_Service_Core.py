@@ -9465,6 +9465,10 @@ def load_existing_intents() -> Dict[str, Intent]:
 class LiveCopyCore:
     def __init__(self, source_csv: Optional[Path] = None):
         ensure_dirs()
+        # High-watermark: never mistake THIS process's in-flight journal writes
+        # for orphaned work from an earlier crashed process.
+        _journal = AUDIT_DIR / "leader_crash_journal.jsonl"
+        self._crash_journal_start_size = _journal.stat().st_size if _journal.exists() else 0
         self.cfg = ConfigManager()
         self.ledger = ManualLedger()
         self.audit = AuditLogWriter()
@@ -9582,8 +9586,10 @@ class LiveCopyCore:
             self._crash_replay_checked = True
             return
         records: Dict[str, Dict[str, Any]] = {}
-        with journal.open("r", encoding="utf-8") as fh:
-            for line in fh:
+        startup_size = getattr(self, "_crash_journal_start_size", journal.stat().st_size)
+        with journal.open("rb") as fh:
+            while fh.tell() < startup_size:
+                line = fh.readline(startup_size - fh.tell())
                 try:
                     item = json.loads(line)
                     fid = str(item.get("leader_fill_id") or "").strip()
