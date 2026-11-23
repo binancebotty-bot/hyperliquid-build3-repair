@@ -8368,6 +8368,21 @@ class CopyFillMatcher:
                 self.matched_exchange_hashes.add(str(r.get("exchange_hash") or ""))
         # rows written while the poll doubled the tid (hash:tid:tid) also own the canonical hash:tid
         self.matched_copy_fill_ids |= {canonical_copy_fill_id(c) for c in self.matched_copy_fill_ids}
+        # A ledger may have been durably advanced just before the process crashed,
+        # without the corresponding live_fills receipt. Recover the receipt ONLY:
+        # replaying the ledger mutation would double the copy position.
+        pending = dict(self.ledger.data.get("_pending_copy_fill_rows") or {})
+        for cid, row in pending.items():
+            if cid not in self.matched_copy_fill_ids:
+                self.audit.append_live_fill(row)
+                self.matched_copy_fill_ids.add(cid)
+                if row.get("intent_id"):
+                    self.matched_intent_ids.add(str(row["intent_id"]))
+            self.ledger.complete_copy_fill(cid)
+        marker_dir = AUDIT_DIR / "copy_fill_claims"
+        self._restart_unfinished_claims = {
+            p.stem for p in marker_dir.glob("*.claim")
+        } if marker_dir.is_dir() else set()
         # Pre-patch live_fills stored copy_fill_id == exchange_hash (no :tid suffix).
         # Track raw exchange hashes separately so that on restart, a re-polled fill whose
         # copy_fill_id is now "hash:tid" still matches the old ledgered entry.
@@ -8383,6 +8398,19 @@ class CopyFillMatcher:
     @staticmethod
     def copy_fill_id(raw: Dict[str, Any]) -> str:
         return CopyAccountIngestor.copy_fill_id(raw)
+
+    def retry_incomplete_claim(self, copy_fill_id: str) -> bool:
+        return (copy_fill_id not in self.matched_copy_fill_ids and
+                _safe_marker_name(copy_fill_id) in self._restart_unfinished_claims)
+
+    def _claim_engine_copy_fill(self, copy_fill_id: str) -> bool:
+        marker = _safe_marker_name(copy_fill_id)
+        if self.retry_incomplete_claim(copy_fill_id):
+            # Only a claim older than THIS matcher can resume. Existing global
+            # single-owner runtime lock prevents a second active writer.
+            self._restart_unfinished_claims.discard(marker)
+            return True
+        return claim_copy_fill_process_marker(copy_fill_id)
 
     @staticmethod
     def _copy_fill_oid(raw: Dict[str, Any]) -> str:
