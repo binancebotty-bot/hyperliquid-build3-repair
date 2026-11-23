@@ -8577,7 +8577,7 @@ class CopyFillMatcher:
             return False
         # Pre-set copy_fill_id so apply_copy_fill uses the execution-event key (hash:tid)
         # rather than hash alone, ensuring the sleeve and live_fills both track by execution event.
-        if not claim_copy_fill_process_marker(copy_id):
+        if not self._claim_engine_copy_fill(copy_id):
             self.audit.append_reconciliation(
                 "COPY_FILL", "COPY_FILL_DUPLICATE",
                 copy_fill_id=copy_id,
@@ -8587,9 +8587,9 @@ class CopyFillMatcher:
             return False
         copy_fill = dict(copy_fill)
         copy_fill["copy_fill_id"] = copy_id
+        copy_fill["_crash_match_method"] = "MATCHED_BY_EXCHANGE_ORDER_ID"
+        copy_fill["_crash_exchange_order_id"] = norm_oid
         result = self.ledger.apply_copy_fill(synthetic_intent, copy_fill)
-        self.matched_intent_ids.add(synthetic_intent.intent_id)
-        self.matched_copy_fill_ids.add(copy_id)
         side_norm = normalise_copy_fill_side(copy_fill.get("side", synthetic_intent.copy_side))
         self.audit.append_live_fill({
             "created_at": utc_now_iso(),
@@ -8615,6 +8615,9 @@ class CopyFillMatcher:
             "coin_net_after": result["coin_net_after"],
             "notes": f"matched by exchange_order_id={norm_oid}; MATCHED_BY_EXCHANGE_ORDER_ID",
         })
+        self.ledger.complete_copy_fill(copy_id)
+        self.matched_intent_ids.add(synthetic_intent.intent_id)
+        self.matched_copy_fill_ids.add(copy_id)
         self.audit.append_reconciliation(
             "COPY_FILL", "MATCHED_BY_EXCHANGE_ORDER_ID",
             leader_wallet=synthetic_intent.fill.leader_wallet,
@@ -9047,7 +9050,7 @@ class CopyFillMatcher:
                 notes=f"copy fill has no matching intent; side={side}; oid={oid}; reason={reason}; terminal_state={terminal_state}",
             )
             return False
-        if not claim_copy_fill_process_marker(copy_id):
+        if not self._claim_engine_copy_fill(copy_id):
             self.audit.append_reconciliation(
                 "COPY_FILL", "COPY_FILL_DUPLICATE",
                 copy_fill_id=copy_id,
@@ -9057,10 +9060,10 @@ class CopyFillMatcher:
             return False
         copy_fill = dict(copy_fill)
         copy_fill["copy_fill_id"] = copy_id
-        result = self.ledger.apply_copy_fill(intent, copy_fill)
-        self.matched_intent_ids.add(intent.intent_id)
-        self.matched_copy_fill_ids.add(copy_id)
         exchange_order_id = self._exchange_oid_for_intent_match(copy_fill, intent)
+        copy_fill["_crash_match_method"] = "MATCHED_BY_INTENT_ID"
+        copy_fill["_crash_exchange_order_id"] = exchange_order_id
+        result = self.ledger.apply_copy_fill(intent, copy_fill)
         self.audit.append_live_fill({
             "created_at": utc_now_iso(),
             "created_at_ms": utc_now_ms(),
@@ -9085,6 +9088,9 @@ class CopyFillMatcher:
             "coin_net_after": result["coin_net_after"],
             "notes": f"real copy-account fill matched to intent; match_method=MATCHED_BY_INTENT_ID; exchange_order_id={exchange_order_id}",
         })
+        self.ledger.complete_copy_fill(copy_id)
+        self.matched_intent_ids.add(intent.intent_id)
+        self.matched_copy_fill_ids.add(copy_id)
         self.audit.append_reconciliation(
             "COPY_FILL", "MATCHED_BY_INTENT_ID",
             leader_wallet=intent.fill.leader_wallet,
