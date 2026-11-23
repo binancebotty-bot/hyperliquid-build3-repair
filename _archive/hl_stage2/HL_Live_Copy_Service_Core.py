@@ -5540,6 +5540,7 @@ class SenderGateway:
             # the order is cancelled when its target, the leader's sleeve or the follower's position changes, when the target
             # is reached, or when it gets old, so it can never fill into a position nobody wants.
             _min_n = None
+            _res: Dict[str, Any] = {}
             try:
                 _res = self._resolve_coin(intent.fill.coin)
                 _mn = self._effective_symbol_min_notional(_res) if _res.get("ok") else 0.0
@@ -5556,6 +5557,19 @@ class SenderGateway:
             close_size = _sz
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
+            # Fix 5 (review: standing exit recovery skipped the final wire gate): this path reaches
+            # exchange.order() like every other send, so it passes the same gate at ~L7305 (A: canonical
+            # symbol, C/D: finite positive size and price, B: min notional). Exits are exempt from the
+            # ENTRY/ADD cap by design, so gate E cannot block here. A block means no exchange call at all.
+            _wire_ok, _wire_block = self._validate_final_wire_order(intent, _res, sdk_coin, close_size, limit_px, {})
+            if not _wire_ok:
+                self.audit.append_reconciliation(
+                    "EXIT_RECOVERY", "STANDING_CLOSE_BLOCKED_SAFETY", leader_wallet=intent.fill.leader_wallet,
+                    leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                    action="NO_STANDING_CLOSE", reject_category=str(_wire_block.get("reject_category") or "FINAL_WIRE_BLOCK"),
+                    terminal_state=str(_wire_block.get("status") or "FINAL_WIRE_BLOCK"), engine_can_send=False,
+                    notes="standing close blocked before exchange: %s; %s" % (_wire_block.get("error") or _wire_block, notes))
+                return
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
                                                   limit_px, "Gtc", _ro, initial_lifecycle=classify_send_lifecycle(intent))
             ok, status, oid, error = self._parse_hl_response(recovery_response)
