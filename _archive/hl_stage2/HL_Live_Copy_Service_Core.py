@@ -1396,6 +1396,9 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
             with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
                 written = f.write(buf.getvalue())
                 f.flush()
+                if written == len(buf.getvalue()) and (path == ORDER_INTENTS_CSV or
+                        (path == SEND_ATTEMPTS_CSV and str(row.get("status") or "").lower() == "pending_send")):
+                    os.fsync(f.fileno())  # same successfully written handle: no second write-open
             if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
                 raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
         except OSError as exc:
@@ -2856,7 +2859,9 @@ _LEADER_CRASH_JOURNAL_LOCK = threading.Lock()
 
 
 def append_leader_crash_journal(fill: LeaderFill) -> None:
-    """Durably journal a leader event before its in-memory acceptance."""
+    """Durably journal a complete leader event before its in-memory acceptance."""
+    if any(getattr(fill, field, None) is None for field in ("side", "price", "size")):
+        return  # partial test/event stubs cannot be replayed as real executions
     entry = {
         "leader_fill_id": fill.leader_fill_id, "leader_wallet": fill.leader_wallet,
         "coin": fill.coin, "side": fill.side, "price": fill.price,
@@ -3810,9 +3815,6 @@ class AuditLogWriter:
             "min_notional": "",
             "notes": intent.notes,
         })
-        with ORDER_INTENTS_CSV.open("ab") as fh:
-            fh.flush()
-            os.fsync(fh.fileno())
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
         fid = str(fid or "").strip()
@@ -3830,10 +3832,6 @@ class AuditLogWriter:
 
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
-        if str(row.get("status") or "").lower() == "pending_send":
-            with SEND_ATTEMPTS_CSV.open("ab") as fh:
-                fh.flush()
-                os.fsync(fh.fileno())
         self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
