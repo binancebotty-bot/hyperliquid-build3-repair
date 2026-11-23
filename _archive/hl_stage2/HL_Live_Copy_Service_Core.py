@@ -5985,7 +5985,7 @@ class SenderGateway:
         now_ms = utc_now_ms()
         ttl_ms = max(0, int(fnum(os.getenv("HL_LIVE_PENDING_EXIT_GUARD_TTL_MS"), 30000)))
         age_ms = now_ms - int(fnum(rec.get("ts_ms"), 0))
-        if ttl_ms and age_ms > ttl_ms:
+        if ttl_ms and age_ms > ttl_ms and not rec.get("in_flight"):
             self._pending_exit_guard.pop(intent.sleeve_id, None)
             return False, ""
         # Ledger caught up? If this wallet/coin sleeve has moved toward flat since the
@@ -6006,6 +6006,69 @@ class SenderGateway:
             f"age_ms={age_ms}; position_abs_before={prev_abs}; awaiting copy-poll/reconciliation"
         )
 
+    def _pending_close_for_add(self, intent: Intent) -> Optional[Dict[str, Any]]:
+        """Return a matching in-flight or resting full-close row for an exposure-increasing intent."""
+        lifecycle = classify_send_lifecycle(intent)
+        if lifecycle not in {"ENTRY", "ADD"}:
+            return None
+        delta = ManualLedger.signed_delta(intent.copy_side, 1.0)
+        before = fnum(intent.wallet_position_before, 0.0)
+        with self._resting_lock:
+            row = dict(self._standing_closes.get(intent.sleeve_id) or {})
+        if row:
+            try:
+                cur = self.ledger.wallet_coin_position(intent.fill.leader_wallet, intent.fill.coin) if self.ledger else before
+            except Exception:
+                cur = before
+            if abs(fnum(cur)) <= POSITION_EPSILON:
+                with self._resting_lock:
+                    live = self._standing_closes.get(intent.sleeve_id)
+                    if live is not None and str(live.get("oid") or "") == str(row.get("oid") or ""):
+                        self._standing_closes.pop(intent.sleeve_id, None)
+                        atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+                return None
+            if before * delta <= POSITION_EPSILON:
+                return None
+            row["age_ms"] = max(0, utc_now_ms() - int(fnum(row.get("placed_ms"), utc_now_ms())))
+            return row
+        if before * delta <= POSITION_EPSILON:
+            return None
+        with self._pending_exit_lock:
+            rec = self._pending_exit_guard.get(intent.sleeve_id)
+            if not rec or not rec.get("in_flight"):
+                return None
+            age_ms = utc_now_ms() - int(fnum(rec.get("ts_ms"), 0))
+            try:
+                cur = abs(self.ledger.wallet_coin_position(intent.fill.leader_wallet, intent.fill.coin)) if self.ledger else before
+            except Exception:
+                cur = before
+            prev = fnum(rec.get("position_abs_before"), 0.0)
+            if cur <= POSITION_EPSILON or cur + POSITION_EPSILON < prev:
+                self._pending_exit_guard.pop(intent.sleeve_id, None)
+                return None
+            return {**rec, "oid": str(rec.get("oid") or f"intent:{rec.get('intent_id', '')}"), "age_ms": age_ms}
+
+    def _hold_add_for_pending_close(self, intent: Intent, row: Dict[str, Any]) -> Tuple[bool, str]:
+        oid = str(row.get("oid") or "unknown")
+        reason = f"same-direction {classify_send_lifecycle(intent)} held for pending full-sleeve close oid={oid}"
+        self._append_local_block_reconciliation(intent, "ADD_HELD_PENDING_CLOSE", {
+            "terminal_state": "ADD_HELD_PENDING_CLOSE", "reject_category": "PENDING_FULL_SLEEVE_CLOSE",
+            "operator_action": "NO_SEND_WAIT_FOR_PENDING_CLOSE", "write_reconciliation": True, "notes": reason,
+        })
+        age_ms = max(0, int(fnum(row.get("age_ms"), utc_now_ms() - int(fnum(row.get("placed_ms"), utc_now_ms())))))
+        max_sec = max(0.0, fnum(os.getenv("HL_LIVE_ADD_HOLD_MAX_SEC"), 300.0))
+        key = (intent.sleeve_id, oid)
+        alerted = self.__dict__.setdefault("_add_hold_alerted", set())
+        if age_ms > max_sec * 1000 and key not in alerted:
+            alerted.add(key)
+            self.audit.append_reconciliation(
+                "ADD_HOLD_PENDING_CLOSE", "MANUAL_REVIEW", leader_wallet=intent.fill.leader_wallet,
+                leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                exchange_order_id=oid, action="CRITICAL_PENDING_CLOSE_EXCEEDED_ADD_HOLD_MAX",
+                reject_category="PENDING_CLOSE_TOO_OLD", terminal_state="MANUAL_REVIEW",
+                notes=f"severity=CRITICAL; {reason}; held for {age_ms / 1000:.1f}s (limit {max_sec:g}s)")
+        return False, "ADD_HELD_PENDING_CLOSE"
+
     def _mark_pending_exit(self, intent: Intent) -> None:
         """Reserve the pending-exit slot for this sleeve. Caller must hold _pending_exit_lock."""
         self._pending_exit_guard[intent.sleeve_id] = {
@@ -6013,6 +6076,7 @@ class SenderGateway:
             "intended_size": intent.copy_size,
             "position_abs_before": abs(fnum(intent.wallet_position_before, 0.0)),
             "intent_id": intent.intent_id,
+            "in_flight": True,
         }
 
     def _clear_pending_exit(self, intent: Intent) -> None:
@@ -6036,6 +6100,10 @@ class SenderGateway:
             return False, f"ENTRY_BLOCKED_{entry_block_reason}"
         if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
             return False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
+        if lifecycle in {"ENTRY", "ADD"}:
+            pending_close = self._pending_close_for_add(intent)
+            if pending_close:
+                return self._hold_add_for_pending_close(intent, pending_close)
         timing = self._base_timing(intent)
         timing["ownership_gate_started_ms"] = utc_now_ms()
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
@@ -6097,9 +6165,19 @@ class SenderGateway:
                 reserved_exit = True
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
+            if reserved_exit:
+                self._clear_pending_exit(intent)
             return True, "MOCK_ORDER_SENT"
         timing["send_real_started_ms"] = utc_now_ms()
-        ok, send_status, result = self._send_real(intent, timing)
+        try:
+            ok, send_status, result = self._send_real(intent, timing)
+        finally:
+            if reserved_exit:
+                with self._pending_exit_lock:
+                    rec = self._pending_exit_guard.get(intent.sleeve_id)
+                    if rec and rec.get("intent_id") == intent.intent_id:
+                        rec["in_flight"] = False
+                        rec["last_status"] = locals().get("send_status", "SEND_EXCEPTION")
         if result.get("exchange_called"):
             self._append_real_attempt(intent, send_status, result)
             reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
@@ -10030,6 +10108,8 @@ class LiveCopyCore:
                     f"side={fill.side}; copy_size={intent.copy_size}; exchange_called=false"
                 ),
             )
+        elif send_status == "ADD_HELD_PENDING_CLOSE":
+            return  # the sender wrote the hold and any overdue critical review row atomically
         elif send_status == "INTENT_NOT_SEND_ALLOWED" and not str(intent.decision or "").startswith("SEND_BLOCKED"):
             # A fill blocked before send_if_allowed (wallet OFF/CLO, symbol unavailable, etc.)
             # must still leave an audit row — never vanish silently.
