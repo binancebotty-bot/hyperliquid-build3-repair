@@ -2852,6 +2852,27 @@ class LeaderFill:
         return abs(self.price * self.size)
 
 
+_LEADER_CRASH_JOURNAL_LOCK = threading.Lock()
+
+
+def append_leader_crash_journal(fill: LeaderFill) -> None:
+    """Durably journal a leader event before its in-memory acceptance."""
+    entry = {
+        "leader_fill_id": fill.leader_fill_id, "leader_wallet": fill.leader_wallet,
+        "coin": fill.coin, "side": fill.side, "price": fill.price,
+        "size": fill.size, "timestamp_ms": fill.timestamp_ms,
+        "source": fill.source, "ws_received_ms": fill.ws_received_ms, "raw": fill.raw,
+    }
+    data = (json.dumps(entry, default=str, separators=(",", ":")) + "\n").encode("utf-8")
+    path = AUDIT_DIR / "leader_crash_journal.jsonl"
+    with _LEADER_CRASH_JOURNAL_LOCK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("ab") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+
+
 def _fill_dir(fill: "LeaderFill") -> str:
     return str((fill.raw or {}).get("dir") or "").strip().lower()
 
@@ -3751,6 +3772,8 @@ class AuditLogWriter:
             "min_notional": "",
             "notes": intent.notes,
         })
+        with ORDER_INTENTS_CSV.open("rb") as fh:
+            os.fsync(fh.fileno())
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
         fid = str(fid or "").strip()
@@ -3768,6 +3791,9 @@ class AuditLogWriter:
 
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
+        if str(row.get("status") or "").lower() == "pending_send":
+            with SEND_ATTEMPTS_CSV.open("rb") as fh:
+                os.fsync(fh.fileno())
         self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
@@ -10265,6 +10291,7 @@ class LiveCopyCore:
                 if summary is not None:
                     summary.leader_fills_deduped += 1
                 return False, "DUPLICATE_BLOCKED", None
+            append_leader_crash_journal(fill)
             self._idem_accepted.add(guard_key)
             merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
             self._idem_accepted.update(merged_ids)  # the fills merged into this copy are handled by it
@@ -10335,7 +10362,7 @@ class LiveCopyCore:
                 # Always re-attempt exits across session restarts. Track in processed so the
                 # fill isn't endlessly retried — one attempt per session is enough.
                 self.dedupe.processed.add(fill.leader_fill_id)
-            elif not self.dedupe.accept_leader(fill.leader_fill_id):
+            elif fill.leader_fill_id in self.dedupe.processed:
                 if summary is not None:
                     summary.leader_fills_deduped += 1
                 if guard_key not in self._idem_duplicate_audited:  # a fill that stops here leaves a row (once)
@@ -10346,7 +10373,6 @@ class LiveCopyCore:
                         terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE", engine_can_send="False",
                         notes="the persisted dedupe store already holds this leader fill id; not sent again")
                 return False, "DEDUPED", None
-            self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
                 intent = self.intent_builder.build(fill)
             if not converge and self._defer_unreadable_truth(fill, intent, merged_ids):
@@ -10365,6 +10391,9 @@ class LiveCopyCore:
         # send lock that wait stopped every other worker from building its intent (replay throughput, run 6).
         with prof("intent_append"):
             self.audit.append_order_intent(intent)
+        if not _is_exit_or_reduce:
+            self.dedupe.accept_leader(fill.leader_fill_id)
+        self.dedupe.processed.update(merged_ids)
         stamp_fill(fill, "intent_written_ms")
         for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
             try:
