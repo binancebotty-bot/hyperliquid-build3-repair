@@ -4341,26 +4341,57 @@ class SenderGateway:
             raise _OrderSwitchBlocked(mode)
         return mode
 
+    def _cancel_order_record_owned(self, sdk_coin: str, oid: str, cloid: str = "") -> bool:
+        """Prove this ORDER from our durable registries, never position-net equality."""
+        coin = canonical_coin_key(sdk_coin)
+        with getattr(self, "_resting_lock", threading.RLock()):
+            resting = (getattr(self, "_resting_entries", {}) or {}).get(str(oid))
+            if (isinstance(resting, dict)
+                    and not str(resting.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON)
+                    and canonical_coin_key(resting.get("sdk_coin") or resting.get("coin")) == coin):
+                return True
+            for row in (getattr(self, "_standing_closes", {}) or {}).values():
+                if (isinstance(row, dict) and str(row.get("oid") or "") == str(oid)
+                        and canonical_coin_key(row.get("sdk_coin") or row.get("coin")) == coin):
+                    return True
+        row = send_attempt_by_oid(CopyFillMatcher._normalize_oid(str(oid)))
+        if (row and canonical_coin_key(row.get("coin")) == coin
+                and str(row.get("status") or "").upper() in _SEND_OID_STATUSES
+                and UNVERIFIED_RESTING_ENTRY_REASON not in str(row.get("notes") or "")):
+            return True
+        if cloid:
+            # A startup open-order contains an OID and a client ID. Confirm the
+            # client ID was recorded by this engine before cancelling the OID.
+            known = getattr(self, "_startup_owned_cloids", None)
+            if known is None:
+                known, _ = self._engine_owned_cloids_and_oids()
+            if str(cloid).strip().lower() in known:
+                return True
+        return False
+
     def _cancel_order(self, exchange: Any, sdk_coin: str, oid: str, *, startup_orphan: bool = False,
-                      leader_entry_withdrawal: bool = False, required_mode: str = "") -> Any:
-        """The one exchange cancel call. Startup orphan ownership is verified by client ID."""
+                      leader_entry_withdrawal: bool = False, required_mode: str = "",
+                      cloid: str = "") -> Any:
+        """The only exchange.cancel call; enforce mode and verified order identity."""
         if startup_orphan:
             required_mode = "CLOSE"
-        mode = self._require_cancel_enabled(required_mode=required_mode)
+        self._require_cancel_enabled(required_mode=required_mode)
         order_id = int(oid)
-        if not canonical_coin_resolved(sdk_coin):
-            raise RuntimeError(f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: {sdk_coin}")
-        if leader_entry_withdrawal and mode == "ON":
-            # The claimed resting order ID establishes ownership even before fills reach the ledger.
-            required_mode = "ON"
-        elif not startup_orphan:
-            if self.ledger is None:
-                raise RuntimeError(f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: {sdk_coin}")
-            exchange_net = self._fresh_exchange_net(sdk_coin)
-            owned_net = self.ledger.coin_net(sdk_coin)
-            if (exchange_net is None or not math.isfinite(exchange_net) or not math.isfinite(owned_net)
-                    or not math.isclose(exchange_net, owned_net, rel_tol=0.0, abs_tol=POSITION_EPSILON)):
-                raise RuntimeError(f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: {sdk_coin} exchange={exchange_net} engine={owned_net}")
+        if (not canonical_coin_resolved(sdk_coin)
+                or not self._cancel_order_record_owned(sdk_coin, str(order_id), cloid)):
+            detail = f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: coin={sdk_coin} oid={oid} cloid={cloid}; NO_CANCEL_FOREIGN_ORDER"
+            try:
+                audit = getattr(self, "audit", None)
+                if audit is not None:
+                    audit.append_reconciliation(
+                        "CANCEL_ORDER", "CANCEL_ORDER_OWNERSHIP_UNVERIFIED",
+                        coin=sdk_coin, exchange_order_id=str(oid),
+                        action="NO_CANCEL_FOREIGN_ORDER",
+                        terminal_state="CANCEL_ORDER_OWNERSHIP_UNVERIFIED",
+                        engine_can_send="False", notes=detail)
+            except Exception as exc:
+                log_error("cancel_order_ownership_audit", exc)
+            raise RuntimeError(detail)
         slot_ms = self._reserve_exchange_order_slot()
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
@@ -4589,7 +4620,7 @@ class SenderGateway:
                 if not str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
                     oids.add(str(oid))
                 cl = str(row.get("cloid") or "").strip().lower()
-                if cl:
+                if cl and not str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
                     cloids.add(cl)
         return cloids, oids
 
@@ -4633,6 +4664,7 @@ class SenderGateway:
             return {"ok": False, "skipped": False, "adopted": [], "cancelled": [], "reported": [],
                     "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
         cloids, oids = self._engine_owned_cloids_and_oids()
+        self._startup_owned_cloids = cloids  # proven once for this startup read
         adopted, cancelled, reported = [], [], []
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
@@ -4707,7 +4739,7 @@ class SenderGateway:
         try:
             self._require_cancel_enabled(required_mode="CLOSE")
             exchange, sdk_coin = self._exchange_client_for_coin(raw_coin)
-            response = self._cancel_order(exchange, sdk_coin or coin, oid, startup_orphan=True)
+            response = self._cancel_order(exchange, sdk_coin or coin, oid, startup_orphan=True, cloid=cloid)
             statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
             first = statuses[0] if statuses else None
             if first == "success":
