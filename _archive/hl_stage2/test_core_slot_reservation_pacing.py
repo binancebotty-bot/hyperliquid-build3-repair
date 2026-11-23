@@ -95,6 +95,14 @@ def sender_gateway():
     gateway.cfg = SimpleNamespace(send_mode_now=lambda: "ON")
     gateway.ledger = SimpleNamespace(coin_net=lambda _coin: 0.0)
     gateway._fresh_exchange_net = lambda _coin: 0.0
+    # Cancel pacing tests exercise an engine-owned order, not an arbitrary
+    # foreign exchange ID. This fixture is proof for OID 123 at the cancel gate.
+    gateway._resting_lock = threading.RLock()
+    gateway._resting_entries = {
+        "123": {"oid": "123", "coin": "BTC", "sdk_coin": "BTC",
+                "why": "test_engine_owned_pacing_order"}
+    }
+    gateway._standing_closes = {}
     gateway.slot_reservations = []
     gateway._exchange_order_lock = threading.Lock()
     object.__setattr__(gateway, "_last_exchange_order_ms", 0)
