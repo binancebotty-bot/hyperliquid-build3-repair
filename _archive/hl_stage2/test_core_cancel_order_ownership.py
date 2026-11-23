@@ -172,6 +172,33 @@ class CancelOwnershipTests(unittest.TestCase):
             "oid": 107, "coin": "BTC", "cloid": cloid})
         self.assertEqual(self.wire.cancels, [("BTC", 107)])
 
+    def test_real_standing_guard_cancels_owned_order_with_mismatched_nets(self):
+        self.own_standing(110)
+        self.sender._standing_closes["sleeve"].update({
+            "placed_ms": c.utc_now_ms() - 10**9,
+            "sleeve_signed": 10.0, "sleeve_tol": 0.0,
+        })
+        self.sender._standing_guard_ms = 0
+        self.ledger_net, self.exchange_net = 0.0, 8.0
+        count = c.SenderGateway.guard_standing_closes(self.sender)
+        self.assertEqual(count, 1)
+        self.assertEqual(self.wire.cancels, [("BTC", 110)])
+
+    def test_real_standing_close_withdraws_owned_order_despite_net_mismatch(self):
+        self.own_standing(111)
+        self.ledger_net, self.exchange_net = 0.0, 9.0
+        self.sender._standing_filled_size = lambda *_a: 0.0
+        fill = c.LeaderFill("standing-fill", "0x" + "b" * 40, "BTC",
+                            "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST")
+        intent = c.Intent("standing-intent", fill, "SELL", 1.0, 100.0,
+                          "LIVE", "fixed", "EXIT_ALLOWED", "fixture", "sleeve", "",
+                          "LONG", 1.0, 1.0, True, True, c.utc_now_ms())
+        remaining, error = c.SenderGateway._withdraw_standing_close(
+            self.sender, self.wire, intent, 1.0, 3, {})
+        self.assertIsNone(error)
+        self.assertEqual(remaining, 1.0)
+        self.assertEqual(self.wire.cancels, [("BTC", 111)])
+
     def test_OFF_production_sender_never_calls_exchange_cancel_or_order(self):
         # These are genuine SenderGateway boundaries, NOT a FakeSender refusing OFF.
         self.mode = "OFF"
