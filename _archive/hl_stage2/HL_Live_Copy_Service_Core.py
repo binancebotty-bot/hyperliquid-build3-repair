@@ -4609,6 +4609,8 @@ class SenderGateway:
         """Known engine client IDs and order IDs backed by a confirmed order record."""
         cloids, oids = set(), set()
         for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+            if str(row.get("status") or "").upper() not in _SEND_OID_STATUSES:
+                continue  # a blocked/rejected intent is not proof of an exchange order
             cl = str(row.get("cloid") or "").strip().lower()
             if cl:
                 cloids.add(cl)
