@@ -4348,7 +4348,7 @@ class SenderGateway:
             resting = (getattr(self, "_resting_entries", {}) or {}).get(str(oid))
             if (isinstance(resting, dict)
                     and not str(resting.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON)
-                    and canonical_coin_key(resting.get("sdk_coin") or resting.get("coin")) == coin):
+                    and canonical_coin_key(resting.get("coin") or resting.get("sdk_coin")) == coin):
                 return True
             for row in (getattr(self, "_standing_closes", {}) or {}).values():
                 if (isinstance(row, dict) and str(row.get("oid") or "") == str(oid)
@@ -4373,21 +4373,23 @@ class SenderGateway:
 
     def _cancel_order(self, exchange: Any, sdk_coin: str, oid: str, *, startup_orphan: bool = False,
                       leader_entry_withdrawal: bool = False, required_mode: str = "",
-                      cloid: str = "") -> Any:
+                      cloid: str = "", ownership_coin: str = "") -> Any:
         """The only exchange.cancel call; enforce mode and verified order identity."""
         if startup_orphan:
             required_mode = "CLOSE"
         self._require_cancel_enabled(required_mode=required_mode)
         order_id = int(oid)
-        if (not canonical_coin_resolved(sdk_coin)
-                or not self._cancel_order_record_owned(sdk_coin, str(order_id), cloid)):
-            detail = f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: coin={sdk_coin} oid={oid} cloid={cloid}; NO_CANCEL_FOREIGN_ORDER"
+        order_coin = ownership_coin or sdk_coin
+        if (not canonical_coin_resolved(order_coin)
+                or not self._cancel_order_record_owned(order_coin, str(order_id), cloid)):
+            detail = (f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: coin={order_coin} sdk_coin={sdk_coin} "
+                      f"oid={oid} cloid={cloid}; NO_CANCEL_FOREIGN_ORDER")
             try:
                 audit = getattr(self, "audit", None)
                 if audit is not None:
                     audit.append_reconciliation(
                         "CANCEL_ORDER", "CANCEL_ORDER_OWNERSHIP_UNVERIFIED",
-                        coin=sdk_coin, exchange_order_id=str(oid),
+                        coin=order_coin, exchange_order_id=str(oid),
                         action="NO_CANCEL_FOREIGN_ORDER",
                         terminal_state="CANCEL_ORDER_OWNERSHIP_UNVERIFIED",
                         engine_can_send="False", notes=detail)
@@ -4739,19 +4741,20 @@ class SenderGateway:
             raise RuntimeError("STARTUP_ORPHAN_OWNERSHIP_UNVERIFIED: no adoption")
         oid = str(o.get("oid", ""))
         coin = str(o.get("coin") or "")
+        scoped_coin = self._startup_scoped_coin(dex, coin)
         side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
         size = fnum(o.get("sz") or o.get("origSz"))
         px = fnum(o.get("limitPx"))
         cloid = str(o.get("cloid") or "").strip()
-        row = {"oid": oid, "leader_wallet": "", "coin": coin, "sdk_coin": coin, "side": side, "limit_px": px,
+        row = {"oid": oid, "leader_wallet": "", "coin": scoped_coin, "sdk_coin": coin, "side": side, "limit_px": px,
                "size": size, "intent_id": "", "leader_fill_id": "", "leader_fill_ms": 0, "leader_price": px,
                "placed_ms": utc_now_ms(), "cloid": cloid, "why": "startup_orphan_adopted", "open_size": size}
         with self._resting_lock:
             self._resting_entries[oid] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
-        promoted = self._promote_pending_row_to_resting(cloid, oid, self._startup_scoped_coin(dex, coin))
+        promoted = self._promote_pending_row_to_resting(cloid, oid, scoped_coin)
         self.audit.append_reconciliation(
-            "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=coin, exchange_order_id=oid,
+            "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=scoped_coin, exchange_order_id=oid,
             action="NO_ACTION_ORPHAN_ADOPTED", terminal_state="ORPHAN_ORDER_ADOPTED",
             notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches an engine record (cloid={cloid}); "
                    f"adopted as a resting engine order; pending_row_promoted={promoted}"))
@@ -4796,7 +4799,8 @@ class SenderGateway:
         try:
             self._require_cancel_enabled(required_mode="CLOSE")
             exchange, sdk_coin = self._exchange_client_for_coin(raw_coin)
-            response = self._cancel_order(exchange, sdk_coin or coin, oid, startup_orphan=True, cloid=cloid)
+            response = self._cancel_order(exchange, sdk_coin or coin, oid, startup_orphan=True,
+                                          cloid=cloid, ownership_coin=raw_coin)
             statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
             first = statuses[0] if statuses else None
             if first == "success":
@@ -5141,7 +5145,7 @@ class SenderGateway:
                 response = self._cancel_order(
                     exchange, sdk_coin or str(row.get("sdk_coin")), oid,
                     leader_entry_withdrawal=cancelled == "RESTING_ENTRY_CANCELLED_LEADER_REDUCED",
-                    required_mode=required_mode,
+                    required_mode=required_mode, ownership_coin=str(row.get("coin") or ""),
                 )
                 statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
                 first = statuses[0] if statuses else None
