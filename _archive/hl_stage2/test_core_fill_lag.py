@@ -194,6 +194,8 @@ def main() -> None:
         time.sleep(0.1)
     check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set()  # the integrity rebuild is stuck in its own writer thread; the cycle itself no longer waits on it
           and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
+    cyc.join(10)  # the cycle must finish even though the integrity rebuild is still stuck in its writer
+    check("D1B_CYCLE_NOT_HELD_BY_THE_STUCK_INTEGRITY_WRITER", not cyc.is_alive())
     gate.set()
     cyc.join(30)
     drain_writers = lambda: [w.join_until(time.monotonic() + 10) for w in (c._LIVE_INTEGRITY_WRITER, new.state_writer._worker)]  # state writes are async
