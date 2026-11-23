@@ -7790,6 +7790,15 @@ class SenderGateway:
 
 TRACE_KEEP_FILES = max(1, int(os.environ.get("HL_TRACE_KEEP_FILES", "12") or 12))
 TRACE_MAX_BYTES_FILL = int(os.environ.get("HL_FILL_TRACE_MAX_BYTES", "32000000") or 32000000)
+# Fill-trace contention (2026-11-23 soak): the rotation check runs at most this often per open handle, not on
+# every line. One open()/close() per line put the main cycle behind 20+ lane writers for minutes.
+FILL_TRACE_ROTATE_CHECK_SEC = float(os.environ.get("HL_FILL_TRACE_ROTATE_CHECK_SEC", "1.0") or 1.0)
+# Non-blocking writer (addendum 2026-11-23): the hot path only enqueues; one daemon thread writes. A bounded
+# queue drops rather than blocking when the disk cannot keep up, and the drop count is diagnostic only.
+FILL_TRACE_QUEUE_MAX = int(os.environ.get("HL_FILL_TRACE_QUEUE_MAX", "50000") or 50000)
+FILL_TRACE_BATCH_MAX = int(os.environ.get("HL_FILL_TRACE_BATCH_MAX", "500") or 500)
+FILL_TRACE_BATCH_MAX_BYTES = int(os.environ.get("HL_FILL_TRACE_BATCH_MAX_BYTES", "32768") or 32768)
+_FILL_TRACE_WRITE_HOOK = None  # tests only: callable(batch_lines) used instead of the real write, default None
 TRACE_MAX_BYTES_POLL = int(os.environ.get("HL_POLL_TRACE_MAX_BYTES", "16000000") or 16000000)
 
 
@@ -9680,23 +9689,161 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
+    def _fill_trace_state(self) -> Dict[str, Any]:
+        """Writer state for fill_trace.jsonl: queue, thread, handle and drop counter (created once)."""
+        st = self.__dict__.get("_fill_trace_state_obj")
+        if st is None:
+            st = {"q": queue.Queue(maxsize=FILL_TRACE_QUEUE_MAX), "fh": None, "path": None, "checked": 0.0,
+                  "dropped": 0, "thread": None, "lock": threading.Lock(), "sentinel": object()}
+            self.__dict__["_fill_trace_state_obj"] = st
+        return st
+
+    def _fill_trace_start(self) -> Dict[str, Any]:
+        """Start the single writer thread if it is not running. Guarded by a lock so several lane workers cannot
+        start two writers; the hot path never takes this lock once the thread exists."""
+        st = self._fill_trace_state()
+        th = st["thread"]
+        if th is not None and th.is_alive():
+            return st
+        with st["lock"]:
+            th = st["thread"]
+            if th is None or not th.is_alive():
+                th = threading.Thread(target=self._fill_trace_writer, args=(st,), name="fill-trace-writer", daemon=True)
+                st["thread"] = th
+                th.start()
+        return st
+
+    def _fill_trace_writer(self, st: Dict[str, Any]) -> None:
+        """Drain the queue in batches, one append handle, rotation checked at most once a second. Never raises."""
+        while True:
+            try:
+                item = st["q"].get()
+            except Exception:
+                continue
+            if item is st["sentinel"]:
+                try:
+                    if st["fh"] is not None:
+                        st["fh"].close()
+                except Exception:
+                    pass
+                st["fh"] = None
+                return
+            batch = [item]
+            _bytes = len(item)
+            _chunk = max(4096, min(FILL_TRACE_BATCH_MAX_BYTES, max(1, TRACE_MAX_BYTES_FILL // 2)))
+            while len(batch) < FILL_TRACE_BATCH_MAX and _bytes < _chunk:
+                try:
+                    nxt = st["q"].get_nowait()
+                except Exception:
+                    break
+                if nxt is st["sentinel"]:
+                    st["_stop"] = True
+                    break
+                batch.append(nxt)
+                _bytes += len(nxt)
+            try:
+                hook = _FILL_TRACE_WRITE_HOOK
+                if hook is not None:
+                    hook(batch)
+                else:
+                    path = st["path"] or (Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl")
+                    now = time.monotonic()
+                    _payload = "".join(batch)
+                    _size = 0
+                    try:
+                        if st["fh"] is not None:
+                            _size = os.stat(str(path)).st_size
+                    except Exception:
+                        _size = 0
+                    _would_cross = _size > 0 and (_size + len(_payload.encode("utf-8"))) > TRACE_MAX_BYTES_FILL
+                    if (st["fh"] is None or st["path"] != path or _would_cross
+                            or (now - float(st["checked"] or 0.0)) >= FILL_TRACE_ROTATE_CHECK_SEC):
+                        try:
+                            if st["fh"] is not None:
+                                st["fh"].close()
+                        except Exception:
+                            pass
+                        st["fh"] = None
+                        rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                        st["fh"] = open(path, "a", encoding="utf-8", buffering=1)
+                        st["path"] = path
+                        st["checked"] = now
+                    st["fh"].write(_payload)
+                    st["fh"].flush()
+            except Exception as exc:
+                log_error("fill_trace_write", exc)
+            finally:
+                for _ in batch:
+                    try:
+                        st["q"].task_done()
+                    except Exception:
+                        pass
+                if st.get("_stop"):
+                    try:
+                        if st["fh"] is not None:
+                            st["fh"].close()
+                    except Exception:
+                        pass
+                    st["fh"] = None
+                    return
+
     def _fill_trace(self, kind: str, fill: "LeaderFill", extra: Optional[Dict[str, Any]] = None) -> None:
-        """One json line per step a leader fill takes (poll_dispatched / poll_already_handled / poll_queue_full / late_closed_row /
-        proc_start / proc_end) in fill_trace.jsonl beside the runtime state: a fill the classifier calls MISSING can be found here
-        (never reached dispatch, dispatched and never processed, or processed and ended without a row). Rotated at 32 MB, 12 files kept; never raises."""
+        """One json line per step a leader fill takes, enqueued and written by one background thread (fill_trace.jsonl
+        beside the runtime state). The hot path never blocks: if the queue is full the line is dropped and counted.
+        A fill the classifier calls MISSING can be found here (never reached dispatch, dispatched and never processed, or
+        processed and ended without a row). Rotated at 32 MB, 12 files kept; never raises."""
         try:
-            path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
             rec = {"ts": utc_now_ms(), "k": kind, "id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
                    "c": str(fill.coin), "t": int(fill.timestamp_ms or 0), **(extra or {})}
             if "status_of" in rec:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
-            with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
-                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
-                with open(path, "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
+            line = json.dumps(rec, separators=(",", ":")) + "\n"
+            st = self._fill_trace_start()
+            try:
+                st["q"].put_nowait(line)
+            except Exception:
+                st["dropped"] = int(st.get("dropped") or 0) + 1
         except Exception as exc:
             log_error("fill_trace", exc)
+
+    def _fill_trace_flush(self, timeout: float = 10.0) -> bool:
+        """Wait until every queued line has been written (tests and orderly shutdown)."""
+        try:
+            st = self.__dict__.get("_fill_trace_state_obj")
+            if st is None:
+                return True
+            deadline = time.monotonic() + timeout
+            while st["q"].unfinished_tasks and time.monotonic() < deadline:
+                time.sleep(0.005)
+            return st["q"].unfinished_tasks == 0
+        except Exception:
+            return False
+
+    def _fill_trace_close(self) -> None:
+        """Flush queued lines and stop the writer (engine stop, and any caller about to move or delete the trace
+        file: Windows keeps the file locked while a handle is open). Never raises."""
+        try:
+            st = self.__dict__.get("_fill_trace_state_obj")
+            if st is None:
+                return
+            self._fill_trace_flush(5.0)
+            try:
+                st["q"].put_nowait(st["sentinel"])
+            except Exception:
+                pass
+            th = st.get("thread")
+            if th is not None:
+                th.join(5.0)
+            try:
+                if st["fh"] is not None:
+                    st["fh"].close()
+            except Exception:
+                pass
+            st["fh"] = None
+            self.__dict__.pop("_fill_trace_state_obj", None)
+        except Exception as exc:
+            log_error("fill_trace_close", exc)
 
     def _poll_trace(self, rec: Dict[str, Any]) -> None:
         """One json line per leader poll (cursor, window asked, fills returned, how many were new) in leader_poll_trace.jsonl
