@@ -3581,6 +3581,16 @@ class ManualLedger:
         size = abs(fnum(copy_fill.get("size", copy_fill.get("sz", intent.copy_size)), intent.copy_size))
         price = fnum(copy_fill.get("price", copy_fill.get("px", intent.fill.price)), intent.fill.price)
         fill_id = str(copy_fill.get("copy_fill_id") or copy_fill.get("hash") or copy_fill.get("oid") or stable_hash([intent.intent_id, side, size, price, utc_now_ms()]))
+        pending = self.data.setdefault("_pending_copy_fill_rows", {})
+        if copy_fill.get("_crash_match_method") and fill_id in pending:
+            saved = pending[fill_id]
+            return {
+                "copy_fill_id": fill_id,
+                "wallet_position_before": saved["wallet_position_before"],
+                "wallet_position_after": saved["wallet_position_after"],
+                "coin_net_after": saved["coin_net_after"],
+                "ledger_action": saved["ledger_action"],
+            }
         sleeve = self.sleeve(wallet, coin)
         before = fnum(sleeve.get("signed_size"), 0.0)
         before_abs = abs(before)
@@ -3612,14 +3622,39 @@ class ManualLedger:
             "last_updated_ms": utc_now_ms(),
         })
         self._recompute_net(self.data)
-        self.save(touched_sleeves=[(wallet, coin)])
-        return {
+        result = {
             "copy_fill_id": fill_id,
             "wallet_position_before": before,
             "wallet_position_after": after,
             "coin_net_after": self.coin_net(coin),
             "ledger_action": "UPDATED" if direction != "FLAT" else "CLOSED",
         }
+        match_method = str(copy_fill.get("_crash_match_method") or "")
+        if match_method in {"MATCHED_BY_INTENT_ID", "MATCHED_BY_EXCHANGE_ORDER_ID"}:
+            oid = str(copy_fill.get("_crash_exchange_order_id") or
+                      copy_fill.get("oid") or copy_fill.get("exchange_order_id") or "")
+            pending[fill_id] = {
+                "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
+                "copy_fill_id": fill_id, "intent_id": intent.intent_id,
+                "leader_fill_id": intent.fill.leader_fill_id,
+                "leader_wallet": intent.fill.leader_wallet,
+                "sleeve_id": intent.sleeve_id, "position_id": intent.position_id,
+                "coin": coin, "side": side, "fill_price": price, "fill_size": size,
+                "fill_notional": fnum(copy_fill.get("notional"), size * price),
+                "fee": fnum(copy_fill.get("fee"), 0.0),
+                "source": str(copy_fill.get("source", "copy_account_poll")),
+                "exchange_hash": str(copy_fill.get("hash", "")),
+                "exchange_order_id": oid, **result,
+                "notes": f"crash-safe copy application; match_method={match_method}; exchange_order_id={oid}",
+            }
+        # Exposure update and its repairable audit receipt persist atomically.
+        self.save(touched_sleeves=[(wallet, coin)])
+        return result
+
+    def complete_copy_fill(self, copy_fill_id: str) -> None:
+        # No second write: the next ledger save drops it. If killed before that,
+        # the startup matcher checks live_fills.csv before replaying any receipt.
+        self.data.setdefault("_pending_copy_fill_rows", {}).pop(str(copy_fill_id), None)
 
     def close_sleeve_as_exchange_flat(self, wallet: str, coin: str) -> Dict[str, Any]:
         w = normalise_wallet(wallet)
@@ -3703,6 +3738,9 @@ class ManualLedger:
             merged_wallet_map = merged_by_wallet.setdefault(w, {})
             if isinstance(merged_wallet_map, dict):
                 merged_wallet_map[c] = current_wallet_map[c]
+        pending = self.data.get("_pending_copy_fill_rows") or {}
+        if pending:
+            merged.setdefault("_pending_copy_fill_rows", {}).update(pending)
         self.data = merged
         self._last_seen_disk_mtime_ns = disk_mtime_ns
 
@@ -3734,7 +3772,7 @@ def _ledger_locked(fn: Any) -> Any:
 
 
 for _ledger_method in ("sleeve", "wallet_coin_position", "coin_net", "total_abs_exposure_usd", "wallet_abs_exposure_usd",
-                       "classify_leader_side_for_wallet", "apply_copy_fill", "close_sleeve_as_exchange_flat",
+                       "classify_leader_side_for_wallet", "apply_copy_fill", "complete_copy_fill", "close_sleeve_as_exchange_flat",
                        "_recompute_net", "save"):
     setattr(ManualLedger, _ledger_method, _ledger_locked(getattr(ManualLedger, _ledger_method)))
 
