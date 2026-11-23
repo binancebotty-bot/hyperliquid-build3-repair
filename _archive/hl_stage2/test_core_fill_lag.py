@@ -192,10 +192,12 @@ def main() -> None:
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline and str(oid1) not in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}:
         time.sleep(0.1)
-    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set() and cyc.is_alive()
+    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set()  # the integrity rebuild is stuck in its own writer thread; the cycle itself no longer waits on it
           and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
     gate.set()
     cyc.join(30)
+    drain_writers = lambda: [w.join_until(time.monotonic() + 10) for w in (c._LIVE_INTEGRITY_WRITER, new.state_writer._worker)]  # state writes are async
+    drain_writers()
     c.write_live_integrity_status = heavy_integrity
 
     # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
@@ -267,14 +269,21 @@ def main() -> None:
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
     before = c.load_json(c.COPY_POLL_STATE_FILE, {})
     new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
+    drain_writers()
     check("S1_CYCLE_STATE_WRITE_KEEPS_COPY_CURSOR_AND_LAG_RECORD",
           c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
           and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
     # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
+    drain_writers()
     rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
     oid2, side2 = engine_order()
     land(oid2, side2)
-    st2 = new.copy_poll_once(hot=True)
+    real_apply = c.CopyFillMatcher._match_and_apply  # make the section measurably slow so it ranks in the top few (all sections are ~0 ms otherwise)
+    c.CopyFillMatcher._match_and_apply = lambda self, *a, **k: (time.sleep(0.03), real_apply(self, *a, **k))[1]
+    try:
+        st2 = new.copy_poll_once(hot=True)
+    finally:
+        c.CopyFillMatcher._match_and_apply = real_apply
     check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns == rt_mtime)
     check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
           and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
