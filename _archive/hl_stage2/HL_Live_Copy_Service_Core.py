@@ -2859,14 +2859,18 @@ _LEADER_CRASH_JOURNAL_LOCK = threading.Lock()
 
 
 def append_leader_crash_journal(fill: LeaderFill) -> None:
-    """Durably journal a complete leader event before its in-memory acceptance."""
-    if any(getattr(fill, field, None) is None for field in ("side", "price", "size")):
-        return  # partial test/event stubs cannot be replayed as real executions
+    """Always persist an accepted fill's event before in-memory idempotency."""
     entry = {
-        "leader_fill_id": fill.leader_fill_id, "leader_wallet": fill.leader_wallet,
-        "coin": fill.coin, "side": fill.side, "price": fill.price,
-        "size": fill.size, "timestamp_ms": fill.timestamp_ms,
-        "source": fill.source, "ws_received_ms": fill.ws_received_ms, "raw": fill.raw,
+        "leader_fill_id": getattr(fill, "leader_fill_id", ""),
+        "leader_wallet": getattr(fill, "leader_wallet", ""),
+        "coin": getattr(fill, "coin", ""),
+        "side": getattr(fill, "side", None),
+        "price": getattr(fill, "price", None),
+        "size": getattr(fill, "size", None),
+        "timestamp_ms": getattr(fill, "timestamp_ms", 0),
+        "source": getattr(fill, "source", ""),
+        "ws_received_ms": getattr(fill, "ws_received_ms", 0),
+        "raw": getattr(fill, "raw", {}),
     }
     data = (json.dumps(entry, default=str, separators=(",", ":")) + "\n").encode("utf-8")
     path = AUDIT_DIR / "leader_crash_journal.jsonl"
@@ -3237,12 +3241,14 @@ def claim_copy_fill_process_marker(copy_fill_id: str) -> bool:
         fd = os.open(str(marker), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(f"copy_fill_id={copy_fill_id}\nclaimed_at={utc_now_iso()}\npid={os.getpid()}\n")
+            f.flush()
+            os.fsync(f.fileno())  # a claim is not owned until durable on disk
         return True
     except FileExistsError:
         return False
     except Exception as exc:
         log_error("claim_copy_fill_process_marker", exc)
-        return True
+        return False  # fail closed: ledger must never apply without a durable claim
 
 
 DEDUPE_IDS_JSONL_NAME = "dedupe_ids.jsonl"
@@ -9603,6 +9609,14 @@ class LiveCopyCore:
         for fid, data in records.items():
             if fid in attempted:
                 continue  # pending_send and all completed attempts own this cloid
+            if any(data.get(key) is None for key in ("side", "price", "size")):
+                self.audit.append_reconciliation(
+                    "CRASH_RECOVERY", "INVALID_CRASH_JOURNAL_FILL",
+                    leader_fill_id=fid, leader_wallet=str(data.get("leader_wallet") or ""),
+                    coin=str(data.get("coin") or ""),
+                    action="NO_SEND_UNREPLAYABLE_FILL", engine_can_send="False",
+                    notes="durable record exists but missing required execution fields")
+                continue
             fill = LeaderFill(
                 fid, str(data.get("leader_wallet") or ""), str(data.get("coin") or ""),
                 str(data.get("side") or ""), fnum(data.get("price")),
@@ -10428,6 +10442,15 @@ class LiveCopyCore:
         #   â€¢ concurrent threads racing to send the same fill
         # Uses a plain Lock (not RLock) so re-entrancy from the same thread is blocked.
         # Use the ingested execution ID, which distinguishes fills that share a transaction hash.
+        if isinstance(fill, LeaderFill) and any(getattr(fill, field, None) is None
+                                                for field in ("side", "price", "size")):
+            self.audit.append_reconciliation(
+                "LEADER_FILL", "INVALID_LEADER_FILL_PRE_ACCEPT",
+                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                coin=fill.coin, action="NO_SEND_INVALID_FILL",
+                engine_can_send="False", terminal_state="INVALID_LEADER_FILL_PRE_ACCEPT",
+                notes="missing side/price/size; refused before crash journal or idempotency")
+            return False, "INVALID_LEADER_FILL_PRE_ACCEPT", None
         guard_key = self._guard_key(fill)
         with self._idem_lock:
             if self._leader_fill_seen_locked(fill, guard_key):
