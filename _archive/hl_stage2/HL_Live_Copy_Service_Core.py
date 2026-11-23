@@ -4365,7 +4365,9 @@ class SenderGateway:
             known = getattr(self, "_startup_owned_cloids", None)
             if known is None:
                 known, _ = self._engine_owned_cloids_and_oids()
-            if str(cloid).strip().lower() in known:
+            key = str(cloid).strip().lower()
+            if (key in known
+                    and coin in getattr(self, "_cancel_cloid_coins", {}).get(key, set())):
                 return True
         return False
 
@@ -4608,12 +4610,14 @@ class SenderGateway:
     def _engine_owned_cloids_and_oids(self):
         """Known engine client IDs and order IDs backed by a confirmed order record."""
         cloids, oids = set(), set()
+        cloid_coins: Dict[str, set] = {}
         for row in read_csv_rows(SEND_ATTEMPTS_CSV):
             if str(row.get("status") or "").upper() not in _SEND_OID_STATUSES:
                 continue  # a blocked/rejected intent is not proof of an exchange order
             cl = str(row.get("cloid") or "").strip().lower()
             if cl:
                 cloids.add(cl)
+                cloid_coins.setdefault(cl, set()).add(canonical_coin_key(row.get("coin")))
             oid = str(row.get("exchange_order_id") or "").strip()
             if oid and UNVERIFIED_RESTING_ENTRY_REASON not in str(row.get("notes") or ""):
                 oids.add(oid)
@@ -4624,6 +4628,9 @@ class SenderGateway:
                 cl = str(row.get("cloid") or "").strip().lower()
                 if cl and not str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
                     cloids.add(cl)
+                    cloid_coins.setdefault(cl, set()).add(
+                        canonical_coin_key(row.get("sdk_coin") or row.get("coin")))
+        self._cancel_cloid_coins = cloid_coins
         return cloids, oids
 
     def _read_open_orders(self):
