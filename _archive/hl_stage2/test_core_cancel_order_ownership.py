@@ -195,9 +195,11 @@ class CancelOwnershipTests(unittest.TestCase):
     def startup_check(self, dex, order):
         self.sender.cfg.auto_send_enabled = True
         self.sender._read_open_orders = lambda: (True, [(dex, order)], "offline fixture")
-        with mock.patch.object(c, "FOLLOWER_NETWORK", "testnet"), \\
-                mock.patch.object(c, "USER_WALLET", "0x" + "a" * 40), \\
-                mock.patch.dict(os.environ, {"HL_LIVE_MOCK_SEND": "0"}):
+        with (
+            mock.patch.object(c, "FOLLOWER_NETWORK", "testnet"),
+            mock.patch.object(c, "USER_WALLET", "0x" + "a" * 40),
+            mock.patch.dict(os.environ, {"HL_LIVE_MOCK_SEND": "0"}),
+        ):
             return self.sender.startup_orphan_order_check()
 
     def test_startup_ON_wrong_coin_cloid_report_only_never_adopts(self):
