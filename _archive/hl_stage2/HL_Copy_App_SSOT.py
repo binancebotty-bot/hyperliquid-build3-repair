@@ -918,7 +918,9 @@ def _load_live_copy_config() -> Dict[str, Any]:
     cfg["wallets"] = wallets if isinstance(wallets, dict) else {}
     cfg["archived_wallets"] = archived if isinstance(archived, dict) else {}
     gc = cfg.get("global_controls")
-    cfg["global_controls"] = _normalise_global_controls(gc if isinstance(gc, dict) else {})
+    gc = gc if isinstance(gc, dict) else {}
+    # keep keys the form does not own (send_mode, leverage...): normalising alone dropped them on every UI save
+    cfg["global_controls"] = {**{k: v for k, v in gc.items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}, **_normalise_global_controls(gc)}
     return cfg
 
 

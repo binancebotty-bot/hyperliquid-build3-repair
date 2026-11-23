@@ -11,7 +11,7 @@ EXPECTED_FILE = "HL_Live_Copy_Service_Core.py"
 
 def exchange_order_calls():
     calls = []
-    for source_path in sorted(STAGE2.rglob("*.py")):
+    for source_path in sorted(p for p in STAGE2.rglob("*.py") if not p.name.startswith("test_")):  # test fixtures fake an exchange
         tree = ast.parse(source_path.read_text(encoding="utf-8-sig"), filename=str(source_path))
         for node in ast.walk(tree):
             if (
