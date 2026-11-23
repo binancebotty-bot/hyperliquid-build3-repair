@@ -10718,7 +10718,8 @@ class LiveCopyCore:
                     continue
                 if seen_oids is not None:
                     seen_oids.add(CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw)))
-                if self.dedupe.accept_copy(CopyAccountIngestor.copy_fill_id(raw)) and self.matcher.match_and_apply(raw, self.intents_by_id):
+                if self.dedupe.accept_copy(CopyAccountIngestor.copy_fill_id(raw),
+                                           allow_retry=self.matcher.retry_incomplete_claim(CopyAccountIngestor.copy_fill_id(raw))) and self.matcher.match_and_apply(raw, self.intents_by_id):
                     owned += 1
         return owned
 
@@ -10768,7 +10769,8 @@ class LiveCopyCore:
                         copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
                         allow_recovery_retry = (oid in self.matcher.recovery_oid_index
                                                 and copy_id not in self.matcher.matched_copy_fill_ids)
-                        if self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
+                        if self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry or
+                                                     self.matcher.retry_incomplete_claim(copy_id)):
                             self.matcher.match_and_apply(raw_copy, self.intents_by_id)
             with self._snapshot_lock:
                 self.reconciler.fetch_snapshot()
@@ -11059,7 +11061,8 @@ class LiveCopyCore:
                     and recovery_oid in self.matcher.recovery_oid_index
                     and copy_id not in self.matcher.matched_copy_fill_ids
                 )
-                if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
+                if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry or
+                                                     self.matcher.retry_incomplete_claim(copy_id)):
                     summary.copy_fills_deduped += 1
                     continue
                 if self.matcher.match_and_apply(raw_copy, self.intents_by_id):
@@ -11094,7 +11097,8 @@ class LiveCopyCore:
                   for raw_copy, copy_id, oid, fill_ms in ready[i:i + batch]:
                     allow_recovery_retry = bool(oid) and oid in self.matcher.recovery_oid_index \
                         and copy_id not in self.matcher.matched_copy_fill_ids
-                    if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
+                    if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry or
+                                                     self.matcher.retry_incomplete_claim(copy_id)):
                         summary.copy_fills_deduped += 1
                         continue
                     if self.matcher.match_and_apply(raw_copy, self.intents_by_id):
