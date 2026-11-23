@@ -146,18 +146,16 @@ class CrashBoundaryIntegration(unittest.TestCase):
 
     def test_real_L1_journal_hook_before_acceptance(self):
         first = self.new_core()
-        original = c.append_leader_crash_journal
-
-        def die_after_journal(fill):
-            original(fill)
+        def die_before_intent(_fill):
             raise KillPoint()
 
-        # Removing the PRODUCTION append_leader_crash_journal hook makes this
-        # assertion RED: the injected kill is never reached, and no journal exists.
-        with mock.patch.object(c, "append_leader_crash_journal", side_effect=die_after_journal):
-            with self.assertRaises(KillPoint):
-                first._process_leader_fill_inner(self.fill)
-        self.assertNotIn(self.fill.leader_fill_id, first._idem_accepted)
+        # Stop inside the production handler after _idem_accepted.add, but
+        # before order_intents is appended. Removing the production journal
+        # hook leaves no durable record and makes this test RED.
+        first.intent_builder.build = die_before_intent
+        with self.assertRaises(KillPoint):
+            first._process_leader_fill_inner(self.fill)
+        self.assertIn(self.fill.leader_fill_id, first._idem_accepted)
         self.assertFalse(c.ORDER_INTENTS_CSV.exists())
         self.assertTrue((self.audit_dir / "leader_crash_journal.jsonl").is_file())
         self.assert_once_after_restart()
@@ -221,11 +219,13 @@ class CrashBoundaryIntegration(unittest.TestCase):
             return original(fd)
 
         with mock.patch.object(c.os, "fsync", side_effect=fail_on_pending):
-            with self.assertRaises(OSError):
-                first._process_leader_fill_inner(self.fill)
+            result = first._process_leader_fill_inner(self.fill)
+        # The production handler catches sender errors; a failed fsync must
+        # yield a no-send terminal result, not a physical exchange call.
+        self.assertEqual(result[1], "SEND_EXCEPTION")
         self.assertGreaterEqual(len(fsync_count), 3)
         self.assertEqual(self.wire_calls, [])
-        # Removing the pending_send fsync makes this RED.
+        # Removing pending-send fsync instead reaches the fake exchange: RED.
 
     def test_marker_IO_failure_refuses_copy_ledger_mutation(self):
         ledger = c.ManualLedger(path=c.MANUAL_LIVE_POSITIONS_FILE)
