@@ -16,11 +16,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-os.environ.setdefault("HL_LIVE_ENV_FILE", "/nonexistent")
-os.environ.setdefault("HL_LEADER_NETWORK", "testnet")
-os.environ.setdefault("HL_FOLLOWER_NETWORK", "testnet")
-os.environ.setdefault("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS", "0")
-os.environ.setdefault("HL_LIVE_SCOPE_SWEEP_THREAD", "0")
+os.environ.update({
+    "HL_LIVE_ENV_FILE": "/nonexistent",
+    "HL_LEADER_NETWORK": "testnet",
+    "HL_FOLLOWER_NETWORK": "testnet",
+    "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0",
+    "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
+})
 import HL_Live_Copy_Service_Core as c
 
 
