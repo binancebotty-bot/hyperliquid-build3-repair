@@ -248,6 +248,31 @@ class CancelOwnershipTests(unittest.TestCase):
         self.assertEqual(list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV)), before)
         self.assertEqual(self.wire.cancels, [])
 
+    def test_direct_promotion_rejects_wrong_coin_without_writing_send_index(self):
+        cloid = c.generate_cloid("eth-only-direct")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "eth-direct", "intent_id": "eth-only-direct",
+            "coin": "ETH", "cloid": cloid, "status": "pending_send"})
+        before = list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV))
+        self.assertFalse(self.sender._promote_pending_row_to_resting(cloid, "125", "BTC"))
+        self.assertEqual(list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV)), before)
+
+    def test_startup_CLOSE_same_coin_wrong_dex_never_cancels_or_promotes(self):
+        self.mode = "CLOSE"
+        cloid = c.generate_cloid("one-btc-close")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "one-btc-close", "intent_id": "one-btc-close",
+            "coin": "one:BTC", "cloid": cloid, "status": "pending_send"})
+        before = list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV))
+        out = self.startup_check("two", {"oid": 126, "coin": "BTC", "cloid": cloid,
+                                        "side": "B", "sz": "1", "limitPx": "100"})
+        self.assertEqual(out["cancelled"], [])
+        self.assertEqual(out["adopted"], [])
+        self.assertEqual(len(out["reported"]), 1)
+        self.assertEqual(self.wire.cancels, [])
+        self.assertEqual(list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV)), before)
+        self.assertNotIn("126", self.sender._resting_entries)
+
     def test_startup_CLOSE_cancel_failure_same_coin_preserves_link(self):
         self.mode = "CLOSE"
         cloid = c.generate_cloid("owned-btc-partfill")
