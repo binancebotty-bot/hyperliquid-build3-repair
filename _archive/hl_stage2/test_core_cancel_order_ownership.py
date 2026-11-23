@@ -181,10 +181,88 @@ class CancelOwnershipTests(unittest.TestCase):
         c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
             "attempt_id": "eth-attempt", "intent_id": "eth-only-intent",
             "coin": "ETH", "cloid": cloid, "status": "pending_send"})
+        before = list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV))
         self.sender._cancel_orphan_order("", {
             "oid": 120, "coin": "BTC", "cloid": cloid})
         self.assertEqual(self.wire.cancels, [])
         self.assertTrue(any("OWNERSHIP" in status for _, status, _ in self.audit.rows))
+        # The failed cancel MUST NOT promote the ETH send attempt to own BTC oid=120.
+        self.assertEqual(list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV)), before)
+        self.assertFalse(any(row.get("exchange_order_id") == "120"
+                             for row in c.read_csv_rows(c.SEND_ATTEMPTS_CSV)))
+        self.assertNotIn("120", self.sender._resting_entries)
+
+    def startup_check(self, dex, order):
+        self.sender.cfg.auto_send_enabled = True
+        self.sender._read_open_orders = lambda: (True, [(dex, order)], "offline fixture")
+        with mock.patch.object(c, "FOLLOWER_NETWORK", "testnet"), \\
+                mock.patch.object(c, "USER_WALLET", "0x" + "a" * 40), \\
+                mock.patch.dict(os.environ, {"HL_LIVE_MOCK_SEND": "0"}):
+            return self.sender.startup_orphan_order_check()
+
+    def test_startup_ON_wrong_coin_cloid_report_only_never_adopts(self):
+        self.mode = "ON"
+        cloid = c.generate_cloid("owned-only-eth")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "eth-only", "intent_id": "owned-only-eth",
+            "coin": "ETH", "cloid": cloid, "status": "pending_send"})
+        before = list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV))
+        out = self.startup_check("", {"oid": 121, "coin": "BTC", "cloid": cloid,
+                                     "side": "B", "sz": "1", "limitPx": "100"})
+        self.assertEqual(out["adopted"], [])
+        self.assertEqual(out["cancelled"], [])
+        self.assertEqual(len(out["reported"]), 1)
+        self.assertNotIn("121", self.sender._resting_entries)
+        self.assertFalse(c.RESTING_ENTRY_ORDERS_FILE.exists())
+        self.assertEqual(list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV)), before)
+        self.assertEqual(self.wire.cancels, [])
+
+    def test_startup_ON_same_coin_cloid_still_adopts_and_promotes(self):
+        self.mode = "ON"
+        cloid = c.generate_cloid("owned-btc-on")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "btc-on", "intent_id": "owned-btc-on",
+            "coin": "BTC", "cloid": cloid, "status": "pending_send"})
+        out = self.startup_check("", {"oid": 122, "coin": "BTC", "cloid": cloid,
+                                     "side": "B", "sz": "1", "limitPx": "100"})
+        self.assertEqual(len(out["adopted"]), 1)
+        self.assertIn("122", self.sender._resting_entries)
+        rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
+                if r.get("attempt_id") == "btc-on"]
+        self.assertEqual(rows[-1]["status"], "ORDER_RESTING")
+        self.assertEqual(rows[-1]["exchange_order_id"], "122")
+        self.assertEqual(self.wire.cancels, [])
+
+    def test_startup_ON_same_coin_different_dex_is_not_owned(self):
+        self.mode = "ON"
+        cloid = c.generate_cloid("dex-one-btc")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "dex1-btc", "intent_id": "dex-one-btc",
+            "coin": "one:BTC", "cloid": cloid, "status": "pending_send"})
+        before = list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV))
+        out = self.startup_check("two", {"oid": 123, "coin": "BTC", "cloid": cloid,
+                                        "side": "B", "sz": "1", "limitPx": "100"})
+        self.assertEqual(out["adopted"], [])
+        self.assertEqual(len(out["reported"]), 1)
+        self.assertNotIn("123", self.sender._resting_entries)
+        self.assertEqual(list(c.read_csv_rows(c.SEND_ATTEMPTS_CSV)), before)
+        self.assertEqual(self.wire.cancels, [])
+
+    def test_startup_CLOSE_cancel_failure_same_coin_preserves_link(self):
+        self.mode = "CLOSE"
+        cloid = c.generate_cloid("owned-btc-partfill")
+        c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS, {
+            "attempt_id": "owned-btc-partfill", "intent_id": "owned-btc-partfill",
+            "coin": "BTC", "cloid": cloid, "status": "pending_send"})
+        self.wire.cancel = lambda *_args: {"response": {"data": {"statuses": [{"error": "temporary failure"}]}}}
+        out = self.startup_check("", {"oid": 124, "coin": "BTC", "cloid": cloid,
+                                     "side": "B", "sz": "1", "limitPx": "100"})
+        self.assertEqual(len(out["cancelled"]), 1)
+        self.assertEqual(out["cancelled"][0]["outcome"], "ORPHAN_ORDER_CANCEL_FAILED")
+        rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
+                if r.get("attempt_id") == "owned-btc-partfill"]
+        self.assertEqual(rows[-1]["status"], "ORDER_RESTING")
+        self.assertEqual(rows[-1]["exchange_order_id"], "124")
 
     def test_real_standing_guard_cancels_owned_order_with_mismatched_nets(self):
         self.own_standing(110)
