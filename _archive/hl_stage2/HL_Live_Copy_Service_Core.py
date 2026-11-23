@@ -9501,6 +9501,83 @@ class LiveCopyCore:
             t.start()
             self._hot_threads.append(t)
 
+    def _replay_crashed_leader_fills_once(self) -> None:
+        """Replay unattempted fills from durable journal; pending send is NEVER retried."""
+        if getattr(self, "_crash_replay_checked", False):
+            return
+        journal = AUDIT_DIR / "leader_crash_journal.jsonl"
+        if not journal.exists():
+            self._crash_replay_checked = True
+            return
+        records: Dict[str, Dict[str, Any]] = {}
+        with journal.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    item = json.loads(line)
+                    fid = str(item.get("leader_fill_id") or "").strip()
+                    if fid:
+                        records[fid] = item
+                except (ValueError, TypeError):
+                    continue  # torn final line cannot authorize an exchange order
+        attempted = {str(row.get("leader_fill_id") or "").strip()
+                     for row in iter_csv_rows(SEND_ATTEMPTS_CSV)}
+        candidates = []
+        for fid, data in records.items():
+            if fid in attempted:
+                continue  # pending_send and all completed attempts own this cloid
+            fill = LeaderFill(
+                fid, str(data.get("leader_wallet") or ""), str(data.get("coin") or ""),
+                str(data.get("side") or ""), fnum(data.get("price")),
+                fnum(data.get("size")), int(fnum(data.get("timestamp_ms"))),
+                "CRASH_RECOVERY", int(fnum(data.get("ws_received_ms"))),
+                data.get("raw") if isinstance(data.get("raw"), dict) else {},
+            )
+            if fill.timestamp_ms < utc_now_ms() - max(0, STALE_REPLAY_GRACE_MS):
+                try:
+                    lifecycle, _ = self.ledger.classify_leader_side_for_wallet(
+                        fill.leader_wallet, fill.coin, fill.side)
+                except Exception:
+                    lifecycle = ""
+                if lifecycle not in {"EXIT", "REDUCE"}:
+                    self.audit.append_reconciliation(
+                        "CRASH_RECOVERY", "STALE_CRASH_ENTRY_NOT_SENT",
+                        leader_fill_id=fid, leader_wallet=fill.leader_wallet,
+                        coin=fill.coin, action="NO_SEND_STALE_ENTRY",
+                        engine_can_send="False",
+                        notes="unattempted entry exceeded stale replay grace")
+                    continue
+            candidates.append(fill)
+        if not candidates:
+            self._crash_replay_checked = True
+            return
+        if self.cfg.send_mode_now() == "OFF" or not self.cfg.master_switch_now():
+            return  # defer; do not consume entries while sending is switched off
+        ok, orders, detail = self.sender._read_open_orders()
+        if not ok:
+            self.audit.append_reconciliation(
+                "CRASH_RECOVERY", "OPEN_ORDER_CHECK_UNAVAILABLE",
+                action="NO_RESEND_UNPROVEN", engine_can_send="False",
+                notes=f"crash replay deferred: {detail}")
+            return
+        open_cloids = {str(o.get("cloid") or "").strip().lower() for _dex, o in orders}
+        for fill in candidates:
+            intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet,
+                                     fill.coin, fill.side, fill.timestamp_ms])
+            cloid = generate_cloid(intent_id).lower()
+            if cloid in open_cloids:
+                self.audit.append_reconciliation(
+                    "CRASH_RECOVERY", "EXISTING_ORDER_BY_CLOID",
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin,
+                    intent_id=intent_id, action="NO_DUPLICATE_ORDER",
+                    engine_can_send="False", notes=f"open order already carries cloid={cloid}")
+                continue
+            with self.dedupe._lock:
+                self.dedupe.processed.discard(fill.leader_fill_id)
+            with self._idem_lock:
+                self._idem_accepted.discard(self._guard_key(fill))
+            self._process_leader_fill(fill)
+        self._crash_replay_checked = True
+
     def stop(self) -> None:
         try:  # T1c: cancel resting entry limits FIRST, before the process exits
             self.sender.stop_cancel_resting_entries()
@@ -11155,6 +11232,10 @@ class LiveCopyCore:
             self.sender.cfg = self.cfg
         except Exception as exc:
             log_error("hot_config_reload", exc)
+        try:
+            self._replay_crashed_leader_fills_once()
+        except Exception as exc:
+            log_error("crash_replay", exc)
         wallet_modes = self.cfg.wallet_mode_counts()
         master_enabled = self.cfg.master_real_orders_enabled
         summary = CycleSummary(
