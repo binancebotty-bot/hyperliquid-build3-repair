@@ -3810,7 +3810,8 @@ class AuditLogWriter:
             "min_notional": "",
             "notes": intent.notes,
         })
-        with ORDER_INTENTS_CSV.open("rb") as fh:
+        with ORDER_INTENTS_CSV.open("ab") as fh:
+            fh.flush()
             os.fsync(fh.fileno())
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
@@ -3830,7 +3831,8 @@ class AuditLogWriter:
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
         if str(row.get("status") or "").lower() == "pending_send":
-            with SEND_ATTEMPTS_CSV.open("rb") as fh:
+            with SEND_ATTEMPTS_CSV.open("ab") as fh:
+                fh.flush()
                 os.fsync(fh.fileno())
         self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
