@@ -9037,6 +9037,17 @@ class CopyFillMatcher:
             if sent_row:
                 if self._apply_oid_matched_copy_fill(copy_fill, sent_row, norm_oid, copy_id):
                     return True
+            elif not self._is_liquidation_fill(copy_fill):
+                # An exchange OID that is absent from every engine-owned send/recovery
+                # record cannot be attributed by nearby time, side, or an intent hint.
+                # The poll can retry after the pending send is finalised.
+                self.audit.append_reconciliation(
+                    "COPY_FILL", "FOREIGN_OID_NOT_ENGINE_OWNED", copy_fill_id=copy_id,
+                    coin=copy_fill.get("coin", ""), exchange_order_id=norm_oid,
+                    action="REPORT_ONLY_NO_LEDGER_APPLY", engine_can_send="False",
+                    terminal_state="FOREIGN_OID_NOT_ENGINE_OWNED",
+                    notes="OID absent from engine send_attempt/recovery registry; no positional fallback")
+                return False
         if self._is_liquidation_fill(copy_fill):  # the exchange's order, not ours: no intent may be guessed for it
             return self._try_apply_liquidation(copy_fill, copy_id)
         intent = self._choose_intent(copy_fill, intents_by_id)
