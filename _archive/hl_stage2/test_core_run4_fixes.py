@@ -320,27 +320,34 @@ def main() -> None:
     led.sleeve(A, "BTC")["signed_size"] = 1.5   # the copy poll owned the 0.5 part fill
     led._recompute_net(led.data)
     snapshot(1.5)
+    config(send_mode="CLOSE", marketable_bps=20)
+    g._fresh_exchange_net = lambda _coin: 1.5
     fake.calls.clear()
     nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long"))
     ok, status, res = send_real(g, nxt)
     check("P3_NEXT_CLOSE_WITHDRAWS_THE_STANDING_ONE_FIRST",
           fake.cancels == [int(standing[first.sleeve_id]["oid"])] and fake.calls and fake.calls[0]["tif"] == "Ioc"
-          and abs(fake.calls[0]["size"] - 1.5) < 1e-9 and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
+          and fake.calls[0]["reduce_only"] and abs(fake.calls[0]["size"] - 1.5) < 1e-9
+          and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
     # cancelled after it part-filled 0.5, a fill the ledger has not seen yet: the next close is 0.5 smaller
+    config(send=True, marketable_bps=20)
     led = ledger("p3b", a_btc=1.5)
     fake = CancelExchange([part], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long")))
     status_of.update(orig=1.125, left=0.625)
+    g._fresh_exchange_net = lambda _coin: 1.5
     fake.calls.clear()
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long")))
     check("P3_PART_FILLED_STANDING_CLOSE_NOT_CLOSED_TWICE", fake.calls and abs(fake.calls[0]["size"] - 1.0) < 1e-9,
           str(fake.calls))
     c.OPEN_ORDERS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("status unreadable"))
     led = ledger("p3c", a_btc=2.0)
+    snapshot(2.0)
     fake = CancelExchange([part], ok_cancel)
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    g._fresh_exchange_net = lambda _coin: 2.0
     fake.calls.clear()
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P3_UNREADABLE_STATUS_ASSUMES_THE_STANDING_CLOSE_FILLED", fake.calls and abs(fake.calls[0]["size"] - 0.5) < 1e-9,
@@ -359,6 +366,7 @@ def main() -> None:
         led.sleeve(A, "BTC")["signed_size"] = 0.0
         led._recompute_net(led.data)
     g.truth_refresh = owned_both
+    g._fresh_exchange_net = lambda _coin: 2.0
     fake.calls.clear()
     ok, status, res = send_real(g, nxt)
     check("P4_STANDING_CLOSE_ALREADY_FILLED_NOTHING_MORE_SENT", not fake.calls
@@ -368,6 +376,7 @@ def main() -> None:
     fake = CancelExchange([part], RuntimeError("timeout"))
     g = gateway(fake, led)
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    g._fresh_exchange_net = lambda _coin: 2.0
     fake.calls.clear()
     ok, status, res = send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P5_CANCEL_FAILED_STANDING_CLOSE_KEEPS_WORKING_NO_SECOND_CLOSE",
@@ -382,9 +391,9 @@ def main() -> None:
     fake = FakeExchange([NO_MATCH])
     g = gateway(fake, led)
     time.sleep(0.02)
-    config(send=False, marketable_bps=20)   # switched off while the close was being sent
+    config(send=False, marketable_bps=20)   # OFF before the direct initial-send attempt
     send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
-    check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
+    check("P7_SWITCH_OFF_BEFORE_INITIAL_SEND_SENDS_NOTHING", not fake.calls, str(fake.calls))
 
     # ---- U: pending-exit guard is not "unclassified" ------------------------------------------------------------
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
@@ -454,7 +463,7 @@ def main() -> None:
     core.stop()
 
     # ---- O: one resting entry limit per leader, coin and side ---------------------------------------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)  # O1-O3 send cases require the master real-orders switch armed
     saved_leader = c.LEADER_NETWORK
     c.LEADER_NETWORK = c.FOLLOWER_NETWORK
     try:

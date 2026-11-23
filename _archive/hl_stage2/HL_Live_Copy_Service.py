@@ -1359,8 +1359,37 @@ class LeaderFill:
     raw: Dict[str, Any]
 
     @property
+    def dedupe_key(self) -> str:
+        oid = str(self.raw.get("oid") or "").strip()
+        tid = self.raw.get("tid")
+        fill_hash = self.raw.get("hash")
+        if tid is not None and tid != "":
+            identity = f"tid:{tid}"
+        elif not oid:
+            return self.fill_id
+        elif fill_hash:
+            identity = f"hash:{fill_hash}:{self.size}:{self.timestamp_ms}:{self.price}"
+        else:
+            identity = f"id:{self.fill_id}"
+        return f"order-fill:{self.wallet.lower().strip()}:{oid}:{identity}"
+
+    @property
     def notional(self) -> float:
         return abs(self.price * self.size)
+
+
+@dataclass(frozen=True)
+class LeaderEventPreview:
+    before: float
+    after: float
+    copy_before: float
+    copy_after: float
+    fixed_sleeve: Optional[Dict[str, Any]]
+    proportional_hold: bool = False
+
+    @property
+    def is_flip(self) -> bool:
+        return self.before * self.after < 0
 
 
 def parse_raw_json(text: str) -> Dict[str, Any]:
@@ -1433,10 +1462,15 @@ def parse_api_leader_fill(wallet: str, raw: Dict[str, Any]) -> Optional[LeaderFi
     side = normalise_side(raw_get(raw, "side", "dir", "direction"), size, start_pos)
     delta = size if side == "BUY" else -size
     oid = str(raw_get(raw, "oid", "hash", "tid", "id", default=""))
-    fill_id = str(raw_get(raw, "fill_id", default="")) or f"{wallet}:{coin}:{ts}:{side}:{size:.12g}:{price:.12g}:{oid}"
+    fill_id = raw.get("fill_id")
+    if fill_id is None or fill_id == "":
+        fill_id = f"{wallet}:{coin}:{ts}:{side}:{size:.12g}:{price:.12g}:{oid}"
+        tid = raw.get("tid")
+        if tid is not None and tid != "":
+            fill_id += f":tid:{tid}"
 
     return LeaderFill(
-        fill_id=fill_id,
+        fill_id=str(fill_id),
         wallet=wallet,
         coin=coin,
         side=side,
@@ -1595,15 +1629,37 @@ def parse_ws_snapshot_leader_fill(wallet: str, raw: Dict[str, Any]) -> Optional[
     )
 
 
+def _fill_cursor_rejection(baseline: Dict[str, Any], fill: LeaderFill) -> str:
+    timestamp_ms = inum(baseline.get("baseline_ts_ms"))
+    if fill.timestamp_ms == timestamp_ms:
+        keys = baseline.get("baseline_fill_keys")
+        # A bootstrap or legacy cursor has an exclusive timestamp cutoff.
+        if isinstance(keys, list) and keys:
+            return "DUPLICATE" if fill.dedupe_key in keys else ""
+    return "PREBASELINE" if fill.timestamp_ms <= timestamp_ms else ""
+
+
+def _advance_fill_cursor(baseline: Dict[str, Any], fill: LeaderFill) -> None:
+    timestamp_ms = inum(baseline.get("baseline_ts_ms"))
+    if fill.timestamp_ms < timestamp_ms:
+        return
+    if fill.timestamp_ms > timestamp_ms:
+        baseline["baseline_fill_keys"] = []
+    baseline["baseline_fill_keys"].append(fill.dedupe_key)
+    baseline["baseline_ts_ms"] = fill.timestamp_ms
+    baseline["baseline_fill_id"] = fill.fill_id
+
+
 def should_recover_ws_snapshot_fill(service: Any, wallet_status: Dict[str, Any], wallet: str, fill: LeaderFill) -> str:
     wallet = str(wallet or fill.wallet or "").lower()
     baselines = getattr(service, "state", {}).get("baselines", {})
     baseline = baselines.get(wallet) if isinstance(baselines, dict) else None
     if not isinstance(baseline, dict):
         return "PREBASELINE"
-    if fill.timestamp_ms <= inum(baseline.get("baseline_ts_ms")):
-        return "PREBASELINE"
-    if fill.fill_id in getattr(service, "processed_ids", set()):
+    rejection = _fill_cursor_rejection(baseline, fill)
+    if rejection:
+        return rejection
+    if fill.dedupe_key in getattr(service, "processed_ids", set()):
         return "DUPLICATE"
     last_open_ms = inum((wallet_status or {}).get("last_open_ms"))
     if last_open_ms and fill.timestamp_ms < last_open_ms - LIVE_WS_SNAPSHOT_RECOVERY_GRACE_MS:
@@ -1787,9 +1843,12 @@ def load_leader_fills(path: Optional[Path] = None) -> List[LeaderFill]:
     with path.open("r", newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             fill = parse_leader_fill_row(row)
-            if fill is None or fill.fill_id in seen:
+            if fill is None:
                 continue
-            seen.add(fill.fill_id)
+            key = fill.dedupe_key
+            if key in seen:
+                continue
+            seen.add(key)
             fills.append(fill)
     fills.sort(key=lambda x: (x.timestamp_ms, x.wallet, x.coin, x.fill_id))
     return fills
@@ -1971,6 +2030,8 @@ class DryRunLiveCopyService:
                 self.processed_id_order.append(fill_id)
                 seen_processed.add(fill_id)
         self.processed_ids = set(self.processed_id_order)
+        self.dedupe_ids = set()
+        self.dedupe_lock = threading.Lock()
         # validate the persisted lineage checkpoint ONLY after the processed-event ledger is loaded
         self.lineage_valid = self._lineage_checkpoint_valid()
         self.quote_cache: Dict[str, Dict[str, Any]] = {}
@@ -2030,11 +2091,12 @@ class DryRunLiveCopyService:
 
     def persist(self) -> None:
         self.state["updated_at"] = utc_now_iso()
-        missing = [x for x in sorted(self.processed_ids) if x not in set(self.processed_id_order)]
-        self.processed_id_order.extend(missing)
-        self.processed_id_order = [x for x in self.processed_id_order if x in self.processed_ids][-250_000:]
-        self.processed_ids = set(self.processed_id_order)
-        self.state["processed_leader_fill_ids"] = list(self.processed_id_order)
+        with self.dedupe_lock:
+            ordered_ids = set(self.processed_id_order)
+            self.processed_id_order.extend(sorted(self.processed_ids - ordered_ids))
+            self.processed_id_order = [x for x in self.processed_id_order if x in self.processed_ids][-250_000:]
+            self.processed_ids = set(self.processed_id_order)
+            self.state["processed_leader_fill_ids"] = list(self.processed_id_order)
         self.state["audit_dir"] = str(AUDIT_DIR)
         # DURABLE_IN_FLIGHT_STATE_CLOBBER: durable in-flight checkpoints are authored on disk at the
         # send boundary; a routine persist() must never rewrite them from a stale self.state.
@@ -2077,13 +2139,15 @@ class DryRunLiveCopyService:
         return f"{wallet.lower()}::{coin.upper()}"
 
     def get_position(self, wallet: str, coin: str) -> Dict[str, Any]:
-        key = self.position_key(wallet, coin)
-        return self.positions.setdefault(key, {
+        pos = self.positions.get(self.position_key(wallet, coin))
+        if pos is not None:
+            return pos
+        return {
             "leader_wallet": wallet.lower(), "coin": coin.upper(), "signed_size": 0.0,
             "side": "FLAT", "avg_entry_price": 0.0, "last_price": 0.0,
             "realized_pnl": 0.0, "unrealized_pnl": 0.0, "notional": 0.0,
             "updated_at": utc_now_iso(), "source": "dry_run",
-        })
+        }
 
     def update_equity(self, cfg: LiveWalletConfig, fill: LeaderFill) -> None:
         wallet_positions = [p for p in self.positions.values() if isinstance(p, dict) and str(p.get("leader_wallet", "")).lower() == cfg.wallet]
@@ -2115,7 +2179,30 @@ class DryRunLiveCopyService:
         return fill.notional * (cfg.norm_base / cfg.leader_equity_base)
 
     # --- G2: event-authorised desired exposure (replaces blind per-fill sizing) ---
-    def apply_leader_event(self, cfg: LiveWalletConfig, fill: LeaderFill) -> float:
+    def preview_leader_event(self, cfg: LiveWalletConfig, fill: LeaderFill) -> LeaderEventPreview:
+        key = self.position_key(cfg.wallet, fill.coin)
+        store = self.state.get("leader_event_positions")
+        before = fnum(store.get(key)) if isinstance(store, dict) else 0.0
+        delta = fnum(fill.signed_size_delta)
+        after = before + delta
+        if abs(after) < 1e-12:
+            after = 0.0
+        copy_positions = self.state.get("leader_copy_positions", {})
+        copy_before = fnum(copy_positions.get(key, before))
+        copy_after = after
+        if before * after > 0 and copy_before != before:
+            # Same-side reductions draw down the copied basis and stop at flat.
+            copy_after = max(0.0, copy_before + delta) if after > 0 else min(0.0, copy_before + delta)
+            if abs(copy_after) < 1e-12:
+                copy_after = 0.0
+        held_side = fnum((self.state.get("proportional_flip_holds") or {}).get(key))
+        held = cfg.copy_mode == "proportional" and held_side * after > 0 and abs(after) <= abs(before)
+        sleeve = self.fixed_sleeve_after_event(cfg, fill, copy_before, copy_after)
+        return LeaderEventPreview(before, after, copy_before, copy_after, sleeve, held)
+
+    def apply_leader_event(self, cfg: LiveWalletConfig, fill: LeaderFill, *,
+                           preview: Optional[LeaderEventPreview] = None,
+                           cap_refused: bool = False) -> float:
         """Mutate the genuine post-baseline leader EVENT lineage for (wallet, coin).
 
         The ONLY writer of desired-exposure authority. Called once per genuine post-baseline
@@ -2126,22 +2213,41 @@ class DryRunLiveCopyService:
             store = {}
             self.state["leader_event_positions"] = store
         key = self.position_key(cfg.wallet, fill.coin)
-        new_signed = fnum(store.get(key)) + fnum(fill.signed_size_delta)
-        if abs(new_signed) < 1e-12:
-            new_signed = 0.0
-        store[key] = new_signed
+        preview = preview if preview is not None else self.preview_leader_event(cfg, fill)
+        store[key] = preview.after
         # durably couple the checkpoint to THIS processed event's identity (Architect ruling)
         ck = self.state.get("leader_event_checkpoint")
         seq = int(ck.get("seq", 0)) if isinstance(ck, dict) else 0
         self.state["leader_event_checkpoint"] = {"seq": seq + 1, "last_fill_id": fill.fill_id}
         self.lineage_valid = True
+        # Store a separate sizing basis only while it differs from the raw leader position.
+        copy_position = preview.copy_before if cap_refused else preview.copy_after
+        if copy_position != preview.after:
+            self.state.setdefault("leader_copy_positions", {})[key] = copy_position
+        elif "leader_copy_positions" in self.state:
+            self.state["leader_copy_positions"].pop(key, None)
+        if cap_refused:
+            return preview.after
         # G4 (Architect ruling b35be5e9): 8014 event-sliced attributed-sleeve authority for FIXED mode.
         # THIS is the only mint site and it is reached once per genuine deduplicated post-baseline
         # event: duplicate WS fragments, replay rows, recovery snapshots, startup positions and
         # rebaseline/current-position observations never reach apply_leader_event, so by construction
         # they mint ZERO slice authority.
-        self.apply_fixed_sleeve_event(cfg, fill, new_signed)
-        return new_signed
+        if preview.fixed_sleeve is not None:
+            led = self.state.get("fixed_sleeves")
+            if not isinstance(led, dict):
+                led = {}
+                self.state["fixed_sleeves"] = led
+            per = led.get(cfg.wallet)
+            if not isinstance(per, dict):
+                per = {}
+                led[cfg.wallet] = per
+            per[fill.coin.upper()] = preview.fixed_sleeve
+        if preview.proportional_hold:
+            self.state.setdefault("proportional_flip_holds", {})[key] = 1 if preview.after > 0 else -1
+        elif "proportional_flip_holds" in self.state:
+            self.state["proportional_flip_holds"].pop(key, None)
+        return preview.after
 
     def fixed_sleeve_units(self, wallet: str, coin: str) -> float:
         """Persisted attributed fixed-sleeve magnitude for (wallet, coin) - EXISTING state file only."""
@@ -2205,17 +2311,19 @@ class DryRunLiveCopyService:
                 out[wallet] = self.fixed_sleeve_units(wallet, coin)
         return out
 
-    def apply_fixed_sleeve_event(self, cfg: LiveWalletConfig, fill: LeaderFill, leader_signed_after: float) -> None:
+    def fixed_sleeve_after_event(
+        self, cfg: LiveWalletConfig, fill: LeaderFill, before: float, after: float,
+    ) -> Optional[Dict[str, Any]]:
         """F1-F9: 8014 event-sliced attributed-sleeve transitions for a fixed-mode wallet.
 
         F1 first OPEN -> exactly one slice; F2 distinct INCREASE -> exactly one more slice; F3 slice
         size = fixed_notional / mark_price; F4/F5 REDUCE -> the same fraction of the CURRENT
         attributed sleeve as the leader reduction is of its start position; F6 CLOSE -> zero;
         F7 FLIP -> zero then exactly one new opposite slice; F8 other sleeves/inventory untouched;
-        F9 leader-event magnitude never scales a slice. Writes only self.state (no new store).
+        F9 leader-event magnitude never scales a slice.
         """
         if str(getattr(cfg, "copy_mode", "") or "").lower().strip() != "fixed":
-            return
+            return None
         wallet = str(getattr(cfg, "wallet", ""))
         coin = str(getattr(fill, "coin", "")).upper()
         fixed_notional = fnum(getattr(cfg, "fixed_notional", 0.0))
@@ -2225,21 +2333,13 @@ class DryRunLiveCopyService:
             or fnum(getattr(fill, "price", None))
         )
         if not wallet or not coin or fixed_notional <= 0 or mark <= 0:
-            return  # no authority without wallet/coin/notional/price (missing mark -> zero authority)
-        led = self.state.setdefault("fixed_sleeves", {})
-        if not isinstance(led, dict):
-            led = {}
-            self.state["fixed_sleeves"] = led
-        per = led.setdefault(wallet, {})
-        if not isinstance(per, dict):
-            per = {}
-            led[wallet] = per
-        sleeve = per.get(coin)
+            return None  # no authority without wallet/coin/notional/price
+        led = self.state.get("fixed_sleeves")
+        per = led.get(wallet) if isinstance(led, dict) else None
+        sleeve = per.get(coin) if isinstance(per, dict) else None
         if not isinstance(sleeve, dict):
             sleeve = {"side": 0, "slices": []}
 
-        after = fnum(leader_signed_after)
-        before = after - fnum(getattr(fill, "signed_size_delta", 0.0))
         sb = 1 if before > 0 else (-1 if before < 0 else 0)
         sa = 1 if after > 0 else (-1 if after < 0 else 0)
         lb = abs(before)
@@ -2247,30 +2347,18 @@ class DryRunLiveCopyService:
         slice_units = fixed_notional / mark
 
         if sa == 0:                      # F6 CLOSE -> attributed sleeve zero
-            per[coin] = {"side": 0, "slices": []}
+            return {"side": 0, "slices": []}
         elif sb != sa:                   # F1 open from flat / F7 FLIP -> exactly one new slice
-            # G4-C1 correction (Controller B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1): a FLIP reduces the
-            # absolute leader magnitude but OPENS a fresh opposite-side fixed sleeve under F7, so it
-            # is a NEW ENTRY for the cap. When that opposite entry's fixed notional exceeds the
-            # operator max_order_notional_usd it gets ZERO authority: the old side still closes (the
-            # flip's exit leg is preserved) but the new opposite slice is never minted, so desired
-            # collapses to 0 and no executable opposite entry can be planned.
-            _cap = self.global_order_cap()
-            if sb != 0 and _cap > 0 and fnum(fixed_notional) > _cap + 1e-12:
-                self.bump("entries_blocked_global_max_order_notional")
-                per[coin] = {"side": 0, "slices": []}
-            else:
-                per[coin] = {"side": sa, "slices": [slice_units]}
+            return {"side": sa, "slices": [slice_units]}
         elif la > lb:                    # F2/F9 INCREASE -> exactly one more slice, magnitude-agnostic
             sl = [fnum(u) for u in (sleeve.get("slices") or [])]
             sl.append(slice_units)
-            per[coin] = {"side": sa, "slices": sl}
+            return {"side": sa, "slices": sl}
         else:                            # F4/F5 REDUCE -> same fraction of CURRENT attributed sleeve
             frac = ((lb - la) / lb) if lb > 0 else 0.0
             sl = [fnum(u) * (1.0 - frac) for u in (sleeve.get("slices") or [])]
             sl = [u for u in sl if u > 0]
-            per[coin] = {"side": sa, "slices": sl}
-        self.state["fixed_sleeves"] = led
+            return {"side": sa, "slices": sl}
 
     def leader_signed_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
         store = self.state.get("leader_event_positions", {})
@@ -2426,19 +2514,42 @@ class DryRunLiveCopyService:
                     "master_net": fnum(raw_master_net), "tolerance": tolerance}
         return {"ok": True, "status": "OK", "expected": expected}
 
+    def desired_for_coin(
+        self, coin: str, configs: Dict[str, LiveWalletConfig], *,
+        wallet: str = "", preview: Optional[LeaderEventPreview] = None,
+    ) -> Dict[str, Any]:
+        leaders = self.leader_signed_by_wallet(coin, configs)
+        copy_positions = self.state.get("leader_copy_positions", {})
+        holds = self.state.get("proportional_flip_holds") or {}
+        for name in tuple(leaders):
+            key = self.position_key(name, coin)
+            signed = fnum(copy_positions.get(key, leaders[name]))
+            if key in copy_positions and signed == 0.0:
+                # A refused first entry has no fixed sleeve to reconcile.
+                del leaders[name]
+            elif configs[name].copy_mode == "proportional" and fnum(holds.get(key)) * signed > 0:
+                leaders[name] = 0.0
+            else:
+                leaders[name] = signed
+        fixed_units = self.fixed_sleeve_units_by_wallet(coin, configs)
+        if preview is not None and wallet in configs:
+            leaders[wallet] = 0.0 if preview.proportional_hold else preview.copy_after
+            if preview.fixed_sleeve is not None:
+                if self.fixed_sleeve_entry_valid(preview.fixed_sleeve):
+                    fixed_units[wallet] = sum(preview.fixed_sleeve["slices"])
+                else:
+                    fixed_units.pop(wallet, None)
+        return event_authorised_desired_net(coin, leaders, configs, fixed_units)
+
     def convergence_order_for_coin(
         self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig],
-        actual_net: float, in_flight: bool = False,
+        actual_net: float, in_flight: bool = False, *, desired: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Desired (event-authorised) vs ACCOUNT-NET actual -> the single safe next order."""
         if compute_convergence_order is None:
             return {"ok": False, "status": "PLANNER_UNAVAILABLE"}
-        desired = event_authorised_desired_net(
-            fill.coin,
-            self.leader_signed_by_wallet(fill.coin, configs),
-            configs,
-            self.fixed_sleeve_units_by_wallet(fill.coin, configs),
-        )
+        if desired is None:
+            desired = self.desired_for_coin(fill.coin, configs)
         if not desired.get("ok"):
             return desired
         order = compute_convergence_order(
@@ -2452,21 +2563,13 @@ class DryRunLiveCopyService:
         return {"ok": True, "status": "OK", "desired": desired, "order": order,
                 "actual_net": actual_net, "in_flight": bool(in_flight)}
 
-    def convergence_notional_for_fill(self, cfg: LiveWalletConfig, fill: LeaderFill) -> Dict[str, Any]:
-        """Event-authorised order notional for a genuine leader fill: apply the leader EVENT (the only
-        authority), then converge toward the aggregated ACCOUNT-NET desired exposure. Desired is
-        evaluated FIRST so fixed mode surfaces its HOLD (a config fault) rather than being masked by
-        the account-net plumbing gate; account-net truth and in-flight exposure are then required."""
+    def convergence_notional_for_fill(
+        self, cfg: LiveWalletConfig, fill: LeaderFill, *, preview: Optional[LeaderEventPreview] = None,
+    ) -> Dict[str, Any]:
+        """Plan against the candidate leader event without committing its authority."""
         config = self.load_config()
-        self.apply_leader_event(cfg, fill)
-        desired_probe = event_authorised_desired_net(
-            fill.coin,
-            self.leader_signed_by_wallet(fill.coin, config),
-            config,
-            self.fixed_sleeve_units_by_wallet(
-                fill.coin, config if isinstance(config, dict) else {getattr(config, "wallet", ""): config}
-            ),
-        )
+        preview = preview if preview is not None else self.preview_leader_event(cfg, fill)
+        desired_probe = self.desired_for_coin(fill.coin, config, wallet=cfg.wallet, preview=preview)
         if not desired_probe.get("ok"):
             return desired_probe
         truth = self.account_net_actual(fill.coin)
@@ -2477,18 +2580,9 @@ class DryRunLiveCopyService:
         if not gate.get("ok"):
             return {"ok": False, "status": str(gate.get("status") or "RECONCILIATION_DIVERGENCE"), "gate": gate}
         in_flight = bool(self.in_flight.get(str(fill.coin).upper().strip()))
-        sizing = self.convergence_order_for_coin(cfg, fill, config, actual_net, in_flight=in_flight)
-        if not sizing.get("ok"):
-            return sizing
-        order = sizing["order"]
-        base = {"ok": True, "status": "OK", "desired_net": sizing["desired"].get("desired_net"),
-                "actual_net": actual_net, "in_flight": in_flight}
-        if order.action == "NONE":
-            base.update({"notional": 0.0, "action": "NONE", "reduce_only": False, "side": ""})
-            return base
-        base.update({"notional": float(order.size) * fill.price, "action": str(order.action),
-                     "reduce_only": bool(order.reduce_only), "side": str(order.side).upper()})
-        return base
+        return self.convergence_order_for_coin(
+            cfg, fill, config, actual_net, in_flight=in_flight, desired=desired_probe,
+        )
 
     def accumulator_key(self, cfg: LiveWalletConfig, fill: LeaderFill) -> str:
         return f"{cfg.wallet}::{fill.coin}::{fill.side}"
@@ -2524,48 +2618,54 @@ class DryRunLiveCopyService:
         })
 
     def global_order_cap(self) -> float:
-        """Operator global control max_order_notional_usd, read from the EXISTING live_config.json
-        (APP_CONFIG_FILE) that the restored UI already writes under global_controls.
+        """Return the cap for display, with 0.0 for unset or invalid values."""
+        return self._read_global_order_cap() or 0.0
 
-        Returns a finite positive float, else 0.0. The UI's off/unset meaning is 0; zero, negative,
-        NaN, infinite or non-numeric values are NOT authority and are treated as 0. No new store and
-        no second writer - this is a read of the same file the UI maintains.
-        """
+    def _read_global_order_cap(self) -> Optional[float]:
+        """Read the UI's cap from APP_CONFIG_FILE. Zero means off and None means invalid."""
         try:
-            cfg = load_json(APP_CONFIG_FILE, {}) or {}
-            gc = cfg.get("global_controls")
-            if not isinstance(gc, dict):
-                return 0.0
-            raw = gc.get("max_order_notional_usd")
-            if raw is None or raw == "":
-                return 0.0
-            cap = float(raw)
-            if cap != cap or cap in (float("inf"), float("-inf")) or cap <= 0:
-                return 0.0
-            return cap
-        except Exception:
+            cfg = json.loads(APP_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+        except FileNotFoundError:
             return 0.0
+        except (OSError, ValueError, RecursionError):
+            return None
+        gc = cfg.get("global_controls") if isinstance(cfg, dict) else None
+        if not isinstance(gc, dict):
+            return 0.0
+        raw = gc.get("max_order_notional_usd")
+        if raw is None or raw == "":
+            return 0.0
+        try:
+            cap = float(raw)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if cap != cap or cap in (float("inf"), float("-inf")) or cap < 0:
+            return None
+        return cap
+
+    def entry_cap_refusal(self, copy_notional: float) -> str:
+        """Return the block status for an invalid or exceeded cap."""
+        cap = self._read_global_order_cap()
+        if cap is None:
+            return "BLOCKED_GLOBAL_CAP_INVALID"
+        if cap > 0 and copy_notional > cap + 1e-12:
+            return "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
+        return ""
 
     def global_order_cap_block(self, intent_type: str, copy_notional: float, reduce_only: Optional[bool],
                                decision: Optional[Dict[str, Any]]) -> str:
-        """Explicit fail-closed status when a NEW ENTRY exceeds the operator cap, else "".
-
-        Reduce/close paths are NEVER blocked by an entry-size cap, so a safe exit is always allowed.
-        """
-        cap = self.global_order_cap()
-        if cap <= 0:
-            return ""
-        if str(intent_type or "").upper() != "ENTRY":
+        """Return the cap block status for an exposure increase, if any."""
+        if str(intent_type or "").upper() not in {"ENTRY", "ADD"}:
             return ""
         ro = reduce_only
         if ro is None:
             ro = str((decision or {}).get("execution_decision") or "") == "WOULD_REDUCE_OR_EXIT"
         if bool(ro):
             return ""
-        if fnum(copy_notional) > cap + 1e-12:
+        blocked = self.entry_cap_refusal(fnum(copy_notional))
+        if blocked:
             self.bump("entries_blocked_global_max_order_notional")
-            return "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
-        return ""
+        return blocked
 
     def append_order_intent(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, linked_ids: List[str], intent_type: str, reason: str, status: str, copy_notional: float, copy_size: float, policy: str, notes: str = "", target_price: Optional[float] = None, diff_pct: Any = 0.0, decision: Optional[Dict[str, Any]] = None, side_override: Optional[str] = None, reduce_only: Optional[bool] = None) -> None:
         decision = decision or {}
@@ -2591,19 +2691,6 @@ class DryRunLiveCopyService:
             "market_data_source": decision.get("market_data_source", ""),
             "market_data_error": decision.get("market_data_error", ""),
         }
-        # G4-C1: the operator global control max_order_notional_usd caps NEW entry notional and must
-        # FAIL CLOSED with an explicit status and ZERO executable/sent intent (should_write_would_send
-        # fires only for WOULD_PLACE_IOC_LIMIT / WOULD_LATE_COPY / WOULD_REDUCE_OR_EXIT). Reduce/close
-        # paths are never blocked by an entry-size cap, so a safe exit always remains available.
-        cap_status = self.global_order_cap_block(intent_type, copy_notional, reduce_only, decision)
-        if cap_status:
-            row["status"] = cap_status
-            row["execution_decision"] = cap_status
-            row["decision_reason"] = "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"
-            row["suggested_order_type"] = ""
-            row["suggested_limit_price"] = ""
-            decision = dict(decision or {})
-            decision["execution_decision"] = cap_status
         append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
         if should_write_would_send(decision, row):
             wrote_would_send = self.append_would_send_order(row, reduce_only=reduce_only)
@@ -2756,6 +2843,7 @@ class DryRunLiveCopyService:
             "unrealized_pnl": unrealized, "notional": abs(new_signed * fill.price),
             "updated_at": utc_now_iso(), "last_leader_fill_id": fill.fill_id,
         })
+        self.positions[self.position_key(cfg.wallet, fill.coin)] = pos
         return pos, before, realized_pnl
 
     def wallet_gate(self) -> Dict[str, Any]:
@@ -2807,10 +2895,31 @@ class DryRunLiveCopyService:
         except Exception:
             return cfg
 
-    def process_fill(self, fill: LeaderFill, cfg: LiveWalletConfig, replay_history: bool = False) -> None:
-        if fill.fill_id in self.processed_ids:
-            self.bump("fills_already_processed")
-            return
+    def _remember_processed_fill(self, keys: Tuple[str, ...]) -> None:
+        with self.dedupe_lock:
+            self.processed_id_order.extend(key for key in keys if key not in self.processed_ids)
+            self.processed_ids.update(keys)
+
+    def process_fill(self, fill: LeaderFill, cfg: LiveWalletConfig, replay_history: bool = False) -> bool:
+        key = fill.dedupe_key
+        # Keep the audit fill ID in the ledger for the lineage checkpoint.
+        keys = (fill.fill_id, key) if key != fill.fill_id else (key,)
+        with self.dedupe_lock:
+            if key in self.processed_ids or key in self.dedupe_ids:
+                self.bump("fills_already_processed")
+                return False
+            self.dedupe_ids.add(key)
+        try:
+            remember = self._process_fill(fill, cfg, replay_history, keys)
+            if remember is not False:
+                self._remember_processed_fill(keys)
+            return True
+        finally:
+            with self.dedupe_lock:
+                self.dedupe_ids.discard(key)
+
+    def _process_fill(self, fill: LeaderFill, cfg: LiveWalletConfig, replay_history: bool,
+                      keys: Tuple[str, ...]) -> Optional[bool]:
         cfg = self.apply_wallet_gate(cfg)
         pos = self.get_position(cfg.wallet, fill.coin)
         before_signed = fnum(pos.get("signed_size"))
@@ -2818,88 +2927,85 @@ class DryRunLiveCopyService:
 
         if cfg.mode == "OFF" or not cfg.enabled:
             self.append_reconciliation(cfg, fill, "SKIP", "OFF", "BLOCKED_OFF", before_signed, before_signed, copy_notional_raw, "wallet mode OFF")
-            self.processed_ids.add(fill.fill_id)
             self.bump("fills_skipped_off")
             return
 
-        # --- G4-C1: operator global control max_order_notional_usd caps NEW entry notional and FAILS
-        # CLOSED for the whole fill: explicit status + reconciliation row, NO position change, NO
-        # intent, NO executable/sent order. A "new entry" is an event that increases the leader's
-        # exposure magnitude; reduce/close events are NEVER blocked by an entry-size cap so a safe
-        # exit always remains available. Zero/unset/invalid cap -> unchanged behaviour.
-        _cap = self.global_order_cap()
-        if _cap > 0:
-            _led = self.state.get("leader_event_positions") or {}
-            _key = self.position_key(cfg.wallet, fill.coin)
-            _before_leader = fnum(_led.get(_key))
-            _after_leader = _before_leader + fnum(getattr(fill, "signed_size_delta", 0.0))
-            if abs(_after_leader) > abs(_before_leader) and fnum(copy_notional_raw) > _cap + 1e-12:
-                _px = fnum(getattr(fill, "price", 0.0)) or 0.0
-                _sz = (fnum(copy_notional_raw) / _px) if _px > 0 else 0.0
-                self.append_order_intent(
-                    cfg, fill, "CAPBLOCK-%s" % str(fill.fill_id), [str(fill.fill_id)], "ENTRY",
-                    "GLOBAL_MAX_ORDER_NOTIONAL", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                    fnum(copy_notional_raw), _sz, "BLOCKED",
-                    notes="global max_order_notional_usd cap on new entries",
-                    decision={"execution_decision": "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                              "decision_reason": "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"},
-                    reduce_only=False,
-                )
-                self.append_reconciliation(cfg, fill, "SKIP", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                                           "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL", before_signed, before_signed,
-                                           copy_notional_raw, "global max_order_notional_usd cap on new entries")
-                self.processed_ids.add(fill.fill_id)
-                self.bump("entries_blocked_global_max_order_notional")
-                return
-
-        # --- G2: planner/account-net authority is computed BEFORE any gate, so CLO and the audit
-        # decision follow the planner's side/reduce_only, never wallet-local leader-side heuristics ---
-        auth = self.convergence_notional_for_fill(cfg, fill)
+        # Plan from the candidate authority before updating the leader or follower ledgers.
+        preview = self.preview_leader_event(cfg, fill)
+        auth = self.convergence_notional_for_fill(cfg, fill, preview=preview)
         if not auth.get("ok"):
             status = str(auth.get("status") or "SIZING_BLOCKED")
             self.append_reconciliation(cfg, fill, status, status, "BLOCKED_" + status, before_signed, before_signed, 0.0, str(auth.get("detail") or status))
-            self.processed_ids.add(fill.fill_id)
+            if not preview.is_flip:
+                self.apply_leader_event(cfg, fill, preview=preview)
             self.bump("fills_blocked_" + status.lower())
             return
-        planner_reduce_only = bool(auth.get("reduce_only"))
-        if cfg.mode == "CLO" and not planner_reduce_only:
+        order = auth["order"]
+        if cfg.mode == "CLO" and not order.reduce_only:
             self.append_reconciliation(cfg, fill, "SKIP", "CLO_ENTRY_BLOCKED", "BLOCKED_CLO_ENTRY", before_signed, before_signed, copy_notional_raw, "CLO allows planner-authorised reductions/flattening only")
-            self.processed_ids.add(fill.fill_id)
+            if not preview.is_flip:
+                self.apply_leader_event(cfg, fill, preview=preview)
             self.bump("fills_skipped_clo_entry")
             return
-        copy_notional_raw = fnum(auth.get("notional"))
-        order_side = str(auth.get("side") or "").upper()   # planner side is authoritative for direction
+        entry_leg = order.entry_leg
+        if entry_leg is not None:
+            entry_side, entry_size = entry_leg
+            entry_notional = entry_size * fill.price
+            if order.pending_open is None and 0 < entry_notional < MIN_ORDER_NOTIONAL:
+                acc = self.state["accumulators"].get(self.accumulator_key(cfg, fill), {})
+                combined = entry_notional + fnum(acc.get("notional"))
+                if combined >= MIN_ORDER_NOTIONAL:
+                    entry_notional = combined
+            entry_intent_type = "ADD" if order.action == "ADD" else "ENTRY"
+            blocked = self.global_order_cap_block(entry_intent_type, entry_notional, False, None)
+            if blocked:
+                if blocked == "BLOCKED_GLOBAL_CAP_INVALID":
+                    decision_reason = "GLOBAL_CAP_INVALID"
+                    notes = "global max_order_notional_usd is invalid or unreadable"
+                else:
+                    decision_reason = "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"
+                    notes = "final planner entry notional above global max_order_notional_usd"
+                self.append_reconciliation(cfg, fill, "SKIP", blocked, blocked,
+                                           before_signed, before_signed, entry_notional, notes)
+                reduce_order = None
+                if order.pending_open and preview.is_flip:
+                    preview = replace(
+                        preview,
+                        fixed_sleeve={"side": 0, "slices": []} if cfg.copy_mode == "fixed" else None,
+                        proportional_hold=cfg.copy_mode == "proportional",
+                    )
+                    remaining = sum(size for wallet, size in auth["desired"]["sleeves"].items()
+                                    if wallet != cfg.wallet)
+                    reduce_order = compute_convergence_order(
+                        fill.coin, remaining, auth["actual_net"], mark_px=fill.price,
+                        min_notional=MIN_ORDER_NOTIONAL,
+                    )
+                elif order.pending_open and abs(preview.after) <= abs(preview.before):
+                    reduce_order = order
+                if reduce_order is None or (not reduce_order.reduce_only and reduce_order.action != "NONE"):
+                    self.append_order_intent(
+                        cfg, fill, f"CAPBLOCK-{fill.fill_id}", [fill.fill_id], "ENTRY",
+                        "GLOBAL_MAX_ORDER_NOTIONAL", blocked, entry_notional,
+                        entry_notional / fill.price if fill.price > 0 else 0.0, "BLOCKED",
+                        notes=notes,
+                        decision={"execution_decision": blocked,
+                                  "decision_reason": decision_reason},
+                        side_override=entry_side, reduce_only=False,
+                    )
+                    if preview.is_flip:
+                        return False
+                    self.apply_leader_event(cfg, fill, preview=preview, cap_refused=True)
+                    return
+                order = reduce_order
+
+        self.apply_leader_event(cfg, fill, preview=preview)
+        copy_notional_raw = order.size * fill.price
+        order_side = order.side
+        planner_reduce_only = order.reduce_only
         intent_type = "EXIT" if planner_reduce_only else "ENTRY"
 
-        # G4-C1 (Controller B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1): enforce the operator cap against the
-        # FINAL PLANNER ORDER NOTIONAL. The per-event estimate checked earlier can UNDERSTATE this,
-        # because the authoritative planner converges aggregated desired versus account-net actual
-        # (several event-authorised slices while the exchange/account-net leg lags). Fail closed HERE,
-        # before mark_in_flight, append_would_send, any real send, or simulated position mutation, so an
-        # over-cap planned ENTRY can never be recorded blocked while being simulated as filled.
-        # Reduce/close is never blocked by an entry-size cap.
-        if intent_type == "ENTRY":
-            _planner_cap = self.global_order_cap()
-            if _planner_cap > 0 and copy_notional_raw > _planner_cap + 1e-12:
-                self.append_order_intent(
-                    cfg, fill, "CAPBLOCK-%s" % str(fill.fill_id), [str(fill.fill_id)], "ENTRY",
-                    "GLOBAL_MAX_ORDER_NOTIONAL", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                    copy_notional_raw, (copy_notional_raw / fill.price if fill.price > 0 else 0.0),
-                    "BLOCKED", notes="final planner order notional above global max_order_notional_usd",
-                    decision={"execution_decision": "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                              "decision_reason": "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"},
-                    side_override=order_side, reduce_only=False,
-                )
-                self.append_reconciliation(cfg, fill, "SKIP", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-                                           "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL", before_signed, before_signed,
-                                           copy_notional_raw, "final planner order notional above global max_order_notional_usd")
-                self.processed_ids.add(fill.fill_id)
-                self.bump("entries_blocked_global_max_order_notional")
-                return
-
         if copy_notional_raw <= 0:
-            self.append_reconciliation(cfg, fill, "CONVERGED", str(auth.get("action") or "NONE"), "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
-            self.processed_ids.add(fill.fill_id)
+            self.append_reconciliation(cfg, fill, "CONVERGED", order.action, "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
             self.bump("fills_converged_no_order")
             return
 
@@ -2913,7 +3019,6 @@ class DryRunLiveCopyService:
                 copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
                 self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "MIN_NOTIONAL_ACCUMULATOR", "ACCUMULATED_NO_ORDER", copy_notional, copy_size, policy, "below $10; accumulated, no simulated order/fill", side_override=order_side)
                 self.append_reconciliation(cfg, fill, "ACCUMULATE", "NO_ORDER", "ACCUMULATE", before_signed, before_signed, copy_notional, "below minimum notional")
-                self.processed_ids.add(fill.fill_id)
                 self.bump("fills_accumulated_no_order")
                 return
         elif copy_notional < MIN_ORDER_NOTIONAL:
@@ -2921,7 +3026,6 @@ class DryRunLiveCopyService:
             copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
             self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "EXIT_BELOW_MIN_NOTIONAL", "MANUAL_REVIEW", copy_notional, copy_size, "EXIT_BELOW_MIN_REVIEW", "exit/reduce notional below $10; manual reconcile in live mode", side_override=order_side)
             self.append_reconciliation(cfg, fill, "REVIEW", "EXIT_BELOW_MIN_NOTIONAL", "MANUAL_REVIEW", before_signed, before_signed, copy_notional, "exit/reduce below minimum")
-            self.processed_ids.add(fill.fill_id)
             self.bump("exits_below_min_review")
             return
 
@@ -2931,7 +3035,10 @@ class DryRunLiveCopyService:
         policy = decision.get("policy") or policy
         audit_notes = audit_notes_for_fill(fill, replay_history=replay_history) + str(decision.get("extra_note") or "")
         # in-flight reservation is established BEFORE any call path can reach the exchange order call
-        self.mark_in_flight(fill.coin, {"intent_id": intent_id, "side": order_side, "size": copy_size, "reduce_only": planner_reduce_only, "action": str(auth.get("action"))})
+        self.mark_in_flight(fill.coin, {"intent_id": intent_id, "side": order_side, "size": copy_size, "reduce_only": planner_reduce_only, "action": order.action})
+        if len(keys) > 1:
+            # Appending the intent can send before it returns, including when its result is uncertain.
+            self._remember_processed_fill(keys)
         self.append_order_intent(
             cfg, fill, intent_id, linked_ids, intent_type,
             str(decision.get("reason") or audit_reason_for_fill(fill, replay_history=replay_history)),
@@ -2945,7 +3052,6 @@ class DryRunLiveCopyService:
         )
         if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"}:
             self.append_reconciliation(cfg, fill, "REVIEW", str(decision.get("reason") or "MANUAL_REVIEW"), "MANUAL_REVIEW", before_signed, before_signed, copy_notional, "manual reconcile required" + str(decision.get("extra_note") or ""))
-            self.processed_ids.add(fill.fill_id)
             self.bump("late_copy_manual_review")
             return
         signed_delta = copy_size if order_side == "BUY" else -copy_size
@@ -2960,7 +3066,6 @@ class DryRunLiveCopyService:
         recon_action = "MANUAL_REVIEW" if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"} else "DRY_RUN_FILL"
         self.append_reconciliation(cfg, fill, "DRY_RUN_FILL", str(decision.get("status") or "MATCHED_SIMULATED"), recon_action, before, after, copy_notional, "dry-run position updated" + str(decision.get("extra_note") or ""))
         self.update_equity(cfg, fill)
-        self.processed_ids.add(fill.fill_id)
         self.state["last_processed_fill_ts"] = max(inum(self.state.get("last_processed_fill_ts")), fill.timestamp_ms)
         self.bump("dry_run_fills_processed")
 
@@ -2990,17 +3095,17 @@ class DryRunLiveCopyService:
             self.persist()
             return {"processed": False, "reason": "BASELINE_CREATED_FROM_WS"}
 
-        baseline_ts_ms = inum(baseline.get("baseline_ts_ms"))
-        if fill.fill_id in self.processed_ids:
-            return {"processed": False, "reason": "DUPLICATE"}
-        if fill.timestamp_ms <= baseline_ts_ms:
+        rejection = _fill_cursor_rejection(baseline, fill)
+        if rejection:
+            key = fill.dedupe_key
+            with self.dedupe_lock:
+                if rejection == "DUPLICATE" or key in self.processed_ids or key in self.dedupe_ids:
+                    return {"processed": False, "reason": "DUPLICATE"}
             return {"processed": False, "reason": "WS_BEFORE_BASELINE"}
 
-        self.process_fill(fill, cfg)
-        if fill.fill_id in self.processed_ids and fill.fill_id not in self.processed_id_order:
-            self.processed_id_order.append(fill.fill_id)
-        baseline["baseline_ts_ms"] = fill.timestamp_ms
-        baseline["baseline_fill_id"] = fill.fill_id
+        if not self.process_fill(fill, cfg):
+            return {"processed": False, "reason": "DUPLICATE"}
+        _advance_fill_cursor(baseline, fill)
         self.persist()
         return {"processed": True, "reason": "LIVE_WS_DETECTED"}
 
@@ -3072,7 +3177,7 @@ class DryRunLiveCopyService:
                     if not isinstance(raw, dict):
                         continue
                     fill = parse_api_leader_fill(wallet, raw)
-                    if fill is None or fill.timestamp_ms <= baseline_ts_ms:
+                    if fill is None or _fill_cursor_rejection(baseline, fill):
                         continue
                     selected.append(fill)
                     selected_count_for_wallet += 1
@@ -3093,31 +3198,23 @@ class DryRunLiveCopyService:
         self.state["replay_history"] = bool(replay_history)
         processed_this_run = 0
         skipped_duplicate_fills = 0
-        latest_processed_by_wallet: Dict[str, LeaderFill] = {}
         for fill in selected:
             cfg = config.get(fill.wallet)
             if cfg is None:
                 continue
-            if fill.fill_id in self.processed_ids:
+            baseline = baselines.get(fill.wallet) if not replay_history else None
+            if isinstance(baseline, dict) and _fill_cursor_rejection(baseline, fill) == "DUPLICATE":
                 skipped_duplicate_fills += 1
                 continue
             try:
-                self.process_fill(fill, cfg, replay_history=replay_history)
+                if not self.process_fill(fill, cfg, replay_history=replay_history):
+                    skipped_duplicate_fills += 1
+                    continue
                 processed_this_run += 1
-                if fill.fill_id in self.processed_ids and fill.fill_id not in self.processed_id_order:
-                    self.processed_id_order.append(fill.fill_id)
-                latest = latest_processed_by_wallet.get(fill.wallet)
-                if latest is None or fill.timestamp_ms > latest.timestamp_ms:
-                    latest_processed_by_wallet[fill.wallet] = fill
+                if isinstance(baseline, dict):
+                    _advance_fill_cursor(baseline, fill)
             except Exception as exc:
                 self.log_error(f"process_fill leader_fill_id={fill.fill_id}", exc)
-        if not replay_history:
-            baselines = self.state.setdefault("baselines", {})
-            for wallet, fill in latest_processed_by_wallet.items():
-                baseline = baselines.get(wallet)
-                if isinstance(baseline, dict):
-                    baseline["baseline_ts_ms"] = fill.timestamp_ms
-                    baseline["baseline_fill_id"] = fill.fill_id
         self.state["last_run_finished_at"] = utc_now_iso()
         self.state["last_run_processed"] = processed_this_run
         self.state["processed_count"] = len(self.processed_ids)

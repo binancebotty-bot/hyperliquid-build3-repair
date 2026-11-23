@@ -40,6 +40,8 @@ def main() -> None:
     c.requests.post = offline
     c.USER_WALLET = FOLLOWER
     c.ConfigManager.auto_send_enabled = property(lambda self: True)  # real sending configured (the check is skipped otherwise)
+    send_mode = ["OFF"]
+    c.ConfigManager.send_mode_now = lambda self: send_mode[0]
     c.follower_dex_scope = lambda: [""]
     c._LEARNED_DEXES = set()
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
@@ -72,31 +74,53 @@ def main() -> None:
     check("C1B_LIMITS_CARRY_A_CLOID", all(r.get("cloid") for r in gw._resting_entries.values()),
           str(gw._resting_entries))
 
-    # ---- stop cancels both; the failing one stays resting with its cloid -------------------------------
+    # ---- OFF records the resting entries but makes no exchange cancel calls ----------------------------
     withdrawn = gw.stop_cancel_resting_entries()
-    check("C2_STOP_CANCELLED_BOTH_ON_THE_EXCHANGE", fake.cancels == [("BTC", 111), ("BTC", 222)], str(fake.cancels))
-    check("C3_CANCELLED_ROW_REMOVED", "111" not in gw._resting_entries and [w["oid"] for w in withdrawn] == ["111"],
-          str(withdrawn))
+    check("C2_SWITCH_OFF_MAKES_ZERO_EXCHANGE_CANCEL_CALLS", fake.cancels == [], str(fake.cancels))
+    check("C3_SWITCH_OFF_LEAVES_BOTH_ROWS_RESTING",
+          not withdrawn and {"111", "222"}.issubset(gw._resting_entries), str(gw._resting_entries))
     check("C4_FAILED_CANCEL_STILL_RESTING_WITH_CLOID",
           "222" in gw._resting_entries and gw._resting_entries["222"].get("withdraw_pending")
           and gw._resting_entries["222"].get("cloid") == c.generate_cloid("ib"), str(gw._resting_entries.get("222")))
     recon = c.read_csv_rows(c.RECONCILIATION_CSV)
-    check("C5_CANCEL_RECORDED_AS_CANCELLED_ON_STOP",
-          any(r.get("status") == "RESTING_ENTRY_CANCELLED_ON_STOP" and r.get("exchange_order_id") == "111" for r in recon),
-          str(recon)[:400])
     check("C6_FAILED_CANCEL_AUDITED_NOT_SWALLOWED",
           any(r.get("status") == "RESTING_ENTRY_CANCEL_FAILED" and r.get("exchange_order_id") == "222" for r in recon),
           str(recon)[:400])
 
-    # ---- next startup adopts the still-resting limit ---------------------------------------------------
+    # ---- next startup in ON adopts the still-resting limit ---------------------------------------------
+    send_mode[0] = "ON"
     c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 222, "coin": "BTC", "side": "B", "sz": "1.0", "limitPx": "100",
                                         "cloid": c.generate_cloid("ib")}]
     res = gw.startup_orphan_order_check()
     check("C7_STARTUP_ADOPTS_THE_FAILED_LIMIT", res["ok"] and [a["oid"] for a in res["adopted"]] == ["222"]
-          and not res["cancelled"], str(res))
+          and not res["cancelled"] and not fake.cancels, str(res))
     check("C8_ADOPTION_AUDITED",
           any(r.get("status") == "ORPHAN_ORDER_ADOPTED" and r.get("exchange_order_id") == "222"
               for r in c.read_csv_rows(c.RECONCILIATION_CSV)), "no ORPHAN_ORDER_ADOPTED row")
+
+    # ---- CLOSE ONLY may cancel one resting entry registered by this engine ------------------------------
+    send_mode[0] = "CLOSE"
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+    close_fake = FakeExchange()
+    close_gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    close_gw._resting_entries = {}
+    close_gw._exchange_client_for_coin = lambda coin: (close_fake, "BTC")
+
+    class FakeLedger:
+        def coin_net(self, coin):
+            return 0.0
+
+    close_gw.ledger = FakeLedger()
+    close_gw._fresh_exchange_net = lambda coin: 0.0
+    close_gw._reserve_exchange_order_slot = lambda: c.utc_now_ms()
+    close_gw._register_resting_entry(intent("ic"), "BTC", "444", 100.0, 1.0, "engine opened entry limit")
+    close_withdrawn = close_gw.stop_cancel_resting_entries()
+    check("C5_CLOSE_ONLY_CANCELS_ONE_ENGINE_OPENED_ORDER",
+          close_fake.cancels == [("BTC", 444)] and [w["oid"] for w in close_withdrawn] == ["444"],
+          str(close_fake.cancels))
+    check("C5_CANCEL_RECORDED_AS_CANCELLED_ON_STOP",
+          any(r.get("status") == "RESTING_ENTRY_CANCELLED_ON_STOP" and r.get("exchange_order_id") == "444"
+              for r in c.read_csv_rows(c.RECONCILIATION_CSV)), "no RESTING_ENTRY_CANCELLED_ON_STOP row")
 
     # ---- stop never raises even if the withdraw machinery explodes -------------------------------------
     gw2 = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())

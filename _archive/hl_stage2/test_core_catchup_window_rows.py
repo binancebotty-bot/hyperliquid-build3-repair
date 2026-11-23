@@ -253,7 +253,7 @@ def main() -> None:
     now = c.utc_now_ms()
     t_stop = now - 300_000
     window = {LEADER: [], LEADER2: []}
-    hashes = []
+    fill_ids = []
     tid = [0]
 
     def api_fill(w, coin, side, dirn, ts, start, sz, h):
@@ -261,8 +261,7 @@ def main() -> None:
         window[w].append({"coin": coin, "px": "100.0", "sz": str(sz), "side": side, "time": ts, "startPosition": str(start),
                           "dir": dirn, "closedPnl": "0.0", "hash": h, "oid": 7000 + tid[0], "crossed": True, "fee": "0.01",
                           "tid": 90000 + tid[0], "feeToken": "USDC"})
-        if h not in hashes:
-            hashes.append(h)
+        fill_ids.append(f"{90000 + tid[0]}:{h.lower()}")
 
     # leader A closes a short in BN01, 38 fills, some orders matched in two pieces (shared hash)
     pos = -380.0
@@ -312,10 +311,10 @@ def main() -> None:
 
     from collections import Counter as _C
     import outage_classify as oc
-    res = oc.classify(Path(tmp) / "append_only", hashes)
+    res = oc.classify(Path(tmp) / "append_only", fill_ids)
     from collections import Counter
     missing = [k for k, v in res.items() if v == "MISSING"]
-    print("MEASURE:: window ids=%d outcomes=%s" % (len(hashes), dict(Counter(res.values()))))
+    print("MEASURE:: window ids=%d outcomes=%s" % (len(fill_ids), dict(Counter(res.values()))))
     check("WINDOW_EVERY_ID_HAS_AN_OUTCOME", not missing, f"{len(missing)} missing: {missing[:8]}")
 
     import json as _json

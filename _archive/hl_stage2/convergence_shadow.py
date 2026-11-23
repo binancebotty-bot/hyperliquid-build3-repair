@@ -41,6 +41,13 @@ class ConvergenceOrder:
     # For a sign flip, the open leg is deferred until ACTUAL is confirmed flat:
     pending_open: Optional[Tuple[str, float]] = None   # (side, size) or None
 
+    @property
+    def entry_leg(self) -> Optional[Tuple[str, float]]:
+        """The immediate or deferred exposure increase subject to the entry cap."""
+        if self.action in {"OPEN", "ADD"}:
+            return self.side, self.size
+        return self.pending_open
+
     def short(self) -> str:
         if self.action == "NONE":
             return f"NONE ({self.reason})"

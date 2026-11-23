@@ -62,8 +62,8 @@ def main() -> None:
         c._FOLLOWER_MIDS.update(px={}, ms=0)
         c._LEADER_MIDS.update(px={}, ms=0)
 
-    def config(wallets=(A, B), **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
+    def config(wallets=(A, B), send_enabled=False, **gc):
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send_enabled, "global_controls": gc, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000} for w in wallets}})
 
     seq = [0]
@@ -266,7 +266,7 @@ def main() -> None:
             os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
 
     # ---- S2: stale entries ------------------------------------------------------------------------------------
-    config(marketable_bps=20)
+    config(send_enabled=True, marketable_bps=20)
     set_mid(100.1)   # 10 bps worse than the leader: inside tolerance
     led = c.ManualLedger(path=tmp / "s2.json")
     fresh = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY"))
@@ -353,6 +353,7 @@ def main() -> None:
           and "BLOCK" not in str(it.decision), f"{c.classify_send_lifecycle(it)} {it.decision}")
 
     # a close rejected because the account moved first: once the records catch up it is resent without reduce-only
+    config(send_enabled=True)
     led = ledger(a=447.0)
     snapshot(447.0)   # stale: B's opposite fill not seen yet by either view
     fake = FakeExchange([RO_REJECT])

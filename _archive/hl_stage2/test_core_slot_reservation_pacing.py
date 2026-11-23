@@ -8,6 +8,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 HERE = Path(__file__).resolve().parent
@@ -91,6 +92,9 @@ class VirtualClock:
 
 def sender_gateway():
     gateway = RecordingSenderGateway.__new__(RecordingSenderGateway)
+    gateway.cfg = SimpleNamespace(send_mode_now=lambda: "ON")
+    gateway.ledger = SimpleNamespace(coin_net=lambda _coin: 0.0)
+    gateway._fresh_exchange_net = lambda _coin: 0.0
     gateway.slot_reservations = []
     gateway._exchange_order_lock = threading.Lock()
     object.__setattr__(gateway, "_last_exchange_order_ms", 0)

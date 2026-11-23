@@ -68,7 +68,7 @@ def main() -> None:
         c._LEADER_MIDS.update(px={}, ms=0)
 
     def config(**gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"send_mode": "ON", **gc}, "wallets": {
             LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
 
     seq = [0]
@@ -174,7 +174,8 @@ def main() -> None:
         os.environ.pop("HL_LIVE_MISSED_ENTRY_RULE", None)
 
         # ---- M3: no match while sending ---------------------------------------------------------------
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=99.9, replies=[NO_MATCH, NO_MATCH])
+        # These entry-send cases must arm the switch; OFF correctly sends nothing.
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20, "send_mode": "ON"}, follower=99.9, replies=[NO_MATCH, NO_MATCH])
         pxs = [(x["tif"], x["px"]) for x in fake.calls]
         check("M3_RETRY_CAPPED_AT_LEADER_PLUS_TOLERANCE_NOT_1PCT",
               len(fake.calls) == 3 and fake.calls[1]["tif"] == "Ioc" and fake.calls[1]["px"] <= 100.2 + 1e-9
@@ -182,7 +183,7 @@ def main() -> None:
         check("M3_THEN_LIMIT_RESTS_AT_LEADER_PRICE_WITH_DIFF",
               pxs[-1] == ("Gtc", 100.0) and status == "ORDER_RESTING" and res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED",
               f"{status} {pxs}")
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20, "send_mode": "ON"}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
         check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
         check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
@@ -237,33 +238,36 @@ def main() -> None:
     check("M5_FAILED_WITHDRAWAL_IS_CRITICAL_ON_SCREEN", rows and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:300])
     check("M5_FAILED_WITHDRAWAL_MARKED_FOR_RETRY", gw.resting_entries()[0].get("withdraw_pending"))
 
-    # the running engine withdraws before it handles the leader's reduce
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {}, "wallets": {
-        LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    # Switch ON: the running engine withdraws the invalidated entry limit BEFORE sizing/sending the reduce (sol review: no fill window).
+    config()
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core.ledger.sleeve(LEADER, "BTC")["signed_size"] = 1.0
+    core.copy_ingestor.poll_copy_account_fills = lambda *a, **k: ([], "COPY_ACCOUNT_POLLED")
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
     core.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
     order = []
     core.sender.cancel_resting_entries_against = (lambda real: lambda f: order.append("cancel") or real(f))(
         core.sender.cancel_resting_entries_against)
-    core.sender.send_if_allowed = lambda intent, block="": order.append("send") or (False, "TEST_NO_SEND")
+    core.sender.send_if_allowed = lambda intent, block="": order.append(c.classify_send_lifecycle(intent)) or (False, "TEST_NO_SEND")
     core._append_send_terminal = lambda *a, **k: None
     check("M5_ENGINE_LOADED_THE_LIST", [r["oid"] for r in core.sender.resting_entries()] == ["78"])
     core._process_leader_fill(fill("SELL"))
-    check("M5_ENGINE_WITHDRAWS_BEFORE_HANDLING_THE_REDUCE", order == ["cancel", "send"] and not core.sender.resting_entries(),
+    check("M5_ENGINE_WITHDRAWS_BEFORE_THE_REDUCE_ON", order[:2] == ["cancel", "EXIT"] and not core.sender.resting_entries(),
           f"{order} {core.sender.resting_entries()}")
 
-    # ---- M8: sending switched off withdraws the engine's own resting entry limits (run 4 finding) ----------
+    # ---- M8: sending switched off defers withdrawals of the engine's own resting entry limits ------------
     def m8_core(send_on):
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send_on, "global_controls": {}, "wallets": {
             LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
         k = c.LiveCopyCore(source_csv=tmp / "none.csv")
         k.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        k.sender._fresh_exchange_net = k.ledger.coin_net
         # the fill read is made outside the send lock, the ledger half inside it (run 5)
         k._read_fills_of_withdrawn_limits = lambda rows: ([], "COPY_ACCOUNT_POLLED")
         k._apply_fills_of_withdrawn_limits = lambda rows, read, seen=None: owned.extend(r["oid"] for r in rows) or 0
         return k
     owned = []
+    resting_before_m8 = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}) or {}
     m8_start = len(fake.cancels)
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
     k = m8_core(True)
@@ -275,24 +279,36 @@ def main() -> None:
     check("M8_SENDING_ON_LIMITS_KEEP_RESTING", len(fake.cancels) == before and len(k.sender.resting_entries()) == 2)
     k = m8_core(False)   # the screen switched sending off; a restarted or running engine reloads the list
     k.run_cycle(use_source_csv=False)
-    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "RESTING_ENTRY_CANCELLED_SENDING_OFF"]
-    check("M8_SENDING_OFF_WITHDRAWS_OWN_ENTRY_LIMITS", not k.sender.resting_entries()
-          and sorted(o for _, o in fake.cancels[before:]) == [90, 91], str(fake.cancels[before:]))
-    check("M8_SHOWN_ON_SCREEN", {r.get("exchange_order_id") for r in rows} >= {"90", "91"}
-          and all(r.get("event") == "SEND_TERMINAL" for r in rows), str(rows[-2:])[:300])
-    check("M8_FILLS_OF_WITHDRAWN_LIMITS_OWNED", sorted(owned) == ["90", "91"], str(owned))
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("exchange_order_id") in {"90", "91"}]
+    check("M8_SENDING_OFF_DEFERS_OWN_ENTRY_LIMIT_WITHDRAWALS", not fake.cancels[before:]
+          and [r["oid"] for r in k.sender.resting_entries()] == ["90", "91"]
+          and all(r.get("withdraw_pending") for r in k.sender.resting_entries()),
+          f"cancels={fake.cancels[before:]} entries={k.sender.resting_entries()}")
+    check("M8_DEFERRED_WITHDRAWALS_REPORTED_ON_SCREEN", {r.get("exchange_order_id") for r in rows} >= {"90", "91"}
+          and all(r.get("event") == "SEND_TERMINAL" and r.get("status") == "RESTING_ENTRY_CANCEL_FAILED"
+                  and r.get("action") == "MANUAL_REVIEW_CANCEL_RESTING_ENTRY" for r in rows), str(rows[-2:])[:300])
+    check("M8_DEFERRED_LIMIT_FILLS_NOT_TREATED_AS_WITHDRAWN", not owned, str(owned))
+    k = m8_core(True)
+    k.run_cycle(use_source_csv=False)
+    check("M8_REARMING_KEEPS_DEFERRED_ENTRY_LIMITS", len(fake.cancels) == before
+          and {r["oid"] for r in k.sender.resting_entries()} == {"90", "91"})
+    k = m8_core(False)
     k.sender._register_resting_entry(c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "m8x.json")).build(fill("BUY")),
                                      "BTC", "93", 100.0, 1.0, "test")
     fake.cancel_reply = {"status": "err", "response": "rate limited"}
     before = len(fake.cancels)
     k.run_cycle(use_source_csv=False)
-    check("M8_FAILED_WITHDRAWAL_ONE_CANCEL_PER_CYCLE_KEPT", len(fake.cancels) == before + 1
-          and [r["oid"] for r in k.sender.resting_entries()] == ["93"] and k.sender.resting_entries()[0].get("withdraw_pending"))
+    check("M8_OFF_DEFERRED_WITHDRAWAL_REPORTED_WITHOUT_CANCEL", len(fake.cancels) == before
+          and "93" in [r["oid"] for r in k.sender.resting_entries()]
+          and next(r for r in k.sender.resting_entries() if r["oid"] == "93").get("withdraw_pending"))
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
     k.run_cycle(use_source_csv=False)
-    check("M8_FAILED_WITHDRAWAL_RETRIED_NEXT_CYCLE", not k.sender.resting_entries() and len(fake.cancels) == before + 2)
+    check("M8_OFF_WITHDRAWAL_REMAINS_DEFERRED_NEXT_CYCLE", len(fake.cancels) == before
+          and "93" in [r["oid"] for r in k.sender.resting_entries()])
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("exchange_order_id") == "93"]
-    check("M8_RETRY_KEEPS_THE_SENDING_OFF_REASON", rows and rows[-1]["status"] == "RESTING_ENTRY_CANCELLED_SENDING_OFF", str(rows[-1:])[:300])
+    check("M8_DEFERRED_WITHDRAWAL_REPORT_KEEPS_SENDING_OFF_REASON", rows
+          and rows[-1]["status"] == "RESTING_ENTRY_CANCEL_FAILED"
+          and "new entries were disabled" in rows[-1].get("notes", ""), str(rows[-1:])[:300])
     # a limit already being withdrawn by one path is not cancelled again by another at the same moment
     k.sender._register_resting_entry(c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "m8y.json")).build(fill("BUY")),
                                      "BTC", "94", 100.0, 1.0, "test")
@@ -302,14 +318,19 @@ def main() -> None:
     check("M8_CLAIMED_LIMIT_NOT_CANCELLED_TWICE", [r["oid"] for r in claimed] == ["94"]
           and not k.sender.withdraw_resting_entries_sending_off() and len(fake.cancels) == before)
     k.sender._withdraw_rows(claimed, "test", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF")
+    check("M8_CLAIMED_LIMIT_REMAINS_DEFERRED_UNDER_OFF", not fake.cancels[before:]
+          and [r["oid"] for r in k.sender.resting_entries() if r["oid"] == "94"], str(k.sender.resting_entries()))
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {"95": {"oid": "95", "coin": "BTC", "side": "BUY", "withdrawing": True}})
     k2 = m8_core(False)
     check("M8_STALE_CLAIM_CLEARED_ON_START", not k2.sender.resting_entries()[0].get("withdrawing"))
     k2.run_cycle(use_source_csv=False)
-    check("M8_STALE_CLAIM_ROW_WITHDRAWN", not k2.sender.resting_entries())
+    check("M8_STALE_CLAIM_ROW_DEFERRED_AND_REPORTED", "95" in [r["oid"] for r in k2.sender.resting_entries()]
+          and k2.sender.resting_entries()[0].get("withdraw_pending"))
     k2.stop()
-    check("M8_ONLY_ITS_OWN_ORDER_IDS_CANCELLED", {o for _, o in fake.cancels[m8_start:]} == {90, 91, 93, 94, 95}, str(fake.cancels[m8_start:]))
+    check("M8_SENDING_OFF_MAKES_NO_EXCHANGE_CANCEL_CALLS", not fake.cancels[m8_start:], str(fake.cancels[m8_start:]))
     k.stop()
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, resting_before_m8)
+    config()
 
     # ---- M6: catch-up of an old gap -------------------------------------------------------------------
     now = c.utc_now_ms()

@@ -131,6 +131,7 @@ LIVE_WS_HEALTH_FILE = AUDIT_DIR / "live_ws_health.json"
 MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
+UNVERIFIED_RESTING_ENTRY_REASON = "limit found resting after the exchange call raised"
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
@@ -1383,7 +1384,9 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
         if _LOCK_DIAG_SEC <= 0:
             lock.acquire()
         elif not lock.acquire(timeout=_LOCK_DIAG_SEC):  # slow: say who holds it, then wait as before
-            _note_lock_contention(path, time.monotonic() - _t0)
+            # acquire(timeout) returned False, so the wait was at least the timeout; the Windows monotonic clock
+            # is coarse and can read slightly less, so report the true lower bound.
+            _note_lock_contention(path, max(time.monotonic() - _t0, _LOCK_DIAG_SEC))
             lock.acquire()
     try:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
@@ -2950,20 +2953,10 @@ class CycleSummary:
 class ConfigManager:
     def __init__(self, config_path: Optional[Path] = None):
         self.config_path = config_path or LIVE_CONFIG_FILE
-        self._switch_mtime = self._mtime()
         self.config = self._load()
-        self._switch_on = True
-
-    def _mtime(self) -> int:
-        try:
-            return self.config_path.stat().st_mtime_ns
-        except OSError:
-            return 0
 
     def master_switch_now(self) -> bool:
-        """The master switch as it is on disk NOW (re-read only when the file changed). Run 4: turning sending
-        off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
-        start of the cycle. OFF on disk stops the next order at once; arming still waits for the next cycle."""
+        """Whether the live send mode permits any orders."""
         return self.send_mode_now() != "OFF"
 
     @staticmethod
@@ -3005,18 +2998,11 @@ class ConfigManager:
         return not bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
 
     def send_mode_now(self) -> str:
-        """The three-state sending switch as it is on disk NOW (re-read only when the file changed). Run 4: turning
-        sending off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
-        start of the cycle. OFF on disk stops the next order at once; arming (from OFF) still waits for the next cycle."""
+        """Read one live config snapshot. Arming from cycle OFF waits for the next cycle."""
         if self.send_mode == "OFF":
             return "OFF"
-        mtime = self._mtime()
-        if mtime and mtime != self._switch_mtime:
-            fresh = load_json(self.config_path, None)
-            if isinstance(fresh, dict):
-                self._switch_mtime = mtime
-                self._switch_mode = self._send_mode_of(fresh)
-        return getattr(self, "_switch_mode", None) or self.send_mode
+        fresh = load_json(self.config_path, None)
+        return self._send_mode_of(fresh) if isinstance(fresh, dict) else "OFF"
 
     def _load(self) -> Dict[str, Any]:
         cfg = load_json(self.config_path, {})
@@ -3165,8 +3151,19 @@ class ConfigManager:
         wc = self.wallet_cfg(wallet)
         return max(0.0, fnum(wc.get("max_wallet_exposure_usd", self.global_controls.get("max_wallet_exposure_usd")), 0.0))
 
-    def max_order_notional(self) -> float:
-        return max(0.0, fnum(self.global_controls.get("max_order_notional_usd"), 0.0))
+    def max_order_notional(self) -> Optional[float]:
+        """Read the current cap. Zero disables it and None means unavailable or invalid."""
+        config = load_json(self.config_path, None)
+        if not isinstance(config, dict):
+            return None
+        controls = config.get("global_controls", {})
+        if not isinstance(controls, dict):
+            return None
+        raw_cap = controls.get("max_order_notional_usd", 0.0)
+        if isinstance(raw_cap, bool):
+            return None
+        cap = fnum(raw_cap, -1.0)
+        return cap if cap >= 0.0 else None
 
     def marketable_bps(self) -> float:
         # Missing = Boss's default of 0.2 % (20 bps, 2026-10-09), the same default the UI shows; 0 = none.
@@ -4176,6 +4173,8 @@ class IntentBuilder:
             return "SEND_BLOCKED_RISK", f"no fresh follower-network ({FOLLOWER_NETWORK}) price to value the order"
         order_notional = copy_notional / fill.price * value_px if fill.price > 0 else 0.0
         max_order = self.cfg.max_order_notional()
+        if max_order is None:
+            return "SEND_BLOCKED_RISK", "max order notional unavailable or invalid"
         if max_order > 0 and order_notional > max_order:
             return "SEND_BLOCKED_RISK", "max order notional exceeded"
         max_wallet = self.cfg.max_wallet_exposure(wallet)
@@ -4234,6 +4233,18 @@ def project_isolated_liquidation_px(mark: float, is_long: bool, leverage: float,
     return mark - side * mark * (1.0 / leverage - l) / denom
 
 
+class _InitialSendSwitchBlocked(Exception):
+    pass
+
+
+class _EntryRetrySwitchBlocked(Exception):
+    pass
+
+
+class _OrderSwitchBlocked(Exception):
+    pass
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -4275,7 +4286,8 @@ class SenderGateway:
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
-                     cloid: Optional[str] = None) -> Any:
+                     cloid: Optional[str] = None, *, entry_retry: bool = False,
+                     initial_lifecycle: str = "") -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -4286,12 +4298,20 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        if timing is not None and started_key:
-            timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
+        if entry_retry or initial_lifecycle in {"ENTRY", "ADD"}:
+            send_mode = self.cfg.send_mode_now()
+            if entry_retry and send_mode != "ON":
+                raise _EntryRetrySwitchBlocked(send_mode)
+            if initial_lifecycle and send_mode != "ON":
+                raise _InitialSendSwitchBlocked(send_mode)
+        elif initial_lifecycle and not self.cfg.master_switch_now():
+            raise _InitialSendSwitchBlocked("OFF")
+        if timing is not None and started_key:
+            timing[started_key] = utc_now_ms()
         response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         self._note_sender_key_rejection(response)
         return response
@@ -4315,13 +4335,38 @@ class SenderGateway:
                    "and restart the engine"),
         )
 
-    def _cancel_order(self, exchange: Any, sdk_coin: str, oid: str) -> Any:
-        """The ONE physical exchange cancel call: missed-entry limits the leader no longer supports."""
+    def _require_cancel_enabled(self, *, required_mode: str = "") -> str:
+        mode = self.cfg.send_mode_now()
+        if mode == "OFF" or (required_mode and mode != required_mode):
+            raise _OrderSwitchBlocked(mode)
+        return mode
+
+    def _cancel_order(self, exchange: Any, sdk_coin: str, oid: str, *, startup_orphan: bool = False,
+                      leader_entry_withdrawal: bool = False, required_mode: str = "") -> Any:
+        """The one exchange cancel call. Startup orphan ownership is verified by client ID."""
+        if startup_orphan:
+            required_mode = "CLOSE"
+        mode = self._require_cancel_enabled(required_mode=required_mode)
+        order_id = int(oid)
+        if not canonical_coin_resolved(sdk_coin):
+            raise RuntimeError(f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: {sdk_coin}")
+        if leader_entry_withdrawal and mode == "ON":
+            # The claimed resting order ID establishes ownership even before fills reach the ledger.
+            required_mode = "ON"
+        elif not startup_orphan:
+            if self.ledger is None:
+                raise RuntimeError(f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: {sdk_coin}")
+            exchange_net = self._fresh_exchange_net(sdk_coin)
+            owned_net = self.ledger.coin_net(sdk_coin)
+            if (exchange_net is None or not math.isfinite(exchange_net) or not math.isfinite(owned_net)
+                    or not math.isclose(exchange_net, owned_net, rel_tol=0.0, abs_tol=POSITION_EPSILON)):
+                raise RuntimeError(f"CANCEL_POSITION_OWNERSHIP_UNVERIFIED: {sdk_coin} exchange={exchange_net} engine={owned_net}")
         slot_ms = self._reserve_exchange_order_slot()
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        return exchange.cancel(sdk_coin, int(oid))
+        self._require_cancel_enabled(required_mode=required_mode)
+        return exchange.cancel(sdk_coin, order_id)
 
     def _is_isolated_only(self, coin: Any) -> bool:
         """Builder-dex (HIP-3, e.g. xyz:) assets and any asset flagged onlyIsolated trade isolated margin only."""
@@ -4346,6 +4391,10 @@ class SenderGateway:
             return None  # closes are never touched
         lev, _max_lev = self._copy_leverage(intent.fill.coin)
         is_cross = not self._is_isolated_only(intent.fill.coin)  # isolated-only assets: isolated margin at the capped leverage
+        mode = self.cfg.send_mode_now()
+        if mode != "ON":
+            status = "MASTER_REAL_ORDERS_OFF" if mode == "OFF" else "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+            return False, status, {"exchange_called": False, "timing": timing}
         error = ""
         try:
             resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
@@ -4526,18 +4575,19 @@ class SenderGateway:
         return attempt_id
 
     def _engine_owned_cloids_and_oids(self):
-        """Cloids and order ids this engine owns: every send_attempts row plus every resting entry."""
+        """Known engine client IDs and order IDs backed by a confirmed order record."""
         cloids, oids = set(), set()
         for row in read_csv_rows(SEND_ATTEMPTS_CSV):
             cl = str(row.get("cloid") or "").strip().lower()
             if cl:
                 cloids.add(cl)
             oid = str(row.get("exchange_order_id") or "").strip()
-            if oid:
+            if oid and UNVERIFIED_RESTING_ENTRY_REASON not in str(row.get("notes") or ""):
                 oids.add(oid)
         with self._resting_lock:
             for oid, row in self._resting_entries.items():
-                oids.add(str(oid))
+                if not str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
+                    oids.add(str(oid))
                 cl = str(row.get("cloid") or "").strip().lower()
                 if cl:
                     cloids.add(cl)
@@ -4566,35 +4616,45 @@ class SenderGateway:
         return True, out, f"read {read_dexes}/{len(dexes)} dexes"
 
     def startup_orphan_order_check(self) -> Dict[str, Any]:
-        """T1b: before arming, read the follower's open orders on every dex the engine reads. Each order is
-        matched to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting
-        engine order; no match is cancelled and audited as orphan_order_cancelled. A failed read fails closed
-        (refuses to arm). Never runs on a mainnet follower without --confirm-mainnet-follower (existing guard)."""
-        if FOLLOWER_NETWORK == "mainnet":  # never cancels a mainnet order the engine cannot prove it placed (Boss manages those)
-            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
-                    "detail": "mainnet follower: open orders left untouched (cancel-unknown is testnet-only)"}
+        """T1b: report unmatched testnet open orders and cancel client-ID matches only in CLOSE ONLY.
+        Adopt other engine matches, including legacy order-ID matches without a client ID.
+        OFF skips the exchange read. A failed read refuses to arm."""
+        if FOLLOWER_NETWORK == "mainnet":
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [], "reported": [],
+                    "detail": "mainnet follower: open orders left untouched"}
         if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
-            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [], "reported": [],
                     "detail": "no real sending configured (no follower wallet, auto-send off or mock send): not checked"}
-        cloids, oids = self._engine_owned_cloids_and_oids()
+        if self.cfg.send_mode_now() == "OFF":
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [], "reported": [],
+                    "detail": "live send switch is OFF: open orders left untouched"}
         ok, orders, detail = self._read_open_orders()
         if not ok:
-            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
+            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [], "reported": [],
                     "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
-        adopted, cancelled = [], []
+        cloids, oids = self._engine_owned_cloids_and_oids()
+        adopted, cancelled, reported = [], [], []
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
             if not oid:
                 continue
             cloid = str(o.get("cloid") or "").strip().lower()
-            if (cloid and cloid in cloids) or (oid in oids):
+            client_id_matches = cloid in cloids
+            if client_id_matches and self.cfg.send_mode_now() == "CLOSE":
+                outcome = self._cancel_orphan_order(dex, o)
+                cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
+            elif client_id_matches or (not cloid and oid in oids):
                 self._adopt_orphan_order(dex, o)
                 adopted.append({"oid": oid, "cloid": cloid})
             else:
-                outcome = self._cancel_orphan_order(dex, o)
-                cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
-        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
-                "detail": f"{detail}; adopted={len(adopted)} cancelled={len(cancelled)}"}
+                coin = str(o.get("coin") or "")
+                self.audit.append_reconciliation(
+                    "STARTUP_ORPHAN", "ORPHAN_ORDER_UNMATCHED", coin=coin, exchange_order_id=oid,
+                    action="REPORT_ONLY", terminal_state="ORPHAN_ORDER_UNMATCHED",
+                    notes=f"startup open order {oid} on dex {dex!r} has no matching engine record (cloid={cloid})")
+                reported.append({"oid": oid, "cloid": cloid, "coin": coin, "dex": dex})
+        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled, "reported": reported,
+                "detail": f"{detail}; adopted={len(adopted)} cancel_attempts={len(cancelled)} reported={len(reported)}"}
 
     def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
         """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
@@ -4638,14 +4698,16 @@ class SenderGateway:
         return False
 
     def _cancel_orphan_order(self, dex: str, o: Dict[str, Any]) -> str:
-        """A startup open order matching nothing the engine placed: cancel it by default and audit it."""
+        """Cancel a startup open order with a verified engine client ID in CLOSE ONLY."""
         oid = str(o.get("oid", ""))
         coin = str(o.get("coin") or "")
-        raw_coin = (f"{dex}:{coin}" if dex else coin)
+        cloid = str(o.get("cloid") or "").strip().lower()
+        raw_coin = f"{dex}:{coin}" if dex and ":" not in coin else coin
         error, outcome = "", "ORPHAN_ORDER_CANCELLED"
         try:
+            self._require_cancel_enabled(required_mode="CLOSE")
             exchange, sdk_coin = self._exchange_client_for_coin(raw_coin)
-            response = self._cancel_order(exchange, sdk_coin or coin, oid)
+            response = self._cancel_order(exchange, sdk_coin or coin, oid, startup_orphan=True)
             statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
             first = statuses[0] if statuses else None
             if first == "success":
@@ -4656,13 +4718,20 @@ class SenderGateway:
                 outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", json.dumps(response, default=str)[:300]
         except Exception as exc:
             outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", repr(exc)
+        # The order may have part-filled before the cancel (or still rests if the cancel failed): link its order id
+        # to the engine's pending send row so a copy-account fill carrying this oid is matched as engine-owned,
+        # exactly as the adoption path does.
+        try:
+            self._promote_pending_row_to_resting(cloid, oid)
+        except Exception as exc:
+            log_error("startup_orphan_cancel_link_oid", exc)
         self.audit.append_reconciliation(
-            "STARTUP_ORPHAN", "ORPHAN_ORDER_CANCELLED", coin=coin, exchange_order_id=oid,
+            "STARTUP_ORPHAN", outcome, coin=coin, exchange_order_id=oid,
             action=("MANUAL_REVIEW_ORPHAN_CANCEL_FAILED" if outcome == "ORPHAN_ORDER_CANCEL_FAILED"
                     else "NO_ACTION_ORPHAN_CANCELLED"),
             terminal_state=outcome,
-            notes=(f"startup: open order {oid} ({coin}) matches no engine send row or resting entry; cancelled "
-                   f"by default; error={error}"))
+            notes=(f"startup CLOSE ONLY: open order {oid} ({coin}) matches engine client ID {cloid}, "
+                   f"cancel outcome={outcome}, error={error}"))
         return outcome
 
     def stop_cancel_resting_entries(self) -> List[Dict[str, Any]]:
@@ -4671,7 +4740,7 @@ class SenderGateway:
         so the next startup's orphan check adopts it. Never raises: a stop must always complete."""
         try:
             with self._resting_lock:
-                rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
+                rows = self._claim_rows(self._resting_entries.values())
             return (self._withdraw_rows(rows, "engine stop: resting entry limit cancelled before exit", "",
                                         "RESTING_ENTRY_CANCELLED_ON_STOP") if rows else [])
         except Exception as exc:
@@ -4700,11 +4769,9 @@ class SenderGateway:
             self._resting_entries[str(oid)] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if intent.copy_side == "BUY" else "BUY"), 0)
-            late = opposite_ms > 0 and opposite_ms >= row["leader_fill_ms"]
-            if late:
-                late = self._claim_rows([row]) == [row]
-        if late:
-            gone = self._withdraw_rows([row], f"leader already reduced at {opposite_ms} while this limit was being placed", "")
+            claimed = self._claim_rows([row]) if opposite_ms > 0 and opposite_ms >= row["leader_fill_ms"] else []
+        if claimed:
+            gone = self._withdraw_rows(claimed, f"leader already reduced at {opposite_ms} while this limit was being placed", "")
             with self._resting_lock:
                 self._withdrawn_late.extend(gone)
 
@@ -4776,6 +4843,8 @@ class SenderGateway:
         when the follower's net target is already reached or no longer asks for the order's full size, or when the account
         cannot be read. A cancelled close is offered again by the next leader event or the convergence thread. Returns how many
         were cancelled."""
+        if self.cfg.send_mode_now() == "OFF":
+            return 0
         now = utc_now_ms()
         if now - getattr(self, "_standing_guard_ms", 0) < int(fnum(os.getenv("HL_LIVE_STANDING_GUARD_SEC"), 10.0) * 1000):
             return 0
@@ -4786,6 +4855,8 @@ class SenderGateway:
         reads: Dict[str, Optional[float]] = {}  # one account read per coin per round
         max_age = int(fnum(os.getenv("HL_LIVE_STANDING_CLOSE_MAX_AGE_SEC"), 300.0) * 1000)
         for sleeve_id, row in rows.items():
+            if self.cfg.send_mode_now() == "OFF":
+                break
             try:
                 why = ""
                 coin, size = str(row.get("coin") or ""), fnum(row.get("size"), 0.0)
@@ -4812,6 +4883,8 @@ class SenderGateway:
                             why = f"the follower's target moved (needs {need:.8g}, order {delta:.8g})"
                 if not why:
                     continue
+                if self.cfg.send_mode_now() == "OFF":
+                    break
                 exchange, sdk_coin = self._exchange_client_for_coin(coin)
                 response = self._cancel_order(exchange, str(row.get("sdk_coin") or sdk_coin), str(row.get("oid")))
                 statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
@@ -4887,7 +4960,9 @@ class SenderGateway:
         with self._resting_lock:
             for row in self._resting_entries.values():
                 if (row.get("leader_wallet") == wallet and canonical_coin_key(row.get("coin")) == key
-                        and row.get("side") == side and not row.get("withdrawing") and not row.get("withdraw_pending")
+                        and row.get("side") == side and not row.get("withdrawing")
+                        and (not row.get("withdraw_pending")
+                             or row.get("withdraw_label") == "RESTING_ENTRY_CANCELLED_SENDING_OFF")
                         and self._row_open_size(row) > 0):
                     return dict(row)
         return None
@@ -4908,59 +4983,76 @@ class SenderGateway:
             "operator_action": "NO_ACTION_LIMIT_ALREADY_RESTING", "timing": timing,
         }
 
-    def cancel_resting_entries_against(self, fill: LeaderFill) -> List[Dict[str, Any]]:
-        """A resting missed-entry limit lives only while the leader still holds that position: a NEWER leader fill
-        on the other side (reduce, close, flip) in that wallet and coin withdraws it. No clock expiry (Boss).
-        Returns the withdrawn rows (cancelled, or already filled/gone) so their fills can be owned first."""
+    def resting_entries_against(self, fill: LeaderFill) -> List[Dict[str, Any]]:
+        """Snapshot limits tied to an older or same-time entry on the opposite side."""
         wallet, key = normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin)
         ts = int(fnum(fill.timestamp_ms, 0))
         with self._resting_lock:
-            seen = (wallet, key, fill.side)
+            return [dict(r) for r in self._resting_entries.values()
+                    if r.get("leader_wallet") == wallet and canonical_coin_key(r.get("coin")) == key
+                    and r.get("side") != fill.side
+                    and int(fnum(r.get("leader_fill_ms") or r.get("placed_ms"), 0)) <= ts]
+
+    def cancel_resting_entries_against(self, fill: LeaderFill) -> List[Dict[str, Any]]:
+        """Withdraw the limits the leader's reduce, close or flip invalidated."""
+        seen = (normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin), fill.side)
+        ts = int(fnum(fill.timestamp_ms, 0))
+        with self._resting_lock:
             self._leader_side_seen_ms[seen] = max(self._leader_side_seen_ms.get(seen, 0), ts)
-            rows = self._claim_rows([r for r in self._resting_entries.values()
-                                     if r.get("leader_wallet") == wallet and canonical_coin_key(r.get("coin")) == key
-                                     and r.get("side") != fill.side
-                                     and int(fnum(r.get("leader_fill_ms") or r.get("placed_ms"), 0)) <= ts])
+            rows = self._claim_rows(self.resting_entries_against(fill), include_pending=True)
         if not rows:
             return []
         return self._withdraw_rows(rows, f"leader {fill.side} {fill.size} @ {fill.price} reduces that position", fill.leader_fill_id)
 
     def retry_pending_withdrawals(self) -> List[Dict[str, Any]]:
-        """Each cycle: retry withdrawals that failed (the leader may never trade that coin again)."""
+        """Each cycle: retry eligible withdrawals that failed."""
+        mode = self.cfg.send_mode_now()
+        if mode == "OFF":
+            return []
         with self._resting_lock:
-            rows = self._claim_rows([r for r in self._resting_entries.values() if r.get("withdraw_pending")])
+            rows = self._claim_rows([
+                r for r in self._resting_entries.values() if r.get("withdraw_pending")
+                and (mode == "CLOSE" or r.get("withdraw_label") != "RESTING_ENTRY_CANCELLED_SENDING_OFF")
+            ], include_pending=True)
         withdrawn: List[Dict[str, Any]] = []
         for label in sorted({str(r.get("withdraw_label") or "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") for r in rows}):
             same = [r for r in rows if str(r.get("withdraw_label") or "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") == label]
             withdrawn += self._withdraw_rows(same, f"retry of a failed withdrawal ({same[0].get('withdraw_pending')})", "", label)
         return withdrawn
 
-    def _claim_rows(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Under _resting_lock: mark rows as being withdrawn so no other path cancels the same limit at the same
-        time (a second cancel answers "already canceled" and would read as a fill). Returns copies of the claimed."""
+    def _claim_rows(self, rows: Iterable[Dict[str, Any]], *, include_pending: bool = False) -> List[Dict[str, Any]]:
+        """Under _resting_lock, claim fresh rows unless the caller explicitly handles pending withdrawals."""
         claimed = []
         for r in rows:
             live = self._resting_entries.get(str(r.get("oid")))
-            if live is not None and not live.get("withdrawing"):
+            if (live is not None and not live.get("withdrawing")
+                    and (include_pending or not live.get("withdraw_pending"))):
                 live["withdrawing"] = True
                 claimed.append(dict(live))
         return claimed
 
     def withdraw_resting_entries_sending_off(self) -> List[Dict[str, Any]]:
-        """Sending switched off: withdraw every missed-entry limit this engine placed (its own order ids, from its
-        own registry; never any other order, and resting exit limits are not in it and stay). Run 4 finding."""
+        """Withdraw tracked entry limits in CLOSE, or queue their withdrawal in OFF."""
         with self._resting_lock:
-            rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
-        return self._withdraw_rows(rows, "sending was switched off", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF") if rows else []
+            rows = self._claim_rows(self._resting_entries.values())
+        return self._withdraw_rows(rows, "new entries were disabled", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF") if rows else []
 
     def _withdraw_rows(self, rows: List[Dict[str, Any]], why: str, leader_fill_id: str,
                        cancelled: str = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") -> List[Dict[str, Any]]:
         withdrawn: List[Dict[str, Any]] = []
+        required_mode = "CLOSE" if cancelled == "RESTING_ENTRY_CANCELLED_SENDING_OFF" else ""
         for row in rows:
             oid, response, error = str(row.get("oid")), {}, ""
             try:
+                self._require_cancel_enabled(required_mode=required_mode)
+                if str(row.get("why") or "").startswith(UNVERIFIED_RESTING_ENTRY_REASON):
+                    raise RuntimeError(f"CANCEL_ORDER_OWNERSHIP_UNVERIFIED: {oid}")
                 exchange, sdk_coin = self._exchange_client_for_coin(str(row.get("coin")))
-                response = self._cancel_order(exchange, sdk_coin or str(row.get("sdk_coin")), oid)
+                response = self._cancel_order(
+                    exchange, sdk_coin or str(row.get("sdk_coin")), oid,
+                    leader_entry_withdrawal=cancelled == "RESTING_ENTRY_CANCELLED_LEADER_REDUCED",
+                    required_mode=required_mode,
+                )
                 statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
                 first = statuses[0] if statuses else None
                 if first == "success":
@@ -4989,7 +5081,7 @@ class SenderGateway:
                 coin=row.get("coin", ""), exchange_order_id=oid,
                 action="MANUAL_REVIEW_CANCEL_RESTING_ENTRY" if outcome == "RESTING_ENTRY_CANCEL_FAILED" else "NO_ACTION_LIMIT_WITHDRAWN",
                 terminal_state=outcome, engine_can_send="False",
-                notes=(f"missed-entry limit {row.get('side')} {row.get('size')} @ {row.get('limit_px')} withdrawn: {why}; "
+                notes=(f"missed-entry limit {row.get('side')} {row.get('size')} @ {row.get('limit_px')} withdrawal: {why}; "
                        f"error={error}" + ("; retried every cycle until it succeeds" if outcome == "RESTING_ENTRY_CANCEL_FAILED" else "")),
             )
         return withdrawn
@@ -5465,7 +5557,7 @@ class SenderGateway:
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro)
+                                                  limit_px, "Gtc", _ro, initial_lifecycle=classify_send_lifecycle(intent))
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -5549,6 +5641,8 @@ class SenderGateway:
         if leader_px <= 0 or wire_size <= 0:
             return None
         safe, unsafe = self._pre_exchange_asset_safety(intent, resolved, leader_px, wire_size)
+        if safe:
+            safe, unsafe = self._validate_final_wire_order(intent, resolved, sdk_coin, wire_size, leader_px, timing)
         if not safe:
             self.audit.append_reconciliation(
                 "ENTRY_ADD_RATE_LIMIT_RECOVERY", "ENTRY_ADD_RATE_LIMIT_RECOVERY_BLOCKED_SAFETY",
@@ -5593,7 +5687,8 @@ class SenderGateway:
                 return already
         try:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
-                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
+                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms",
+                                                  entry_retry=True)
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
@@ -5626,6 +5721,20 @@ class SenderGateway:
                     f"initial_error={initial_error}; recovery_error={parsed_error}"
                 ),
             }
+        except _EntryRetrySwitchBlocked as exc:
+            self.audit.append_reconciliation(
+                "ENTRY_ADD_RATE_LIMIT_RECOVERY", "ENTRY_RETRY_BLOCKED_BY_SEND_MODE",
+                leader_wallet=intent.fill.leader_wallet,
+                leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id,
+                coin=intent.fill.coin,
+                action="NO_SEND_RECOVERY_SWITCH_BLOCK",
+                reject_category="RATE_LIMIT_OR_TIMEOUT",
+                terminal_state="ENTRY_RETRY_BLOCKED_BY_SEND_MODE",
+                engine_can_send=False,
+                notes=f"lifecycle={lifecycle}; live send mode={exc}; initial_error={initial_error}",
+            )
+            return None
         except Exception as exc:
             recovery_error = repr(exc)
             self._note_exchange_rate_limit(recovery_error)
@@ -6009,13 +6118,21 @@ class SenderGateway:
             # block a genuine later close because of a non-exchange (symbol/cred) miss.
             if reserved_exit:
                 self._clear_pending_exit(intent)
-            if result.get("write_send_attempt") or result.get("write_reconciliation"):
+            if result.get("finalize_pending_send"):
+                self._append_real_attempt(intent, send_status, result)
+            elif result.get("write_send_attempt") or result.get("write_reconciliation"):
                 self._append_local_block_reconciliation(intent, send_status, result)
         return ok, send_status
 
     def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
         timing.setdefault("send_real_started_ms", utc_now_ms())
+        lifecycle = classify_send_lifecycle(intent)
+        is_entry = lifecycle in {"ENTRY", "ADD"} and not self._reduce_only_for_intent(intent)
+        mode = self.cfg.send_mode_now()
+        if mode == "OFF" or (mode == "CLOSE" and lifecycle in {"ENTRY", "ADD"}):
+            status = "MASTER_REAL_ORDERS_OFF" if mode == "OFF" else "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+            return False, status, {"exchange_called": False, "timing": timing}
         # T1a: one deterministic attempt_id + cloid for this send; the pending row and the final update share them
         timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
         timing.setdefault("send_cloid", generate_cloid(intent.intent_id))
@@ -6103,7 +6220,6 @@ class SenderGateway:
         sz_dec = resolved["sz_decimals"]
         price_max_dec = resolved["price_max_decimals"]
         perp_dexs = resolved.get("perp_dexs")
-        lifecycle = classify_send_lifecycle(intent)
         if resolved.get("sdk_order_compatible") is False:
             detail = (
                 f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; reason={resolved.get('reason') or 'sdk_order_compatible=false'}; "
@@ -6162,7 +6278,7 @@ class SenderGateway:
                 }
             base_px = follower_px
         missed: Optional[Dict[str, Any]] = None
-        if lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
+        if is_entry and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
             market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
             missed = missed_entry_decision(intent.copy_side, fnum(intent.fill.price, 0.0), market_px, follower_px, bps)
             if not missed.get("ok"):
@@ -6187,11 +6303,16 @@ class SenderGateway:
                 return already
         raw_px = base_px * mult
         limit_px = self._format_limit_px(raw_px, price_max_dec)
+        cap_px: Optional[float] = None
         if rest_now:  # never worse than the leader's price
             limit_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
-        elif missed is not None:  # never beyond leader price + tolerance (a SELL floor would go one tick past it)
+        elif missed is not None:
+            # Use the same tick rounding at the cap for the first IOC and its retry.
             cap_px = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
-            limit_px = min(limit_px, cap_px) if intent.copy_side == "BUY" else max(limit_px, cap_px)
+            if intent.copy_side == "BUY":
+                limit_px = min(self._px_passive(raw_px, price_max_dec, True), cap_px)
+            else:
+                limit_px = max(limit_px, cap_px)
         if close_adv_limit > 0:
             # UI "Adverse close diff %": a close limit may not sit further than this through the follower mid
             adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
@@ -6385,7 +6506,7 @@ class SenderGateway:
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
-                                         cloid=cloid)
+                                         cloid=cloid, initial_lifecycle=lifecycle)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 return self._resting_entry_result(
@@ -6396,27 +6517,46 @@ class SenderGateway:
             if (
                 not ok
                 and status == "ORDER_REJECTED"
-                and lifecycle in {"ENTRY", "ADD"}
+                and is_entry
                 and reject_category == "IOC_NO_IMMEDIATE_MATCH"
             ):
-                retry_bps = max(bps, fnum(os.getenv("HL_LIVE_ENTRY_IOC_RETRY_BPS"), 100.0))
-                max_retry_bps = max(retry_bps, fnum(os.getenv("HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"), retry_bps))
-                retry_bps = min(retry_bps, max_retry_bps)
-                if retry_bps > bps:
-                    retry_mult = (1.0 + retry_bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - retry_bps / 10000.0)
-                    retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec)
-                    if missed is not None:  # Boss's rule: the retry never goes past leader price + tolerance
-                        cap = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
-                        retry_px = min(retry_px, cap) if intent.copy_side == "BUY" else max(retry_px, cap)
-                    more_aggressive = retry_px > limit_px if intent.copy_side == "BUY" else retry_px < limit_px
+                retry_px = cap_px if cap_px is not None else limit_px
+                if cap_px is None:  # legacy retry applies when the missed-entry rule is disabled
+                    retry_bps = max(bps, fnum(os.getenv("HL_LIVE_ENTRY_IOC_RETRY_BPS"), 100.0))
+                    max_retry_bps = max(retry_bps, fnum(os.getenv("HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"), retry_bps))
+                    retry_bps = min(retry_bps, max_retry_bps)
+                    if retry_bps > bps:
+                        retry_mult = (1.0 + retry_bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - retry_bps / 10000.0)
+                        retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec)
+                more_aggressive = retry_px > limit_px if intent.copy_side == "BUY" else retry_px < limit_px
+                if more_aggressive:
                     retry_notional = abs(wire_size * retry_px)
-                    retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
-                    if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
-                        timing["entry_ioc_retry_started_ms"] = utc_now_ms()
-                        retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
-                                                           retry_px, "Ioc", False)
+                    retry_safe, _ = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
+                    if retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
+                        retry_gate_ok, retry_block = self._validate_final_wire_order(
+                            intent, resolved, sdk_coin, wire_size, retry_px, timing
+                        )
+                        if not retry_gate_ok:
+                            retry_block.update(
+                                exchange_called=True, exchange_response={}, oid="",
+                                limit_px=retry_px, copy_notional=retry_notional, reduce_only_sent=False,
+                                notes=f"IOC retry refused: {retry_block['error']}; initial_error={parsed_error}",
+                            )
+                            return False, retry_block["status"], retry_block
+                        try:
+                            retry_response = self._place_order(
+                                exchange, sdk_coin, intent.copy_side == "BUY", wire_size, retry_px, "Ioc", False,
+                                timing, "entry_ioc_retry_started_ms", entry_retry=True,
+                            )
+                        except Exception as exc:
+                            if "entry_ioc_retry_started_ms" not in timing:
+                                raise
+                            log_error("entry_ioc_retry", exc)
+                            retry_response = {}
+                            retry_ok, retry_status, retry_oid, retry_error = False, "ORDER_UNKNOWN", "", repr(exc)
+                        else:
+                            retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
-                        retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
                             return True, retry_status, {
                                 "exchange_response": retry_response, "oid": retry_oid,
@@ -6424,22 +6564,45 @@ class SenderGateway:
                                 "exchange_called": True, "error": retry_error, "timing": timing,
                                 "reject_category": "",
                                 "reduce_only_sent": use_reduce_only,
-                                "notes": f"entry IOC retry filled; initial_error={parsed_error}; initial_limit={limit_px}; retry_bps={retry_bps}",
+                                "notes": f"entry IOC retry filled; initial_error={parsed_error}; initial_limit={limit_px}; retry_limit={retry_px}",
+                            }
+                        reject_category = classify_reject_category(retry_error, retry_response)
+                        retry_error_lower = retry_error.lower()
+                        if (retry_status == "ORDER_UNKNOWN" or "timeout" in retry_error_lower
+                                or "timed out" in retry_error_lower):
+                            self._note_exchange_rate_limit(retry_error)
+                            return False, "EXCHANGE_ERROR", {
+                                "exchange_response": retry_response, "oid": "", "exchange_called": True,
+                                "limit_px": retry_px, "wire_size": wire_size, "copy_notional": retry_notional,
+                                "error": retry_error, "timing": timing, "reject_category": reject_category,
+                                "reduce_only_sent": False, "terminal_state": "ENTRY_IOC_RETRY_OUTCOME_UNRESOLVED",
+                                "operator_action": "MANUAL_REVIEW_CHECK_EXCHANGE_FILLS",
+                                "notes": "IOC retry outcome unresolved; no recovery order sent",
                             }
                         response, status, oid, parsed_error = retry_response, retry_status, retry_oid, retry_error
-                        reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         limit_px = retry_px
                         wire_notional = retry_notional
             if (not ok and status == "ORDER_REJECTED" and missed is not None
-                    and classify_reject_category(parsed_error, response) == "IOC_NO_IMMEDIATE_MATCH"):
+                    and reject_category == "IOC_NO_IMMEDIATE_MATCH"):
                 # missed while sending (price ran within the tolerance window): diff + limit at the leader's price
                 rest_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
                 rest_safe, _rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
+                    rest_gate_ok, rest_block = self._validate_final_wire_order(
+                        intent, resolved, sdk_coin, wire_size, rest_px, timing
+                    )
+                    if not rest_gate_ok:
+                        rest_block.update(
+                            exchange_called=True, exchange_response=response, oid=oid,
+                            limit_px=limit_px, copy_notional=wire_notional, reduce_only_sent=use_reduce_only,
+                            notes=f"missed-entry limit refused: {rest_block['error']}; initial_error={parsed_error}",
+                        )
+                        return False, rest_block["status"], rest_block
                     gtc_px = rest_px
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
-                                                      "Gtc", False, timing, "missed_entry_limit_started_ms")
+                                                      "Gtc", False, timing, "missed_entry_limit_started_ms",
+                                                      entry_retry=True)
                     return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
                                                       f"copy order found no match ({parsed_error})")
             if (not ok and status == "ORDER_REJECTED"
@@ -6452,12 +6615,15 @@ class SenderGateway:
                 # for the ledger and exchange views to catch up (same coin = same worker, so nothing else of this
                 # coin is sent meanwhile) and resend once without reduce-only if they now agree.
                 deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_NETTING_RETRY_WAIT_SEC"), 3.0))
-                while True:
+                while self.cfg.master_switch_now():
                     if not self._reduce_only_on_wire(intent, wire_size):
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
-                        response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False)
+                        try:
+                            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
+                                                         "Ioc", False, initial_lifecycle=lifecycle)
+                        except _InitialSendSwitchBlocked:
+                            break
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         use_reduce_only = False
@@ -6468,7 +6634,7 @@ class SenderGateway:
                         break
                     time.sleep(0.5)
             if (not ok and status == "ORDER_REJECTED" and use_reduce_only and lifecycle in {"REDUCE", "EXIT"}
-                    and reject_category == "REDUCE_ONLY_REJECTED"):
+                    and reject_category == "REDUCE_ONLY_REJECTED" and self.cfg.master_switch_now()):
                 repair_note = self._repair_ledger_if_exchange_flat(intent, parsed_error)
                 if repair_note:
                     netting_note = (netting_note + "; " if netting_note else "") + repair_note
@@ -6490,6 +6656,26 @@ class SenderGateway:
                 "reduce_only_sent": use_reduce_only,
                 **({"notes": netting_note} if netting_note else {}),
             }
+        except _InitialSendSwitchBlocked as exc:
+            send_status = "MASTER_REAL_ORDERS_OFF" if str(exc) == "OFF" else "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+            return False, send_status, {
+                "exchange_response": {}, "oid": "", "exchange_called": False, "finalize_pending_send": True,
+                "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
+                "order_type": "REAL_GTC" if rest_now else "REAL_IOC", "reduce_only_sent": False,
+                "error": f"initial order refused at the wire; live send mode={exc}", "timing": timing,
+                "reject_category": send_status, "operator_action": "NO_SEND_GLOBAL_SWITCH_BLOCK",
+                "terminal_state": "SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED" if str(exc) == "OFF" else send_status,
+            }
+        except _EntryRetrySwitchBlocked as exc:
+            return False, "ENTRY_RETRY_BLOCKED_BY_SEND_MODE", {
+                "exchange_response": response, "oid": oid,
+                "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
+                "exchange_called": True, "error": parsed_error, "timing": timing,
+                "reject_category": reject_category, "reduce_only_sent": use_reduce_only,
+                "terminal_state": "ENTRY_RETRY_BLOCKED_BY_SEND_MODE",
+                "operator_action": "NO_SEND_ENTRY_RETRY_SWITCH_BLOCK",
+                "notes": f"entry/add follow-up refused: live send mode={exc}; previous_error={parsed_error}",
+            }
         except Exception as exc:
             timing["exchange_call_finished_ms"] = utc_now_ms()
             log_error("send_real", exc)
@@ -6507,7 +6693,7 @@ class SenderGateway:
                 if oid:
                     return self._resting_entry_result(
                         intent, sdk_coin, {"status": "ok", "response": {"data": {"statuses": [{"resting": {"oid": oid}}]}}},
-                        gtc_px, wire_size, timing, missed, f"limit found resting after the exchange call raised ({error_text})")
+                        gtc_px, wire_size, timing, missed, f"{UNVERIFIED_RESTING_ENTRY_REASON} ({error_text})")
                 detail = (f"placing the missed-entry limit {intent.copy_side} {wire_size} @ {gtc_px} raised {error_text}; it was "
                           "not found in open orders; check open orders on the exchange")
                 return False, "EXCHANGE_ERROR", {
@@ -7630,10 +7816,21 @@ def rotate_trace_file(path: Path, max_bytes: int, keep: int = 0) -> None:
 class LeaderFillIngestor:
     @staticmethod
     def stable_leader_fill_id(wallet: str, raw: Dict[str, Any]) -> str:
-        return str(raw.get("fill_id") or raw.get("hash") or raw.get("tid") or raw.get("oid") or stable_hash([
-            wallet, raw.get("coin"), raw.get("side", raw.get("dir")), raw.get("px", raw.get("price")),
-            raw.get("sz", raw.get("size")), raw.get("time", raw.get("timestamp_ms")), raw.get("startPosition", ""),
-        ]))
+        tid = raw.get("tid")
+        tid = str(tid).strip() if tid is not None else ""
+        fill_hash = str(raw.get("hash") or "").strip().lower()
+        if tid:
+            return f"{tid}:{fill_hash}" if fill_hash else tid
+        fill_id = str(raw.get("fill_id") or "").strip()
+        if fill_id and fill_id.lower() != fill_hash:
+            return fill_id
+        if fill_hash:
+            return fill_hash
+        return stable_hash([
+            wallet, fill_hash, raw.get("oid"), raw.get("coin"), raw.get("side", raw.get("dir")),
+            raw.get("px", raw.get("price")), raw.get("sz", raw.get("size")),
+            raw.get("time", raw.get("timestamp_ms", raw.get("timestamp"))), raw.get("startPosition", ""),
+        ])
 
     @staticmethod
     def parse_fill(wallet: str, raw: Dict[str, Any], source: str) -> Optional[LeaderFill]:
@@ -9080,7 +9277,7 @@ class ServiceStateWriter:
                 "max_asset_directional_exposure_usd": cfg.max_asset_directional_exposure(),
                 "max_daily_loss_usd": cfg.max_daily_loss(),
                 "max_wallet_exposure_usd": max(0.0, fnum(cfg.global_controls.get("max_wallet_exposure_usd"), 0.0)),
-                "max_order_notional_usd": cfg.max_order_notional(),
+                "max_order_notional_usd": cfg.max_order_notional() or 0.0,
                 "marketable_bps": cfg.marketable_bps(),
                 "max_close_adverse_diff_pct": cfg.max_close_adverse_diff_pct(),
                 "symbol_allowlist": _eff_allow,
@@ -9458,7 +9655,7 @@ class LiveCopyCore:
         fresh.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
         groups: Dict[Tuple[str, str], List[List[LeaderFill]]] = {}
         run_notional: Dict[int, float] = {}
-        max_order = self.cfg.max_order_notional()
+        max_order = self.cfg.max_order_notional() or 0.0
         # room for the follower price and slippage, which the order cap is checked at
         room = max_order / (1.0 + self.cfg.marketable_bps() / 10000.0) * 0.95 if max_order > 0 else 0.0
         for f in fresh:
@@ -9892,7 +10089,17 @@ class LiveCopyCore:
     def _already_handled(self, fill: LeaderFill) -> bool:
         """Cheap pre-check before any processing: the poll re-reads fills the live feed already handled."""
         with self._idem_lock:
-            return self._guard_key(fill) in self._idem_accepted
+            return self._leader_fill_seen_locked(fill, self._guard_key(fill))
+
+    def _leader_fill_seen_locked(self, fill: LeaderFill, guard_key: str) -> bool:
+        if guard_key in self._idem_accepted:
+            return True
+        # Match existing hash-only records when the fill now uses a different ID.
+        fill_hash = str((fill.raw or {}).get("hash") or "").strip().lower()
+        if not fill_hash or fill_hash == guard_key:
+            return False
+        with self.dedupe._lock:
+            return fill_hash in self._idem_accepted or fill_hash in self.dedupe.processed
 
     def _process_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         """Every fill ends in a row. An error while processing used to be only a log line: the fill (and any fills merged
@@ -10039,11 +10246,10 @@ class LiveCopyCore:
         #   â€¢ same fill appearing twice in one WS message's fills array
         #   â€¢ concurrent threads racing to send the same fill
         # Uses a plain Lock (not RLock) so re-entrancy from the same thread is blocked.
-        # Guard key: exchange hash (leader_fill_id) is unique and stable; deterministic
-        # fallback covers edge cases where fill_id is absent.
+        # Use the ingested execution ID, which distinguishes fills that share a transaction hash.
         guard_key = self._guard_key(fill)
         with self._idem_lock:
-            if guard_key in self._idem_accepted:
+            if self._leader_fill_seen_locked(fill, guard_key):
                 if guard_key not in self._idem_duplicate_audited:
                     self._idem_duplicate_audited.add(guard_key)
                     self.audit.append_reconciliation(
@@ -10063,14 +10269,38 @@ class LiveCopyCore:
             merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
             self._idem_accepted.update(merged_ids)  # the fills merged into this copy are handled by it
 
-        # A resting missed-entry limit the leader no longer supports is withdrawn, and any fill it got is owned by
-        # the ledger, BEFORE this fill is classified: the leader's close must find that position. The cancel and the
-        # fill read are network calls, so they are made before the send lock; only the ledger update is under it.
         converge = str(fill.source or "").upper() == "CONVERGE"
-        # a convergence close is not a leader fill: it must not stamp the leader's side with the local clock (that
-        # would refuse the leader's next real entry) nor withdraw limits
-        withdrawn = [] if converge else self.sender.cancel_resting_entries_against(fill)
-        withdrawn_fills = self._read_fills_of_withdrawn_limits(withdrawn) if withdrawn else None
+        seen_resting_oids: set = set()
+        # Switch ON: the leader-invalidated resting entry limits are withdrawn BEFORE the close is sized, as on base,
+        # so a limit cannot fill between sizing the close and cancelling it. OFF makes no cancel at all; CLOSE ONLY
+        # keeps the post-close withdrawal below (unchanged).
+        pre_withdrawn: List[Dict[str, Any]] = []
+        pre_read = None
+        if not converge and self.cfg.send_mode_now() == "ON":
+            try:
+                pre_withdrawn = self.sender.cancel_resting_entries_against(fill)
+                pre_read = self._read_fills_of_withdrawn_limits(pre_withdrawn) if pre_withdrawn else None
+            except Exception as exc:
+                log_error("cancel_resting_entries_against_pre_close", exc)
+        result = self._handle_leader_fill(fill, summary, entry_block_reason, guard_key, merged_ids, converge,
+                                          seen_resting_oids, pre_withdrawn, pre_read)
+        # A convergence close carries a local timestamp and must not invalidate leader entry limits.
+        if not converge and result[1] != "REPLAY_DEFERRED_TRUTH_UNREADABLE":
+            try:
+                withdrawn = self.sender.cancel_resting_entries_against(fill)
+                if withdrawn:
+                    self._reconcile_late_resting_entries(withdrawn, seen_resting_oids)
+            except Exception as exc:
+                log_error("cancel_resting_entries_against", exc)
+        return result
+
+    def _handle_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary], entry_block_reason: str,
+                            guard_key: str, merged_ids: List[str], converge: bool,
+                            seen_resting_oids: set, pre_withdrawn: Optional[List[Dict[str, Any]]] = None,
+                            pre_read: Optional[Any] = None) -> Tuple[bool, str, Optional[Intent]]:
+        # Any resting-entry fills already visible must reach the ledger before the close is sized.
+        resting = [] if converge else self.sender.resting_entries_against(fill)
+        resting_fills = self._read_fills_of_withdrawn_limits(resting) if resting else None
         # only fills that can reach the exchange pay for the mid/exposure reads (a locally blocked fill keeps only
         # the cached leader-equity read that sizing needs)
         local_block = self.intent_builder.blocked_locally(fill, entry_block_reason)
@@ -10078,8 +10308,10 @@ class LiveCopyCore:
         stamp_fill(fill, "prewarm_done_ms")
         with self._send_lock:
             stamp_fill(fill, "lock_acquired_ms")
-            if withdrawn:
-                self._apply_fills_of_withdrawn_limits(withdrawn, withdrawn_fills)
+            if pre_withdrawn:  # limits withdrawn before this close was sized: their fills reach the ledger first
+                self._apply_fills_of_withdrawn_limits(pre_withdrawn, pre_read, seen_resting_oids)
+            if resting_fills and resting_fills[1] == "COPY_ACCOUNT_POLLED":
+                self._apply_fills_of_withdrawn_limits(resting, resting_fills, seen_resting_oids)
             # Determine lifecycle before dedupe so missed exits can be re-attempted.
             # _idem_accepted (seeded from send_attempts each startup) handles within-session dedup.
             try:
@@ -10283,6 +10515,8 @@ class LiveCopyCore:
 
     def _read_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], str]:
         """The network half of _own_fills_of_withdrawn_limits: call it without the send lock."""
+        if not self.cfg.master_switch_now():
+            return [], "MASTER_REAL_ORDERS_OFF"
         last_copy_poll_ms = copy_cursor_ms()
         since = max(0, max(min(int(fnum(r.get("placed_ms"), 0)) for r in rows), last_copy_poll_ms) - POLL_OVERLAP_MS)
         return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
@@ -10309,6 +10543,25 @@ class LiveCopyCore:
                 if self.dedupe.accept_copy(CopyAccountIngestor.copy_fill_id(raw)) and self.matcher.match_and_apply(raw, self.intents_by_id):
                     owned += 1
         return owned
+
+    def _reconcile_late_resting_entries(self, rows: List[Dict[str, Any]], seen_before: Optional[set] = None) -> None:
+        read = self._read_fills_of_withdrawn_limits(rows)
+        seen = set()
+        known = seen_before or set()
+        with self._send_lock:
+            owned = self._apply_fills_of_withdrawn_limits(rows, read, seen)
+            # A fill can be missing from this read even when the exchange says the order is already gone.
+            if owned > 0 or seen - known or any(
+                r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE"
+                and CopyFillMatcher._normalize_oid(str(r.get("oid"))) not in known for r in rows
+            ):
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=rows[0].get("coin", ""),
+                    leader_wallet=rows[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                    action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                    exchange_order_id=",".join(str(r.get("oid", "")) for r in rows),
+                    notes=("a missed-entry limit may have filled before withdrawal and escaped the leader's reduce; "
+                           "check whether the follower still holds that position"))
 
     def _refresh_truth_for_gate(self, force: bool = False) -> None:
         """The ownership gate saw the exchange and the ledger disagree: own the follower's newest fills (as the
@@ -10939,19 +11192,24 @@ class LiveCopyCore:
             summary.entry_sends_blocked_reason = _block
             summary.sender_key_invalid = self.sender.sender_key_invalid
             # --- end entry safety gates ---
-            try:
-                self.sender.prune_standing_closes()
-                self.sender.guard_standing_closes()
-            except Exception as exc:
-                log_error("prune_standing_closes", exc)
-            if self.sender.resting_entries():
+            if self.cfg.master_switch_now():
                 try:
-                    summary.resting_entry_limits = self.sender.refresh_resting_open_sizes()
+                    self.sender.prune_standing_closes()
+                    self.sender.guard_standing_closes()
                 except Exception as exc:
-                    log_error("refresh_resting_open_sizes", exc)
-                # sending off: no order of the engine's may keep working on the exchange (run 4: limits kept filling)
+                    log_error("prune_standing_closes", exc)
+            resting = self.sender.resting_entries()
+            if resting:
+                if self.cfg.master_switch_now():
+                    try:
+                        summary.resting_entry_limits = self.sender.refresh_resting_open_sizes()
+                    except Exception as exc:
+                        log_error("refresh_resting_open_sizes", exc)
+                else:
+                    summary.resting_entry_limits = sum(self.sender._row_open_size(row) > 0 for row in resting)
+                # Queue mode-driven withdrawals in OFF and execute them in CLOSE.
                 retried = self.sender.retry_pending_withdrawals()
-                if not master_enabled or self.cfg.send_mode == "CLOSE":  # CLOSE withdraws entry limits like OFF; close limits stay
+                if self.cfg.send_mode_now() != "ON":
                     retried += self.sender.withdraw_resting_entries_sending_off()
                 if retried:
                     read = self._read_fills_of_withdrawn_limits(retried)
@@ -10959,21 +11217,7 @@ class LiveCopyCore:
                         self._apply_fills_of_withdrawn_limits(retried, read)
             late = self.sender.take_withdrawn_late()
             if late:
-                read = self._read_fills_of_withdrawn_limits(late)
-                with self._send_lock:
-                    seen_late: set = set()
-                    self._apply_fills_of_withdrawn_limits(late, read, seen_late)
-                    # any fill of these limits (owned now or earlier by the copy poll), or a cancel answered
-                    # "already filled/gone" whose fill the API may not show yet, leaves a position with no leader
-                    if seen_late or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in late):
-                        self.audit.append_reconciliation(
-                            "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
-                            leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                            action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
-                            exchange_order_id=",".join(str(r.get("oid")) for r in late),
-                            notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
-                                   "reduced (or the exchange said it was already filled/gone); the follower may hold a "
-                                   "position the leader no longer has; reconcile on the exchange"))
+                self._reconcile_late_resting_entries(late)
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
             if use_source_csv:

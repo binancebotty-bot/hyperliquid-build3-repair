@@ -153,12 +153,40 @@ def main() -> None:
     # ---- S9: resting ENTRY limits are withdrawn on a switch to CLOSE (spec item 2) --------------------
     # Structural: the cycle withdraws resting entries when sending is off; the spec requires the same on
     # a switch to CLOSE (resting close limits stay). The condition must be CLOSE-aware, not `not master_enabled`.
-    src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
-    # strictly: the engine must treat CLOSE like OFF for the resting-entry withdrawal
-    close_aware = bool(re.search(r"withdraw_resting_entries_sending_off", src)) and bool(
-        re.search(r"send_mode\s*==\s*[\"']CLOSE[\"']", src))
-    check("S9_RESTING_ENTRY_LIMITS_WITHDRAWN_ON_CLOSE", close_aware,
-          "engine has no send_mode==CLOSE branch withdrawing resting entry limits (only `if not master_enabled`)")
+    # Behavioural (replaces the old source grep): drive the engine's own withdrawal with a fake exchange.
+    #   OFF   -> zero exchange cancels, the engine-registered row stays resting (queued as withdraw_pending)
+    #   CLOSE -> exactly the engine-registered entry limit is cancelled and leaves the registry
+    class FakeExchange:
+        def __init__(self):
+            self.cancels = []
+
+        def cancel(self, coin, oid):
+            self.cancels.append((coin, oid))
+            return {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
+
+    def resting_gateway(mode, fake):
+        config(auto=True, send_mode=mode)
+        c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+        g = gateway()
+        g._resting_entries = {}
+        g._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        g._reserve_exchange_order_slot = lambda: c.utc_now_ms()
+        g._fresh_exchange_net = lambda coin: 0.0  # exchange net == engine net (flat): ownership check passes
+        g._register_resting_entry(intent("ENTRY_ALLOWED", "ENTRY"), "BTC", "901", 100.0, 1.0, "engine opened entry limit")
+        return g
+
+    off_fake = FakeExchange()
+    off_gw = resting_gateway("OFF", off_fake)
+    off_gw.withdraw_resting_entries_sending_off()
+    check("S9_OFF_MAKES_ZERO_CANCELS_AND_KEEPS_RESTING_ROW",
+          off_fake.cancels == [] and "901" in off_gw._resting_entries,
+          "cancels=%s rows=%s" % (off_fake.cancels, list(off_gw._resting_entries)))
+    close_fake = FakeExchange()
+    close_gw = resting_gateway("CLOSE", close_fake)
+    out = close_gw.withdraw_resting_entries_sending_off()
+    check("S9_CLOSE_WITHDRAWS_ENGINE_RESTING_ENTRY_ONLY",
+          close_fake.cancels == [("BTC", 901)] and "901" not in close_gw._resting_entries and [w["oid"] for w in out] == ["901"],
+          "cancels=%s rows=%s out=%s" % (close_fake.cancels, list(close_gw._resting_entries), out))
 
     # ---- S10: the dashboard reads the same three-state switch the engine does -------------------------
     import HL_Copy_App_SSOT as ui

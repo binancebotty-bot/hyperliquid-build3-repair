@@ -25,6 +25,8 @@ class EmitterGatesMatrixTest(unittest.TestCase):
                 marketable_bps=lambda: 0.0,
                 max_close_adverse_diff_pct=lambda: 0.0,
                 min_notional=lambda: 1.0,
+                send_mode_now=lambda: "ON",
+                master_switch_now=lambda: True,
             )
             exchange = FakeExchange()
             resolved = {

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """T1b: startup orphan-order check (orphan-order invariant, part b).
 
-Before arming, the sender reads the follower's open orders on every dex the engine reads. Each order is matched
-to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting engine order; no
-match is cancelled and audited as `orphan_order_cancelled`. A failed read fails closed (refuses to arm). The
+Before arming, the sender reads the follower's open orders on every dex the engine reads. Each order is matched to engine records by cloid or order id; engine-owned orders may be cancelled only in CLOSE ONLY;
+unmatched orders are reported without cancellation. OFF makes no exchange calls. A failed read fails closed (refuses to arm). The
 check never runs on a mainnet follower without --confirm-mainnet-follower.
 
 Run: HL_LIVE_ENV_FILE=/nonexistent python -u test_t1b_startup_orphan.py   # RESULT:: markers, exit 0/1.
@@ -41,6 +40,8 @@ def main() -> None:
     c.requests.post = offline
     c.USER_WALLET = FOLLOWER
     c.ConfigManager.auto_send_enabled = property(lambda self: True)  # real sending configured (the check is skipped otherwise)
+    send_mode = ["ON"]
+    c.ConfigManager.send_mode_now = lambda self: send_mode[0]  # startup orphan check also requires the live switch to be armed
     c.follower_dex_scope = lambda: [""]          # one dex scope, deterministic
     c._LEARNED_DEXES = set()
 
@@ -55,8 +56,9 @@ def main() -> None:
     def recon_rows():
         return c.read_csv_rows(c.RECONCILIATION_CSV)
 
-    def run(orders=None, raise_read=False, known_cloid="", pending_attempt=""):
+    def run(orders=None, raise_read=False, known_cloid="", pending_attempt="", mode="ON"):
         # fresh state per scenario
+        send_mode[0] = mode
         c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
         c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
         c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
@@ -91,14 +93,37 @@ def main() -> None:
     check("B4_PENDING_ROW_PROMOTED_TO_ORDER_RESTING", promoted and promoted[-1]["status"] == "ORDER_RESTING"
           and promoted[-1]["exchange_order_id"] == "555", str(promoted)[:300])
 
-    # ---- B5: an unknown order is cancelled and audited ----------------------------------------------
+    # ---- B5: unmatched orders are reported without exchange cancellation -----------------------------
     res, fake, gw = run(orders=[{"oid": 777, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99",
                                  "cloid": "0x" + "f" * 32}])
-    check("B5_UNMATCHED_CANCELLED", res["ok"] and fake.cancels == [("BTC", 777)] and len(res["cancelled"]) == 1, str(res))
-    cancelled = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_CANCELLED"]
-    check("B6_CANCEL_AUDITED", len(cancelled) == 1 and cancelled[0].get("exchange_order_id") == "777", str(cancelled)[:300])
+    check("B5_UNMATCHED_REPORT_ONLY", res["ok"] and not fake.cancels and not res.get("cancelled")
+          and len(res.get("reported", [])) == 1, str(res))
+    reported = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_UNMATCHED"]
+    check("B6_UNMATCHED_REPORTED", len(reported) == 1 and reported[0].get("exchange_order_id") == "777"
+          and "REPORT_ONLY" in reported[0].get("action", ""), str(reported)[:300])
 
-    # ---- B7: an order with no cloid but an oid we already hold is adopted ----------------------------
+    # ---- B7: CLOSE ONLY may cancel an engine-owned order matched by client id -------------------------
+    cl = c.generate_cloid("i1")
+    res, fake, gw = run(orders=[{"oid": 779, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99",
+                                 "cloid": cl}], known_cloid=cl, pending_attempt="close-owned", mode="CLOSE")
+    check("B7_CLOSE_ONLY_CANCELS_ENGINE_OWNED", res["ok"] and fake.cancels == [("BTC", 779)]
+          and len(res.get("cancelled", [])) == 1, str(res))
+    # B7c: the order may have part-filled before the cancel; its order id must be linked to the engine's pending
+    # send row so a later copy-account fill with that oid is matched as engine-owned (same as the adoption path).
+    linked = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("attempt_id") == "close-owned"]
+    check("B7C_CLOSE_CANCEL_LINKS_OID_TO_PENDING_ROW",
+          linked and linked[-1].get("exchange_order_id") == "779" and linked[-1].get("status") != "pending_send",
+          str(linked)[:300])
+
+    # ---- B7b: CLOSE ONLY never cancels an UNMATCHED order (report-only), even beside an owned one -------
+    res, fake, gw = run(orders=[{"oid": 779, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99", "cloid": cl},
+                                {"oid": 780, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99",
+                                 "cloid": "0x" + "e" * 32}],
+                        known_cloid=cl, pending_attempt="close-owned2", mode="CLOSE")
+    check("B7B_CLOSE_ONLY_NEVER_CANCELS_UNMATCHED", res["ok"] and fake.cancels == [("BTC", 779)]
+          and len(res.get("reported", [])) == 1, str(res) + str(fake.cancels))
+
+    # ---- B8: an order with no cloid but an oid we already hold is adopted ----------------------------
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {"888": {"oid": "888", "coin": "BTC", "side": "BUY",
                                                               "size": 1.0, "limit_px": 100.0, "cloid": ""}})
     c.append_csv(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS,
@@ -108,24 +133,24 @@ def main() -> None:
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
     res = gw.startup_orphan_order_check()
-    check("B7_MATCHED_BY_ORDER_ID_ADOPTED", res["ok"] and not fake.cancels and len(res["adopted"]) == 1, str(res))
+    check("B8_MATCHED_BY_ORDER_ID_ADOPTED", res["ok"] and not fake.cancels and len(res["adopted"]) == 1, str(res))
 
-    # ---- B8: empty open orders is a no-op -----------------------------------------------------------
+    # ---- B9: empty open orders is a no-op -----------------------------------------------------------
     res, fake, _ = run(orders=[])
-    check("B8_EMPTY_LIST_NOOP", res["ok"] and not res["adopted"] and not res["cancelled"] and not fake.cancels, str(res))
+    check("B9_EMPTY_LIST_NOOP", res["ok"] and not res["adopted"] and not res["cancelled"] and not fake.cancels, str(res))
 
-    # ---- B9: read failure fails closed (refuses to arm, touches nothing) -----------------------------
+    # ---- B10: read failure fails closed (refuses to arm, touches nothing) -----------------------------
     res, fake, _ = run(raise_read=True)
-    check("B9_READ_FAILURE_FAILS_CLOSED", (not res["ok"]) and "fail closed" in res.get("detail", "") and not fake.cancels, str(res))
+    check("B10_READ_FAILURE_FAILS_CLOSED", (not res["ok"]) and "fail closed" in res.get("detail", "") and not fake.cancels, str(res))
 
-    # ---- B10: mainnet follower without confirmation is skipped ---------------------------------------
+    # ---- B11: mainnet follower without confirmation is skipped ---------------------------------------
     saved_net, saved_conf = c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED
     c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = "mainnet", False
     try:
         res, fake, _ = run(orders=[{"oid": 999, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "1"}])
     finally:
         c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = saved_net, saved_conf
-    check("B10_MAINNET_UNCONFIRMED_SKIPPED", res["ok"] and res.get("skipped") and not fake.cancels, str(res))
+    check("B11_MAINNET_UNCONFIRMED_SKIPPED", res["ok"] and res.get("skipped") and not fake.cancels, str(res))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
