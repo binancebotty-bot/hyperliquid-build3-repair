@@ -16,6 +16,16 @@ tmp = Path(tempfile.mkdtemp(prefix="dedupe_bound_"))
 os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LIVE_ENV_FILE": "/nonexistent"})
 import HL_Live_Copy_Service_Core as c
 
+# This test is about the size/shape of the persisted sets, not crash timing. Since the crash-loss fix an id is
+# persisted at confirm_*() (when its work is on record), so these helpers accept AND confirm. The accept-then-crash
+# behaviour is covered by test_core_crash_loss_persist_before_ack.py.
+_real_al, _real_ac = c.DedupeStore.accept_leader, c.DedupeStore.accept_copy
+def _acc_l(self, fid):
+    ok = _real_al(self, fid); self.confirm_leader(fid); return ok
+def _acc_c(self, fid, allow_retry=False):
+    ok = _real_ac(self, fid, allow_retry); self.confirm_copy(fid); return ok
+c.DedupeStore.accept_leader, c.DedupeStore.accept_copy = _acc_l, _acc_c
+
 R = []
 def check(n, ok, d=""):
     R.append(bool(ok)); print("RESULT::%s_%s%s" % (n, "PASS" if ok else "FAIL", (" | " + str(d)) if d and not ok else ""))

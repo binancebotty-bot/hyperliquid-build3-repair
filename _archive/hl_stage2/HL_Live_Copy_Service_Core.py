@@ -3198,8 +3198,71 @@ def _safe_marker_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or ""))[:180]
 
 
-def claim_copy_fill_process_marker(copy_fill_id: str) -> bool:
-    """COPY_FILL_XPROC_DEDUPE_WINAGENT: cross-process copy fill claim guard."""
+_INFLIGHT_CLAIMS: set = set()  # copy fill ids this process is applying right now
+_INFLIGHT_CLAIMS_LOCK = threading.Lock()
+
+
+def _pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+
+
+def commit_copy_fill_process_marker(copy_fill_id: str) -> None:
+    """The fill is fully applied and recorded: its claim becomes permanent (a .done sidecar)."""
+    try:
+        marker_dir = AUDIT_DIR / "copy_fill_claims"
+        done = marker_dir / (_safe_marker_name(copy_fill_id) + ".done")
+        fd = os.open(str(done), os.O_CREAT | os.O_WRONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    except Exception as exc:
+        log_error("commit_copy_fill_process_marker", exc)
+
+
+def _stale_claim_released(marker: Path, copy_fill_id: str, applied_check: Optional[Callable[[str], bool]]) -> bool:
+    """A claim with no .done that nobody is working on (its process died, or this process failed mid-apply) must not
+    drop the fill. If the ledger already holds the fill the claim is finished (never applied twice); otherwise the claim
+    is released so the fill replays. Returns True when the caller may take the claim."""
+    done = marker.with_suffix(".done")
+    if done.exists():
+        return False
+    with _INFLIGHT_CLAIMS_LOCK:
+        if copy_fill_id in _INFLIGHT_CLAIMS:
+            return False
+    pid = 0
+    try:
+        for line in marker.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("pid="):
+                pid = int(fnum(line[4:], 0))
+    except Exception:
+        return False
+    if pid != os.getpid() and _pid_alive(pid):
+        return False  # another live process is working on it
+    if applied_check is not None and applied_check(copy_fill_id):
+        try:
+            commit_copy_fill_process_marker(copy_fill_id)  # the ledger has it: finish the claim, never apply twice
+        except Exception:
+            pass
+        return False
+    try:
+        os.rename(str(marker), str(marker) + f".stale.{os.getpid()}.{utc_now_ms()}")  # atomic: one taker wins
+    except OSError:
+        return False
+    return True
+
+
+def claim_copy_fill_process_marker(copy_fill_id: str, applied_check: Optional[Callable[[str], bool]] = None) -> bool:
+    """COPY_FILL_XPROC_DEDUPE_WINAGENT: cross-process copy fill claim guard. Two-phase: a claim is only permanent once
+    commit_copy_fill_process_marker ran; an uncommitted claim left by a crash is recovered (see _stale_claim_released)."""
     try:
         marker_dir = AUDIT_DIR / "copy_fill_claims"
         marker_dir.mkdir(parents=True, exist_ok=True)
@@ -3208,10 +3271,21 @@ def claim_copy_fill_process_marker(copy_fill_id: str) -> bool:
         tid = str(copy_fill_id).rsplit(":", 1)[-1] if str(copy_fill_id).count(":") >= 1 else ""
         if tid and (marker_dir / (_safe_marker_name(f"{copy_fill_id}:{tid}") + ".claim")).exists():
             return False
-        fd = os.open(str(marker), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(f"copy_fill_id={copy_fill_id}\nclaimed_at={utc_now_iso()}\npid={os.getpid()}\n")
-        return True
+        for _attempt in (0, 1):
+            try:
+                fd = os.open(str(marker), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                if _attempt == 0 and _stale_claim_released(marker, copy_fill_id, applied_check):
+                    continue
+                return False
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(f"copy_fill_id={copy_fill_id}\nclaimed_at={utc_now_iso()}\npid={os.getpid()}\n")
+                f.flush()
+                os.fsync(f.fileno())
+            with _INFLIGHT_CLAIMS_LOCK:
+                _INFLIGHT_CLAIMS.add(copy_fill_id)
+            return True
+        return False
     except FileExistsError:
         return False
     except Exception as exc:
@@ -3244,6 +3318,10 @@ class DedupeStore:
         self._state_dir = Path(state_dir) if state_dir else None
         self._jsonl_new_leader: List[str] = []
         self._jsonl_new_copy: List[str] = []
+        # accepted in memory but not yet durable: an id is only persisted once its work is on record (confirm_*), so a
+        # crash between acceptance and the intent/ledger write replays the fill on restart instead of losing it
+        self._pending_leader: set = set()
+        self._pending_copy: set = set()
         # insertion-order recency windows: the JSON tail must keep the MOST RECENT ids, and an
         # exchange fill id does not sort by time, so sorted()[-N:] was an arbitrary subset
         self._recent_leader: "collections.deque" = collections.deque(maxlen=DEDUPE_TAIL_LIMIT)
@@ -3261,20 +3339,46 @@ class DedupeStore:
             if fill_id in self.processed:
                 return False
             self.processed.add(fill_id)
+            self._pending_leader.add(fill_id)
+            return True
+
+    def confirm_leader(self, fill_id: str) -> None:
+        """The fill's order intent is durably on record: now (and only now) the id is persisted."""
+        with self._lock:
+            if fill_id not in self._pending_leader:
+                return
+            self._pending_leader.discard(fill_id)
             self._recent_leader.append(fill_id)
             if self._state_dir:
                 self._jsonl_new_leader.append(fill_id)
-            return True
+
+    def release_leader(self, fill_id: str) -> None:
+        """Offer the fill again (nothing reached the exchange): forget it everywhere, including the persist queue."""
+        with self._lock:
+            self.processed.discard(fill_id)
+            self._pending_leader.discard(fill_id)
+            try:
+                self._jsonl_new_leader.remove(fill_id)
+            except ValueError:
+                pass
 
     def accept_copy(self, fill_id: str, allow_retry: bool = False) -> bool:
         with self._lock:
             if fill_id in self.processed_copy:
                 return bool(allow_retry)
             self.processed_copy.add(fill_id)
+            self._pending_copy.add(fill_id)
+            return True
+
+    def confirm_copy(self, fill_id: str) -> None:
+        """The copy fill was applied/recorded: now (and only now) the id is persisted."""
+        with self._lock:
+            if fill_id not in self._pending_copy:
+                return
+            self._pending_copy.discard(fill_id)
             self._recent_copy.append(fill_id)
             if self._state_dir:
                 self._jsonl_new_copy.append(fill_id)
-            return True
 
     def baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
         with self._lock:
@@ -3299,7 +3403,8 @@ class DedupeStore:
 
     def export(self) -> Dict[str, Any]:
         with self._lock:
-            leader_ids, copy_ids = list(self.processed), list(self.processed_copy)
+            leader_total = len(self.processed) - len(self._pending_leader)  # pending ids are always members of processed
+            copy_total = len(self.processed_copy) - len(self._pending_copy)
             recent_leader = sorted(self._recent_leader)
             recent_copy = sorted(self._recent_copy)
             skipped = self._jsonl_skipped_lines
@@ -3312,8 +3417,8 @@ class DedupeStore:
             "processed_copy_fill_ids": recent_copy,
             "processed_leader_fill_ids_is_partial": True,
             "processed_copy_fill_ids_is_partial": True,
-            "processed_leader_fill_ids_total": len(leader_ids),
-            "processed_copy_fill_ids_total": len(copy_ids),
+            "processed_leader_fill_ids_total": leader_total,
+            "processed_copy_fill_ids_total": copy_total,
             "dedupe_jsonl_skipped_lines": skipped,
             "dedupe_load_failed": load_failed,
             "dedupe_jsonl_flush_failures": flush_failures,
@@ -3368,8 +3473,8 @@ class DedupeStore:
         # dedupe + bound the file: one line per id in a stable order, written via tmp + os.replace
         # so a crash mid-rewrite can never leave a half-written JSONL (os.replace is atomic)
         with self._lock:
-            leader_ids = [i for i in sorted(self.processed) if i] + [i for i in pending_leader if i]
-            copy_ids = [i for i in sorted(self.processed_copy) if i] + [i for i in pending_copy if i]
+            leader_ids = [i for i in sorted(self.processed - self._pending_leader) if i] + [i for i in pending_leader if i]
+            copy_ids = [i for i in sorted(self.processed_copy - self._pending_copy) if i] + [i for i in pending_copy if i]
         leader_ids = list(dict.fromkeys(leader_ids))
         copy_ids = list(dict.fromkeys(copy_ids))
         tmp_path = jsonl_path.with_name(jsonl_path.name + ".compact.tmp")
@@ -3590,6 +3695,8 @@ class ManualLedger:
             "last_copy_fill_id": fill_id,
             "last_updated_ms": utc_now_ms(),
         })
+        applied = [x for x in (sleeve.get("applied_copy_fill_ids") or []) if x != fill_id]
+        sleeve["applied_copy_fill_ids"] = (applied + [fill_id])[-200:]  # saved with the position: crash-recovery proof
         self._recompute_net(self.data)
         self.save(touched_sleeves=[(wallet, coin)])
         return {
@@ -3599,6 +3706,17 @@ class ManualLedger:
             "coin_net_after": self.coin_net(coin),
             "ledger_action": "UPDATED" if direction != "FLAT" else "CLOSED",
         }
+
+    def has_applied_copy_fill(self, copy_fill_id: str) -> bool:
+        """Did this ledger (as saved) already apply the copy fill? Used to recover a claim left by a crash."""
+        cid = str(copy_fill_id or "")
+        for wmap in (self.data.get("by_wallet") or {}).values():
+            if not isinstance(wmap, dict):
+                continue
+            for sl in wmap.values():
+                if isinstance(sl, dict) and cid in (sl.get("applied_copy_fill_ids") or ()):
+                    return True
+        return False
 
     def close_sleeve_as_exchange_flat(self, wallet: str, coin: str) -> Dict[str, Any]:
         w = normalise_wallet(wallet)
@@ -3713,7 +3831,7 @@ def _ledger_locked(fn: Any) -> Any:
 
 
 for _ledger_method in ("sleeve", "wallet_coin_position", "coin_net", "total_abs_exposure_usd", "wallet_abs_exposure_usd",
-                       "classify_leader_side_for_wallet", "apply_copy_fill", "close_sleeve_as_exchange_flat",
+                       "classify_leader_side_for_wallet", "apply_copy_fill", "has_applied_copy_fill", "close_sleeve_as_exchange_flat",
                        "_recompute_net", "save"):
     setattr(ManualLedger, _ledger_method, _ledger_locked(getattr(ManualLedger, _ledger_method)))
 
@@ -8649,7 +8767,7 @@ class CopyFillMatcher:
             return False
         # Pre-set copy_fill_id so apply_copy_fill uses the execution-event key (hash:tid)
         # rather than hash alone, ensuring the sleeve and live_fills both track by execution event.
-        if not claim_copy_fill_process_marker(copy_id):
+        if not claim_copy_fill_process_marker(copy_id, self._applied_check):
             self.audit.append_reconciliation(
                 "COPY_FILL", "COPY_FILL_DUPLICATE",
                 copy_fill_id=copy_id,
@@ -8941,7 +9059,7 @@ class CopyFillMatcher:
                 exchange_net=start + delta, action="MANUAL_REVIEW_LIQUIDATION", terminal_state="LIQUIDATION_NOT_APPLIED",
                 notes=f"exchange liquidation {side} {size} @ {price}: {why}; ledger left unchanged")
             return False
-        if not claim_copy_fill_process_marker(copy_id):
+        if not claim_copy_fill_process_marker(copy_id, self._applied_check):
             return False
         left = size
         for i, (wallet, sz) in enumerate(sorted(sleeves, key=lambda r: -abs(r[1]))):
@@ -9019,7 +9137,7 @@ class CopyFillMatcher:
                 candidates.append((normalise_wallet(wallet), sleeve, manual_size))
         if len(candidates) != 1:
             return False
-        if not claim_copy_fill_process_marker(copy_id):
+        if not claim_copy_fill_process_marker(copy_id, self._applied_check):
             self.audit.append_reconciliation(
                 "COPY_FILL", "COPY_FILL_DUPLICATE",
                 copy_fill_id=copy_id,
@@ -9056,9 +9174,26 @@ class CopyFillMatcher:
         )
         return True
 
+    def _applied_check(self, copy_id: str) -> bool:
+        try:
+            return bool(self.ledger.has_applied_copy_fill(copy_id))
+        except Exception:
+            return False
+
     def match_and_apply(self, copy_fill: Dict[str, Any], intents_by_id: Dict[str, Intent]) -> bool:
-        with prof("send_lock:copy_fill_apply"):
-            return self._match_and_apply(copy_fill, intents_by_id)
+        copy_id = self.copy_fill_id(copy_fill)
+        try:
+            with prof("send_lock:copy_fill_apply"):
+                result = self._match_and_apply(copy_fill, intents_by_id)
+        finally:  # whatever happened, this process is no longer working on the claim
+            with _INFLIGHT_CLAIMS_LOCK:
+                _INFLIGHT_CLAIMS.discard(copy_id)
+        if result:
+            commit_copy_fill_process_marker(copy_id)
+        cb = self.__dict__.get("on_complete")
+        if cb is not None:  # reached only when no exception escaped: the outcome is on record, persist the id
+            cb(copy_id)
+        return result
 
     def _match_and_apply(self, copy_fill: Dict[str, Any], intents_by_id: Dict[str, Intent]) -> bool:
         copy_id = self.copy_fill_id(copy_fill)
@@ -9119,7 +9254,7 @@ class CopyFillMatcher:
                 notes=f"copy fill has no matching intent; side={side}; oid={oid}; reason={reason}; terminal_state={terminal_state}",
             )
             return False
-        if not claim_copy_fill_process_marker(copy_id):
+        if not claim_copy_fill_process_marker(copy_id, self._applied_check):
             self.audit.append_reconciliation(
                 "COPY_FILL", "COPY_FILL_DUPLICATE",
                 copy_fill_id=copy_id,
@@ -9606,6 +9741,7 @@ class LiveCopyCore:
             self.sender.warm_exchange_client()
         self.copy_ingestor = CopyAccountIngestor()
         self.matcher = CopyFillMatcher(self.ledger, self.audit)
+        self.matcher.on_complete = self.dedupe.confirm_copy  # a copy fill id is persisted only once its outcome is on record
         self.reconciler = ExchangeReconciler(self.ledger, self.audit)
         self.sender.truth_refresh = self._refresh_truth_for_gate
         self.intent_builder.resting_exposure = self.sender.resting_entry_exposure
@@ -10361,8 +10497,7 @@ class LiveCopyCore:
         if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
                 self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
-            with self.dedupe._lock:
-                self.dedupe.processed.discard(fill.leader_fill_id)
+            self.dedupe.release_leader(fill.leader_fill_id)
             if first == now:  # one row per fill, not one per retry
                 self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
                 self.audit.append_reconciliation(
@@ -10531,6 +10666,9 @@ class LiveCopyCore:
         # send lock that wait stopped every other worker from building its intent (replay throughput, run 6).
         with prof("intent_append"):
             self.audit.append_order_intent(intent)
+        # the intent is durably on record: only now is the leader fill id persisted. A crash before this point replays
+        # the fill on restart (it was accepted in memory only); after it the fill is owned by its intent/terminal rows.
+        self.dedupe.confirm_leader(fill.leader_fill_id)
         stamp_fill(fill, "intent_written_ms")
         for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
             try:
@@ -10601,8 +10739,7 @@ class LiveCopyCore:
             return False
         with self._idem_lock:  # release the HEAD only: merged siblings stay marked handled, so a poll re-read cannot
             self._idem_accepted.discard(key)  # order one of them alone while the merged copy waits
-        with self.dedupe._lock:
-            self.dedupe.processed.discard(fill.leader_fill_id)
+        self.dedupe.release_leader(fill.leader_fill_id)
         if new_fill:  # one row per fill, not one per retry
             try:
                 self.audit.append_reconciliation(
@@ -13336,7 +13473,7 @@ def repair_adopt_oids(oids: List[str], start_ms: Optional[int] = None, dry_run: 
         if not dry_run:
             applied: List[Dict[str, Any]] = []
             for pl, raw in plans:
-                if not claim_copy_fill_process_marker(pl["copy_fill_id"]):
+                if not claim_copy_fill_process_marker(pl["copy_fill_id"], ledger.has_applied_copy_fill):
                     pl["not_applied"] = "already claimed by a process"
                     continue
                 wallet, coin, side, size = pl["leader_wallet"], pl["coin"], pl["side"], pl["size"]
@@ -13356,6 +13493,7 @@ def repair_adopt_oids(oids: List[str], start_ms: Optional[int] = None, dry_run: 
                 result = ledger.apply_copy_fill(intent, cf)
                 matcher.matched_intent_ids.add(intent.intent_id)
                 matcher.matched_copy_fill_ids.add(pl["copy_fill_id"])
+                commit_copy_fill_process_marker(pl["copy_fill_id"])
                 audit.append_live_fill({
                     "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
                     "copy_fill_id": pl["copy_fill_id"], "intent_id": intent.intent_id,
