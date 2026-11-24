@@ -67,6 +67,22 @@ def test_confirmed_off_and_close_only_do_not_place_or_cancel_orders(tmp_path, mo
     assert not ui.SEND_ATTEMPTS_CSV.exists()
 
 
+def test_send_mode_only_post_preserves_other_global_controls(tmp_path, monkeypatch):
+    ui, TestClient = _setup(tmp_path, monkeypatch)
+    initial = json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))
+    initial["global_controls"].update({"max_order_notional_usd": 300, "max_total_live_exposure_usd": 2500})
+    ui.LIVE_COPY_CONFIG_FILE.write_text(json.dumps(initial), encoding="utf-8")
+
+    with TestClient(ui.app) as client:
+        response = client.post("/api/global-controls", json={"send_mode": "CLOSE ONLY", "confirmed": True})
+
+    written = json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))
+    assert response.status_code == 200
+    assert written["global_controls"]["send_mode"] == "CLOSE"
+    assert written["global_controls"]["max_order_notional_usd"] == 300
+    assert written["global_controls"]["max_total_live_exposure_usd"] == 2500
+
+
 def test_confirmed_on_uses_existing_send_mode_control(tmp_path, monkeypatch):
     ui, TestClient = _setup(tmp_path, monkeypatch)
     with TestClient(ui.app) as client:

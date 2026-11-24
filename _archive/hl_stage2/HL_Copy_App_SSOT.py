@@ -7990,12 +7990,14 @@ async def set_global_controls(req: Request):
     try:
         body = await req.json()
         config = _load_live_copy_config()
-        kept = {k: v for k, v in (config.get("global_controls") or {}).items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
+        kept = dict(config.get("global_controls") or {})
         submitted = {k: v for k, v in body.items() if k in _GLOBAL_CONTROLS_DEFAULTS or k == "marketable_slippage_pct"} if isinstance(body, dict) else {}
         if isinstance(body, dict) and body.get("confirmed") is True and "send_mode" in body:
             raw_mode = str(body.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
             kept["send_mode"] = "CLOSE" if raw_mode in {"CLOSE", "CLOSE ONLY", "CLO"} else raw_mode if raw_mode in {"OFF", "ON"} else "OFF"
-        config["global_controls"] = {**kept, **_normalise_global_controls(submitted)}
+        normalised = _normalise_global_controls(submitted)
+        updates = {"marketable_bps" if k == "marketable_slippage_pct" else k: normalised["marketable_bps" if k == "marketable_slippage_pct" else k] for k in submitted}
+        config["global_controls"] = {**kept, **updates, "send_mode": kept.get("send_mode", "OFF")}
         _save_live_copy_config(config)
         mode = _send_mode(config)
         return JSONResponse({"ok": True, "send_mode": "CLOSE ONLY" if mode == "CLOSE" else mode,
