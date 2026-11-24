@@ -1104,16 +1104,14 @@ def _latest_row(rows: List[Dict[str, Any]], predicate) -> Dict[str, Any]:
 
 
 def _send_mode(live_config: Dict[str, Any]) -> str:
-    """OFF / CLOSE / ON exactly as the engine reads it: global_controls.send_mode wins, else auto_send_enabled, else the env."""
+    """OFF / CLOSE / ON exactly as the engine reads global_controls.send_mode."""
     gc = live_config.get("global_controls") if isinstance(live_config, dict) else None
     raw = str((gc or {}).get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ") if isinstance(gc, dict) else ""
     if raw in {"OFF", "ON"}:
         return raw
     if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
         return "CLOSE"
-    if isinstance(live_config, dict) and "auto_send_enabled" in live_config:
-        return "ON" if parse_bool(live_config.get("auto_send_enabled")) else "OFF"
-    return "ON" if parse_bool(_local_env_value("HL_LIVE_AUTO_SEND_ENABLED") or "0") else "OFF"
+    return "OFF"
 
 
 def _master_switch_on(live_config: Dict[str, Any]) -> bool:
@@ -1265,6 +1263,7 @@ def _build_live_top_status(
         "ws_enabled": ws_enabled,
         "ws_restart_needed": restart_needed,
         "copy_poll_status": copy_poll,
+        "send_mode": _send_mode(live_config),
         "sending": "ON" if master else "OFF",
         "live_wallets": live_wallets,
         "health": health,
@@ -1443,6 +1442,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "account_value": follower_account.get("value") if follower_account.get("ok") else None,
         "account_value_reason": "" if follower_account.get("ok") else str(follower_account.get("reason") or "unavailable"),
         "follower_network": FOLLOWER_NETWORK,
+        "send_mode": live_top_status.get("send_mode", "OFF"),
         "sending": live_top_status.get("sending"),
         "live_wallets": live_top_status.get("live_wallets"),
         "health": live_top_status.get("health"),
@@ -7038,7 +7038,7 @@ def render_live_copy_control_panel() -> str:
   </header>
   <section class="lc-banner" id="lcBanner" aria-label="Overall status">
     <div class="lc-banner-cell"><div class="label" id="lcBannerAcctLabel">Account value</div><div class="value" id="lcBannerAcct">—</div></div>
-    <div class="lc-banner-cell"><div class="label">Sending</div><div class="value" id="lcBannerSending">—</div></div>
+    <div class="lc-banner-cell"><div class="label">Sending</div><div class="value" id="lcBannerSending">—</div><div class="lc-send-mode-controls" aria-label="Send mode"><button type="button" id="lcSendModeOff">OFF</button><button type="button" id="lcSendModeCloseOnly">CLOSE ONLY</button><button type="button" id="lcSendModeOn">ON</button><span id="lcSendModeStatus" class="lc-status" aria-live="polite"></span></div></div>
     <div class="lc-banner-cell lc-banner-health"><div class="label">Health</div><div class="value" id="lcBannerHealth">—</div></div>
     <div class="lc-banner-cell"><div class="label" id="lcBannerPnlLabel">Account change since run start</div><div class="value" id="lcBannerPnl">—</div></div>
     <div class="lc-banner-cell"><div class="label">Open positions</div><div class="value" id="lcBannerOpen">—</div></div>
@@ -7375,8 +7375,9 @@ function renderBanner(){
  const set=(id,html,cls,title)=>{const el=root.querySelector('#'+id);if(!el)return;el.innerHTML=html;el.className='value '+(cls||'');if(title!=null)el.title=title;};
  const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
  set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
- const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
- set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
+  const mode=String(b.send_mode||st.send_mode||'OFF').toUpperCase();
+  const shownMode=mode==='CLOSE'?'CLOSE ONLY':(['OFF','ON'].includes(mode)?mode:'OFF');
+  set('lcBannerSending',shownMode,shownMode==='ON'?'lc-green':shownMode==='CLOSE ONLY'?'lc-amber':'lc-grey',shownMode==='ON'?'new entries and closes may be sent':shownMode==='CLOSE ONLY'?'only closes may be sent':'sending is switched off');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
  const pl=root.querySelector('#lcBannerPnlLabel');if(pl)pl.textContent='Account change since '+(b.net_pnl_start_time?fmtWhen(Date.parse(b.net_pnl_start_time)):'run start');
  set('lcBannerPnl',(b.net_pnl_since_start!=null?signedMoney(b.net_pnl_since_start):dash(b.net_pnl_reason||'start value unknown'))+(b.net_pnl_partial?' <span class="lc-tag lc-amber" title="part of the exchange history could not be read">partial</span>':''),signCls(b.net_pnl_since_start),'actual change in account value; breakdown in "Does the P&L add up?"');
@@ -7703,6 +7704,16 @@ root.querySelector('#lcGcSave').addEventListener('click',async()=>{
     await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
     gs.textContent='Saved';gs.className='lc-status lc-ok';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
 });
+ async function changeSendMode(mode){
+   const label=mode==='CLOSE'?'CLOSE ONLY':mode;
+   if(!window.confirm('Change send mode to '+label+'? This setting change does not place or cancel orders.'))return;
+   const status=root.querySelector('#lcSendModeStatus');
+   try{status.textContent='Saving...';status.className='lc-status';await jpost('/api/global-controls',{send_mode:mode,confirmed:true});await refresh(true);status.textContent='Saved';status.className='lc-status lc-ok';}
+   catch(e){status.textContent=e.message||String(e);status.className='lc-status lc-bad';}
+ }
+ root.querySelector('#lcSendModeOff').addEventListener('click',()=>changeSendMode('OFF'));
+ root.querySelector('#lcSendModeCloseOnly').addEventListener('click',()=>changeSendMode('CLOSE ONLY'));
+ root.querySelector('#lcSendModeOn').addEventListener('click',()=>changeSendMode('ON'));
 root.querySelectorAll('[data-lc-modal]').forEach(btn=>btn.addEventListener('click',()=>{const m=root.querySelector('#'+btn.dataset.lcModal);if(m){m.classList.add('active');m.setAttribute('aria-hidden','false');}}));
 root.querySelectorAll('[data-lc-close]').forEach(btn=>btn.addEventListener('click',()=>{const m=btn.closest('.lc-modal-backdrop');if(m){m.classList.remove('active');m.setAttribute('aria-hidden','true');}}));
 root.querySelectorAll('[data-lc-tab]').forEach(btn=>btn.addEventListener('click',()=>{root.querySelectorAll('[data-lc-tab]').forEach(b=>b.classList.remove('active'));root.querySelectorAll('[data-lc-panel]').forEach(p=>p.classList.remove('active'));btn.classList.add('active');root.querySelector(`[data-lc-panel="${btn.dataset.lcTab}"]`).classList.add('active');}));
@@ -7964,7 +7975,9 @@ def get_live_copy_summary():
 @app.get("/api/global-controls")
 def get_global_controls():
     cfg = _load_live_copy_config()
-    return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
+    mode = _send_mode(cfg)
+    return JSONResponse({"ok": True, "send_mode": "CLOSE ONLY" if mode == "CLOSE" else mode,
+                         "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
                          "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK,
                                       "state_dir": str(LIVE_COPY_AUDIT_DIR),
                                       # HIP-3 markets read even before any leader trades them; the engine also
@@ -7979,9 +7992,14 @@ async def set_global_controls(req: Request):
         config = _load_live_copy_config()
         kept = {k: v for k, v in (config.get("global_controls") or {}).items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
         submitted = {k: v for k, v in body.items() if k in _GLOBAL_CONTROLS_DEFAULTS or k == "marketable_slippage_pct"} if isinstance(body, dict) else {}
+        if isinstance(body, dict) and body.get("confirmed") is True and "send_mode" in body:
+            raw_mode = str(body.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
+            kept["send_mode"] = "CLOSE" if raw_mode in {"CLOSE", "CLOSE ONLY", "CLO"} else raw_mode if raw_mode in {"OFF", "ON"} else "OFF"
         config["global_controls"] = {**kept, **_normalise_global_controls(submitted)}
         _save_live_copy_config(config)
-        return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(config["global_controls"])})
+        mode = _send_mode(config)
+        return JSONResponse({"ok": True, "send_mode": "CLOSE ONLY" if mode == "CLOSE" else mode,
+                             "global_controls": _global_controls_for_ui(config["global_controls"])})
     except Exception as exc:
         return _live_config_error(type(exc).__name__)
 
