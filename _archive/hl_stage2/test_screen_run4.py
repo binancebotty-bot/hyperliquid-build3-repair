@@ -157,8 +157,9 @@ def main() -> None:
     check("S1_SENDING_ON_WHEN_SWITCH_ON", top_on["sending"] == "ON", str(top_on["sending"]))
     check("S1_LIVE_WALLET_COUNT_SEPARATE", top["live_wallets"] == 2, str(top["live_wallets"]))
     check("S1_ONE_LABEL_ON_SCREEN", "REAL ORDERS:" not in panel and "lcAutoSend" not in panel and "Real order sending" not in panel
-          and "MASTER REAL ORDERS" not in panel and "const armed=lcAudit.master_real_orders_enabled===true" in panel
-          and ">Sending<" in panel and "Live wallets: ${liveCount}" in panel)
+          and "MASTER REAL ORDERS" not in panel and "const mode=String(b.send_mode||st.send_mode||'OFF').toUpperCase()" in panel
+          and "const shownMode=mode==='CLOSE'?'CLOSE ONLY'" in panel and "set('lcBannerSending',shownMode" in panel
+          and 'id="lcBannerSending"' in panel and ">Sending<" in panel and "Live wallets: ${liveCount}" in panel)
 
     # ---- S2 calm health ---------------------------------------------------------------------------------
     H = ui._build_health_summary

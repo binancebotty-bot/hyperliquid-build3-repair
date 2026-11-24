@@ -99,8 +99,8 @@ def test_off_and_close_only_buttons_confirm_before_posting(tmp_path, monkeypatch
     assert "send_mode:mode" in page
 
 
-def test_invalid_or_missing_send_mode_reads_as_off_even_with_legacy_env_on(tmp_path, monkeypatch):
+def test_invalid_send_mode_fails_closed_and_missing_mode_uses_legacy_fallback(tmp_path, monkeypatch):
     ui, _ = _setup(tmp_path, monkeypatch)
     assert ui._send_mode({"global_controls": {"send_mode": "BANANA"}, "auto_send_enabled": True}) == "OFF"
-    assert ui._send_mode({"auto_send_enabled": True}) == "OFF"
+    assert ui._send_mode({"auto_send_enabled": True}) == "ON"
 

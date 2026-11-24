@@ -77,7 +77,9 @@ def main() -> None:
           and summary.get("follower_network") == "testnet", str(fa))
     check("L2_CARD_USES_IT", "const fa=lcAudit.follower_account||{}" in page and "Portfolio Value ('+String(lcAudit.follower_network" in page)
     check("L3_MASTER_SWITCH_REPORTED", summary.get("master_real_orders_enabled") is True, str(summary.get("master_real_orders_enabled")))
-    check("L3_PILL_FOLLOWS_MASTER_SWITCH", "const armed=lcAudit.master_real_orders_enabled===true" in page
+    check("L3_PILL_FOLLOWS_MASTER_SWITCH", "const mode=String(b.send_mode||st.send_mode||'OFF').toUpperCase()" in page
+          and "const shownMode=mode==='CLOSE'?'CLOSE ONLY'" in page
+          and "set('lcBannerSending',shownMode" in page and 'id="lcBannerSending"' in page
           and "APP DISABLED" not in page)
 
     # ---- L4 ------------------------------------------------------------------------------------
