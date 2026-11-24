@@ -3212,7 +3212,12 @@ def _pid_alive(pid: int) -> bool:
             import ctypes
             from ctypes import wintypes
             k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
             k32.OpenProcess.restype = wintypes.HANDLE
+            k32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            k32.GetExitCodeProcess.restype = wintypes.BOOL
+            k32.CloseHandle.argtypes = [wintypes.HANDLE]
+            k32.CloseHandle.restype = wintypes.BOOL
             handle = k32.OpenProcess(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
             if not handle:
                 return ctypes.get_last_error() == 5  # access denied: it exists; anything else: no such process

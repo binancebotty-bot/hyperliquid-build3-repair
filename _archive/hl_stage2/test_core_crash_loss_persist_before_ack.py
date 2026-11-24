@@ -191,6 +191,30 @@ class ClaimRecovery(unittest.TestCase):
         c._INFLIGHT_CLAIMS.discard("cf-claim-6")
 
 
+@unittest.skipUnless(os.name == "nt", "exercises the real Windows branch of _pid_alive")
+class WindowsPidProbe(unittest.TestCase):
+    def test_w1_own_pid_alive(self):
+        self.assertTrue(c._pid_alive(os.getpid()))
+
+    def test_w2_child_alive_then_dead_after_terminate_and_nothing_else_killed(self):
+        import subprocess
+        import sys
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        try:
+            self.assertTrue(c._pid_alive(child.pid))
+            self.assertTrue(c._pid_alive(child.pid))  # probing twice does not disturb it
+            self.assertIsNone(child.poll())  # the probe did not kill it
+        finally:
+            child.terminate()
+            child.wait(timeout=30)
+        self.assertFalse(c._pid_alive(child.pid))
+        self.assertTrue(c._pid_alive(os.getpid()))  # and we are still here
+
+    def test_w3_pid_zero_and_negative_are_never_probed(self):
+        self.assertFalse(c._pid_alive(0))
+        self.assertFalse(c._pid_alive(-5))
+
+
 class LedgerProof(unittest.TestCase):
     def test_l1_applied_id_is_saved_with_the_position(self):
         path = Path(tempfile.mkdtemp(prefix="led_", dir=TMP)) / "pos.json"
