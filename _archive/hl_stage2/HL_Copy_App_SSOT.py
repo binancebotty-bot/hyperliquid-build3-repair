@@ -1111,10 +1111,7 @@ def _send_mode(live_config: Dict[str, Any]) -> str:
         return raw
     if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
         return "CLOSE"
-    if raw:
-        return "OFF"
-    legacy = live_config.get("auto_send_enabled") if isinstance(live_config, dict) else None
-    return "ON" if legacy is True or str(legacy).strip().lower() in {"1", "true", "yes", "y", "on"} else "OFF"
+    return "OFF"
 
 
 def _master_switch_on(live_config: Dict[str, Any]) -> bool:

@@ -69,7 +69,7 @@ def main() -> None:
                                                          "pnlHistory": [[0, "0"], [1, "0"]]}]]
     ui._ACCOUNT_VALUE_CACHE.clear()
     cfg = c.load_json(c.LIVE_CONFIG_FILE, {})
-    cfg.update({"auto_send_enabled": True, "wallets": {"0x" + "d" * 40: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed"}}})
+    cfg.update({"auto_send_enabled": True, "global_controls": {**(cfg.get("global_controls") or {}), "send_mode": "ON"}, "wallets": {"0x" + "d" * 40: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed"}}})
     c.atomic_write_json(c.LIVE_CONFIG_FILE, cfg)
     summary = client.get("/api/live-audit-summary").json()
     fa = summary.get("follower_account") or {}

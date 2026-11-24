@@ -51,9 +51,11 @@ def test_unconfirmed_send_mode_change_cannot_reach_on(tmp_path, monkeypatch):
 def test_confirmed_off_and_close_only_do_not_place_or_cancel_orders(tmp_path, monkeypatch):
     ui, TestClient = _setup(tmp_path, monkeypatch)
     initial = json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))
+    initial["global_controls"]["max_total_live_exposure_usd"] = 2500
+    ui.LIVE_COPY_CONFIG_FILE.write_text(json.dumps(initial), encoding="utf-8")
     for requested, stored, shown in (("OFF", "OFF", "OFF"), ("CLOSE ONLY", "CLOSE", "CLOSE ONLY")):
         with TestClient(ui.app) as client:
-            response = client.post("/api/global-controls", json={"send_mode": requested, "confirmed": True})
+            response = client.post("/api/global-controls", json={"send_mode": requested, "max_total_live_exposure_usd": 2500, "confirmed": True})
 
         written = json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))
         assert response.status_code == 200
@@ -99,8 +101,20 @@ def test_off_and_close_only_buttons_confirm_before_posting(tmp_path, monkeypatch
     assert "send_mode:mode" in page
 
 
-def test_invalid_send_mode_fails_closed_and_missing_mode_uses_legacy_fallback(tmp_path, monkeypatch):
+def test_invalid_send_mode_fails_closed_and_missing_mode_is_off(tmp_path, monkeypatch):
     ui, _ = _setup(tmp_path, monkeypatch)
     assert ui._send_mode({"global_controls": {"send_mode": "BANANA"}, "auto_send_enabled": True}) == "OFF"
-    assert ui._send_mode({"auto_send_enabled": True}) == "ON"
+    assert ui._send_mode({"auto_send_enabled": True}) == "OFF"
+
+def test_on_requires_confirmed_post(tmp_path, monkeypatch):
+    ui, TestClient = _setup(tmp_path, monkeypatch)
+    with TestClient(ui.app) as client:
+        unconfirmed = client.post("/api/global-controls", json={"send_mode": "ON"})
+        assert unconfirmed.status_code == 200
+        assert unconfirmed.json()["send_mode"] == "OFF"
+        assert json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))["global_controls"]["send_mode"] == "OFF"
+        confirmed = client.post("/api/global-controls", json={"send_mode": "ON", "confirmed": True})
+        assert confirmed.status_code == 200
+        assert confirmed.json()["send_mode"] == "ON"
+        assert json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))["global_controls"]["send_mode"] == "ON"
 

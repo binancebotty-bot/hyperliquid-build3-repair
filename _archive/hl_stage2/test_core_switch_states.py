@@ -192,7 +192,7 @@ def main() -> None:
     import HL_Copy_App_SSOT as ui
     check("S10_UI_READS_SEND_MODE", ui._send_mode({"auto_send_enabled": False, "global_controls": {"send_mode": "CLOSE"}}) == "CLOSE"
           and ui._send_mode({"auto_send_enabled": True, "global_controls": {"send_mode": "OFF"}}) == "OFF"
-          and ui._send_mode({"auto_send_enabled": True}) == "ON" and ui._master_switch_on({"auto_send_enabled": False}) is False)
+          and ui._send_mode({"auto_send_enabled": True}) == "OFF" and ui._master_switch_on({"auto_send_enabled": False}) is False)
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))

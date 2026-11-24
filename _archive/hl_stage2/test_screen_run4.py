@@ -143,7 +143,7 @@ def main() -> None:
         return st
 
     # ---- S1 sending from the master switch only ----------------------------------------------------------
-    cfg = {"auto_send_enabled": False, "wallets": {WA: {"mode": "LIVE", "enabled": True, "copy_mode": "fixed"},
+    cfg = {"auto_send_enabled": False, "global_controls": {"send_mode": "OFF"}, "wallets": {WA: {"mode": "LIVE", "enabled": True, "copy_mode": "fixed"},
                                                    WB: {"mode": "LIVE", "enabled": True}, WC: {"mode": "CLO"},
                                                    WOFF: {"mode": "OFF"}}}
     ui.atomic_write_json(ui.LIVE_COPY_CONFIG_FILE, cfg)
@@ -152,7 +152,7 @@ def main() -> None:
     ui.atomic_write_json(ui.LIVE_COPY_WS_HEALTH_FILE, ws_off)
     top = ui._build_live_top_status(cfg, ws_off, fresh_state(), {"status": "GREEN", "available": True}, [], [], [])
     check("S1_SENDING_OFF_WHEN_SWITCH_OFF", top["sending"] == "OFF" and top["master_real_orders_enabled"] is False, str(top["sending"]))
-    top_on = ui._build_live_top_status({**cfg, "auto_send_enabled": True}, ws_off, fresh_state(master_real_orders_enabled=False),
+    top_on = ui._build_live_top_status({**cfg, "auto_send_enabled": True, "global_controls": {"send_mode": "ON"}}, ws_off, fresh_state(master_real_orders_enabled=False),
                                        {"status": "GREEN"}, [], [], [])
     check("S1_SENDING_ON_WHEN_SWITCH_ON", top_on["sending"] == "ON", str(top_on["sending"]))
     check("S1_LIVE_WALLET_COUNT_SEPARATE", top["live_wallets"] == 2, str(top["live_wallets"]))
@@ -320,6 +320,11 @@ def main() -> None:
           and abs((hist[-1].get("unrealized_pnl") or 0) - 6.6) < 1e-9, str(hist[-1:]))
 
     # ---- S12 status banner ---------------------------------------------------------------------------------
+    banner_cfg = ui.load_json(ui.LIVE_COPY_CONFIG_FILE, {})
+    banner_cfg["global_controls"] = {"send_mode": "ON"}
+    ui.atomic_write_json(ui.LIVE_COPY_CONFIG_FILE, banner_cfg)
+    ui._AUDIT_SUMMARY_CACHE.clear()
+    summary = client.get("/api/live-audit-summary").json()
     b = summary.get("status_banner") or {}
     check("S12_BANNER_FACTS", b.get("account_value") == 1418.0 and b.get("sending") == "ON" and b.get("follower_network") == "testnet"
           and (b.get("health") or {}).get("level") == "green" and b.get("net_pnl_since_start") == -31.0
