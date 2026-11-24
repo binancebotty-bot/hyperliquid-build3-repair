@@ -180,7 +180,8 @@ def global_controls_tests() -> None:
         c._FOLLOWER_MIDS.update(px={}, ms=0)
 
     def config(_armed=False, **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": _armed, "global_controls": gc, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": _armed,
+                                                  "global_controls": {**({"send_mode": "ON"} if _armed else {}), **gc}, "wallets": {
             LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
 
     seq = [0]
@@ -324,7 +325,7 @@ def global_controls_tests() -> None:
 
     # R2 (ENG-016): never net into inventory the engine does not own
     def armed(**gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": gc, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON", **gc}, "wallets": {
             LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
     set_mid(100.0)
     armed()

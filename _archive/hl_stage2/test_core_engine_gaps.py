@@ -61,7 +61,8 @@ def main() -> None:
     c.MIDS_FETCHER = lambda payload: [] if payload.get("type") == "perpDexs" else {"BTC": "100"}   # follower mids
 
     def config(gc=None, wallet_cfg=None, all_wallets=None, auto=False):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto, "global_controls": gc or {},
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto,
+                                                 "global_controls": {**({"send_mode": "ON"} if auto else {}), **(gc or {})},
                                                  "wallets": all_wallets or {LEADER: wallet_cfg or {
                                                      "enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
 

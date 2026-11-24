@@ -22,7 +22,7 @@ check("ISO_SHORT_ABOVE_MARK", y is not None and y > 100 and abs(y - (100 + 100 *
 check("ISO_HIGHER_LEVERAGE_CLOSER", p(100.0, True, 10.0, 20.0) > x)
 check("ISO_BAD_INPUT_NONE", p(0.0, True, 3.0, 20.0) is None and p(100.0, True, 0.0, 20.0) is None)
 # ---- gateway behaviour
-c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {},
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON"},
                                          "wallets": {A: {"enabled": True, "mode": "ON"}}})
 g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "l.json"))
 g._meta_cache["XYZ:GOLD"] = {"maxLeverage": 20.0, "onlyIsolated": True}

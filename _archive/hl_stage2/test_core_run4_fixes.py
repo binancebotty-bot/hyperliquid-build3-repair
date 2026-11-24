@@ -68,7 +68,8 @@ def main() -> None:
         c._LEADER_MIDS.update(px={}, ms=0)
 
     def config(wallets=(A, B), copy_mode="fixed", send=False, **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send, "global_controls": gc, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send,
+                                                  "global_controls": {**({"send_mode": "ON"} if send else {}), **gc}, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": copy_mode, "fixed_notional": 12} for w in wallets}})
 
     seq = [0]

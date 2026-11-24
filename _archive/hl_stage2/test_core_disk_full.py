@@ -189,7 +189,7 @@ def main() -> None:
 
     def write_cfg():
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "master_real_orders_enabled": True,
-                                                 "global_controls": {"min_notional": 1},
+                                                 "global_controls": {"send_mode": "ON", "min_notional": 1},
                                                  "wallets": {LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed",
                                                                       "fixed_notional": 100}}})
 

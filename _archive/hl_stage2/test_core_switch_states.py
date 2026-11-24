@@ -9,7 +9,7 @@ The spec asks for a global `global_controls.send_mode` with values OFF / CLOSE /
             included) are refused with ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY. Resting ENTRY limits are
             withdrawn exactly as on a switch to OFF; resting CLOSE limits stay.
   * ON    - full copying.
-  * send_mode absent must keep today's meaning: auto_send_enabled false -> OFF, true -> ON.
+  * send_mode is required to arm the engine; absent values fail closed.
   * ConfigManager.master_switch_now() returns True for CLOSE and ON, False for OFF.
 
 These tests run against the engine's real send gate (`SenderGateway.send_if_allowed`) with the engine's
@@ -91,8 +91,7 @@ def main() -> None:
         return g.send_if_allowed(intent(decision, lifecycle, side, size, before, notes_extra))
 
     # ---- S0: the three-state config surface ----------------------------------------------------------
-    # spec: master_switch_now() is True for CLOSE and ON, False for OFF; send_mode absent keeps the
-    # legacy auto_send_enabled mapping.
+    # spec: master_switch_now() is True for CLOSE and ON, False for OFF; missing send_mode fails closed.
     write_cfg({"global_controls": {"send_mode": "CLOSE"}})          # auto_send_enabled deliberately absent
     close_armed = c.ConfigManager().master_switch_now()
     config(auto=True, send_mode="OFF")
@@ -102,13 +101,13 @@ def main() -> None:
     check("S0_THREE_STATE_SWITCH_RECOGNISED", close_armed is True and off_armed is False and on_armed is True,
           "send_mode CLOSE=%s (want True), OFF=%s (want False), ON=%s (want True)" % (close_armed, off_armed, on_armed))
 
-    # ---- S1: send_mode absent keeps today's meaning --------------------------------------------------
-    config(auto=False)
-    legacy_off = c.ConfigManager().master_switch_now()
-    config(auto=True)
-    legacy_on = c.ConfigManager().master_switch_now()
-    check("S1_ABSENT_SEND_MODE_KEEPS_LEGACY_MAPPING", legacy_off is False and legacy_on is True,
-          "auto=False -> %s, auto=True -> %s" % (legacy_off, legacy_on))
+    # ---- S1: auto_send_enabled cannot override the explicit send mode ---------------------------------
+    config(auto=False, send_mode="OFF")
+    explicit_off = c.ConfigManager().master_switch_now()
+    config(auto=True, send_mode="ON")
+    explicit_on = c.ConfigManager().master_switch_now()
+    check("S1_EXPLICIT_SEND_MODE_CONTROLS_SWITCH", explicit_off is False and explicit_on is True,
+          "send_mode OFF -> %s, ON -> %s" % (explicit_off, explicit_on))
 
     # ---- S2: OFF sends nothing (entry, exit, add) ----------------------------------------------------
     config(auto=True, send_mode="OFF")

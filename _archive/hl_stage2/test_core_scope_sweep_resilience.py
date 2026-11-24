@@ -55,7 +55,7 @@ def main():
             raise ValueError("Expecting value: line 1 column 1 (char 0)")
         return {"assetPositions": [], "marginSummary": {"accountValue": "0"}}
     c.EXPOSURE_FETCHER = fetch
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON"}, "wallets": {
         LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 12}}})
     os.environ.pop("HL_LIVE_MOCK_SEND", None)
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")

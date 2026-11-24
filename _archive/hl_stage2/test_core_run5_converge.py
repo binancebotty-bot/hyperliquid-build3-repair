@@ -63,7 +63,8 @@ def main() -> None:
     c.LEADER_FETCHER = leader_fetcher
 
     def config(send=True, **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send, "global_controls": gc, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send,
+                                                  "global_controls": {**({"send_mode": "ON"} if send else {}), **gc}, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12} for w in (A, B)}})
 
     config(send=True)

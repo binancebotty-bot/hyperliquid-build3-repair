@@ -61,7 +61,7 @@ def main() -> None:
     c.LEADER_MIDS_FETCHER = c.MIDS_FETCHER
 
     def write_cfg(gc=None, auto=True):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto, "global_controls": gc or {},
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto, "global_controls": {"send_mode": "ON", **(gc or {})},
             "wallets": {A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
 
     write_cfg()

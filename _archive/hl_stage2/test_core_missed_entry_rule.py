@@ -257,7 +257,8 @@ def main() -> None:
 
     # ---- M8: sending switched off defers withdrawals of the engine's own resting entry limits ------------
     def m8_core(send_on):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send_on, "global_controls": {}, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send_on,
+                                                  "global_controls": {"send_mode": "ON" if send_on else "OFF"}, "wallets": {
             LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
         k = c.LiveCopyCore(source_csv=tmp / "none.csv")
         k.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
@@ -517,7 +518,7 @@ def main() -> None:
     def recon(status, oid=None):
         return [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
                 if r.get("status") == status and (oid is None or r.get("exchange_order_id") == oid)]
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"marketable_bps": 20}, "wallets": {
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON", "marketable_bps": 20}, "wallets": {
         LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
     set_mids(100.0, 100.0)
     saved_leader = c.LEADER_NETWORK

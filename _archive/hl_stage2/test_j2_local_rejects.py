@@ -78,7 +78,7 @@ c._LEADER_MIDS.update(px=dict(MIDS), ms=c.utc_now_ms(), scope=[""])
 
 c.atomic_write_json(c.LIVE_CONFIG_FILE, {
     "auto_send_enabled": True,
-    "global_controls": {"symbol_blocklist": [], "min_notional": 1, "marketable_bps": 20},
+    "global_controls": {"send_mode": "ON", "symbol_blocklist": [], "min_notional": 1, "marketable_bps": 20},
     "wallets": {LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 100}},
 })
 

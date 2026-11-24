@@ -63,7 +63,8 @@ def main() -> None:
         c._LEADER_MIDS.update(px={}, ms=0)
 
     def config(wallets=(A, B), send_enabled=False, **gc):
-        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send_enabled, "global_controls": gc, "wallets": {
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": send_enabled,
+                                                  "global_controls": {**({"send_mode": "ON"} if send_enabled else {}), **gc}, "wallets": {
             w: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000} for w in wallets}})
 
     seq = [0]
@@ -492,7 +493,7 @@ def main() -> None:
     snapshot(0.5)
     check("G3_ENTRIES_FINE_WHEN_EXCHANGE_HOLDS_LESS", g._pre_send_ownership_gate(entry_it)[0])
     # lag: the exchange shows our fill before the ledger does; the close waits for the records instead of failing
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON"}, "wallets": {
         A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
     os.environ.update({"HL_LIVE_UNEXPLAINED_WAIT_SEC": "4", "HL_LIVE_MOCK_SEND": "1"})
     led = ledger(a=1.0)

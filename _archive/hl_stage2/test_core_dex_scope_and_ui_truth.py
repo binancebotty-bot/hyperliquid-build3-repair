@@ -179,7 +179,7 @@ def main() -> None:
         held = book["held"].get(payload.get("dex", ""))
         return {"assetPositions": [{"position": held}] if held else [], "marginSummary": {"accountValue": "0"}}
     c.EXPOSURE_FETCHER = sweep_fetch
-    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON"}, "wallets": {
         LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 12}}})
     os.environ.pop("HL_LIVE_MOCK_SEND", None)
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")

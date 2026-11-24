@@ -94,7 +94,7 @@ def main() -> None:
 
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {
         "auto_send_enabled": True,
-        "global_controls": {"min_notional": 1, "max_order_notional_usd": 100000},
+        "global_controls": {"send_mode": "ON", "min_notional": 1, "max_order_notional_usd": 100000},
         "wallets": {LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}},
     })
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, {"live_start_ms": 1})

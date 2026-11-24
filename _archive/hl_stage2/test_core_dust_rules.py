@@ -14,7 +14,7 @@ R = []
 def check(n, ok, d=""):
     R.append(bool(ok)); print("RESULT::%s_%s%s" % (n, "PASS" if ok else "FAIL", (" | " + str(d)) if d and not ok else ""))
 A = "0x" + "a" * 40
-c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {A: {"enabled": True, "mode": "ON"}}})
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON"}, "wallets": {A: {"enabled": True, "mode": "ON"}}})
 MIN = c.DEFAULT_MIN_NOTIONAL
 resolved = {"ok": True, "sdk_coin": "BTC", "raw_coin": "BTC", "min_order_value_usd": MIN}
 def gw(exchange_net):

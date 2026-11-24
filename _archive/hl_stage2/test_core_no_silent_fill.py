@@ -176,7 +176,7 @@ def main() -> None:
     # config must exist before the core reads it
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {
         "auto_send_enabled": True,
-        "global_controls": {"symbol_blocklist": blocked_coins, "min_notional": 1},
+        "global_controls": {"send_mode": "ON", "symbol_blocklist": blocked_coins, "min_notional": 1},
         "wallets": {LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 100}},
     })
 
