@@ -128,8 +128,49 @@ class ClaimRecovery(unittest.TestCase):
         self.assertFalse(c.claim_copy_fill_process_marker("cf-claim-2", lambda _id: False))  # and stays closed
 
     def test_h3_claim_held_by_a_live_process_is_respected(self):
-        write_claim("cf-claim-3", os.getppid())
-        self.assertFalse(c.claim_copy_fill_process_marker("cf-claim-3", lambda _id: False))
+        import subprocess
+        import sys
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])  # a real live process of our own
+        try:
+            write_claim("cf-claim-3", child.pid)
+            self.assertFalse(c.claim_copy_fill_process_marker("cf-claim-3", lambda _id: False))
+        finally:
+            child.kill()
+            child.wait()
+        # once it is dead, the same claim is recoverable
+        self.assertTrue(c.claim_copy_fill_process_marker("cf-claim-3", lambda _id: False))
+        c._INFLIGHT_CLAIMS.discard("cf-claim-3")
+
+    def test_h7_empty_claim_file_is_not_stolen(self):
+        m = write_claim("cf-claim-7", 0)
+        m.write_text("", encoding="utf-8")  # writer died / is between create and write
+        self.assertFalse(c.claim_copy_fill_process_marker("cf-claim-7", lambda _id: False))
+        self.assertTrue(m.exists())
+
+    def test_h8_half_written_claim_is_not_stolen(self):
+        m = write_claim("cf-claim-8", 0)
+        m.write_text(f"copy_fill_id=cf-claim-8\nclaimed_at=x\npid={DEAD_PID}", encoding="utf-8")  # torn: no final newline
+        self.assertFalse(c.claim_copy_fill_process_marker("cf-claim-8", lambda _id: False))
+
+    def test_h9_old_empty_claim_is_recoverable_after_the_grace(self):
+        m = write_claim("cf-claim-9", 0)
+        m.write_text("", encoding="utf-8")
+        old = os.path.getmtime(m) - 3600
+        os.utime(m, (old, old))
+        self.assertTrue(c.claim_copy_fill_process_marker("cf-claim-9", lambda _id: False))
+        c._INFLIGHT_CLAIMS.discard("cf-claim-9")
+
+    def test_h10_windows_probe_never_signals_the_process(self):
+        from unittest.mock import patch
+        def boom(*_a):
+            raise AssertionError("os.kill must not be used as a Windows liveness probe")
+        with patch.object(os, "name", "nt"), patch.object(os, "kill", boom):
+            self.assertIsInstance(c._pid_alive(4242), bool)  # ctypes.WinDLL is absent here: falls back to "alive", no signal
+
+    def test_h11_liquidation_recovery_flags_partial_application(self):
+        self.assertTrue(callable(c.CopyFillMatcher._try_apply_liquidation))
+        import inspect
+        self.assertIn("LIQUIDATION_RECOVERY_CHECK_ALL_SLEEVES", inspect.getsource(c.CopyFillMatcher._try_apply_liquidation))
 
     def test_h4_committed_claim_is_permanent(self):
         self.assertTrue(c.claim_copy_fill_process_marker("cf-claim-4"))

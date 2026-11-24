@@ -3203,10 +3203,30 @@ _INFLIGHT_CLAIMS_LOCK = threading.Lock()
 
 
 def _pid_alive(pid: int) -> bool:
+    """Is a process with this pid running? Never signals it: on Windows os.kill(pid, 0) is not a probe (it can
+    terminate or interrupt the process), so a read-only OpenProcess/GetExitCodeProcess query is used there."""
     if pid <= 0:
         return False
+    if os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+            k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            k32.OpenProcess.restype = wintypes.HANDLE
+            handle = k32.OpenProcess(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
+            if not handle:
+                return ctypes.get_last_error() == 5  # access denied: it exists; anything else: no such process
+            try:
+                code = wintypes.DWORD()
+                if not k32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                    return True  # cannot tell: assume alive (never steal)
+                return code.value == 259  # STILL_ACTIVE
+            finally:
+                k32.CloseHandle(handle)
+        except Exception:
+            return True  # cannot tell: assume alive (never steal)
     try:
-        os.kill(pid, 0)
+        os.kill(pid, 0)  # POSIX: signal 0 only checks existence
         return True
     except PermissionError:
         return True
@@ -3240,12 +3260,19 @@ def _stale_claim_released(marker: Path, copy_fill_id: str, applied_check: Option
             return False
     pid = 0
     try:
-        for line in marker.read_text(encoding="utf-8", errors="replace").splitlines():
-            if line.startswith("pid="):
-                pid = int(fnum(line[4:], 0))
+        text = marker.read_text(encoding="utf-8", errors="replace")
+        for line in text.splitlines():
+            if line.startswith("pid=") and text.endswith("\n"):
+                pid = int(fnum(line[4:], 0))  # only a complete (newline-terminated) pid line counts
+        if pid <= 0:
+            # empty or half-written claim: its writer may be between create and write. Not stealable until it has sat
+            # unfinished for HL_LIVE_CLAIM_EMPTY_GRACE_SEC (default 120), then a crashed writer is assumed.
+            grace = max(0.0, fnum(os.getenv("HL_LIVE_CLAIM_EMPTY_GRACE_SEC"), 120.0))
+            if time.time() - marker.stat().st_mtime < grace:
+                return False
     except Exception:
         return False
-    if pid != os.getpid() and _pid_alive(pid):
+    if pid > 0 and pid != os.getpid() and _pid_alive(pid):
         return False  # another live process is working on it
     if applied_check is not None and applied_check(copy_fill_id):
         try:
@@ -9059,7 +9086,17 @@ class CopyFillMatcher:
                 exchange_net=start + delta, action="MANUAL_REVIEW_LIQUIDATION", terminal_state="LIQUIDATION_NOT_APPLIED",
                 notes=f"exchange liquidation {side} {size} @ {price}: {why}; ledger left unchanged")
             return False
-        if not claim_copy_fill_process_marker(copy_id, self._applied_check):
+        def _liq_applied(cid: str) -> bool:
+            if not self._applied_check(cid):
+                return False
+            # a crash may have fallen between the sleeves of one liquidation: the first part is on the ledger, the rest may not be
+            self.audit.append_reconciliation(
+                "COPY_FILL", "MANUAL_REVIEW", copy_fill_id=cid, coin=coin, action="LIQUIDATION_RECOVERY_CHECK_ALL_SLEEVES",
+                terminal_state="MANUAL_REVIEW",
+                notes="severity=CRITICAL; a claim for this liquidation was left by a crash after at least one sleeve was reduced; "
+                      "not applied again. Check every sleeve of this coin against the exchange")
+            return True
+        if not claim_copy_fill_process_marker(copy_id, _liq_applied):
             return False
         left = size
         for i, (wallet, sz) in enumerate(sorted(sleeves, key=lambda r: -abs(r[1]))):
