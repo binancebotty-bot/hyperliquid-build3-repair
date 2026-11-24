@@ -32,7 +32,7 @@ class AddHoldPendingCloseTest(unittest.TestCase):
     def sender(self, wallet=WALLET, age_ms=1000):
         rows = []
         ledger = SimpleNamespace(wallet_coin_position=lambda w, coin: -10.0 if w == wallet else 0.0)
-        cfg = SimpleNamespace(master_switch_now=lambda: True, send_mode_now=lambda: "ON")
+        cfg = SimpleNamespace(master_switch_now=lambda: True, send_mode_now=lambda: "ON", liq_parity_enabled=lambda: False)
         sender = object.__new__(c.SenderGateway)
         sender.cfg, sender.ledger = cfg, ledger
         sender.sender_key_invalid = ""
@@ -68,7 +68,7 @@ class AddHoldPendingCloseTest(unittest.TestCase):
         sender, rows = self.sender()
         sender._standing_closes.clear()
         sender._pending_exit_guard[f"sleeve:{WALLET}:BTC"] = {
-            "ts_ms": c.utc_now_ms(), "position_abs_before": 10.0, "intent_id": "exit-in-flight",
+            "ts_ms": c.utc_now_ms(), "position_abs_before": 10.0, "intent_id": "exit-in-flight", "in_flight": True,
         }
         with patch.dict(os.environ, {"HL_LIVE_MOCK_SEND": "1"}):
             self.assertEqual(sender.send_if_allowed(make_intent()), (False, "ADD_HELD_PENDING_CLOSE"))
