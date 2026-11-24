@@ -55,7 +55,7 @@ def test_confirmed_off_and_close_only_do_not_place_or_cancel_orders(tmp_path, mo
     ui.LIVE_COPY_CONFIG_FILE.write_text(json.dumps(initial), encoding="utf-8")
     for requested, stored, shown in (("OFF", "OFF", "OFF"), ("CLOSE ONLY", "CLOSE", "CLOSE ONLY")):
         with TestClient(ui.app) as client:
-            response = client.post("/api/global-controls", json={"send_mode": requested, "max_total_live_exposure_usd": 2500, "confirmed": True})
+            response = client.post("/api/global-controls", json={"send_mode": requested, "confirmed": True})
 
         written = json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))
         assert response.status_code == 200
