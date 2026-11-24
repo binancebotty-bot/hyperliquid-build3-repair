@@ -6069,6 +6069,79 @@ class SenderGateway:
                 notes=f"severity=CRITICAL; {reason}; held for {age_ms / 1000:.1f}s (limit {max_sec:g}s)")
         return False, "ADD_HELD_PENDING_CLOSE"
 
+    def _fetch_book_sides(self, coin: str) -> Optional[Tuple[int, int]]:
+        """(bid levels, ask levels) of the coin's L2 book, cached ~1s. None when the book cannot be read."""
+        key = str(coin or "").strip()
+        if not key or requests is None or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
+            return None  # mock sends never touch the network
+        cache = self.__dict__.setdefault("_book_sides_cache", {})
+        now = utc_now_ms()
+        hit = cache.get(key)
+        if hit and now - hit[0] <= 1000:
+            return hit[1]
+        try:
+            r = requests.post(HL_INFO_URL, json={"type": "l2Book", "coin": key}, timeout=HTTP_TIMEOUT_SEC)
+            levels = (r.json() or {}).get("levels")
+            if not (isinstance(levels, list) and len(levels) == 2):
+                return None
+            sides = (len(levels[0] or []), len(levels[1] or []))
+        except Exception:
+            return None
+        cache[key] = (now, sides)
+        return sides
+
+    def _one_sided_book_block(self, intent: Intent) -> str:
+        """Non-empty reason when an ENTRY/ADD must not be sent because the coin's book has no bids or no asks.
+        Never applied to closes/exits (callers only ask for ENTRY/ADD). An unreadable book is not treated as
+        one-sided: the normal send path decides. HL_LIVE_ONE_SIDED_BOOK_GUARD=0 disables."""
+        if not bval(os.getenv("HL_LIVE_ONE_SIDED_BOOK_GUARD"), True):
+            return ""
+        sides = self._fetch_book_sides(intent.fill.coin)
+        if sides is None:
+            return ""
+        bids, asks = sides
+        if bids > 0 and asks > 0:
+            return ""
+        return f"coin={intent.fill.coin} book is one-sided (bids={bids}, asks={asks})"
+
+    def _close_fault_rows(self, coin: str = "") -> List[Dict[str, Any]]:
+        """Standing closes resting longer than HL_LIVE_CLOSE_FAULT_SEC (default 120; 0 disables), optionally for one coin."""
+        limit_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_CLOSE_FAULT_SEC"), 120.0)) * 1000)
+        if limit_ms <= 0:
+            return []
+        now = utc_now_ms()
+        key = canonical_coin_key(coin) if coin else ""
+        with self._resting_lock:
+            rows = [dict(v) for v in self._standing_closes.values()]
+        return [r for r in rows if now - int(fnum(r.get("placed_ms"), now)) > limit_ms
+                and (not key or canonical_coin_key(r.get("coin")) == key)]
+
+    def escalate_stale_closes(self) -> int:
+        """Each stale standing close is escalated once: a CRITICAL MANUAL_REVIEW row. While it stands, adds on that coin
+        are blocked (see _close_fault_block). Returns the number newly escalated."""
+        done = self.__dict__.setdefault("_close_fault_alerted", set())
+        fresh = 0
+        for row in self._close_fault_rows():
+            oid = str(row.get("oid") or "")
+            if oid in done:
+                continue
+            done.add(oid)
+            fresh += 1
+            self.audit.append_reconciliation(
+                "CLOSE_FAULT", "MANUAL_REVIEW", leader_wallet=str(row.get("wallet") or ""), coin=str(row.get("coin") or ""),
+                intent_id=str(row.get("intent_id") or ""), exchange_order_id=oid,
+                action="CRITICAL_CLOSE_RESTING_TOO_LONG", reject_category="CLOSE_FAULT", terminal_state="MANUAL_REVIEW",
+                notes=(f"severity=CRITICAL; close oid={oid} {row.get('side')} {row.get('size')} resting "
+                       f"{(utc_now_ms() - int(fnum(row.get('placed_ms'), 0))) / 1000:.0f}s; adds on this coin are blocked"))
+        return fresh
+
+    def _close_fault_block(self, intent: Intent) -> str:
+        rows = self._close_fault_rows(intent.fill.coin)
+        if not rows:
+            return ""
+        self.escalate_stale_closes()
+        return f"coin={intent.fill.coin} has a close resting too long (oid={rows[0].get('oid')})"
+
     def _mark_pending_exit(self, intent: Intent) -> None:
         """Reserve the pending-exit slot for this sleeve. Caller must hold _pending_exit_lock."""
         self._pending_exit_guard[intent.sleeve_id] = {
@@ -6104,6 +6177,19 @@ class SenderGateway:
             pending_close = self._pending_close_for_add(intent)
             if pending_close:
                 return self._hold_add_for_pending_close(intent, pending_close)
+        if lifecycle in {"ENTRY", "ADD"}:
+            fault = self._close_fault_block(intent)
+            if fault:
+                self._append_local_block_reconciliation(intent, "ADD_BLOCKED_CLOSE_FAULT", {
+                    "terminal_state": "ADD_BLOCKED_CLOSE_FAULT", "reject_category": "CLOSE_FAULT",
+                    "operator_action": "NO_SEND_CLOSE_FAULT", "write_reconciliation": True, "notes": fault})
+                return False, "ADD_BLOCKED_CLOSE_FAULT"
+            one_sided = self._one_sided_book_block(intent)
+            if one_sided:
+                self._append_local_block_reconciliation(intent, "ENTRY_BLOCKED_ONE_SIDED_BOOK", {
+                    "terminal_state": "ENTRY_BLOCKED_ONE_SIDED_BOOK", "reject_category": "ONE_SIDED_BOOK",
+                    "operator_action": "NO_SEND_ONE_SIDED_BOOK", "write_reconciliation": True, "notes": one_sided})
+                return False, "ENTRY_BLOCKED_ONE_SIDED_BOOK"
         timing = self._base_timing(intent)
         timing["ownership_gate_started_ms"] = utc_now_ms()
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
@@ -10108,7 +10194,7 @@ class LiveCopyCore:
                     f"side={fill.side}; copy_size={intent.copy_size}; exchange_called=false"
                 ),
             )
-        elif send_status == "ADD_HELD_PENDING_CLOSE":
+        elif send_status in {"ADD_HELD_PENDING_CLOSE", "ADD_BLOCKED_CLOSE_FAULT", "ENTRY_BLOCKED_ONE_SIDED_BOOK"}:
             return  # the sender wrote the hold and any overdue critical review row atomically
         elif send_status == "INTENT_NOT_SEND_ALLOWED" and not str(intent.decision or "").startswith("SEND_BLOCKED"):
             # A fill blocked before send_if_allowed (wallet OFF/CLO, symbol unavailable, etc.)
@@ -11275,6 +11361,7 @@ class LiveCopyCore:
             if self.cfg.master_switch_now():
                 try:
                     self.sender.prune_standing_closes()
+                    self.sender.escalate_stale_closes()
                     self.sender.guard_standing_closes()
                 except Exception as exc:
                     log_error("prune_standing_closes", exc)
