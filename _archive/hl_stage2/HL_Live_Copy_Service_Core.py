@@ -4207,7 +4207,19 @@ class IntentBuilder:
         direction_before = self.ledger.direction_from_size(before)
         lifecycle, is_reduce = self.ledger.classify_leader_side_for_wallet(wallet, coin, fill.side)
         if lifecycle == "EXIT":
-            leader_start = fnum((fill.raw or {}).get("startPosition"), 0.0)
+            raw_start = (fill.raw or {}).get("startPosition")
+            if raw_start is None:
+                return Intent(
+                    intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
+                    fill=fill, copy_side=fill.side, copy_size=0.0, copy_notional=0.0,
+                    wallet_mode=wallet_mode, copy_mode=copy_mode, decision="UNRESOLVED",
+                    reason="UNRESOLVED: reduction fraction unavailable; startPosition missing",
+                    sleeve_id=sleeve_id, position_id="", position_direction_before=direction_before,
+                    wallet_position_before=before, coin_net_before=self.ledger.coin_net(coin),
+                    reduce_only_intended=False, reduce_only_sent_planned=False, created_at_ms=utc_now_ms(),
+                    notes="lifecycle=EXIT;UNRESOLVED_START_POSITION",
+                )
+            leader_start = fnum(raw_start, 0.0)
             leader_start_abs = abs(leader_start)
             leader_fill_abs = abs(fill.size)
             leader_reduction = (leader_start_abs > POSITION_EPSILON and leader_fill_abs > 0

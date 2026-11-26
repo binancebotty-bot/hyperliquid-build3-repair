@@ -30,6 +30,15 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertTrue(intent.reduce_only_intended)
         self.assertLessEqual(intent.copy_size, abs(intent.wallet_position_before))
 
+    def test_missing_start_position_skips_reduction(self):
+        builder = self.setup_builder(10.0)
+        fill = c.LeaderFill("f", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
+                            {"dir": "Close Long"})
+        intent = builder.build(fill)
+        self.assertEqual(intent.decision, "UNRESOLVED")
+        self.assertEqual(intent.copy_size, 0.0)
+        self.assertFalse(intent.reduce_only_intended)
+
     def test_reduction_never_crosses_zero(self):
         builder = self.setup_builder(3.0)
         intent = self.intent(builder, 4.0, 3.0)
