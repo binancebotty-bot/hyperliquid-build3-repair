@@ -4273,7 +4273,7 @@ class IntentBuilder:
     def _copy_notional(self, wallet: str, fill: LeaderFill) -> float:
         mode = self.cfg.copy_mode(wallet)
         if mode == "fixed":  # once per leader fill, merged fills included
-            return self.cfg.fixed_notional(wallet) * max(1, int(fnum((fill.raw or {}).get("merged_fill_count"), 1)))
+            return self.cfg.fixed_notional(wallet)
         # Proportional: scale by the leader's REAL account value on the leader network. The old
         # leader_equity_base setting (UI default 10,000) is never used; no equity means no size.
         wc = self.cfg.wallet_cfg(wallet)
