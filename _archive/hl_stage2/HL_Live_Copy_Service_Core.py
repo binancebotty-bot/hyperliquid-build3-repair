@@ -4207,10 +4207,20 @@ class IntentBuilder:
         direction_before = self.ledger.direction_from_size(before)
         lifecycle, is_reduce = self.ledger.classify_leader_side_for_wallet(wallet, coin, fill.side)
         if lifecycle == "EXIT":
-            # EXIT must target the full wallet-owned sleeve regardless of fixed_notional.
-            # fixed_notional / proportional sizing is an ENTRY/ADD concept only.
-            copy_size = round(abs(before), 8)
-            copy_notional = copy_size * fill.price
+            leader_start = fnum((fill.raw or {}).get("startPosition"), 0.0)
+            leader_start_abs = abs(leader_start)
+            leader_fill_abs = abs(fill.size)
+            leader_reduction = (leader_start_abs > POSITION_EPSILON and leader_fill_abs > 0
+                                and leader_start * self.ledger.signed_delta(fill.side, 1.0) < 0)
+            if leader_reduction:
+                # A leader reduction scales the follower's own sleeve; only a leader-flat fill closes it fully.
+                fraction = min(1.0, leader_fill_abs / leader_start_abs)
+                copy_size = abs(before) if leader_start_abs - leader_fill_abs <= POSITION_EPSILON else abs(before) * fraction
+                copy_size = min(abs(before), round(copy_size, 8))
+                copy_notional = copy_size * fill.price
+            else:
+                copy_size = round(abs(before), 8)
+                copy_notional = copy_size * fill.price
         intent_id = stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms])
         position_id = ""
         if lifecycle in {"ENTRY", "ADD"}:
