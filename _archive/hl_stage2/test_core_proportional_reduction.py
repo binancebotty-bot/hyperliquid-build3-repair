@@ -53,6 +53,22 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(full.copy_size, 10.0)
         self.assertTrue(full.reduce_only_intended)
 
+    def test_malformed_start_position_is_unresolved(self):
+        builder = self.setup_builder(10.0)
+        fill = c.LeaderFill("f", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
+                            {"startPosition": "NaN", "dir": "Close Long"})
+        intent = builder.build(fill)
+        self.assertEqual(intent.decision, "UNRESOLVED")
+        self.assertEqual(intent.copy_size, 0.0)
+        self.assertFalse(intent.reduce_only_intended)
+
+    def test_reversal_does_not_close_follower_more_than_leader_reduction(self):
+        builder = self.setup_builder(10.0)
+        intent = self.intent(builder, 2.0, 3.0)
+        self.assertEqual(intent.decision, "UNRESOLVED")
+        self.assertEqual(intent.copy_size, 0.0)
+        self.assertFalse(intent.reduce_only_intended)
+
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(ProportionalReductionRegression)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
