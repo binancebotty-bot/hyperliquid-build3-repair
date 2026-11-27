@@ -42,7 +42,7 @@ import threading
 import time
 import traceback
 import tempfile
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 import collections
 from datetime import datetime, timezone
@@ -4194,6 +4194,36 @@ class IntentBuilder:
             return False
         except Exception:
             return False
+
+    def build_all(self, fill: LeaderFill) -> List[Intent]:
+        raw = fill.raw or {}
+        try:
+            leader_start = float(raw.get("startPosition"))
+        except (TypeError, ValueError):
+            leader_start = math.nan
+        signed_delta = self.ledger.signed_delta(fill.side, fill.size)
+        if (not math.isfinite(leader_start) or abs(leader_start) <= POSITION_EPSILON
+                or leader_start * signed_delta >= 0 or abs(signed_delta) <= abs(leader_start) + POSITION_EPSILON):
+            return [self.build(fill)]
+        close_size = abs(leader_start)
+        open_size = abs(signed_delta) - close_size
+        close_fill = replace(
+            fill, leader_fill_id=f"{fill.leader_fill_id}:close", size=close_size,
+            raw={**raw, "dir": "Close Long" if leader_start > 0 else "Close Short"},
+        )
+        open_fill = replace(
+            fill, leader_fill_id=f"{fill.leader_fill_id}:open", size=open_size,
+            raw={k: v for k, v in raw.items() if k not in {"startPosition", "dir", "reduceOnly", "reduce_only"}},
+        )
+        close_intent = self.build(close_fill)
+        sleeve = self.ledger.sleeve(fill.leader_wallet, fill.coin)
+        previous_size = sleeve.get("signed_size", 0.0)
+        sleeve["signed_size"] = 0.0
+        try:
+            open_intent = self.build(open_fill)
+        finally:
+            sleeve["signed_size"] = previous_size
+        return [close_intent, open_intent]
 
     def build(self, fill: LeaderFill) -> Intent:
         wallet = fill.leader_wallet

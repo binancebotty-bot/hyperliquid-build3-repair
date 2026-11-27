@@ -62,6 +62,17 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(intent.copy_size, 0.0)
         self.assertFalse(intent.reduce_only_intended)
 
+    def test_flip_build_all_returns_reduce_then_fixed_notional_open(self):
+        builder = self.setup_builder(10.0)
+        fill = c.LeaderFill("flip", W, "BTC", "SELL", 100.0, 6.0, c.utc_now_ms(), "TEST", 0,
+                            {"startPosition": "4", "dir": "Open Short"})
+        intents = builder.build_all(fill)
+        self.assertEqual(len(intents), 2)
+        self.assertEqual(intents[0].copy_size, 10.0)
+        self.assertTrue(intents[0].reduce_only_intended)
+        self.assertEqual(intents[1].copy_notional, 12.0)
+        self.assertFalse(intents[1].reduce_only_intended)
+
     def test_reversal_does_not_close_follower_more_than_leader_reduction(self):
         builder = self.setup_builder(10.0)
         intent = self.intent(builder, 2.0, 3.0)
