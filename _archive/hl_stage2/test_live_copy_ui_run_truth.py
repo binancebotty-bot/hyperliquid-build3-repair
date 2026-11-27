@@ -83,6 +83,27 @@ def test_clean_restart_zeros_activity_without_hiding_persistent_positions() -> N
     assert set(rows[0]["open_positions"]) == {"BTC", "ETH"}
 
 
+def test_clean_restart_ui_reads_zeroed_activity_and_health() -> None:
+    now_ms = int(time.time() * 1000)
+    started_at_ms = now_ms - 100
+    old_attempts = [{"attempt_id": "old", "created_at_ms": started_at_ms - 1,
+                     "leader_wallet": LEADER_A, "status": "ORDER_FILLED", "send_total_ms": 12}]
+    activity = ui._build_live_activity_summary(old_attempts, [], started_at_ms)
+    service_state = {"started_at_ms": started_at_ms, "last_state_write_ms": now_ms}
+    integrity = {"status": "GREEN", "available": True,
+                 "hard_copy_invariant": {"counts": {"ACTIVE_RED": 0}}}
+    status = ui._build_live_top_status(
+        {}, {}, service_state, integrity, old_attempts, [],
+        [{"created_at_ms": started_at_ms - 1, "status": "CLOSE_FAILED"}],
+    )
+
+    assert activity["trade_count"] == 0
+    assert activity["skip_count"] == 0
+    assert activity["send_latency_p50_ms"] is None
+    assert status["health"]["level"] == "green"
+    assert status["health"]["text"] == "Healthy"
+
+
 def test_live_copy_status_renders_run_activity_and_latency_cells() -> None:
     source = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8-sig")
 

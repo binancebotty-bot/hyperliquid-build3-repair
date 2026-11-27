@@ -53,3 +53,12 @@ Result: 5 passed.
 - Interpreter fallback: `py 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' --help` - blocked: `No installed Python found!`; `graphify query --help` and `graphify explain --help` also failed because the graphify launcher could not invoke Python. The checked-in graph report was read first and identifies the UI model, health builder, and live-copy service as relevant areas.
 - Root causes already fixed in `2e3c748c`: UI activity counters were not scoped to `started_at_ms`; skips/reasons and send latency percentiles were absent from the UI; stale websocket health could remain fresh; unresolved active-red outcomes could appear healthy; persistent positions needed to remain visible after restart while run counters reset.
 - Blocker: no runnable Python interpreter in this environment, preventing fresh test execution.
+
+## Clean-restart health regression test (2026-11-27)
+
+- Added `test_clean_restart_ui_reads_zeroed_activity_and_health` to `_archive/hl_stage2/test_live_copy_ui_run_truth.py`. It feeds prior-run trade and close-failure rows alongside a fresh engine start and zero active-red integrity state through the real activity and UI status builders; it asserts zero trades/skips/latency and a Healthy UI health payload.
+- Before edit: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_live_copy_ui_run_truth.py` — 0 collected; command stopped before collection with `No module named pytest`. Historical coordinator run above reports 5 passed before this test was added.
+- After edit: same command — 0 collected; same missing-`pytest` failure. `uv --cache-dir .uv-cache run --offline --with pytest python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_live_copy_ui_run_truth.py` also failed before collection because pytest is not cached and network access is disabled.
+- Syntax check: `python -m py_compile _archive/hl_stage2/test_live_copy_ui_run_truth.py` — passed. Assertion pass/fail count after edit is unavailable because pytest could not start.
+- Root cause covered: the previous clean-restart regression checked run counters and durable positions, but did not assert zeroed run activity together with the health object delivered by the UI status builder; stale close failures must not make the new run unhealthy.
+- Blocker: pytest is absent from the available Python runtime and unavailable in the offline uv cache. No production files or protected services were changed.
