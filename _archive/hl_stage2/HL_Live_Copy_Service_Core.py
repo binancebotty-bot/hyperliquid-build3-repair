@@ -4258,7 +4258,7 @@ class IntentBuilder:
                 )
             try:
                 leader_start = float(raw_start)
-            except (TypeError, ValueError):
+            except (OverflowError, TypeError, ValueError):
                 leader_start = math.nan
             if not math.isfinite(leader_start):
                 return Intent(

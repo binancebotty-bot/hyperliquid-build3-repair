@@ -71,6 +71,27 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(intent.reason, "UNRESOLVED: reduction fraction unavailable; startPosition malformed")
         self.assertEqual(intent.notes, "lifecycle=EXIT;UNRESOLVED_START_POSITION")
 
+    def test_huge_exit_start_position_fails_closed_in_build_and_build_all(self):
+        for build_all in (False, True):
+            with self.subTest(build_all=build_all):
+                builder = self.setup_builder(10.0)
+                fill = c.LeaderFill("huge-exit", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
+                                    {"startPosition": 10**400, "dir": "Close Long"})
+                intent = (builder.build_all(fill)[0] if build_all else builder.build(fill))
+                self.assertEqual(intent.decision, "UNRESOLVED")
+                self.assertEqual(intent.copy_size, 0.0)
+                self.assertFalse(intent.reduce_only_intended)
+
+    def test_exit_boolean_start_position_difference_is_intentionally_fail_closed(self):
+        # Unlike the old baseline's permissive EXIT sizing, booleans are malformed and stay unresolved.
+        builder = self.setup_builder(10.0)
+        fill = c.LeaderFill("bool-exit", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
+                            {"startPosition": True, "dir": "Close Long"})
+        intent = builder.build_all(fill)[0]
+        self.assertEqual(intent.decision, "UNRESOLVED")
+        self.assertEqual(intent.copy_size, 0.0)
+        self.assertFalse(intent.reduce_only_intended)
+
     def test_every_malformed_start_position_shape_opens_fail_closed(self):
         builder = self.setup_builder(0.0)
         shapes = ["not-a-position", "", "NaN", "inf", True, False, {}, [], 10**400, object()]
