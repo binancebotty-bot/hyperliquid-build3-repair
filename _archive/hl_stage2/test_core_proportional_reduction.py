@@ -81,6 +81,7 @@ class ProportionalReductionRegression(unittest.TestCase):
         sent = []
         class Builder:
             def build_all(self, _fill): return builder.build_all(_fill)
+            def build(self, _fill): return builder.build(_fill)
             def blocked_locally(self, *_args): return ""
         class Audit:
             def append_order_intent(self, intent): close_open.append(("persist", intent.reduce_only_intended))
