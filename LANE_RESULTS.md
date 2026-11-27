@@ -30,3 +30,12 @@ Tests and replay were not executed, as required by the no-interpreter rule. No p
 - Commit creation is blocked because the configured Git executable is denied (`Access is denied`).
 - A fresh p50/p95 measurement cannot be produced here because running Python or any interpreter is explicitly prohibited. The replay is ready for the coordinator to run.
 - No deploy, restart, push, key/.env access, upstream-engine inspection, or control-state change was performed.
+
+## Coordinator verification (2026-11-27)
+
+HEAD: 2f783e40
+
+Command: `python _archive/hl_stage2/test_core_fill_to_send_latency.py` then `python _archive/hl_stage2/test_hotpath_replay_bench.py` (script-style, not pytest-collectable)
+Result: latency unit file TOTAL=4 FAILED=0. Bench TOTAL=9 FAILED=1.
+FAIL: BENCH_FILL_TO_SEND_P95_WITHIN_2S_TARGET p50=916 p95=2682 limit=2000. The 2s p95 target is NOT met by this commit. Do not report latency as proven.
+
