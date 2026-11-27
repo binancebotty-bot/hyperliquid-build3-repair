@@ -62,6 +62,15 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(intent.copy_size, 0.0)
         self.assertFalse(intent.reduce_only_intended)
 
+    def test_malformed_start_position_exit_fill_output_unchanged(self):
+        # Pins cdea30d2 EXIT behaviour: the opening-fill guard must not change reduce/close reason or notes.
+        builder = self.setup_builder(10.0)
+        fill = c.LeaderFill("f", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
+                            {"startPosition": "NaN", "dir": "Close Long"})
+        intent = builder.build(fill)
+        self.assertEqual(intent.reason, "UNRESOLVED: reduction fraction unavailable; startPosition malformed")
+        self.assertEqual(intent.notes, "lifecycle=EXIT;UNRESOLVED_START_POSITION")
+
     def test_malformed_start_position_blocks_an_open_too(self):
         builder = self.setup_builder(0.0)
         fill = c.LeaderFill("bad-open", W, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
