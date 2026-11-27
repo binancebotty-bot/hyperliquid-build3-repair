@@ -95,3 +95,51 @@ From `_archive/hl_stage2`, the four-worker benchmark command was:
 - The local graphify query index is missing, and the global helper falls back to an unrelated graph. This limited graph navigation but did not prevent tracing after the local graph report was read.
 - A local commit was created in writable temporary Git metadata; the checkout's `.git` directory is read-only, so its normal index cannot be written.
 - `git push -u origin lane-f/latency-replay` was attempted after setting the temporary clone's remote to the configured GitHub URL, but outbound GitHub access failed (`Could not connect to server` on port 443). The remote branch was not updated.
+
+## Lane F websocket-to-intent tail fix (2026-11-27)
+
+### Root cause and change
+
+`IntentBuilder.prewarm()` refreshed exposure using a half-TTL freshness margin, but its follower-mid lookup used the full 2 s cache TTL. A slow exposure prewarm could consume the remaining mid lifetime; `build_all()` then refreshed mids while holding the send lock. The replay read trace showed the later mid fetch and its 900 ms delay. Mid prewarm now uses the same half-TTL margin while normal `follower_mid()` callers retain the full cache TTL. Hot workers also collect same-lane fills while their already-required arrival prewarms are running, allowing the existing planner to process independent coins together. No assertion, safety gate, or 2,000 ms limit changed.
+
+### Replay measurements
+
+20 fills, 4 workers, 8 sent, 12 locally blocked, 900 ms simulated reads, 1,000 ms fake order calls. Nearest-rank percentiles, 8 send samples. `ws_received-to-send_real` improved from p50/p95 **913/2,669 ms** to **924/1,835 ms**. Exchange acknowledgement remains after this measured endpoint.
+
+| Stage | Before p50 / p95 | After p50 / p95 |
+| --- | ---: | ---: |
+| Fill intake | 0 / 1 ms | 0 / 1 ms |
+| Queue acknowledgement | 1 / 1,752 ms | 751 / 924 ms |
+| Pickup to process | 2 / 4 ms | 2 / 4 ms |
+| Prewarm | 901 / 903 ms | 2 / 901 ms |
+| Send-lock wait | 0 / 241 ms | 1 / 2 ms |
+| Intent build and write | 2 / 241 ms | 3 / 4 ms |
+| Intent total | 906 / 1,149 ms | 10 / 906 ms |
+| Intent to send | 7 / 11 ms | 6 / 8 ms |
+| Send setup | 1 / 2 ms | 1 / 2 ms |
+| Exchange acknowledgement | 1,000 / 1,001 ms | 1,000 / 1,001 ms |
+
+### Commands and counts
+
+Before opening source, the local graph report, manifest, and graph JSON were inspected and filtered for websocket/replay nodes; none are present, and the report is stale. The available graphify helper later returned no match for `query test_hotpath_replay_bench` and no explain rows; its default points at the separate bridge graph. Benchmark command (from the clone root; Blender's bundled Python supplies `requests`):
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+python -u _archive\hl_stage2\test_hotpath_replay_bench.py
+```
+
+Related regression commands (same PowerShell session and Python path):
+
+```powershell
+python -u _archive\hl_stage2\test_core_fill_to_send_latency.py
+python -u _archive\hl_stage2\test_core_dynamic_lanes.py
+python -u _archive\hl_stage2\test_core_send_lock_isolation.py
+python -u _archive\hl_stage2\test_core_stage_stamps.py
+python -u _archive\hl_stage2\test_core_intent_outside_lock.py
+```
+
+Before: benchmark **8 passed, 1 failed** (`BENCH_FILL_TO_SEND_P95_WITHIN_2S_TARGET`, 2,669 ms). After: **9 passed, 0 failed**, target 1,835 ms. Related scripts passed: `test_core_fill_to_send_latency.py` 4/4, `test_core_dynamic_lanes.py` 5/5, `test_core_send_lock_isolation.py` 8/8, `test_core_stage_stamps.py` 7/7, and `test_core_intent_outside_lock.py` 5/5 (29/29 total).
+
+### Blockers
+
+None. No walletproof/scout writes, key or `.env` access, mainnet orders, deploy, merge, commit, push, or CONTROL_STATE change.

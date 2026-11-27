@@ -238,15 +238,18 @@ def follower_dex_scope() -> List[str]:
     return [""] + sorted(names | learned)
 
 
-def follower_mid(coin: str) -> float:
+def follower_mid(coin: str, max_cache_age_ms: Optional[int] = None) -> float:
     """Fresh follower-network mid for `coin` over the follower DEX scope (allMids per DEX, read
     concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
     older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
     now, m, dexes = utc_now_ms(), _FOLLOWER_MIDS, follower_dex_scope()
+    cache_age_ms = int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000)
+    if max_cache_age_ms is not None:
+        cache_age_ms = min(cache_age_ms, int(max_cache_age_ms))
 
     def stale() -> bool:
         return (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
-                or utc_now_ms() - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
+                or utc_now_ms() - m["ms"] > cache_age_ms)
     if stale():
         with _FOLLOWER_MIDS_REFRESH_LOCK:
             now = utc_now_ms()
@@ -4072,7 +4075,8 @@ class IntentBuilder:
         only for local work and _send_real makes no info read after the intent is written (run 5: holds up to 8 s
         while each worker fetched under it). The reads are independent, so they run side by side: a fill costs
         one read time, not three or four. Freshness rules are unchanged: build() still refetches anything too old."""
-        jobs = [] if local_block else [lambda: follower_mid(fill.coin)]
+        mid_ttl_ms = int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000)
+        jobs = [] if local_block else [lambda: follower_mid(fill.coin, max_cache_age_ms=mid_ttl_ms // 2)]
         if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
             # sizing reads the leader's equity even for a fill that is then blocked: keep it out of the send lock
             jobs.append(lambda: self.leader_equity(fill.leader_wallet))
@@ -9850,6 +9854,8 @@ class LiveCopyCore:
         self._deferred: Dict[str, Tuple[LeaderFill, float]] = {}  # fills held for unreadable exchange truth: guard key -> (fill, due)
         self._deferred_lock = threading.Lock()
         self._deferred_thread: Optional[threading.Thread] = None
+        self._early_warm_futures: Dict[int, Any] = {}
+        self._early_warm_futures_lock = threading.Lock()
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
         # R0: pass a live provider, not a snapshot, so a wallet enabled later (or after a restart) is subscribed.
         self.ws = WSManager(lambda: self.cfg.stream_wallets(), self.ingestor, self._enqueue_hot_ws_fill)
@@ -9992,7 +9998,9 @@ class LiveCopyCore:
             shard = lane
         stamp_fill(fill, "enqueued_ms")
         if fill.source == "WS_CAPTURED" and os.getenv("HL_LIVE_EARLY_PREWARM", "1") != "0":
-            _EARLY_WARM_POOL.submit(self._early_prewarm, fill)
+            future = _EARLY_WARM_POOL.submit(self._early_prewarm, fill)
+            with self._early_warm_futures_lock:
+                self._early_warm_futures[id(fill)] = future
         try:
             prio = getattr(self, "_prio_queues", None)
             if prio and len(prio) == len(self._hot_queues) and is_close:
@@ -10001,6 +10009,8 @@ class LiveCopyCore:
                 self._hot_queues[shard].put_nowait(fill)
             return True
         except queue.Full:
+            with self._early_warm_futures_lock:
+                self._early_warm_futures.pop(id(fill), None)
             with self._queued_lock:
                 self._queued_keys.discard(key)
                 self._pending_ts.pop(key, None)
@@ -10154,6 +10164,8 @@ class LiveCopyCore:
     def _release_queued(self, batch: List[LeaderFill], q: "queue.Queue[LeaderFill]") -> None:
         with self._queued_lock:
             for f in batch:
+                with self._early_warm_futures_lock:
+                    self._early_warm_futures.pop(id(f), None)
                 _gk = self._guard_key(f)
                 self._queued_keys.discard(_gk)
                 self._pending_ts.pop(_gk, None)
@@ -10289,11 +10301,25 @@ class LiveCopyCore:
                 batch = [q.get(timeout=0.05)]
             except queue.Empty:
                 continue
-            while len(batch) < batch_max:  # everything already waiting on this worker is planned together
+            # The first fill's arrival prewarm is work the worker would otherwise repeat
+            # below. Collect siblings while it runs so _run_plan can parallelize them.
+            while len(batch) < batch_max:
+                with self._early_warm_futures_lock:
+                    prewarms = [self._early_warm_futures.get(id(_f)) for _f in batch]
+                if not any(f is not None and not f.done() for f in prewarms):
+                    break
+                try:
+                    batch.append(q.get(timeout=0.02))
+                except queue.Empty:
+                    continue
+            while len(batch) < batch_max:  # include anything already waiting after prewarm completes
                 try:
                     batch.append(q.get_nowait())
                 except queue.Empty:
                     break
+            with self._early_warm_futures_lock:
+                for _f in batch:
+                    self._early_warm_futures.pop(id(_f), None)
             for _f in batch:
                 stamp_fill(_f, "picked_up_ms")
             try:
