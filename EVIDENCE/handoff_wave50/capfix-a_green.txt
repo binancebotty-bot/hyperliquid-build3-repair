@@ -1,4 +1,4 @@
-﻿--- GREEN: new test vs edited source
+--- GREEN: new test vs edited source
 ============================= test session starts =============================
 platform win32 -- Python 3.14.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\python.exe
 cachedir: .pytest_cache
@@ -7,7 +7,7 @@ plugins: anyio-4.12.1, asyncio-1.4.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 collecting ... collected 2 items
 
-_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange 
+_archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange
 _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_cap_read_failures_block_entries_adds_and_allow_exit_only_via_fake_exchange PASSED [ 50%]
 _archive/hl_stage2/test_emitter_gates_matrix.py::EmitterGatesMatrixTest::test_over_cap_entry_has_zero_exchange_calls PASSED [100%]
 

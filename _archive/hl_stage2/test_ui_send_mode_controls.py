@@ -133,4 +133,3 @@ def test_on_requires_confirmed_post(tmp_path, monkeypatch):
         assert confirmed.status_code == 200
         assert confirmed.json()["send_mode"] == "ON"
         assert json.loads(ui.LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8"))["global_controls"]["send_mode"] == "ON"
-

@@ -1,4 +1,4 @@
-﻿"""
+"""
 HL_Copy_App_SSOT.py
 
 Pure app/model/presentation layer for the Hyperliquid copy-truth stack.
@@ -1470,7 +1470,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         for wallet, coins in manual_positions.get("by_wallet", {}).items():
             if isinstance(coins, dict):
                 manual_positions_count += len(coins)
-    
+
     # Trim reconciliation_rows to what the page shows (500)
     reconciliation_rows = reconciliation_rows[-500:]
 

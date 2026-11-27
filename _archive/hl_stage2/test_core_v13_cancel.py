@@ -1,4 +1,4 @@
-﻿"""Cancel guards must honor the switch and engine position ownership."""
+"""Cancel guards must honor the switch and engine position ownership."""
 from __future__ import annotations
 
 import os

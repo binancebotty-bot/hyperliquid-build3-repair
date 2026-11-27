@@ -1,4 +1,4 @@
-﻿"""Expectations for the ENTRY/ADD rate-limit recovery's final wire cap gate.
+"""Expectations for the ENTRY/ADD rate-limit recovery's final wire cap gate.
 
 This harness uses a fake exchange and a temporary config/audit directory. It
 does not load credentials or open a network connection.
