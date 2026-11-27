@@ -1,4 +1,4 @@
-# Lane D / G3 UI Truth Results
+﻿# Lane D / G3 UI Truth Results
 
 ## Commits
 
@@ -23,11 +23,11 @@
 
 These new tests should fail on the base revision; they were not run here:
 
-- `test_run_activity_counts_trades_skips_reasons_latency_and_each_leader` — the run-scoped activity builder and counters do not exist.
-- `test_clean_restart_zeros_activity_without_hiding_persistent_positions` — historical activity is not scoped to the engine start.
-- `test_live_copy_status_renders_run_activity_and_latency_cells` — the status strip has no run activity, skip reason, or p50/p95 cells.
-- `test_stale_websocket_health_snapshot_is_not_reported_fresh` — stale snapshot age is not recomputed by the UI loader.
-- `test_unresolved_active_red_outcome_is_not_reported_healthy` — active-red counts do not affect the health summary.
+- `test_run_activity_counts_trades_skips_reasons_latency_and_each_leader` â€” the run-scoped activity builder and counters do not exist.
+- `test_clean_restart_zeros_activity_without_hiding_persistent_positions` â€” historical activity is not scoped to the engine start.
+- `test_live_copy_status_renders_run_activity_and_latency_cells` â€” the status strip has no run activity, skip reason, or p50/p95 cells.
+- `test_stale_websocket_health_snapshot_is_not_reported_fresh` â€” stale snapshot age is not recomputed by the UI loader.
+- `test_unresolved_active_red_outcome_is_not_reported_healthy` â€” active-red counts do not affect the health summary.
 
 ## Verification and blockers
 
@@ -43,3 +43,13 @@ HEAD: 2e3c748c
 Command: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_live_copy_ui_run_truth.py`
 Result: 5 passed.
 
+
+## Lane g3/ui-truth-tests checkout verification (2026-11-27)
+
+- Branch: `lane-g3/ui-truth-tests`; HEAD before this log update: `f42144e17a5a24daa516d20f3e6ef00212589609`.
+- The requested implementation and regression tests are already present in ancestor commit `2e3c748c` (`fix(ui): live copy run-truth counters, skip reasons, latency, health`). Review found no further source defect. No upstream service/scout files were changed.
+- Prior recorded verification: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_live_copy_ui_run_truth.py` - 5 passed (coordinator record dated 2026-11-27).
+- This checkout attempt: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_live_copy_ui_run_truth.py` - process failed before collection because `python.exe` launch was denied; no test result or pass/fail counts were emitted.
+- Interpreter fallback: `py 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' --help` - blocked: `No installed Python found!`; `graphify query --help` and `graphify explain --help` also failed because the graphify launcher could not invoke Python. The checked-in graph report was read first and identifies the UI model, health builder, and live-copy service as relevant areas.
+- Root causes already fixed in `2e3c748c`: UI activity counters were not scoped to `started_at_ms`; skips/reasons and send latency percentiles were absent from the UI; stale websocket health could remain fresh; unresolved active-red outcomes could appear healthy; persistent positions needed to remain visible after restart while run counters reset.
+- Blocker: no runnable Python interpreter in this environment, preventing fresh test execution.
