@@ -4199,7 +4199,7 @@ class IntentBuilder:
         raw = fill.raw or {}
         try:
             leader_start = float(raw.get("startPosition"))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             leader_start = math.nan
         signed_delta = self.ledger.signed_delta(fill.side, fill.size)
         if (not math.isfinite(leader_start) or abs(leader_start) <= POSITION_EPSILON
@@ -4236,8 +4236,25 @@ class IntentBuilder:
         before = self.ledger.wallet_coin_position(wallet, coin)
         direction_before = self.ledger.direction_from_size(before)
         lifecycle, is_reduce = self.ledger.classify_leader_side_for_wallet(wallet, coin, fill.side)
+        raw = fill.raw or {}
+        if "startPosition" in raw:
+            try:
+                raw_start = float(raw["startPosition"])
+            except (TypeError, ValueError, OverflowError):
+                raw_start = math.nan
+            if not math.isfinite(raw_start):
+                return Intent(
+                    intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
+                    fill=fill, copy_side=fill.side, copy_size=0.0, copy_notional=0.0,
+                    wallet_mode=wallet_mode, copy_mode=copy_mode, decision="UNRESOLVED",
+                    reason="UNRESOLVED: leader startPosition is malformed",
+                    sleeve_id=sleeve_id, position_id="", position_direction_before=direction_before,
+                    wallet_position_before=before, coin_net_before=self.ledger.coin_net(coin),
+                    reduce_only_intended=False, reduce_only_sent_planned=False, created_at_ms=utc_now_ms(),
+                    notes="UNRESOLVED_START_POSITION",
+                )
         if lifecycle == "EXIT":
-            raw_start = (fill.raw or {}).get("startPosition")
+            raw_start = raw.get("startPosition")
             if raw_start is None:
                 return Intent(
                     intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
@@ -4251,7 +4268,7 @@ class IntentBuilder:
                 )
             try:
                 leader_start = float(raw_start)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 leader_start = math.nan
             if not math.isfinite(leader_start):
                 return Intent(

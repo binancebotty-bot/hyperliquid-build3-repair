@@ -62,6 +62,16 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(intent.copy_size, 0.0)
         self.assertFalse(intent.reduce_only_intended)
 
+    def test_malformed_start_position_blocks_an_open_too(self):
+        builder = self.setup_builder(0.0)
+        fill = c.LeaderFill("bad-open", W, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
+                            {"startPosition": "not-a-position", "dir": "Open Long"})
+        intent = builder.build_all(fill)[0]
+        self.assertEqual(intent.decision, "UNRESOLVED")
+        self.assertEqual(intent.copy_size, 0.0)
+        self.assertEqual(intent.copy_notional, 0.0)
+        self.assertFalse(intent.reduce_only_intended)
+
     def test_flip_build_all_returns_reduce_then_fixed_notional_open(self):
         builder = self.setup_builder(10.0)
         fill = c.LeaderFill("flip", W, "BTC", "SELL", 100.0, 6.0, c.utc_now_ms(), "TEST", 0,
