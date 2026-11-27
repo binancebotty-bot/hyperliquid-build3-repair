@@ -49,6 +49,23 @@ n, can, _ = guard(base, ex_net=25.0)
 check("TARGET_NEEDS_MORE_THAN_ORDER_STAYS", n == 0)
 n, can, left = guard(base, age_ms=10 ** 9, cancel_ok=False)
 check("FAILED_CANCEL_KEEPS_ROW_FOR_NEXT_ROUND", n == 0 and can == ["7"] and "s1" in left)
+
+# A failed recovery-order cancellation must not gate the real close. Reserve the full
+# same-side recovery size so both orders together stay within this close's requested size.
+withdrawal = SimpleNamespace(
+    _resting_lock=threading.RLock(), _standing_closes={"s1": dict(base, size=1.0)},
+    _cancel_order=lambda *_args: {"response": {"data": {"statuses": [{"error": "temporary cancel failure"}]}}},
+    _floor_wire_size=lambda size, decimals: round(size, decimals),
+    audit=Audit(),
+)
+intent = SimpleNamespace(sleeve_id="s1", intent_id="next-close",
+                         copy_side="SELL",
+                         fill=SimpleNamespace(leader_wallet="0xw", leader_fill_id="close-fill", coin="BTC"))
+wire_size, standing_block = c.SenderGateway._withdraw_standing_close(withdrawal, object(), intent, 3.0, 3, {})
+check("FAILED_RECOVERY_CANCEL_DOES_NOT_BLOCK_CLOSE",
+      wire_size == 2.0 and standing_block is None and "s1" in withdrawal._standing_closes
+      and rows[-1][1]["terminal_state"] == "STANDING_CLOSE_CANCEL_FAILED_CLOSE_CONTINUES")
+
 n, can, _ = guard(base, gmode="CLOSE")
 check("HEADER_CLOSE_ONLY_DOES_NOT_CANCEL_A_STANDING_CLOSE", n == 0 and not can)
 n, can, left = guard(dict(base, reduce_only=True), age_ms=10 ** 9)

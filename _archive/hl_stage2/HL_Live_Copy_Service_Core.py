@@ -5644,7 +5644,8 @@ class SenderGateway:
                                  timing: Dict[str, Any]) -> Tuple[float, Optional[Tuple[bool, str, Dict[str, Any]]]]:
         """Before a sleeve's next close: withdraw its standing recovery close, so the two never both fill (the
         surplus would close another leader's position on the shared account). If it already filled, this close
-        is smaller by its size. If the cancel fails, the standing close keeps working and this one is not sent."""
+        is smaller by its size. If the cancel fails, keep tracking the standing order but let this close continue to
+        the fresh close-to-target sizing gate."""
         with self._resting_lock:
             row = dict(self._standing_closes.get(intent.sleeve_id) or {})
         if not row:
@@ -5665,12 +5666,24 @@ class SenderGateway:
         note = (f"standing recovery close {row.get('side')} {row.get('size')} (order {oid}) for sleeve {intent.sleeve_id}; "
                 f"next close intent_id={intent.intent_id}")
         if not outcome:
-            detail = f"{note}: cancel failed ({error}); it keeps working, this close is not sent"
-            return wire_size, (False, "SEND_NOT_ATTEMPTED_STANDING_CLOSE_IN_PLACE", {
-                "status": "STANDING_CLOSE_IN_PLACE", "error": error, "exchange_response": {}, "oid": "",
-                "exchange_called": False, "write_send_attempt": True, "notes": detail, "reject_category": "",
-                "terminal_state": "PENDING_EXIT_GUARD_ACTIVE", "operator_action": "NO_SEND_PENDING_EXIT_IN_FLIGHT",
-                "timing": timing})
+            # A failed cancel leaves this recovery size live. Reserve its full remaining
+            # size against a same-side close, conservatively assuming none has filled,
+            # so both orders cannot close more than the new intent requires.
+            if str(row.get("side") or "").upper() in {"", intent.copy_side.upper()}:
+                pending_size = abs(fnum(row.get("size"), wire_size))
+                wire_size = self._floor_wire_size(max(0.0, wire_size - pending_size), sz_dec)
+            detail = (f"{note}: cancel failed ({error}); it keeps working; "
+                      f"this close continues with {wire_size} reserved-size remainder")
+            self.audit.append_reconciliation(
+                "EXIT_RECOVERY", "STANDING_CLOSE_CANCEL_FAILED_CLOSE_CONTINUES",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin, exchange_order_id=oid,
+                action="CLOSE_CONTINUES_WITH_STANDING_RECOVERY",
+                terminal_state="STANDING_CLOSE_CANCEL_FAILED_CLOSE_CONTINUES",
+                engine_can_send="True",
+                notes=f"{detail}; the close continues through fresh close-to-target sizing",
+            )
+            return wire_size, None
         with self._resting_lock:
             self._standing_closes.pop(intent.sleeve_id, None)
             atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
