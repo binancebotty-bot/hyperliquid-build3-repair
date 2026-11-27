@@ -614,16 +614,22 @@ def main() -> None:
     check("R7_COPY_READ_PAGE_CAP_SAYS_PARTIAL", status == "COPY_ACCOUNT_POLL_PARTIAL", status)
 
     # B while sending is stopped for a bad key the leader cursors stay put, so a restart replays the exits
+    _real_utc_now_ms = c.utc_now_ms
+    _fixed_now_ms = _real_utc_now_ms()
+    c.utc_now_ms = lambda: _fixed_now_ms
     st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    st["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 3600000}
+    st["last_leader_poll_cursor_ms"] = {LEADER: _fixed_now_ms - 3600000}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
     before = st["last_leader_poll_cursor_ms"][LEADER]
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([], "POLL_OK")
     core.sender.sender_key_invalid = "User or API Wallet does not exist"
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
     check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before, f"{cur} {before}")
+    c.utc_now_ms = _real_utc_now_ms
     core.sender.sender_key_invalid = ""
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
     starts_b = []
@@ -633,7 +639,9 @@ def main() -> None:
     st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     st["last_leader_poll_cursor_ms"] = {LEADER: before}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
     check("R7_HELD_CURSOR_DOES_NOT_GROW_THE_READ_WINDOW", len(starts_b) == 2 and starts_b[1] > starts_b[0] + 1000000, str(starts_b))
     core.sender.sender_key_invalid = ""
