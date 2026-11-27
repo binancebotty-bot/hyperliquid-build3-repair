@@ -54,15 +54,15 @@ class Base(unittest.TestCase):
 
 
 class OneSidedBookTest(Base):
-    def test_no_bids_blocks_entry_and_logs_reason(self):
+    def test_no_bids_does_not_block_entry(self):
+        # Policy change: the one-sided book guard is dropped; the exchange handles empty books.
         s, rows = self.sender(book=(0, 5))
-        self.assertEqual(self.send(s, make_intent(lifecycle="ENTRY")), (False, "ENTRY_BLOCKED_ONE_SIDED_BOOK"))
-        self.assertIn("bids=0", rows[0][2]["notes"])
+        self.assertEqual(self.send(s, make_intent(lifecycle="ENTRY")), (True, "MOCK_ORDER_SENT"))
 
-    def test_no_asks_blocks_add(self):
+    def test_no_asks_does_not_block_add(self):
+        # Policy change: the one-sided book guard is dropped; the exchange handles empty books.
         s, rows = self.sender(book=(5, 0))
-        self.assertEqual(self.send(s, make_intent(lifecycle="ADD", before=-3.0)), (False, "ENTRY_BLOCKED_ONE_SIDED_BOOK"))
-        self.assertIn("asks=0", rows[0][2]["notes"])
+        self.assertEqual(self.send(s, make_intent(lifecycle="ADD", before=-3.0)), (True, "MOCK_ORDER_SENT"))
 
     def test_two_sided_book_sends(self):
         s, _ = self.sender(book=(3, 4))
