@@ -185,7 +185,8 @@ def main() -> None:
               f"{status} {pxs}")
         ok, status, res, fake, gw, _ = send({"marketable_bps": 20, "send_mode": "ON"}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
         check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
-        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH],
+                                             sleeve=10.0, f=fill("SELL", start=1))
         check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
     finally:
         c.LEADER_NETWORK = saved_leader

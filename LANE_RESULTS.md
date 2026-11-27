@@ -41,3 +41,18 @@ Command: `python _archive/hl_stage2/test_core_missed_entry_rule.py` (script-styl
 Result: TOTAL=91 FAILED=1 (90 pass).
 FAIL: M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT. Unresolved; the lane must not be reported green.
 
+## R7/M3 exit regression follow-up (2026-11-27)
+
+- Baseline: `d11fc8fe` on `lane-g/r7-m3-clock`.
+- Root cause: the M3 fixture created an opposing SELL while setting the follower sleeve to `10.0`, but its `LeaderFill.raw` omitted `startPosition`. `IntentBuilder.build` classifies that as an EXIT, then correctly returns an unresolved zero-size intent because it cannot establish the leader reduction fraction. `_send_real` consequently returned `SEND_NOT_ATTEMPTED_INVALID_SIZE` before any exchange call (`fake.calls == []`). The wall clock only populated the fill timestamp; the trace showed no clock-driven entry/retry path. No engine clock change was justified, and the existing fail-closed behavior for unprovable reductions remains intact.
+- Fixture correction: provide `startPosition=1` for this one-unit SELL so the test represents a proven full close against the seeded follower sleeve. The assertion `M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT` is unchanged.
+- Graph navigation: attempted `graphify query` and `graphify explain`; this clone lacks `graphify-out/.graphify_analysis.json`, so the wrapper fell back to the unrelated bridge graph. Queried this clone's `graphify-out/graph.json` directly before opening source; its indexed clock node points to `utc_now_ms()` in `HL_Live_Copy_Service_Core.py`. The checked-in graph report is stale (built at `81c394bd`).
+- Initial test command `python _archive/hl_stage2/test_core_missed_entry_rule.py` could not start because `python` is not on PATH. The LibreOffice Python 3.12 runtime also lacks `requests`; used a temporary `requests` stub in `%TEMP%` whose `post` raises, with the test's own offline patch taking over before any network access.
+- Executed: `& 'C:\Program Files\LibreOffice\program\python.exe' -u _archive\hl_stage2\test_core_missed_entry_rule.py` with `PYTHONPATH` set to that temporary stub directory.
+- Result: `TOTAL=91 FAILED=0` (91 pass, 0 fail), including all R7 checks. The unchanged M3 assertion passes.
+- Regression command: from `_archive/hl_stage2`, `& 'C:\Program Files\LibreOffice\program\python.exe' -m unittest test_core_proportional_reduction -v` with the same temporary stub on `PYTHONPATH`.
+- Regression result: `Ran 10 tests` / `OK` (10 pass, 0 fail), including the fail-closed behavior for missing or malformed start positions.
+- Changed files: `_archive/hl_stage2/test_core_missed_entry_rule.py` (valid exit fixture only), `LANE_RESULTS.md`.
+- Commit attempt: `git add -- _archive/hl_stage2/test_core_missed_entry_rule.py LANE_RESULTS.md` and `git commit -m "test(core): provide reduction evidence for M3 exit"` failed because Git could not create `.git/index.lock` (`Permission denied`; `.git` is read-only here). HEAD remains `d11fc8fee56c14eb58507f1aceeb708a96344db5`; push was not attempted because there is no new commit to push.
+- Blockers: no engine clock regression was present in the failing path; no standard Python/requests installation and no local graphify analysis index. The target script nevertheless ran to completion with the local embedded runtime and offline stub. No keys, wallet material, live exchange calls, CONTROL_STATE changes, deploys, or upstream engine/scout writes.
+
