@@ -134,6 +134,36 @@ print(json.dumps(calls))
     check("N7_PARALLEL_ENGINES_ON_SEPARATE_STATE_RUN", other.returncode == 0 and "LOCKED" in other.stdout, other.stderr[-200:])
     check("N7_LOCK_RELEASED_WHEN_PROCESS_DIES", after.returncode == 0 and "LOCKED" in after.stdout, after.stderr[-200:])
 
+    path_probe = "import json, HL_Live_Copy_Service_Core as c; print(json.dumps(str(c._global_instance_lock_path())))"
+    program_data = str(Path(tempfile.mkdtemp(prefix="programdata_")))
+    first_env = {k: v for k, v in os.environ.items() if not k.startswith("HL_")}
+    first_env.update({"HL_LIVE_AUDIT_DIR": str(Path(tempfile.mkdtemp(prefix="global_a_"))),
+                      "HL_LIVE_ENV_FILE": "/nonexistent.env", "PROGRAMDATA": program_data,
+                      "HL_LIVE_GLOBAL_LOCK_FILE": str(Path(tempfile.mkdtemp(prefix="lock_a_")) / "engine.lock"),
+                      "LOCALAPPDATA": str(Path(tempfile.mkdtemp(prefix="user_a_")))})
+    second_env = {"PROGRAMDATA": program_data,
+                  "HL_LIVE_GLOBAL_LOCK_FILE": str(Path(tempfile.mkdtemp(prefix="lock_b_")) / "engine.lock"),
+                  "LOCALAPPDATA": str(Path(tempfile.mkdtemp(prefix="user_b_")))}
+    first_path = last_json(run_py(path_probe, first_env))
+    second_path = last_json(run_py(path_probe, second_env))
+    check("N7_GLOBAL_LOCK_PATH_SHARED_ACROSS_USERS", first_path == second_path, str([first_path, second_path]))
+
+    global_lock = ("import sys, time, HL_Live_Copy_Service_Core as c; "
+                   "c._global_instance_lock_path = lambda: c.Path(sys.argv[2]); "
+                   "c.acquire_global_instance_lock(c.AUDIT_DIR); print('LOCKED', flush=True); time.sleep(float(sys.argv[1]))")
+    global_lock_path = str(Path(program_data) / "engine.lock")
+    first_global = subprocess.Popen([sys.executable, "-c", global_lock, "30", global_lock_path], cwd=str(HERE), env=first_env,
+                                    stdout=subprocess.PIPE, text=True)
+    try:
+        first_global.stdout.readline()
+        second_global = run_py(global_lock, second_env, ["0", global_lock_path])
+    finally:
+        first_global.kill()
+        first_global.wait()
+    check("N7_GLOBAL_LOCK_SHARED_ACROSS_USERS",
+          second_global.returncode != 0 and "INSTANCE_ALREADY_RUNNING_GLOBAL" in second_global.stderr,
+          second_global.stderr[-200:])
+
     ui_probe = ("import HL_Copy_App_SSOT as u, json; print(json.dumps([u.LIVE_COPY_AUDIT_DIR.name, u.FOLLOWER_INFO_URL,"
                 " u.APP_PORT, u.LIVE_CONFIG_FILE == u.LIVE_COPY_CONFIG_FILE]))")
     ui_dir = Path(tempfile.mkdtemp(prefix="ui_")) / "state_testnet"

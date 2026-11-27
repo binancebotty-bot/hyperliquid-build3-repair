@@ -12948,10 +12948,7 @@ _GLOBAL_INSTANCE_LOCK = None
 
 def _global_instance_lock_path() -> Path:
     """Machine-wide location for the single-engine lock (never inside a state folder)."""
-    override = str(os.getenv("HL_LIVE_GLOBAL_LOCK_FILE") or "").strip()
-    if override:
-        return Path(override)
-    base = str(os.getenv("LOCALAPPDATA") or os.getenv("XDG_STATE_HOME") or tempfile.gettempdir())
+    base = str(os.getenv("PROGRAMDATA") or r"C:\ProgramData") if os.name == "nt" else tempfile.gettempdir()
     return Path(base) / "HL_Live_Copy_Service_Core" / "engine-global.lock"
 
 
