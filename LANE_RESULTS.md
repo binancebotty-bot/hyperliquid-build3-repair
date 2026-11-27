@@ -1,6 +1,6 @@
 # Lane Results: per-leader ledger tests
 
-Branch: `lane-ledger/per-leader-tests`  
+Branch: `lane-ledger/per-leader-tests`
 Base: `origin/main` (`eff73dfac67c8557d7f7b8482e7872eddf43d1f3`)
 
 ## Changes
@@ -27,3 +27,10 @@ Base: `origin/main` (`eff73dfac67c8557d7f7b8482e7872eddf43d1f3`)
 - Blocker: this environment has no runnable Python installation, so the focused regression test and broader Python suite could not execute.
 - Blocker: the installed Graphify wrapper also requires the unavailable `python` command. The checked-in graph artifacts were used to navigate before source inspection.
 - Blocker: `.git` is read-only in this workspace. Git could not stage the changes, preventing the required commit and push.
+
+## Whitespace normalization
+
+- Commands: `uv run --cache-dir .uv-temp-cache --no-project --offline python _archive/hl_stage2/test_core_per_leader_ledger.py` (before and after); `git diff --check`; `uv run --cache-dir .uv-temp-cache --no-project --offline python "C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py" test_core_per_leader_ledger`; `uv run --cache-dir .uv-temp-cache --no-project --offline python "C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py" explain test_core_per_leader_ledger`.
+- Test counts: before **5 passed, 0 failed**; after **5 passed, 0 failed**. `git diff --check` passed with no output. Graphify query/explain reported no matches.
+- Root cause: `HL_Live_Copy_Service_Core.py` mixed CRLF and LF endings; `LANE_RESULTS.md` had trailing Markdown spaces. Normalized line endings and removed trailing whitespace without changing logic or assertions.
+- Blockers: none. The shell `python` command is unavailable; `uv` supplied an offline Python interpreter.
