@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """PR1 replay/bench: the send hot path must not do exchange/info I/O between writing an intent and
 sending its order, and a burst of leader fills must clear the queue quickly.
 
@@ -70,20 +70,24 @@ def check(name: str, cond: bool, detail: str = "") -> None:
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
 
 
-def p90(values):
-    """Nearest-rank 90th percentile."""
+def percentile(values, p):
+    """Nearest-rank percentile."""
     if not values:
         return None
     ordered = sorted(values)
-    idx = min(len(ordered) - 1, max(0, math.ceil(0.90 * len(ordered)) - 1))
+    idx = min(len(ordered) - 1, max(0, math.ceil(p * len(ordered)) - 1))
     return ordered[idx]
+
+
+def p90(values):
+    return percentile(values, 0.90)
 
 
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="hotbench_"))
     os.environ.update({
         "HL_LIVE_AUDIT_DIR": str(tmp),
-        "HL_LEADER_NETWORK": "mainnet",       # cross-network: the send path prices against the leader market
+        "HL_LEADER_NETWORK": "testnet",       # replay is configured testnet-only
         "HL_FOLLOWER_NETWORK": "testnet",
         "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
         "HL_LIVE_WS_ENABLED": "0",
@@ -242,7 +246,8 @@ def main() -> None:
     # ---- replay: dispatch the burst into the real hot queues -------------------------------------------
     fills = []
     for i in range(FILLS):
-        fill = c.LeaderFill(f"bench-{i:03d}", LEADER, ALL_COINS[i], "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
+        received_ms = c.utc_now_ms()
+        fill = c.LeaderFill(f"bench-{i:03d}", LEADER, ALL_COINS[i], "BUY", 100.0, 1.0, received_ms, "WS_CAPTURED", ws_received_ms=received_ms)
         fills.append(fill)
         ENQ[fill.leader_fill_id] = c.utc_now_ms()
         core._dispatch_fill(fill)
@@ -272,6 +277,10 @@ def main() -> None:
 
     q90 = p90(queue_waits)
     a90 = p90(ack_latencies)
+    send_rows = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("fill_to_send_ms") not in (None, "")]
+    fill_to_send = [int(float(r["fill_to_send_ms"])) for r in send_rows]
+    f2s_p50 = percentile(fill_to_send, 0.50)
+    f2s_p95 = percentile(fill_to_send, 0.95)
     offenders = [fid for fid, n in reads_after_intent if n > 0]
 
     print("MEASURE:: burst=%d fills, workers=%d, read=%.0f ms, order=%.0f ms, scale=%.2f"
@@ -279,6 +288,8 @@ def main() -> None:
     print("MEASURE:: sent=%d (reached the exchange), blocked locally=%d" % (sent, blocked))
     print("MEASURE:: queue wait p90 = %s ms (limit 500)" % q90)
     print("MEASURE:: fill-to-ack p90 = %s ms (limit 2000)" % a90)
+    print("MEASURE:: ws_received-to-send_real p50=%s ms p95=%s ms (target p95 <= 2000; sent fills=%d)"
+          % (f2s_p50, f2s_p95, len(fill_to_send)))
     print("MEASURE:: sent fills with an info read between intent and order = %d/%d %s"
           % (len(offenders), len(reads_after_intent), offenders[:5]))
 
@@ -302,6 +313,8 @@ def main() -> None:
     a_limit = 2000 if strict else float(os.getenv("HL_BENCH_PR1_ACK_P90_MS", "5500")) * TIME_SCALE
     check("BENCH_QUEUE_WAIT_P90_WITHIN_LIMIT", q90 is not None and q90 <= q_limit, f"p90={q90} limit={q_limit}")
     check("BENCH_FILL_TO_ACK_P90_WITHIN_LIMIT", a90 is not None and a90 <= a_limit, f"p90={a90} limit={a_limit}")
+    check("BENCH_FILL_TO_SEND_P95_WITHIN_2S_TARGET", f2s_p95 is not None and f2s_p95 <= 2000,
+          f"p50={f2s_p50} p95={f2s_p95} limit=2000")
     check("BENCH_ZERO_INFO_READS_BETWEEN_INTENT_AND_ORDER", not offenders,
           f"{len(offenders)} sent fills read info after the intent: {offenders[:5]}")
 
@@ -324,3 +337,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+

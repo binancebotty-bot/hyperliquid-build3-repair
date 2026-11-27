@@ -654,7 +654,7 @@ SEND_ATTEMPT_FIELDS = [
     "ws_received_ms", "leader_fill_timestamp_ms", "intent_created_at_ms", "send_decision_started_ms",
     "send_real_started_ms", "symbol_resolve_started_ms", "symbol_resolve_finished_ms",
     "sdk_client_started_ms", "sdk_client_finished_ms", "exchange_call_started_ms",
-    "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
+    "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "fill_to_send_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms", "notes", "cloid",
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
@@ -666,7 +666,7 @@ SEND_TIMING_FIELDS = [
     "ws_received_ms", "leader_fill_timestamp_ms", "intent_created_at_ms", "send_decision_started_ms",
     "send_real_started_ms", "symbol_resolve_started_ms", "symbol_resolve_finished_ms",
     "sdk_client_started_ms", "sdk_client_finished_ms", "exchange_call_started_ms",
-    "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
+    "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "fill_to_send_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms",
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
@@ -6006,6 +6006,7 @@ class SenderGateway:
         if timing.get("ws_received_ms") not in (None, "") and timing.get("send_decision_started_ms") not in (None, ""):
             timing["queue_wait_ms"] = int(fnum(timing.get("send_decision_started_ms"), 0) - fnum(timing.get("ws_received_ms"), 0))
         for start, finish, out in [
+            ("ws_received_ms", "send_real_started_ms", "fill_to_send_ms"),
             ("leader_fill_timestamp_ms", "intent_created_at_ms", "leader_to_intent_ms"),
             ("intent_created_at_ms", "send_decision_started_ms", "intent_to_send_start_ms"),
             ("symbol_resolve_started_ms", "symbol_resolve_finished_ms", "symbol_resolve_ms"),
@@ -13880,3 +13881,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
