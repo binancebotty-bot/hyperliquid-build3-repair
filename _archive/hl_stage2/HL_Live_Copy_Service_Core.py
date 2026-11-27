@@ -4239,6 +4239,7 @@ class IntentBuilder:
         copy_mode = self.cfg.copy_mode(wallet)
         copy_notional = self._copy_notional(wallet, fill)
         copy_size = round(copy_notional / fill.price, 8) if fill.price > 0 and copy_notional > 0 else 0.0
+        close_size_fallback = False
         sleeve_id = self.ledger.sleeve_id(wallet, coin)
         before = self.ledger.wallet_coin_position(wallet, coin)
         direction_before = self.ledger.direction_from_size(before)
@@ -4258,36 +4259,32 @@ class IntentBuilder:
                 )
             leader_start = _parse_leader_start(raw_start)
             if not math.isfinite(leader_start):
-                return Intent(
-                    intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
-                    fill=fill, copy_side=fill.side, copy_size=0.0, copy_notional=0.0,
-                    wallet_mode=wallet_mode, copy_mode=copy_mode, decision="UNRESOLVED",
-                    reason="UNRESOLVED: reduction fraction unavailable; startPosition malformed",
-                    sleeve_id=sleeve_id, position_id="", position_direction_before=direction_before,
-                    wallet_position_before=before, coin_net_before=self.ledger.coin_net(coin),
-                    reduce_only_intended=False, reduce_only_sent_planned=False, created_at_ms=utc_now_ms(),
-                    notes="lifecycle=EXIT;UNRESOLVED_START_POSITION",
-                )
-            leader_start_abs = abs(leader_start)
-            leader_fill_abs = abs(fill.size)
-            leader_reduction = (leader_start_abs > POSITION_EPSILON and leader_fill_abs > 0
-                                and leader_start * self.ledger.signed_delta(fill.side, 1.0) < 0)
-            if not leader_reduction or leader_fill_abs > leader_start_abs + POSITION_EPSILON:
-                return Intent(
-                    intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
-                    fill=fill, copy_side=fill.side, copy_size=0.0, copy_notional=0.0,
-                    wallet_mode=wallet_mode, copy_mode=copy_mode, decision="UNRESOLVED",
-                    reason="UNRESOLVED: leader fill does not prove a non-reversing reduction",
-                    sleeve_id=sleeve_id, position_id="", position_direction_before=direction_before,
-                    wallet_position_before=before, coin_net_before=self.ledger.coin_net(coin),
-                    reduce_only_intended=False, reduce_only_sent_planned=False, created_at_ms=utc_now_ms(),
-                    notes="lifecycle=EXIT;UNRESOLVED_LEADER_REDUCTION",
-                )
-            if leader_reduction:
-                # A leader reduction scales the follower's own sleeve; only a leader-flat fill closes it fully.
-                fraction = min(1.0, leader_fill_abs / leader_start_abs)
-                copy_size = abs(before) if leader_start_abs - leader_fill_abs <= POSITION_EPSILON else abs(before) * fraction
-                copy_size = min(abs(before), round(copy_size, 8))
+                # The EXIT lifecycle is already proven by the owned sleeve and closing side. Without a usable
+                # startPosition the reduction fraction is unknowable, so close that sleeve in full, reduce-only.
+                copy_size = abs(before)
+                copy_notional = copy_size * fill.price
+                close_size_fallback = True
+            else:
+                leader_start_abs = abs(leader_start)
+                leader_fill_abs = abs(fill.size)
+                leader_reduction = (leader_start_abs > POSITION_EPSILON and leader_fill_abs > 0
+                                    and leader_start * self.ledger.signed_delta(fill.side, 1.0) < 0)
+                if not leader_reduction or leader_fill_abs > leader_start_abs + POSITION_EPSILON:
+                    return Intent(
+                        intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
+                        fill=fill, copy_side=fill.side, copy_size=0.0, copy_notional=0.0,
+                        wallet_mode=wallet_mode, copy_mode=copy_mode, decision="UNRESOLVED",
+                        reason="UNRESOLVED: leader fill does not prove a non-reversing reduction",
+                        sleeve_id=sleeve_id, position_id="", position_direction_before=direction_before,
+                        wallet_position_before=before, coin_net_before=self.ledger.coin_net(coin),
+                        reduce_only_intended=False, reduce_only_sent_planned=False, created_at_ms=utc_now_ms(),
+                        notes="lifecycle=EXIT;UNRESOLVED_LEADER_REDUCTION",
+                    )
+                if leader_reduction:
+                    # A leader reduction scales the follower's own sleeve; only a leader-flat fill closes it fully.
+                    fraction = min(1.0, leader_fill_abs / leader_start_abs)
+                    copy_size = abs(before) if leader_start_abs - leader_fill_abs <= POSITION_EPSILON else abs(before) * fraction
+                    copy_size = min(abs(before), round(copy_size, 8))
                 copy_notional = copy_size * fill.price
         if lifecycle != "EXIT" and (fill.raw or {}).get("startPosition") is not None:
             opening_start = _parse_leader_start((fill.raw or {})["startPosition"])
@@ -4341,7 +4338,8 @@ class IntentBuilder:
             reduce_only_intended=reduce_only_intended,
             reduce_only_sent_planned=reduce_only_sent_planned,
             created_at_ms=utc_now_ms(),
-            notes=f"lifecycle={lifecycle}" + (";rebuild_origin=true" if fill.source.upper() in {"WS_SNAPSHOT", "REBUILD", "REPLAY"} else "")
+            notes=f"lifecycle={lifecycle}" + (";CLOSE_SIZE_FALLBACK_INVALID_START_POSITION" if close_size_fallback else "")
+                  + (";rebuild_origin=true" if fill.source.upper() in {"WS_SNAPSHOT", "REBUILD", "REPLAY"} else "")
                   + (f";merged_leader_fills={fill.raw.get('merged_fill_count')}:{','.join(fill.raw.get('merged_fill_ids') or [])}"
                      if (fill.raw or {}).get("merged_fill_ids") else ""),
         )

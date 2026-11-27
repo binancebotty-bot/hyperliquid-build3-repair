@@ -53,45 +53,40 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(full.copy_size, 10.0)
         self.assertTrue(full.reduce_only_intended)
 
-    def test_malformed_start_position_is_unresolved(self):
-        builder = self.setup_builder(10.0)
-        fill = c.LeaderFill("f", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
-                            {"startPosition": "NaN", "dir": "Close Long"})
-        intent = builder.build(fill)
-        self.assertEqual(intent.decision, "UNRESOLVED")
-        self.assertEqual(intent.copy_size, 0.0)
-        self.assertFalse(intent.reduce_only_intended)
+    def test_malformed_exit_start_position_falls_back_to_full_reduce_only_close(self):
+        for start_position in ("not-a-position", "NaN", "inf", 10**400, True, {}, []):
+            with self.subTest(start_position=repr(start_position)):
+                intent = self.intent(self.setup_builder(10.0), start_position, 2.0)
+                self.assertEqual(intent.decision, "EXIT_ALLOWED")
+                self.assertEqual(intent.copy_size, 10.0)
+                self.assertEqual(intent.copy_notional, 1000.0)
+                self.assertTrue(intent.reduce_only_intended)
+                self.assertTrue(intent.send_allowed)
+                self.assertIn("CLOSE_SIZE_FALLBACK_INVALID_START_POSITION", intent.notes)
 
-    def test_malformed_start_position_exit_fill_output_unchanged(self):
-        # Pins cdea30d2 EXIT behaviour: the opening-fill guard must not change reduce/close reason or notes.
-        builder = self.setup_builder(10.0)
-        fill = c.LeaderFill("f", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
-                            {"startPosition": "NaN", "dir": "Close Long"})
-        intent = builder.build(fill)
-        self.assertEqual(intent.reason, "UNRESOLVED: reduction fraction unavailable; startPosition malformed")
-        self.assertEqual(intent.notes, "lifecycle=EXIT;UNRESOLVED_START_POSITION")
-
-    def test_huge_exit_start_position_fails_closed_in_build_and_build_all(self):
+    def test_huge_exit_start_position_falls_back_in_build_and_build_all(self):
         for build_all in (False, True):
             with self.subTest(build_all=build_all):
                 builder = self.setup_builder(10.0)
                 fill = c.LeaderFill("huge-exit", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,
                                     {"startPosition": 10**400, "dir": "Close Long"})
                 intent = (builder.build_all(fill)[0] if build_all else builder.build(fill))
-                self.assertEqual(intent.decision, "UNRESOLVED")
-                self.assertEqual(intent.copy_size, 0.0)
-                self.assertFalse(intent.reduce_only_intended)
+                self.assertEqual(intent.decision, "EXIT_ALLOWED")
+                self.assertEqual(intent.copy_size, 10.0)
+                self.assertTrue(intent.reduce_only_intended)
+                self.assertTrue(intent.send_allowed)
 
-    def test_exit_boolean_start_position_with_partial_fill_fails_closed(self):
+    def test_exit_boolean_start_position_with_partial_fill_closes_full_sleeve(self):
         for build_all in (False, True):
             with self.subTest(build_all=build_all):
                 builder = self.setup_builder(10.0)
                 fill = c.LeaderFill("bool-exit", W, "BTC", "SELL", 100.0, 0.5, c.utc_now_ms(), "TEST", 0,
                                     {"startPosition": True, "dir": "Close Long"})
                 intent = (builder.build_all(fill)[0] if build_all else builder.build(fill))
-                self.assertEqual(intent.decision, "UNRESOLVED")
-                self.assertEqual(intent.copy_size, 0.0)
-                self.assertFalse(intent.reduce_only_intended)
+                self.assertEqual(intent.decision, "EXIT_ALLOWED")
+                self.assertEqual(intent.copy_size, 10.0)
+                self.assertTrue(intent.reduce_only_intended)
+                self.assertTrue(intent.send_allowed)
 
     def test_every_malformed_start_position_shape_opens_fail_closed(self):
         builder = self.setup_builder(0.0)
