@@ -32,3 +32,12 @@
 - Git staging/commit was attempted, but both failed because `.git/index.lock` could not be created (`Permission denied`). No push was attempted.
 - No keys or live exchange calls were used. No upstream 8014/8012 files or `CONTROL_STATE.json` were changed.
 
+
+## Coordinator verification (2026-11-27)
+
+HEAD: 739137a2
+
+Command: `python _archive/hl_stage2/test_core_missed_entry_rule.py` (script-style; pytest collects 0 tests)
+Result: TOTAL=91 FAILED=1 (90 pass).
+FAIL: M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT. Unresolved; the lane must not be reported green.
+
