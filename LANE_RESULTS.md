@@ -9,3 +9,11 @@
 - Verification: `_archive/hl_stage2/test_core_proportional_reduction.py` — 14 tests passed after the fix. Exact runtime probe output is recorded in `LANE_B_G1_RESULTS.md`.
 - Delivery: implementation and result-document changes are committed and pushed to `origin/lane-b/g1-sizing-flip`; use `git rev-parse HEAD` for the final documentation commit SHA. No merge or deployment was performed.
 - Review: independent review is pending; no self-review is represented as an independent verdict.
+
+## Coordinator verification (2026-11-27)
+
+HEAD: 43dd5877
+
+Command: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_core_proportional_reduction.py`
+Result: 14 passed, 14 subtests passed (EXIT boolean startPosition regression included).
+
