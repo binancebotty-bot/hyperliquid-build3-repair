@@ -71,6 +71,26 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertEqual(intent.reason, "UNRESOLVED: reduction fraction unavailable; startPosition malformed")
         self.assertEqual(intent.notes, "lifecycle=EXIT;UNRESOLVED_START_POSITION")
 
+    def test_every_malformed_start_position_shape_opens_fail_closed(self):
+        builder = self.setup_builder(0.0)
+        shapes = ["not-a-position", "", "NaN", "inf", True, False, {}, [], 10**400, object()]
+        for shape in shapes:
+            with self.subTest(start_position=repr(shape)):
+                fill = c.LeaderFill("bad-open", W, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
+                                    {"startPosition": shape, "dir": "Open Long"})
+                intents = builder.build_all(fill)
+                self.assertEqual(len(intents), 1)
+                self.assertEqual(intents[0].decision, "UNRESOLVED")
+                self.assertEqual(intents[0].copy_size, 0.0)
+                self.assertFalse(intents[0].reduce_only_intended)
+
+    def test_missing_start_position_open_is_still_allowed(self):
+        builder = self.setup_builder(0.0)
+        fill = c.LeaderFill("open-no-start", W, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
+                            {"dir": "Open Long"})
+        intent = builder.build_all(fill)[0]
+        self.assertNotEqual(intent.decision, "UNRESOLVED")
+
     def test_malformed_start_position_blocks_an_open_too(self):
         builder = self.setup_builder(0.0)
         fill = c.LeaderFill("bad-open", W, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,

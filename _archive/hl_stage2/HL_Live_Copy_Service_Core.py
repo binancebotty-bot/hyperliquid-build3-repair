@@ -722,6 +722,16 @@ def fnum(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def _parse_leader_start(value: Any) -> float:
+    if isinstance(value, bool):
+        return math.nan
+    try:
+        out = float(value)
+        return out if math.isfinite(out) else math.nan
+    except (OverflowError, TypeError, ValueError):
+        return math.nan
+
+
 def bval(value: Any, default: bool = False) -> bool:
     if value is None or value == "":
         return default
@@ -4197,10 +4207,7 @@ class IntentBuilder:
 
     def build_all(self, fill: LeaderFill) -> List[Intent]:
         raw = fill.raw or {}
-        try:
-            leader_start = float(raw.get("startPosition"))
-        except (TypeError, ValueError):
-            leader_start = math.nan
+        leader_start = _parse_leader_start(raw.get("startPosition"))
         signed_delta = self.ledger.signed_delta(fill.side, fill.size)
         if (not math.isfinite(leader_start) or abs(leader_start) <= POSITION_EPSILON
                 or leader_start * signed_delta >= 0 or abs(signed_delta) <= abs(leader_start) + POSITION_EPSILON):
@@ -4286,10 +4293,7 @@ class IntentBuilder:
                 copy_size = min(abs(before), round(copy_size, 8))
                 copy_notional = copy_size * fill.price
         if lifecycle != "EXIT" and (fill.raw or {}).get("startPosition") is not None:
-            try:
-                opening_start = float((fill.raw or {})["startPosition"])
-            except (TypeError, ValueError):
-                opening_start = math.nan
+            opening_start = _parse_leader_start((fill.raw or {})["startPosition"])
             if not math.isfinite(opening_start):
                 return Intent(
                     intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),
