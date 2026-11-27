@@ -35,3 +35,11 @@ These new tests should fail on the base revision; they were not run here:
 - Read-only tracked-source `git diff --check` with `core.whitespace=cr-at-eol` reported no whitespace issues. This was a source diff check, not a test run.
 - Activity inputs use the existing 5,000-row send and intent windows. Counts are labelled against the latest send-row window; a run longer than those windows can omit older activity.
 - The `.git` directory is read-only in this environment, preventing the requested small commits. No source engine, runtime, deployment, restart, wallet, key, `.env`, `CONTROL_STATE.json`, or network order action was performed.
+
+## Coordinator verification (2026-11-27)
+
+HEAD: 2e3c748c
+
+Command: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_live_copy_ui_run_truth.py`
+Result: 5 passed.
+
