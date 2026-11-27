@@ -57,6 +57,7 @@ FAKE_KEY = "0x" + "1" * 64  # placeholder only; _get_exchange_client is stubbed,
 
 FILLS = max(2, int(os.getenv("HL_BENCH_FILLS", "20")))
 TIME_SCALE = max(0.01, float(os.getenv("HL_BENCH_TIME_SCALE", "1.0")))
+WORKERS = max(1, int(os.getenv("HL_BENCH_WORKERS", "4")))
 READ_S = 0.9 * TIME_SCALE   # 900 ms: every simulated info read
 ORDER_S = 1.0 * TIME_SCALE  # 1000 ms: every fake exchange order call
 DISPATCH_GAP_S = 0.04       # burst spacing
@@ -95,7 +96,7 @@ def main() -> None:
         "HL_LIVE_PREWARM_SDK_CLIENT": "0",
         "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0",
         "HL_LIVE_SNAPSHOT_REFRESH_INTERVAL_SEC": "100000",
-        "HL_LIVE_HOT_SEND_WORKERS": "4",
+        "HL_LIVE_HOT_SEND_WORKERS": str(WORKERS),
     })
     os.environ["HL_LIVE_ENV_FILE"] = "/nonexistent"   # never read a real .env / key
 
@@ -281,6 +282,26 @@ def main() -> None:
     fill_to_send = [int(float(r["fill_to_send_ms"])) for r in send_rows]
     f2s_p50 = percentile(fill_to_send, 0.50)
     f2s_p95 = percentile(fill_to_send, 0.95)
+    # Decompose the measured receive-to-send path at the timestamps already carried into the audit
+    # row. `ack` here means the worker's queue-pickup acknowledgement; exchange response time is
+    # reported separately because it occurs after fill-to-send has ended.
+    stage_spans = {
+        "fill": ("ws_received_ms", "enqueued_ms"),
+        "ack": ("enqueued_ms", "picked_up_ms"),
+        "pickup_to_process": ("picked_up_ms", "process_started_ms"),
+        "prewarm": ("process_started_ms", "prewarm_done_ms"),
+        "send_lock_wait": ("prewarm_done_ms", "lock_acquired_ms"),
+        "intent_build_and_write": ("lock_acquired_ms", "intent_written_ms"),
+        "intent_total": ("picked_up_ms", "intent_written_ms"),
+        "send": ("intent_written_ms", "send_real_started_ms"),
+        "send_setup": ("send_real_started_ms", "exchange_call_started_ms"),
+        "exchange_ack": ("exchange_call_started_ms", "exchange_call_finished_ms"),
+    }
+    stage_durations = {name: [] for name in stage_spans}
+    for row in send_rows:
+        for name, (start, finish) in stage_spans.items():
+            if row.get(start) not in (None, "") and row.get(finish) not in (None, ""):
+                stage_durations[name].append(int(float(row[finish])) - int(float(row[start])))
     offenders = [fid for fid, n in reads_after_intent if n > 0]
 
     print("MEASURE:: burst=%d fills, workers=%d, read=%.0f ms, order=%.0f ms, scale=%.2f"
@@ -290,6 +311,19 @@ def main() -> None:
     print("MEASURE:: fill-to-ack p90 = %s ms (limit 2000)" % a90)
     print("MEASURE:: ws_received-to-send_real p50=%s ms p95=%s ms (target p95 <= 2000; sent fills=%d)"
           % (f2s_p50, f2s_p95, len(fill_to_send)))
+    for stage, values in stage_durations.items():
+        print("STAGE:: %s p50=%s ms p95=%s ms n=%d" %
+              (stage, percentile(values, 0.50), percentile(values, 0.95), len(values)))
+    def _row_stage_ms(row, start, finish):
+        if row.get(start) in (None, "") or row.get(finish) in (None, ""):
+            return None
+        return int(float(row[finish])) - int(float(row[start]))
+    tail_rows = sorted(send_rows, key=lambda r: int(float(r.get("fill_to_send_ms") or 0)), reverse=True)[:3]
+    for row in tail_rows:
+        breakdown = {name: _row_stage_ms(row, start, finish)
+                     for name, (start, finish) in stage_spans.items() if name != "intent_total"}
+        print("STAGE_TAIL:: fill=%s fill_to_send=%s ms %s" %
+              (row.get("leader_fill_id"), row.get("fill_to_send_ms"), breakdown))
     print("MEASURE:: sent fills with an info read between intent and order = %d/%d %s"
           % (len(offenders), len(reads_after_intent), offenders[:5]))
 
