@@ -8,8 +8,29 @@
   }
  },
  "global_controls": {
-  "symbol_blocklist": [
-   "SOL"
-  ]
+  "symbol_allowlist": [
+   "BTC",
+   "ETH",
+   "SOL",
+   "NEAR",
+   "DOGE",
+   "AVAX",
+   "PUMP",
+   "BNB",
+   "ME",
+   "SUI",
+   "INIT",
+   "AAVE",
+   "XMR",
+   "kPEPE",
+   "ARB",
+   "ADA",
+   "OP",
+   "ZRO",
+   "PAXG",
+   "INJ",
+   "TIA"
+  ],
+  "symbol_blocklist": []
  }
 }

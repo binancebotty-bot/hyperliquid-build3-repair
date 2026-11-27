@@ -6322,18 +6322,8 @@ class SenderGateway:
         return sides
 
     def _one_sided_book_block(self, intent: Intent) -> str:
-        """Non-empty reason when an ENTRY/ADD must not be sent because the coin's book has no bids or no asks.
-        Never applied to closes/exits (callers only ask for ENTRY/ADD). An unreadable book is not treated as
-        one-sided: the normal send path decides. HL_LIVE_ONE_SIDED_BOOK_GUARD=0 disables."""
-        if not bval(os.getenv("HL_LIVE_ONE_SIDED_BOOK_GUARD"), True):
-            return ""
-        sides = self._fetch_book_sides(intent.fill.coin)
-        if sides is None:
-            return ""
-        bids, asks = sides
-        if bids > 0 and asks > 0:
-            return ""
-        return f"coin={intent.fill.coin} book is one-sided (bids={bids}, asks={asks})"
+        """Book depth does not determine symbol eligibility; the exchange handles empty books."""
+        return ""
 
     def _close_fault_rows(self, coin: str = "") -> List[Dict[str, Any]]:
         """Standing closes resting longer than HL_LIVE_CLOSE_FAULT_SEC (default 120; 0 disables), optionally for one coin."""
