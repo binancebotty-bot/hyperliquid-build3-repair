@@ -1,0 +1,29 @@
+# Lane Results: per-leader ledger tests
+
+Branch: `lane-ledger/per-leader-tests`  
+Base: `origin/main` (`eff73dfac67c8557d7f7b8482e7872eddf43d1f3`)
+
+## Changes
+
+- Added five checks in `_archive/hl_stage2/test_core_per_leader_ledger.py` for leader sleeve isolation, both directions of zero crossing, merged fill identity, and one `$12` fixed amount per merged intent.
+- Fixed `ManualLedger.apply_copy_fill` so a position that crosses zero starts a new position with the fill price, new intent identity, and new open timestamp; flat positions clear their open metadata.
+- Fixed fixed-mode sizing to apply the configured amount once per intent, including a merged fill.
+
+## Commands and results
+
+- `graphify.cmd query --help` — blocked: the wrapper could not find `python`.
+- `graphify.cmd query "per-leader ledger zero-crossing merged fills"` — blocked: the wrapper could not find `python`.
+- `graphify.cmd explain "ManualLedger.apply_copy_fill"` — blocked: the wrapper could not find `python`. Read `graphify-out/GRAPH_REPORT.md`, `graphify-out/manifest.json`, and the graph JSON for navigation before opening project source.
+- `python _archive/hl_stage2/test_core_per_leader_ledger.py` — blocked: Windows denied execution of the `python` command.
+- `py -3 _archive/hl_stage2/test_core_per_leader_ledger.py` — blocked: `No installed Python found!`
+- Test counts: **0 passed, 0 failed, 5 checks not executed**. The runner failed before importing or executing the test script, so no code-level test result is available.
+- `git -c core.whitespace=cr-at-eol diff --check` — passed with no output.
+- `git add _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/test_core_per_leader_ledger.py LANE_RESULTS.md` — blocked: Git could not create `.git/index.lock` (`Permission denied`). The workspace grants read-only access to `.git`, so the changes could not be staged or committed and `git push -u origin lane-ledger/per-leader-tests` could not be run.
+
+## Root causes and blockers
+
+- On a sign crossing, `apply_copy_fill` kept the old average entry price and position identifiers for the newly opened opposite position.
+- Fixed-mode `_copy_notional` multiplied `$12` by `merged_fill_count`, making one merged intent exceed its configured fixed amount.
+- Blocker: this environment has no runnable Python installation, so the focused regression test and broader Python suite could not execute.
+- Blocker: the installed Graphify wrapper also requires the unavailable `python` command. The checked-in graph artifacts were used to navigate before source inspection.
+- Blocker: `.git` is read-only in this workspace. Git could not stage the changes, preventing the required commit and push.

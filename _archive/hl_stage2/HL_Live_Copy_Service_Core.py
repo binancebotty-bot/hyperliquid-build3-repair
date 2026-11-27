@@ -2855,9 +2855,9 @@ def _fill_dir(fill: "LeaderFill") -> str:
 
 def mergeable_fills(a: "LeaderFill", b: "LeaderFill", proportional: bool) -> bool:
     """Two consecutive fills of one leader in one coin copy as ONE order when they are the same side and the same
-    direction ("Open Long", "Close Short", ...). The amount is the same either way: proportional sizes the summed
-    fill, fixed sizing copies the fixed amount once per merged fill (run 5: one $12 exchange order per leader fill
-    offered ~6 orders a second, more than the engine can send)."""
+    direction ("Open Long", "Close Short", ...). Proportional sizing uses the summed fill; fixed sizing uses one
+    fixed amount for the merged intent (run 5: one $12 exchange order per fill offered ~6 orders a second, more
+    than the engine can send)."""
     if (a.leader_wallet != b.leader_wallet or canonical_coin_key(a.coin) != canonical_coin_key(b.coin)
             or a.side != b.side or _fill_dir(a) != _fill_dir(b)):
         return False
@@ -3571,15 +3571,27 @@ class ManualLedger:
         if abs(after) <= POSITION_EPSILON:
             after = 0.0
         old_avg = fnum(sleeve.get("avg_entry_px"), 0.0)
+        crossed_through_zero = before * after < 0
         # Avg price update: only recompute when adding to same direction or opening from flat.
         if before == 0.0 or before * delta > 0:
             new_abs = abs(after)
             avg = ((old_avg * before_abs) + (price * abs(delta))) / new_abs if new_abs > POSITION_EPSILON else 0.0
+        elif crossed_through_zero:
+            avg = price
         else:
             avg = old_avg if abs(after) > POSITION_EPSILON else 0.0
         direction = self.direction_from_size(after)
-        opened_by = sleeve.get("opened_by_intent_id") or (intent.intent_id if direction != "FLAT" else "")
-        position_id = sleeve.get("position_id") or (self.position_id(wallet, coin, direction, opened_by) if direction != "FLAT" else "")
+        if direction == "FLAT":
+            opened_by = position_id = ""
+            opened_at = 0
+        elif crossed_through_zero:
+            opened_by = intent.intent_id
+            position_id = self.position_id(wallet, coin, direction, opened_by)
+            opened_at = intent.fill.timestamp_ms
+        else:
+            opened_by = sleeve.get("opened_by_intent_id") or intent.intent_id
+            position_id = sleeve.get("position_id") or self.position_id(wallet, coin, direction, opened_by)
+            opened_at = sleeve.get("opened_at_ms") or intent.fill.timestamp_ms
         sleeve.update({
             "sleeve_id": self.sleeve_id(wallet, coin),
             "position_id": position_id if direction != "FLAT" else "",
@@ -3588,8 +3600,8 @@ class ManualLedger:
             "direction": direction,
             "signed_size": after,
             "avg_entry_px": avg,
-            "opened_by_intent_id": opened_by if direction != "FLAT" else "",
-            "opened_at_ms": sleeve.get("opened_at_ms") or (intent.fill.timestamp_ms if direction != "FLAT" else 0),
+            "opened_by_intent_id": opened_by,
+            "opened_at_ms": opened_at,
             "last_copy_fill_id": fill_id,
             "last_updated_ms": utc_now_ms(),
         })
@@ -4134,8 +4146,8 @@ class IntentBuilder:
 
     def _copy_notional(self, wallet: str, fill: LeaderFill) -> float:
         mode = self.cfg.copy_mode(wallet)
-        if mode == "fixed":  # once per leader fill, merged fills included
-            return self.cfg.fixed_notional(wallet) * max(1, int(fnum((fill.raw or {}).get("merged_fill_count"), 1)))
+        if mode == "fixed":  # one fixed amount per order intent, including merged fills
+            return self.cfg.fixed_notional(wallet)
         # Proportional: scale by the leader's REAL account value on the leader network. The old
         # leader_equity_base setting (UI default 10,000) is never used; no equity means no size.
         wc = self.cfg.wallet_cfg(wallet)
