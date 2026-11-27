@@ -27,3 +27,12 @@ Both tests were added before the implementation edits. Per the instruction not t
 - Tests not run: Python and interpreter execution were prohibited by the task.
 - `git diff --check` passed. The installed Git executable reported the four intended files as the only changes.
 - Local commit not created: Git could not create `.git/index.lock` (`Permission denied`) while staging. No push was attempted.
+
+## Coordinator verification (2026-11-27)
+
+HEAD: 96a1894c
+
+Command: `python -m pytest -q -p no:cacheprovider _archive/hl_stage2/test_g2_blocklist.py _archive/hl_stage2/test_core_one_sided_book_and_close_fault.py`
+Result: 17 passed, 24 subtests passed.
+Note for review: this lane removes the one-sided/empty book entry guard and replaces the blocklist with a 21-symbol allowlist. That is a trading-behaviour change and needs independent review before any mainnet consideration.
+
