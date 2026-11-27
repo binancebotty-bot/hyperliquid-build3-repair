@@ -1044,6 +1044,27 @@ def _load_live_ws_health() -> Dict[str, Any]:
     data = load_json(LIVE_COPY_WS_HEALTH_FILE, None)
     if not isinstance(data, dict):
         return {"enabled": False, "overall": "OFFLINE", "wallets": {}}
+    try:
+        snapshot_age_ms = max(0, int(time.time() * 1000) - int(LIVE_COPY_WS_HEALTH_FILE.stat().st_mtime * 1000))
+    except OSError:
+        snapshot_age_ms = 0
+    data = {**data, "snapshot_age_ms": snapshot_age_ms}
+    if snapshot_age_ms > ENGINE_STALE_SEC * 1000:
+        data["overall"] = "STALE"
+        ws_summary = data.get("ws_summary")
+        if isinstance(ws_summary, dict):
+            data["ws_summary"] = {**ws_summary, "ws_status": "STALE"}
+        wallets = data.get("wallets")
+        if isinstance(wallets, dict):
+            data["wallets"] = {
+                wallet: {
+                    **health,
+                    "transport_stale_ms": max(inum(health.get("transport_stale_ms") or health.get("stale_ms")), snapshot_age_ms),
+                    "data_status": "STALE",
+                }
+                if isinstance(health, dict) else health
+                for wallet, health in wallets.items()
+            }
     if "ws_summary" in data and "overall" not in data:
         ws_summary = data.get("ws_summary") or {}
         ws_status = str(ws_summary.get("ws_status", "OFFLINE"))
@@ -1210,6 +1231,9 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
         level, text = "red", "Action needed: the engine's records and the exchange disagree — check the Reconciliation tab"
     elif inum(counts.get("audit_proof_missing")) > 0:
         level, text = "red", "Action needed: the engine's audit files are missing — check the state folder"
+    elif inum(counts.get("hard_copy_active_red") or counts.get("active_red_count")
+              or hard_counts.get("ACTIVE_RED") or hard_counts.get("active_red")) > 0:
+        level, text = "red", "Action needed: unresolved copy outcomes need review in the Reconciliation tab"
     elif st.get("entry_sends_blocked_reason"):
         level, text = "red", "Stopped: new entries paused because " + _plain_block_reason(str(st.get("entry_sends_blocked_reason"))) + " (exits still run)"
     elif integ in {"RED", "AMBER"}:
@@ -1280,6 +1304,111 @@ def _build_live_top_status(
         "last_fill": last_fill,
         "last_reject": last_reject,
         "last_latency_warning": last_latency,
+    }
+
+
+def _build_live_activity_summary(
+    send_attempts: List[Dict[str, Any]],
+    order_intents: List[Dict[str, Any]],
+    started_at_ms: int,
+) -> Dict[str, Any]:
+    """Summarize activity after this engine start; position truth stays in the durable ledger."""
+    latest: Dict[str, Dict[str, Any]] = {}
+    for index, row in enumerate(send_attempts):
+        attempt_id = str(row.get("attempt_id") or f"row:{index}")
+        latest[attempt_id] = row
+
+    current = [
+        row for row in latest.values()
+        if (inum(row.get("created_at_ms")) or _iso_to_ms(row.get("created_at"))) >= started_at_ms
+        and (inum(row.get("created_at_ms")) or _iso_to_ms(row.get("created_at"))) > 0
+    ] if started_at_ms > 0 else []
+    by_leader: Dict[str, Dict[str, Any]] = {}
+    skip_reasons: Dict[str, int] = {}
+    decision_counts: Dict[str, int] = {}
+    decision_reason_counts: Dict[str, int] = {}
+    latencies: List[int] = []
+    trade_count = skip_count = reject_count = block_count = exit_count = preview_count = 0
+
+    def leader_counts(row: Dict[str, Any]) -> Dict[str, Any]:
+        wallet = str(row.get("leader_wallet") or row.get("auto_send_wallet") or row.get("wallet") or "unknown").lower()
+        return by_leader.setdefault(wallet, {
+            "trade_count": 0, "skip_count": 0, "exit_count": 0,
+            "rejected_count": 0, "blocked_count": 0, "preview_count": 0, "skip_reasons": {},
+        })
+
+    seen_intents = {str(row.get("intent_id") or "") for row in current if row.get("intent_id")}
+    for row in current:
+        status = str(row.get("status") or "").upper()
+        counts = leader_counts(row)
+        if status == "ORDER_FILLED":
+            trade_count += 1
+            counts["trade_count"] += 1
+            if str(row.get("reduce_only") or "").lower() in {"1", "true", "yes"} or abs(fnum(row.get("position_after"))) < abs(fnum(row.get("position_before"))):
+                exit_count += 1
+                counts["exit_count"] += 1
+        elif status == "CONFIRM_REQUIRED":
+            preview_count += 1
+            counts["preview_count"] += 1
+        elif status == "ORDER_REJECTED":
+            reject_count += 1
+            counts["rejected_count"] += 1
+        elif status and status not in {"PENDING_SEND", "PENDING", "UNKNOWN"}:
+            skip_count += 1
+            counts["skip_count"] += 1
+            block_count += 1
+            counts["blocked_count"] += 1
+            reason = str(row.get("reject_category") or row.get("reason") or row.get("terminal_state") or status)
+            skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
+            counts["skip_reasons"][reason] = counts["skip_reasons"].get(reason, 0) + 1
+        latency = inum(row.get("send_total_ms"))
+        if latency >= 0 and row.get("send_total_ms") not in (None, ""):
+            latencies.append(latency)
+
+    latest_intents: Dict[str, Dict[str, Any]] = {}
+    for index, row in enumerate(order_intents):
+        intent_id = str(row.get("intent_id") or f"row:{index}")
+        latest_intents[intent_id] = row
+    for row in latest_intents.values():
+        decision = str(row.get("execution_decision") or "").upper()
+        created_ms = inum(row.get("created_at_ms")) or _iso_to_ms(row.get("created_at"))
+        intent_id = str(row.get("intent_id") or "")
+        if created_ms < started_at_ms or created_ms <= 0:
+            continue
+        decision_counts[decision] = decision_counts.get(decision, 0) + 1
+        decision_reason = str(row.get("decision_reason") or row.get("reason") or decision or "UNKNOWN")
+        decision_reason_counts[decision_reason] = decision_reason_counts.get(decision_reason, 0) + 1
+        if decision not in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"} or (intent_id and intent_id in seen_intents):
+            continue
+        skip_count += 1
+        counts = leader_counts(row)
+        counts["skip_count"] += 1
+        reason = decision_reason
+        skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
+        counts["skip_reasons"][reason] = counts["skip_reasons"].get(reason, 0) + 1
+
+    latencies.sort()
+    def percentile(pct: int) -> Optional[int]:
+        if not latencies:
+            return None
+        return latencies[max(0, (len(latencies) * pct + 99) // 100 - 1)]
+
+    return {
+        "started_at_ms": started_at_ms,
+        "trade_count": trade_count,
+        "skip_count": skip_count,
+        "skip_reasons": skip_reasons,
+        "decision_counts": decision_counts,
+        "decision_reason_counts": decision_reason_counts,
+        "send_latency_sample_count": len(latencies),
+        "send_attempt_window_limit": len(send_attempts),
+        "send_latency_p50_ms": percentile(50),
+        "send_latency_p95_ms": percentile(95),
+        "by_leader": by_leader,
+        "rejected_count": reject_count,
+        "blocked_count": block_count,
+        "exit_count": exit_count,
+        "preview_count": preview_count,
     }
 
 
@@ -1417,10 +1546,12 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         exchange_snapshot["realized_pnl_diagnostic"] = ""
     account_reconciliation = _build_account_reconciliation(exchange_snapshot, live_leader_performance)
     _live_fills_data = _load_recent_live_fills(500)
-    live_wallet_rows = _build_live_wallet_rows(live_config, audit_rows, metric_send_attempts, manual_positions, manual_live_summary, ws_health, live_leader_performance, live_fills=_live_fills_data)
     real_copy_positions = _build_real_copy_positions(manual_positions, exchange_snapshot)
     execution_quality_rows = _build_execution_quality_rows(metric_send_attempts, audit_rows, live_fills=_live_fills_data)
     execution_quality_summary = _build_execution_quality_summary(execution_quality_rows)
+    run_start_ms = inum(clean_core_status.get("service_state", {}).get("started_at_ms"))
+    live_activity = _build_live_activity_summary(metric_send_attempts, audit_rows, run_start_ms)
+    live_wallet_rows = _build_live_wallet_rows(live_config, audit_rows, metric_send_attempts, manual_positions, manual_live_summary, ws_health, live_leader_performance, live_fills=_live_fills_data, live_activity=live_activity)
     manual_reconciliation_rows = _build_manual_reconciliation_rows(manual_positions, exchange_snapshot, recent_send_attempts)
     recent_send_warning_groups = _build_recent_send_warning_groups(recent_send_attempts)
     live_top_status = _build_live_top_status(live_config, ws_health, clean_core_status.get("service_state", {}), integrity_status, recent_send_attempts, _live_fills_data, reconciliation_rows)
@@ -1535,6 +1666,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "send_block_reason": live_top_status.get("send_block_reason"),
         "live_integrity_status": integrity_status,
         "live_top_status": live_top_status,
+        "live_activity": live_activity,
     }
 
 
@@ -3013,10 +3145,13 @@ def _build_live_wallet_rows(
     ws_health: Dict[str, Any],
     live_leader_performance: Optional[Dict[str, Any]] = None,
     live_fills: Optional[List[Dict[str, Any]]] = None,
+    live_activity: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     wallets = live_config.get("wallets", {})
     if not isinstance(wallets, dict):
         wallets = {}
+    else:
+        wallets = dict(wallets)
     health_wallets = ws_health.get("wallets", {}) if isinstance(ws_health.get("wallets"), dict) else {}
     exposure_by_coin = manual_summary.get("exposure_by_coin", {}) if isinstance(manual_summary.get("exposure_by_coin"), dict) else {}
     # Detect shared HOT10 WS health from ws_summary (per-wallet rows absent under shared socket)
@@ -3036,6 +3171,9 @@ def _build_live_wallet_rows(
     # Pre-build most recent live fill per leader wallet (for last_fill field)
     if live_fills is None:
         live_fills = _load_recent_live_fills(500)
+    activity_by_leader = live_activity.get("by_leader", {}) if isinstance(live_activity, dict) else {}
+    for wallet in activity_by_leader:
+        wallets.setdefault(wallet, {"enabled": False, "mode": "OFF"})
     _last_lf_by_wallet: Dict[str, Dict[str, Any]] = {}
     for _lf in (live_fills or []):
         _lfw = str(_lf.get("leader_wallet") or "").lower()
@@ -3044,18 +3182,12 @@ def _build_live_wallet_rows(
             if _ex_lf is None or str(_lf.get("created_at", "")) > str(_ex_lf.get("created_at", "")):
                 _last_lf_by_wallet[_lfw] = _lf
     # Pre-count ORDER_FILLED send_attempts per wallet
-    _filled_cnt_by_wallet: Dict[str, int] = {}
-    _reject_cnt_by_wallet: Dict[str, int] = {}
     _last_send_by_wallet: Dict[str, Dict[str, Any]] = {}
     _last_terminal_by_wallet: Dict[str, str] = {}
     for _sa in recent_send_attempts:
         _saw = str(_sa.get("leader_wallet") or _sa.get("auto_send_wallet") or "").lower()
-        if _saw and str(_sa.get("status", "")) == "ORDER_FILLED":
-            _filled_cnt_by_wallet[_saw] = _filled_cnt_by_wallet.get(_saw, 0) + 1
         if _saw:
             _last_send_by_wallet[_saw] = _sa
-            if str(_sa.get("status", "")).upper() == "ORDER_REJECTED":
-                _reject_cnt_by_wallet[_saw] = _reject_cnt_by_wallet.get(_saw, 0) + 1
             if _sa.get("terminal_state"):
                 _last_terminal_by_wallet[_saw] = str(_sa.get("terminal_state"))
     rows: List[Dict[str, Any]] = []
@@ -3070,6 +3202,7 @@ def _build_live_wallet_rows(
         service_eligible = bool(normal.get("service_eligible"))
         service_reason = str(normal.get("service_eligibility_reason", "MODE_OFF"))
         perf = (live_leader_performance or {}).get(w, {})
+        run_activity = activity_by_leader.get(w, {}) if isinstance(activity_by_leader, dict) else {}
 
         # Per-wallet manual ledger: open sleeves + exposure
         _w_sleeves = _by_wallet_pos.get(wallet) or _by_wallet_pos.get(w) or {}
@@ -3081,7 +3214,6 @@ def _build_live_wallet_rows(
                 continue
             _w_open_coins.append(str(_coin_k).upper())
             _w_exposure += abs(_sz_v) * float((_pos_v or {}).get("avg_entry_px", 0) or 0)
-        _w_filled_count = _filled_cnt_by_wallet.get(w, 0)
         _w_last_fill: Dict[str, Any] = _last_lf_by_wallet.get(w, {})
 
         # WS intent activity
@@ -3168,17 +3300,18 @@ def _build_live_wallet_rows(
             "last_intent_coin": last_intent_coin,
             "last_intent_side": last_intent_side,
             "last_intent_coin_side": f"{last_intent_coin} {last_intent_side}".strip(),
-            "filled_count": _w_filled_count if _w_filled_count else perf.get("filled_count", 0),
-            "rejected_count": _reject_cnt_by_wallet.get(w, perf.get("exchange_rejected_count", 0)),
+            "filled_count": inum(run_activity.get("trade_count")),
+            "rejected_count": inum(run_activity.get("rejected_count")),
             "last_send": _last_send_by_wallet.get(w, {}),
             "last_terminal_state": _last_terminal_by_wallet.get(w, ""),
             "ws_subscription": "SUBSCRIBED" if (in_health_file or (_shared_ws_ok and mode in {"LIVE", "CLO"})) else "NOT_SUBSCRIBED",
-            "exits_count": perf.get("exits_count", 0),
-            "exchange_rejected_count": perf.get("exchange_rejected_count", 0),
-            "local_blocked_count": perf.get("local_blocked_count", 0),
-            "recent_reject_count": perf.get("recent_reject_count", 0),
-            "recent_block_count": perf.get("recent_block_count", 0),
-            "preview_count": perf.get("preview_count", 0),
+            "exits_count": inum(run_activity.get("exit_count")),
+            "exchange_rejected_count": inum(run_activity.get("rejected_count")),
+            "local_blocked_count": inum(run_activity.get("blocked_count")),
+            "recent_reject_count": inum(run_activity.get("rejected_count")),
+            "recent_block_count": inum(run_activity.get("skip_count")),
+            "preview_count": inum(run_activity.get("preview_count")),
+            "run_skip_count": inum(run_activity.get("skip_count")),
             "preview_label": perf.get("preview_label", "Queued previews / would-send records"),
             "avg_fill_bps": perf.get("avg_fill_vs_limit_bps"),
             "worst_fill_bps": perf.get("worst_fill_vs_limit_bps"),
@@ -7349,6 +7482,9 @@ function renderTopStatus(){
  const pollOk=poll.indexOf('POLLED')>=0||poll.indexOf('BASELINED')>=0||poll.indexOf('MATCH')>=0;
  const pollTxt=pollOk?'Reading (normal)':(poll&&poll!=='DOWN'?poll.replace(/_/g,' ').toLowerCase():'—');
  const lastSend=st.last_send||{}, lastFill=st.last_fill||{}, lastReject=st.last_reject||{}, lastLat=st.last_latency_warning||{};
+ const activity=lcAudit.live_activity||{};
+ const skipReasons=Object.entries(activity.skip_reasons||{}).map(([reason,n])=>`${reason}: ${n}`).join(', ');
+ const p50=activity.send_latency_p50_ms, p95=activity.send_latency_p95_ms;
  const cards=[
   ...(lcAudit.engine_alert?[statusCard('ENGINE ALERT',String(lcAudit.engine_alert).split(':')[0],'lc-red',lcAudit.engine_alert)]:[]),
   statusCard('Health',hl.text||'—',levelCls(hl.level),'details under Technical detail'),
@@ -7359,6 +7495,9 @@ function renderTopStatus(){
   statusCard('Last fill',lastFill.created_at?`${lastFill.coin||''} ${lastFill.side||''} ${lastFill.fill_size||''}`:'—','',lastFill.created_at||''),
   statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${isRoutineReject(lastReject)?'market not available':(lastReject.reject_category||lastReject.status||'')}`:'—',isRoutineReject(lastReject)?'lc-grey':terminalCls(lastReject.terminal_state||lastReject.status),lastReject.reject_category||lastReject.terminal_state||''),
   statusCard('Last latency warning',lastLat.created_at?String(lastLat.notes||lastLat.status||'SEND_LATENCY_WARN'):'—',lastLat.created_at?'lc-amber':'',lastLat.created_at||''),
+  statusCard('Trades this run',activity.trade_count||0,'',`since engine start · latest ${activity.send_attempt_window_limit||0} send rows`),
+  statusCard('Skips this run',activity.skip_count||0,activity.skip_count?'lc-amber':'',skipReasons||'no skipped intents or blocked sends'),
+  statusCard('Send latency p50 / p95',p50!=null&&p95!=null?`${p50} / ${p95} ms`:'n/a', '', `${activity.send_latency_sample_count||0} samples · latest ${activity.send_attempt_window_limit||0} send rows`),
  ];
  const box=root.querySelector('#lcTruthStatus'); if(box) box.innerHTML=cards.join('');
 }
@@ -7416,7 +7555,8 @@ function renderWallets(){
  const wrows=lcAudit.live_wallet_rows||[];
  const rows=wrows.slice().sort((a,b)=>{const r=x=>(x.mode_label==='Live'?0:x.mode_label==='Close-only'?1:2);return r(a)-r(b)||String(a.wallet).localeCompare(String(b.wallet));}).map(d=>{
   const mode=String(d.mode||'OFF').toUpperCase();
-  const hasHistory=(d.filled_count>0||d.exchange_rejected_count>0||d.local_blocked_count>0);
+  const perf=(lcAudit.live_leader_performance||{})[String(d.wallet||'').toLowerCase()]||{};
+  const hasHistory=(d.filled_count>0||d.exchange_rejected_count>0||d.local_blocked_count>0||perf.filled_count>0||perf.exchange_rejected_count>0||perf.local_blocked_count>0);
   const ml=d.mode_label||(mode==='LIVE'?'Live':mode==='CLO'?'Close-only':'Off');
   const typeLabel=`<span class="lc-pill ${ml==='Live'?'lc-green':'lc-grey'}">${h(ml)}</span>`;
   const histLabel=(hasHistory&&ml==='Off')?'<span class="lc-tag">has history</span>':'';
@@ -7434,7 +7574,7 @@ function renderWallets(){
   const bpsCls=d.avg_fill_bps!=null&&d.avg_fill_bps>10?'lc-neg':d.avg_fill_bps!=null&&d.avg_fill_bps<=0?'lc-pos':'';
   const wbpsCls=d.worst_fill_bps!=null&&d.worst_fill_bps>15?'lc-neg':'';
   const diffHtml=`<div class="lc-cell-stack"><span class="${signCls(d.total_diff_usd)}">Total: ${moneyFmt(d.total_diff_usd)||'n/a'}</span><span>Avg: ${moneyFmt(d.avg_diff_usd)||'n/a'}</span><span class="${bpsCls}">Avg bps: ${d.avg_diff_bps!=null?h(d.avg_diff_bps):'n/a'}</span><span class="${wbpsCls}">Worst bps: ${d.worst_diff_bps!=null?h(d.worst_diff_bps):'n/a'}</span></div>`;
-  const execHtml=`<div class="lc-cell-stack"><span>${h(d.filled_count)} filled / ${h(d.exits_count||0)} exits</span><span class="${(d.recent_reject_count||0)>0?'lc-amber':'lc-muted'}">${h(d.recent_reject_count||0)} recent rejects</span><span class="${(d.recent_block_count||0)>0?'lc-amber':'lc-muted'}">${h(d.recent_block_count||0)} recent blocks</span></div>`;
+  const execHtml=`<div class="lc-cell-stack"><span>${h(d.filled_count)} filled / ${h(d.exits_count||0)} exits this run</span><span class="${(d.run_skip_count||0)>0?'lc-amber':'lc-muted'}">${h(d.run_skip_count||0)} skips this run</span></div>`;
   const riskHtml=`<div class="lc-cell-stack"><span>Exposure: <b>${expStr}</b></span><span>Open pos: <b>${h(d.open_position_count||0)}</b></span><span>DD: ${moneyOrDash(d.drawdown,d.drawdown_reason)}</span><span>MaxDD: ${moneyOrDash(d.max_drawdown,d.drawdown_reason)}</span></div>`;
   const lf=d.last_fill||{};
   const lfStr=lf.coin?`${h(lf.coin)} ${h(lf.side)} ${h(lf.size)} @ ${h(lf.avg_px)}<br><span class="lc-muted" style="font-size:10px">${tiny(lf.time||'',22)}</span>`:'<span class="lc-muted">none yet</span>';
@@ -7455,6 +7595,8 @@ function renderWallets(){
 function walletDetailHtml(wallet){
  const w=String(wallet).toLowerCase();
  const perf=(lcAudit.live_leader_performance||{})[w]||{};
+ const activity=((lcAudit.live_activity||{}).by_leader||{})[w]||{};
+ const skipReasons=Object.entries(activity.skip_reasons||{}).map(([reason,n])=>`${reason}: ${n}`).join(', ');
  const allAttempts=(lcAudit.recent_send_attempts||[]).filter(a=>(a.leader_wallet||a.auto_send_wallet||'').toLowerCase()===w);
  const fills=allAttempts.filter(a=>a.status==='ORDER_FILLED').slice().reverse();
  const exchRej=allAttempts.filter(a=>a.status==='ORDER_REJECTED').slice().reverse();
@@ -7480,7 +7622,7 @@ function walletDetailHtml(wallet){
  out+=`<span>PnL status: ${pnlLabel(perf.pnl_status||'N/A',perf.pnl_status_label)}</span>`;
  out+=`<span>Attribution: <b>${h(perf.attribution_quality||'N/A')}</b></span>`;
  out+=`<span class="lc-muted" title="the exchange reports closed P&L for the whole netted account, so this is reference only">Exchange closedPnl on matched orders: <b>${moneyOrDash(perf.confirmed_realized_pnl,'no matched exchange fills')}</b></span>`;
- out+=`<span>Cumulative rejects: <b>${h(perf.exchange_rejected_count||0)}</b>; cumulative local blocks: <b>${h(perf.local_blocked_count||0)}</b>; queued previews / would-send records: <b>${h(perf.preview_count||0)}</b></span>`;
+ out+=`<span>This engine run: <b>${h(activity.trade_count||0)} trades</b>; <b>${h(activity.skip_count||0)} skips</b>; <b>${h(activity.exit_count||0)} exits</b>; <b>${h(activity.preview_count||0)} previews</b>${skipReasons?'; skip reasons: '+h(skipReasons):''}</span>`;
  if(perf.data_quality_notes) out+=`<span class="lc-muted" style="font-size:10px">${h(perf.data_quality_notes)}</span>`;
  out+='</div></div>';
 
@@ -7597,11 +7739,9 @@ function renderPositions(){
 function renderExecQuality(){
  const rows=lcAudit.execution_quality_rows||[];
  const qs=lcAudit.execution_quality_summary||{};
+ const activity=lcAudit.live_activity||{};
  const filled=rows.filter(r=>r.status==='ORDER_FILLED');
  const nz=(k,fallback)=>(qs[k]!=null?qs[k]:fallback);
- const exchRej=rows.filter(r=>r.status==='ORDER_REJECTED');
- const localBlk=rows.filter(r=>r.status&&r.status!=='ORDER_FILLED'&&r.status!=='ORDER_REJECTED'&&r.status!=='CONFIRM_REQUIRED');
- const previews=rows.filter(r=>r.status==='CONFIRM_REQUIRED');
  const activeRed=rows.filter(r=>r.is_active&&r.truth_severity==='RED');
  const activeAmber=rows.filter(r=>r.is_active&&r.truth_severity==='AMBER');
  const historical=rows.filter(r=>String(r.truth_state||'').startsWith('HISTORICAL'));
@@ -7615,10 +7755,10 @@ function renderExecQuality(){
   ['Active amber',nz('active_amber_count',activeAmber.length),nz('active_amber_count',activeAmber.length)?'lc-amber':'lc-green'],
   ['Adopted / reconciled',nz('adopted_reconciled_count',adopted.length),'lc-green'],
   ['Historical separated',nz('historical_count',historical.length),'lc-blue'],
-  ['Filled',nz('filled_count',filled.length),'lc-green'],
-  ['Exchange rejected',nz('exchange_rejected_count',exchRej.length),nz('exchange_rejected_count',exchRej.length)?'lc-amber':''],
-  ['Local blocked',nz('local_blocked_count',localBlk.length),nz('local_blocked_count',localBlk.length)?'lc-amber':''],
-  ['Queued previews / would-send records',nz('preview_count',previews.length),''],
+  ['Filled this run',activity.trade_count||0,'lc-green'],
+  ['Rejected this run',activity.rejected_count||0,(activity.rejected_count||0)?'lc-amber':''],
+  ['Blocked this run',activity.blocked_count||0,(activity.blocked_count||0)?'lc-amber':''],
+  ['Queued previews this run',activity.preview_count||0,''],
   ['Avg fill-vs-limit',avgBps!=null?avgBps+'bps':'n/a',avgBps!=null&&avgBps>5?'lc-amber':''],
   ['Worst fill-vs-limit',worstBps!=null?worstBps+'bps':'n/a',worstBps!=null&&worstBps>10?'lc-amber':''],
   ['Last fill',lastFill?(lastFill.coin+' '+lastFill.side):'none',''],
@@ -7636,14 +7776,14 @@ function renderExecQuality(){
 }
 function renderAudit(){
  const rows=(lcAudit.last_rows||[]).slice(-10).reverse();
- const reason=lcAudit.reason_counts||{}, decisionCounts=lcAudit.execution_decision_counts||{}, decisionReasonCounts=lcAudit.decision_reason_counts||{}, manualCounts=lcAudit.manual_reconcile_required_counts||{}, errorCounts=lcAudit.market_data_error_counts||{};
+ const activity=lcAudit.live_activity||{}, decisionCounts=activity.decision_counts||{}, decisionReasonCounts=activity.decision_reason_counts||{};
  root.querySelector('#lcSourceChips').innerHTML=[
   ['WS fast path',count(decisionCounts,'WOULD_PLACE_IOC_LIMIT'),'lc-green'],
   ['Exits/reduce',count(decisionCounts,'WOULD_REDUCE_OR_EXIT'),'lc-green'],
   ['Late copy',count(decisionCounts,'WOULD_LATE_COPY'),''],
   ['Do not copy',count(decisionCounts,'DO_NOT_MARKET_COPY'),'lc-grey'],
-  ['Manual review',count(decisionCounts,'MANUAL_REVIEW')+count(manualCounts,'True')+count(manualCounts,'true'),'lc-amber'],
-  ['Quote unavail',count(errorCounts,'EXECUTABLE_QUOTE_UNAVAILABLE')+count(decisionReasonCounts,'RECOVERY_QUOTE_UNAVAILABLE'),'lc-amber'],
+  ['Manual review',count(decisionCounts,'MANUAL_REVIEW'),'lc-amber'],
+  ['Quote unavail',count(decisionReasonCounts,'EXECUTABLE_QUOTE_UNAVAILABLE')+count(decisionReasonCounts,'RECOVERY_QUOTE_UNAVAILABLE'),'lc-amber'],
   ['Recent order warnings',lcAudit.recent_send_warning_group_count||0,(lcAudit.recent_send_warning_group_count||0)>0?'lc-amber':''],
  ].map(([k,v,cls])=>`<span class="lc-pill ${cls}">${h(k)}: <b>${h(v)}</b></span>`).join('');
  const sendByIntent={};for(const a of(lcAudit.recent_send_attempts||[])){const iid=String(a.intent_id||'');if(iid)sendByIntent[iid]=a;}
