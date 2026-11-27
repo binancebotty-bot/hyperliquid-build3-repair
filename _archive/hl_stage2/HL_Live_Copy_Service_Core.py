@@ -10756,7 +10756,10 @@ class LiveCopyCore:
                 return False, "DEDUPED", None
             self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
-                intent = self.intent_builder.build(fill)
+                intents = self.intent_builder.build_all(fill)
+            intent = intents[-1]
+            for built_intent in intents:
+                self.intents_by_id[built_intent.intent_id] = built_intent
             if not converge and self._defer_unreadable_truth(fill, intent, merged_ids):
                 return False, "REPLAY_DEFERRED_TRUTH_UNREADABLE", intent
             self.intents_by_id[intent.intent_id] = intent
@@ -10768,59 +10771,60 @@ class LiveCopyCore:
             if summary is not None:
                 summary.leader_intents_written += 1
             is_pre_cutover = self.dedupe.live_start_ms > 0 and fill.timestamp_ms < self.dedupe.live_start_ms
-        # The audit row is written AFTER the send lock is released (and still before any order can be sent): the
-        # CSV append waits on the shared file lock, which a big audit read can hold for seconds, and held inside the
-        # send lock that wait stopped every other worker from building its intent (replay throughput, run 6).
-        with prof("intent_append"):
-            self.audit.append_order_intent(intent)
-        # the intent is durably on record: only now is the leader fill id persisted. A crash before this point replays
-        # the fill on restart (it was accepted in memory only); after it the fill is owned by its intent/terminal rows.
-        self.dedupe.confirm_leader(fill.leader_fill_id)
-        stamp_fill(fill, "intent_written_ms")
-        for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
-            try:
+        # Persist and send every component in build order: flip closes precede replacement entries.
+        result = (False, "NO_INTENTS", None)
+        for intent in intents:
+            self.intents_by_id[intent.intent_id] = intent
+            with prof("intent_append"):
+                self.audit.append_order_intent(intent)
+            self.dedupe.confirm_leader(fill.leader_fill_id)
+            stamp_fill(fill, "intent_written_ms")
+            for _mid in merged_ids:
+                try:
+                    self.audit.append_reconciliation(
+                        "FILL_MERGED", "LEADER_FILL_MERGED_INTO_ORDER", leader_wallet=fill.leader_wallet, leader_fill_id=_mid,
+                        intent_id=intent.intent_id, coin=fill.coin, action="COPIED_WITH_MERGED_ORDER", engine_can_send="False",
+                        notes=f"merged with leader fill {fill.leader_fill_id} into one copy order (intent {intent.intent_id})")
+                except Exception as exc:
+                    log_error("merged_fill_row", exc)
+            if is_pre_cutover:
                 self.audit.append_reconciliation(
-                    "FILL_MERGED", "LEADER_FILL_MERGED_INTO_ORDER", leader_wallet=fill.leader_wallet, leader_fill_id=_mid,
-                    intent_id=intent.intent_id, coin=fill.coin, action="COPIED_WITH_MERGED_ORDER", engine_can_send="False",
-                    notes=f"merged with leader fill {fill.leader_fill_id} into one copy order (intent {intent.intent_id})")
+                    "SEND_TERMINAL", "PRE_CUTOVER_NOT_SENT", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                    intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_BEFORE_LIVE_START", terminal_state="PRE_CUTOVER_NOT_SENT",
+                    engine_can_send="False", notes=f"leader fill at {fill.timestamp_ms} is older than the saved live start {self.dedupe.live_start_ms}: recorded, not copied")
+                result = (True, "PRE_CUTOVER", intent)
+                continue
+            self._past_send_keys.add(self._guard_key(fill))
+            try:
+                sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
             except Exception as exc:
-                log_error("merged_fill_row", exc)
-        if is_pre_cutover:
-            self.audit.append_reconciliation(
-                "SEND_TERMINAL", "PRE_CUTOVER_NOT_SENT", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
-                intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_BEFORE_LIVE_START", terminal_state="PRE_CUTOVER_NOT_SENT",
-                engine_can_send="False", notes=f"leader fill at {fill.timestamp_ms} is older than the saved live start {self.dedupe.live_start_ms}: recorded, not copied")
-            return True, "PRE_CUTOVER", intent
-        self._past_send_keys.add(self._guard_key(fill))  # an error from here on must not offer the fill again (no double order)
-        try:
-            sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
-        except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
-            log_error("send_if_allowed", exc)
-            try:
-                self.audit.append_reconciliation(
-                    "SEND_TERMINAL", "BLOCKED_SEND_EXCEPTION", leader_wallet=fill.leader_wallet,
-                    leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
-                    action="SEND_TERMINAL_EXCEPTION", reject_category="SEND_EXCEPTION",
-                    terminal_state="BLOCKED_SEND_EXCEPTION", engine_can_close=True, engine_can_send=False,
-                    notes=f"{type(exc).__name__}: {str(exc)[:300]}; exchange call state unknown, check the exchange")
-            except Exception as exc2:
-                log_error("send_exception_audit", exc2)
-            return False, "SEND_EXCEPTION", intent
-        if sent:
-            if summary is not None:
+                log_error("send_if_allowed", exc)
+                try:
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "BLOCKED_SEND_EXCEPTION", leader_wallet=fill.leader_wallet,
+                        leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+                        action="SEND_TERMINAL_EXCEPTION", reject_category="SEND_EXCEPTION",
+                        terminal_state="BLOCKED_SEND_EXCEPTION", engine_can_close=True, engine_can_send=False,
+                        notes=f"{type(exc).__name__}: {str(exc)[:300]}; exchange call state unknown, check the exchange")
+                except Exception as exc2:
+                    log_error("send_exception_audit", exc2)
+                result = (False, "SEND_EXCEPTION", intent)
+                continue
+            if sent and summary is not None:
                 summary.leader_sends_attempted += 1
-        else:
-            try:
-                self._append_send_terminal(fill, intent, send_status)
-            except Exception as exc:
-                log_error("append_send_terminal", exc)
-            if not self.audit.has_fill_row(fill.leader_fill_id):  # the invariant: no fill ends without a row, whatever the status
-                self.audit.append_reconciliation(
-                    "SEND_TERMINAL", "BLOCKED_NO_TERMINAL_RECORDED", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
-                    intent_id=intent.intent_id, coin=fill.coin, action="MANUAL_REVIEW_UNRECORDED_BLOCK",
-                    reject_category="UNRECORDED_SEND_BLOCK", terminal_state="BLOCKED_NO_TERMINAL_RECORDED", engine_can_send="False",
-                    notes=f"send_status={send_status}; decision={intent.decision}; send_allowed={intent.send_allowed}; no other row was written for this fill")
-        return sent, send_status, intent
+            if not sent:
+                try:
+                    self._append_send_terminal(fill, intent, send_status)
+                except Exception as exc:
+                    log_error("append_send_terminal", exc)
+                if not self.audit.has_fill_row(fill.leader_fill_id):
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "BLOCKED_NO_TERMINAL_RECORDED", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                        intent_id=intent.intent_id, coin=fill.coin, action="MANUAL_REVIEW_UNRECORDED_BLOCK",
+                        reject_category="UNRECORDED_SEND_BLOCK", terminal_state="BLOCKED_NO_TERMINAL_RECORDED", engine_can_send="False",
+                        notes=f"send_status={send_status}; decision={intent.decision}; send_allowed={intent.send_allowed}; no other row was written for this fill")
+            result = (sent, send_status, intent)
+        return result
 
     _TRUTH_UNREADABLE_MARKERS = ("unavailable", "unreadable", "not yet verified clean")
 
