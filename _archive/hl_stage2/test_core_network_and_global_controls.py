@@ -135,23 +135,27 @@ print(json.dumps(calls))
     check("N7_LOCK_RELEASED_WHEN_PROCESS_DIES", after.returncode == 0 and "LOCKED" in after.stdout, after.stderr[-200:])
 
     path_probe = "import json, HL_Live_Copy_Service_Core as c; print(json.dumps(str(c._global_instance_lock_path())))"
-    program_data = str(Path(tempfile.mkdtemp(prefix="programdata_")))
+    program_data_a = str(Path(tempfile.mkdtemp(prefix="programdata_a_")))
+    program_data_b = str(Path(tempfile.mkdtemp(prefix="programdata_b_")))
     first_env = {k: v for k, v in os.environ.items() if not k.startswith("HL_")}
     first_env.update({"HL_LIVE_AUDIT_DIR": str(Path(tempfile.mkdtemp(prefix="global_a_"))),
-                      "HL_LIVE_ENV_FILE": "/nonexistent.env", "PROGRAMDATA": program_data,
+                      "HL_LIVE_ENV_FILE": "/nonexistent.env", "PROGRAMDATA": program_data_a,
                       "HL_LIVE_GLOBAL_LOCK_FILE": str(Path(tempfile.mkdtemp(prefix="lock_a_")) / "engine.lock"),
                       "LOCALAPPDATA": str(Path(tempfile.mkdtemp(prefix="user_a_")))})
-    second_env = {"PROGRAMDATA": program_data,
+    second_env = {"PROGRAMDATA": program_data_b,
                   "HL_LIVE_GLOBAL_LOCK_FILE": str(Path(tempfile.mkdtemp(prefix="lock_b_")) / "engine.lock"),
                   "LOCALAPPDATA": str(Path(tempfile.mkdtemp(prefix="user_b_")))}
     first_path = last_json(run_py(path_probe, first_env))
     second_path = last_json(run_py(path_probe, second_env))
-    check("N7_GLOBAL_LOCK_PATH_SHARED_ACROSS_USERS", first_path == second_path, str([first_path, second_path]))
+    expected_lock_suffix = Path("HL_Live_Copy_Service_Core") / "engine-global.lock"
+    check("N7_GLOBAL_LOCK_PATH_MACHINE_PROGRAMDATA_SCOPE",
+          first_path == second_path and Path(first_path).parts[-2:] == expected_lock_suffix.parts,
+          str([first_path, second_path]))
 
     global_lock = ("import sys, time, HL_Live_Copy_Service_Core as c; "
                    "c._global_instance_lock_path = lambda: c.Path(sys.argv[2]); "
                    "c.acquire_global_instance_lock(c.AUDIT_DIR); print('LOCKED', flush=True); time.sleep(float(sys.argv[1]))")
-    global_lock_path = str(Path(program_data) / "engine.lock")
+    global_lock_path = str(Path(tempfile.mkdtemp(prefix="global_lock_")) / "engine.lock")
     first_global = subprocess.Popen([sys.executable, "-c", global_lock, "30", global_lock_path], cwd=str(HERE), env=first_env,
                                     stdout=subprocess.PIPE, text=True)
     try:

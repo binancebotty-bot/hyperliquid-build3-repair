@@ -12948,7 +12948,13 @@ _GLOBAL_INSTANCE_LOCK = None
 
 def _global_instance_lock_path() -> Path:
     """Machine-wide location for the single-engine lock (never inside a state folder)."""
-    base = str(os.getenv("PROGRAMDATA") or r"C:\ProgramData") if os.name == "nt" else tempfile.gettempdir()
+    if os.name == "nt":
+        import ctypes
+        common_appdata = ctypes.create_unicode_buffer(32768)
+        result = ctypes.windll.shell32.SHGetFolderPathW(None, 0x23, None, 0, common_appdata)
+        base = common_appdata.value if result == 0 and common_appdata.value else r"C:\ProgramData"
+    else:
+        base = tempfile.gettempdir()
     return Path(base) / "HL_Live_Copy_Service_Core" / "engine-global.lock"
 
 
