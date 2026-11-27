@@ -1,5 +1,19 @@
 # Lane results: core invariant test evidence
 
+## Current lane run: 14 core invariant checks
+
+Added `certification/test_core_invariants.py`, with one executable test slot for each of the 14 numbered invariants in `ARCHITECTURE.md`. Before this change, this dedicated 14-check harness had **0 tests**; after, it has **14 tests: 11 passed, 0 failed, 3 MISSING** (the three MISSING checks are unittest skips and do not claim a pass).
+
+Exact commands and results:
+
+| Command | Result |
+|---|---|
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' query invariant` | Completed before source browsing; graph was stale at commit `81c394bd` and mostly unrelated to this lane. |
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' explain test_g4` | Completed before source browsing; no matching file explanation was returned. |
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' certification/test_core_invariants.py` | **14 run; 11 passed; 0 failed; 3 MISSING** (`unittest` reports those as skipped). Final run exit code 0. |
+
+Root cause and blockers: the three MISSING items need proof beyond a source census: INV-09 needs a replay/recovery run against an independent all-DEX position oracle; INV-10 needs an executed send and independent MASTER settlement evidence; INV-14 needs an observed LIVE activation attempt and explicit-approval oracle. This lane did not perform exchange writes or LIVE/mainnet activation. The other eleven checks are source-level guards and are not full exchange certification. No assertion was weakened. The normal `python` launcher is absent from PATH, so the installed Python 3.14 executable was invoked by full path.
+
 Branch: `lane-inv/core-invariant-evidence`
 
 Base: `origin/main`
