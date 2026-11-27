@@ -4256,10 +4256,7 @@ class IntentBuilder:
                     reduce_only_intended=False, reduce_only_sent_planned=False, created_at_ms=utc_now_ms(),
                     notes="lifecycle=EXIT;UNRESOLVED_START_POSITION",
                 )
-            try:
-                leader_start = float(raw_start)
-            except (OverflowError, TypeError, ValueError):
-                leader_start = math.nan
+            leader_start = _parse_leader_start(raw_start)
             if not math.isfinite(leader_start):
                 return Intent(
                     intent_id=stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms]),

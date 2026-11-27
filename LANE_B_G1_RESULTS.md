@@ -2,41 +2,42 @@
 
 ## Revision and scope
 
-- Base revision: `cdea30d21743abd7094e6eda92f5346d6cd1f1a5` on `lane-b/g1-sizing-flip`.
-- Task commit SHA(s): none. The workspace permits reading `.git` but rejected creation of `.git/index.lock` with `Permission denied`, so no commit could be created.
-- Changed files:
-  - `_archive/hl_stage2/HL_Live_Copy_Service_Core.py`
-  - `_archive/hl_stage2/test_core_proportional_reduction.py`
-  - `LANE_B_G1_RESULTS.md`
-- Correction source read: PR #8 comment 7219806425, recording Ledger 1 as ACCEPT-WITH-CORRECTIONS. The implementation requirements followed here are the per-leader follower ledger, fixed $12 entry/add sizing, proportional reductions, close only on leader flat, split flips, one fixed intent for merged fills, fail-closed malformed position data, and independent same-coin opposing leaders.
+- Branch: `lane-b/g1-sizing-flip`
+- Base: `7abee190d614a52fa73b7bbdb5728e510b608c99`
+- Scope: reject malformed boolean EXIT `startPosition` consistently through `build()` and `build_all()` when fill size is `0.5`; no merge, deployment, or unrelated lane edits.
+- Implementation: EXIT parsing now calls the shared `_parse_leader_start()` helper, preserving its strict boolean and overflow handling.
 
-## Change
+## TDD and verification
 
-`IntentBuilder.build()` now rejects a supplied `startPosition` that cannot be parsed as a finite number, including on an opening fill. It returns an `UNRESOLVED` zero-size intent before sizing or send eligibility can be granted. A missing `startPosition` remains allowed for opening fills; reductions without it already fail closed.
+Regression `test_exit_boolean_start_position_with_partial_fill_fails_closed` was added before the production edit. On the base it failed at the `UNRESOLVED` assertion for both `build_all=False` and `build_all=True`; observed decision was `EXIT_ALLOWED`. After the implementation change:
 
-The existing code already routes production fills through `build_all()`, which splits a zero-crossing fill into a leader-flat reduction followed by a fresh fixed-size open. Existing regression tests cover proportional reductions, merged-fill sizing, and separate leader sleeves. No changes were made to those paths.
+```text
+$ cd C:/Users/wigmore/lane-b-g1-reviewfix/_archive/hl_stage2 && python test_core_proportional_reduction.py
+Ran 14 tests in 1.056s
+OK
+TOTAL=14 FAILED=0
+exit code: 0
+```
 
-## Expected-failing regression
+The pre-fix run returned exit code 1 (`Ran 14 tests`, with 2 failing subtests, both `EXIT_ALLOWED != UNRESOLVED`). The existing test for `10**400` EXIT input remains and passed for both entry points.
 
-| Test | Expected on cdea30d2 | Reason |
-|---|---|---|
-| `test_malformed_start_position_blocks_an_open_too` | FAIL (inferred from source; not executed) | The old `build_all()` falls through to `build()` for a malformed start position. With a flat sleeve and an `Open Long` fill, old `build()` classifies it as an entry and can produce the configured fixed-size order instead of `UNRESOLVED`. |
+Exact direct probes after the fix:
 
-## Test results and tally
+```text
+exit-bool-build: decision=UNRESOLVED copy_size=0.0 reduce_only=False
+exit-bool-build_all: decision=UNRESOLVED copy_size=0.0 reduce_only=False
+exit-huge-build: decision=UNRESOLVED copy_size=0.0 reduce_only=False
+exit-huge-build_all: decision=UNRESOLVED copy_size=0.0 reduce_only=False
+open-True: decision=UNRESOLVED copy_size=0.0 reduce_only=False
+open-False: decision=UNRESOLVED copy_size=0.0 reduce_only=False
+probe exit code: 0
+```
 
-Per the v2 instruction, no Python, pytest, uv, or other interpreter was executed. Therefore no before/after pass or failure counts are claimed.
+The opening True/False probe used a flat follower sleeve and an `Open Long` fill; malformed supplied start positions remain fail-closed. Missing `startPosition` for opening fills remains covered as allowed by the existing test.
 
-| Test file | Before (`cdea30d2`) | After working-tree change |
-|---|---|---|
-| `_archive/hl_stage2/test_core_proportional_reduction.py` | Not run; the new regression is expected to fail as described above | Not run |
-| `_archive/hl_stage2/test_core_proportional_sizing_regression.py` | Not run | Not run |
-| `_archive/hl_stage2/test_core_shared_follower_leader_attribution.py` | Not run | Not run |
-| Full suite, per-file results | Not run / unavailable | Not run by instruction |
+## Delivery and review
 
-The reported conflict between 8 and 13 nonzero test files cannot be reconciled from observed execution evidence in this turn. No matching tally record was found in the local Markdown, log, text, or JSON files or in the fetched PR #8 discussion. Without running the suite or obtaining the two original reports, choosing either count or explaining the difference would be speculation.
-
-## Blockers
-
-- Test execution is explicitly prohibited by the v2 addendum; the change is unverified at runtime.
-- Local commits are blocked by `.git/index.lock` creation being denied. The working-tree edits are not committed.
-- The v2 addendum says not to push, so no push was attempted. No restart, deploy, order, or mainnet action was performed.
+- `LANE_RESULTS.md` and this file replace stale uncommitted-SHA / tests-not-run claims with results from actual execution.
+- Implementation and result documents are committed and pushed to `origin/lane-b/g1-sizing-flip`; obtain the final document commit with `git rev-parse HEAD`.
+- Independent review is pending. No self-review is represented as an independent verdict.
+- No merge, deploy, restart, order, or unrelated lane edit was performed.
