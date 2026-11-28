@@ -2,65 +2,47 @@
 
 ## Current lane run: 14 core invariant checks
 
-Added `certification/test_core_invariants.py`, with one executable test slot for each of the 14 numbered invariants in `ARCHITECTURE.md`. Before this change, this dedicated 14-check harness had **0 tests**; after, it has **14 tests: 11 passed, 0 failed, 3 MISSING** (the three MISSING checks are unittest skips and do not claim a pass).
+`certification/test_core_invariants.py` is the source-level harness for the 14 numbered invariants in `ARCHITECTURE.md`. Its existing skips for INV-09, INV-10, and INV-14 are explicitly marked `MISSING`; their assertions were not weakened or replaced.
 
-Exact commands and results:
+### Count reconciliation
 
-| Command | Result |
-|---|---|
-| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' query invariant` | Completed before source browsing; graph was stale at commit `81c394bd` and mostly unrelated to this lane. |
-| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' explain test_g4` | Completed before source browsing; no matching file explanation was returned. |
-| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' certification/test_core_invariants.py` | **14 run; 11 passed; 0 failed; 3 MISSING** (`unittest` reports those as skipped). Final run exit code 0. |
+| Evidence | Before correction | After correction |
+|---|---:|---:|
+| This table | 8 PASS / 0 FAIL / 6 UNKNOWN | 11 PASS / 0 FAIL / 3 MISSING |
+| Harness | 11 PASS / 0 FAIL / 3 skipped (MISSING) | 11 PASS / 0 FAIL / 3 skipped (MISSING) |
 
-Root cause and blockers: the three MISSING items need proof beyond a source census: INV-09 needs a replay/recovery run against an independent all-DEX position oracle; INV-10 needs an executed send and independent MASTER settlement evidence; INV-14 needs an observed LIVE activation attempt and explicit-approval oracle. This lane did not perform exchange writes or LIVE/mainnet activation. The other eleven checks are source-level guards and are not full exchange certification. No assertion was weakened. The normal `python` launcher is absent from PATH, so the installed Python 3.14 executable was invoked by full path.
+Root cause: the old table combined current harness results with archived G3 fixture results for INV-09/10 and older source-census classifications for other rows. Those evidence sources do not represent the dedicated current-tree harness. The table below now reports exactly that harness's result for every invariant. Archived fixture runs are not counted as current invariant results.
 
-Branch: `lane-inv/core-invariant-evidence`
+### Current invariant results
 
-Base: `origin/main`
-
-Checked-out commit during runs: `eff73dfac67c8557d7f7b8482e7872eddf43d1f3`
-
-## Invariant evidence
-
-`PASS`/`FAIL` below describes the named check as it ran. Fixture tests are unit-level evidence only; they do not establish a live/testnet certification result. The G2 and G3 fixtures import the archived `HL_Live_Copy_Service.py` path, so their passes must not be read as a certification of the Core runtime.
-
-| Invariant | Test name and result | File path | Notes |
+| Invariant | Harness test | Result | Evidence |
 |---|---|---|---|
-| ENG-INV-01 — One process | **MISSING** | — | No executable test for the one-process invariant found. |
-| ENG-INV-02 — Exactly one physical production `.order()` call site | `test_only_core_has_the_exchange_order_callsite` — **PASS** (1 passed) | `_archive/hl_stage2/test_single_exchange_order_callsite.py` | AST census found one call site owned by `HL_Live_Copy_Service_Core.py`. |
-| ENG-INV-03 — No new dependency without Architect approval | **MISSING** | — | Existing certification result files are not a runnable test in this checkout. |
-| ENG-INV-04 — No new authoritative persistent trading-state store | **MISSING** | — | Existing certification result files are not a runnable test in this checkout. |
-| ENG-INV-05 — No Build 4 control-plane/platform import | **MISSING** | — | Existing certification result files are not a runnable test in this checkout. |
-| ENG-INV-06 — No new engine/runtime around Build 3 | **MISSING** | — | The order-site test does not test process/runtime count. |
-| ENG-INV-07 — Leader mutable state isolated by `(wallet, coin)` | `t9: same-coin multi-wallet sleeves aggregate to one account-net target` — **PASS** (targeted assertion); containing G2 script **FAIL** overall (39 passed, 1 failed) | `_archive/hl_stage2/test_g2_copy_correctness.py` | Two-wallet aggregate assertion passed. The unrelated failing sender-payload check is recorded below. This is partial unit coverage, not a full isolation proof. |
-| ENG-INV-08 — Startup/recovery truth includes all relevant perp DEX scopes; missing scope fails closed | G3 checks `HIP-3/builder DEX scope aggregates into account-net`, `unavailable required scope FAILS CLOSED`, `incomplete DEX enumeration FAILS CLOSED` — **PASS** (within 48 passed, 0 failed) | `_archive/hl_stage2/test_g3_exchange_truth.py` | Core-specific `test_core_dex_scope_and_ui_truth.py` could not start: `ModuleNotFoundError: No module named 'requests'`. |
-| ENG-INV-09 — Exchange truth outranks local replay; manual follower-position file is not authoritative | G3 checks `MASTER exchange truth supplies ACTUAL` and `wallet-local provider never consulted when MASTER truth is configured` — **PASS** | `_archive/hl_stage2/test_g3_exchange_truth.py` | Offline fixture evidence only. |
-| ENG-INV-10 — API acknowledgement is not settlement; sends need independent MASTER verification | G3 checks reservation before acknowledgement, MASTER fills/position settlement, partial/unknown evidence remains blocking — **PASS** | `_archive/hl_stage2/test_g3_exchange_truth.py` | Offline fixture evidence only. |
-| ENG-INV-11 — MASTER and signer are distinct; account truth is read from MASTER | G3 checks signer-equals-MASTER rejection and distinct-identity acceptance — **PASS** | `_archive/hl_stage2/test_g3_exchange_truth.py` | Core-specific `test_core_sender_key.py` could not start: `ModuleNotFoundError: No module named 'requests'`. |
-| ENG-INV-12 — Convergence moves actual toward desired and preserves unrelated inventory | G3 checks `copied sleeve converges while unrelated inventory is preserved` and `unattributed inventory is excluded from sleeve ACTUAL` — **PASS** | `_archive/hl_stage2/test_g3_exchange_truth.py` | Core-specific `test_core_run5_converge.py` could not start: `ModuleNotFoundError: No module named 'requests'`. |
-| ENG-INV-13 — Restart/recovery snapshots establish truth for verification only and create zero trade authority | G3 checks `non-zero snapshot yields ZERO desired exposure` and `snapshot does not mutate event lineage` — **PASS** | `_archive/hl_stage2/test_g3_exchange_truth.py` | Offline fixture evidence only. |
-| ENG-INV-14 — No mainnet/LIVE activation without explicit Richard approval | **MISSING** | — | No executable test for explicit activation approval found. |
+| ENG-INV-01 — One process | `test_inv01_one_process` | **PASS** | Current-tree source guard |
+| ENG-INV-02 — Exactly one physical production `.order()` call site | `test_inv02_one_physical_order_callsite` | **PASS** | Current-tree source guard |
+| ENG-INV-03 — No unapproved dependency | `test_inv03_no_unapproved_dependency` | **PASS** | Current-tree source guard and approved-dependency list |
+| ENG-INV-04 — No new authoritative persistent trading-state store | `test_inv04_only_existing_authoritative_store` | **PASS** | Current-tree source guard |
+| ENG-INV-05 — No Build 4 control-plane/platform import | `test_inv05_no_build4_control_plane_import` | **PASS** | Current-tree source guard |
+| ENG-INV-06 — No new engine/runtime around Build 3 | `test_inv06_no_second_engine_runtime` | **PASS** | Current-tree source guard |
+| ENG-INV-07 — Leader mutable state isolated by `(wallet, coin)` | `test_inv07_leader_mutable_state_scoped_by_wallet_coin` | **PASS** | Current-tree source guard |
+| ENG-INV-08 — Startup/recovery truth includes relevant perp DEX scopes; missing scope fails closed | `test_inv08_multidex_truth` | **PASS** | Current-tree source guard |
+| ENG-INV-09 — Exchange truth outranks local replay; manual follower-position file is not authoritative | `test_inv09_exchange_truth_beats_manual_position_file` | **MISSING** | Requires replay/recovery against an independent all-DEX exchange-position oracle |
+| ENG-INV-10 — API acknowledgement is not settlement; sends need independent MASTER verification | `test_inv10_acknowledgement_is_not_settlement` | **MISSING** | Requires an executed send and independent MASTER-account fill/position oracle |
+| ENG-INV-11 — MASTER and signer are distinct; account truth is read from MASTER | `test_inv11_master_and_signer_are_separate` | **PASS** | Current-tree source guard |
+| ENG-INV-12 — Convergence moves actual toward desired and preserves unrelated inventory | `test_inv12_convergence_preserves_unrelated_inventory` | **PASS** | Current-tree source guard |
+| ENG-INV-13 — Restart/recovery snapshots establish truth for verification only and create zero trade authority | `test_inv13_restart_snapshot_creates_no_trade_authority` | **PASS** | Current-tree source guard |
+| ENG-INV-14 — No mainnet/LIVE activation without explicit approval | `test_inv14_no_live_activation_without_explicit_approval` | **MISSING** | Requires an observed LIVE activation attempt and explicit-approval oracle |
 
-Historical certification JSON files were not counted as current test runs: their `tested_commit` values do not match the checkout commit above. No test or invariant was altered.
+These 11 passes are source-level checks, not live exchange certification. INV-09, INV-10, and INV-14 remain MISSING because their required independent runtime or approval oracles were not available. No exchange writes, LIVE/mainnet activation, or deployment were performed.
 
-## Commands and exact results
+### Exact commands and results
 
-Python executable used: `C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe`.
+The first two commands were run before opening repository source. The graphify wrapper could not be used because it invokes `python`, which is not on PATH. Invoking the graphify query script with the installed Python succeeded, but its fallback graph was stale and unrelated to this clone; `explain` returned no matching file.
 
 | Command | Result |
 |---|---|
-| `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe' _archive/hl_stage2/test_g3_exchange_truth.py` | **48 passed, 0 failed**; all checks used offline injected fixtures. |
-| `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe' _archive/hl_stage2/test_single_exchange_order_callsite.py` | **1 passed, 0 failed**. |
-| `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe' _archive/hl_stage2/test_g2_copy_correctness.py` | **39 passed, 1 failed** per run; invoked 3 times while isolating the failing assertion (cumulative 117 passed, 3 failed). Failure: expected planner `FLATTEN SELL` at sender boundary; observed in-flight `BUY`, `reduce_only=False`. Assertion left unchanged. |
-| `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_dex_scope_and_ui_truth.py` | **Blocked before checks**: `ModuleNotFoundError: No module named 'requests'`. |
-| `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_sender_key.py` | **Blocked before checks**: `ModuleNotFoundError: No module named 'requests'`. |
-| `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_run5_converge.py` | **Blocked before checks**: `ModuleNotFoundError: No module named 'requests'`. |
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' query invariant` | Completed before source browsing; returned unrelated bridge graph entries. |
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' 'C:/Users/wigmore/WINAGENT-HERMES BRIDGE/graphify_query.py' explain certification/test_core_invariants.py` | Completed before source browsing; no matching file explanation. |
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' certification/test_core_invariants.py` — before documentation correction | **14 run; 11 passed; 0 failed; 3 skipped (MISSING)**. |
+| `& 'C:/Users/wigmore/AppData/Roaming/uv/python/cpython-3.14-windows-x86_64-none/python.exe' certification/test_core_invariants.py` — after documentation correction | **14 run; 11 passed; 0 failed; 3 skipped (MISSING)**. |
 
-Distinct successful/failed assertions from one run of each runnable test: **88 passed, 1 failed**. Across all actual invocations including the two diagnostic G2 reruns: **166 passed, 3 failed**. Three Core-specific scripts were blocked before any checks. No live/testnet orders were sent.
-
-## Tooling and blockers
-
-- The `graphify` launcher (`graphify --help`) could not start because its wrapper invokes `python`, which is not installed on PATH. The checked-in `graphify-out/graph.json` was queried and explained with Node before opening raw source files.
-- `uv` found Python 3.14.7, allowing the archived scripts to run, but the Core-specific scripts require the missing `requests` package. Network access was not used to install dependencies.
-- No test was found for ENG-INV-01, 03, 04, 05, 06, or 14. These remain **MISSING**, rather than inferred from source or historical result artifacts.
-- Commit/push blocker: `git add -- LANE_RESULTS.md` failed with `fatal: Unable to create '.git/index.lock': Permission denied`. The workspace grants read access to `.git`, so no commit can be created and the requested push cannot be attempted from this clone.
+The count discrepancy is corrected in this document only; the existing harness already had explicit MISSING skips for all three blocked invariants. The installed Python 3.14 executable was used because the `python` launcher is absent from PATH. The local `graphify-out` index is unavailable, and the graphify fallback is unrelated, so graph-index coverage is a tooling blocker.
