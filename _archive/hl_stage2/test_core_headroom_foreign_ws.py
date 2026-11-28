@@ -6,6 +6,7 @@ Run: python test_core_headroom_foreign_ws.py   # No network, no orders.
 """
 from __future__ import annotations
 
+import ast
 import json
 import sys
 import tempfile
@@ -86,6 +87,18 @@ check("F7_NO_SCANNER_NO_KEY", "ws_foreign" not in st and "ws_foreign_scan" not i
 
 r = h.scan_foreign_ws("wss://invalid.invalid/ws")
 check("F8_UNRESOLVABLE_HOST_NOT_OK_NO_RAISE", r.get("ok") is False and r.get("foreign") == 0, str(r))
+
+# ENG-INV-03: psutil is not approved; headroom must use only stdlib/local modules.
+src = (HERE / "headroom.py").read_text(encoding="utf-8-sig")
+mods = set()
+for node in ast.walk(ast.parse(src)):
+    if isinstance(node, ast.Import):
+        mods.update(alias.name.split(".")[0] for alias in node.names)
+    elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+        mods.add(node.module.split(".")[0])
+local = {path.stem for path in HERE.glob("*.py")}
+third_party = sorted(mod for mod in mods if mod not in sys.stdlib_module_names and mod not in local)
+check("F9_NO_UNAPPROVED_THIRD_PARTY_IMPORT", not third_party, str(third_party))
 
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
