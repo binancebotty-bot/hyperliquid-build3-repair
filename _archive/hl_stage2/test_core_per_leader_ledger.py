@@ -73,6 +73,20 @@ def test_crossing_fill_opens_new_leader_positions() -> None:
           and ledger.wallet_coin_position(beta, "BTC") == 1.0 and ledger.coin_net("BTC") == 0.0)
 
 
+def test_flat_fill_clears_open_position_metadata() -> None:
+    ledger = c.ManualLedger(path=tmp / "flat.json")
+    wallet = "0x" + "d" * 40
+    opened = fill("flat-open", wallet, "BUY", 100.0, 1.0, 20)
+    closed = fill("flat-close", wallet, "SELL", 110.0, 1.0, 21)
+    ledger.apply_copy_fill(intent("flat-open-intent", opened), {"side": "BUY", "size": 1.0, "price": 100.0})
+    ledger.apply_copy_fill(intent("flat-close-intent", closed), {"side": "SELL", "size": 1.0, "price": 110.0})
+
+    sleeve = ledger.sleeve(wallet, "BTC")
+    check("FLAT_CLEARS_OPEN_POSITION_METADATA", sleeve["direction"] == "FLAT" and sleeve["signed_size"] == 0.0
+          and sleeve["opened_by_intent_id"] == "" and sleeve["position_id"] == "" and sleeve["opened_at_ms"] == 0,
+          str(sleeve))
+
+
 def test_merged_fills_are_one_twelve_dollar_intent() -> None:
     wallet = "0x" + "c" * 40
     first = fill("m1", wallet, "BUY", 100.0, 1.0, 1)
@@ -91,6 +105,7 @@ def test_merged_fills_are_one_twelve_dollar_intent() -> None:
 
 def main() -> int:
     test_crossing_fill_opens_new_leader_positions()
+    test_flat_fill_clears_open_position_metadata()
     test_merged_fills_are_one_twelve_dollar_intent()
     failed = [name for name, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")

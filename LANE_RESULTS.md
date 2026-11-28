@@ -1,5 +1,14 @@
 # Lane Results: per-leader ledger tests
 
+## FLAT coverage follow-up (lane-ledger/flat-coverage)
+
+- Added an open-then-close regression check to `_archive/hl_stage2/test_core_per_leader_ledger.py`. It verifies a zero-sized `FLAT` sleeve has empty `opened_by_intent_id`, `position_id`, and `opened_at_ms == 0`.
+- Commands: `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' '_archive/hl_stage2/test_core_per_leader_ledger.py'` before and after.
+- Counts: before **5 passed, 0 failed**; after **6 passed, 0 failed**.
+- Root cause: this state transition had no assertion. `ManualLedger.apply_copy_fill` already clears all three metadata fields on FLAT, so the new regression passes without a Core change.
+- Graphify commands, attempted before source inspection: `uv --cache-dir '.uv-cache' run --python 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' -- 'C:\Users\wigmore\WINAGENT-HERMES BRIDGE\graphify_query.py' query ledger flat position`; `uv --cache-dir '.uv-cache' run --python 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' -- 'C:\Users\wigmore\WINAGENT-HERMES BRIDGE\graphify_query.py' explain test_core_per_leader_ledger.py`. Query had no matches; explain returned no entries because `graphify-out/.graphify_analysis.json` is absent. `GRAPH_REPORT.md` was read for navigation.
+- Blockers: graphify query data is unavailable in this checkout. No implementation blocker found.
+
 Branch: `lane-ledger/per-leader-tests`
 Base: `origin/main` (`eff73dfac67c8557d7f7b8482e7872eddf43d1f3`)
 
