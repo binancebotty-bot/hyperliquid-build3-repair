@@ -178,3 +178,91 @@ Graphify was attempted before source inspection. The local `graphify-out` graph 
 ### Blockers
 
 No test or measurement blockers. Graphify navigation for this lane remains unavailable because its local index has no replay node and the installed helper points elsewhere. No key, `.env`, or wallet material was accessed; no walletproof/scout writes, mainnet orders, deploy, merge, commit, push, or CONTROL_STATE change occurred.
+
+## Lane N p95 sample correction (2026-11-28)
+
+### Change and result
+
+Raised the offline replay default to 150 fills and added a gate requiring at least 59 sent-fill latency samples for the nearest-rank p95 check. The existing 4-worker replay setting, 2,000 ms p95 limit, and all safety assertions remain unchanged. Final replay: **p50=1,223 ms, p95=1,959 ms, n=60 sent, 90 blocked locally**. The 90 blocks are deliberate symbol-blocklist cases, not an exchange or capacity rejection.
+
+The old 40-fill run produced p50=792 ms, p95=1,743 ms, n=16 sent, and 24 locally blocked (9 passed, 0 failed before a sample-count gate existed). Adding the 59-sample check made that configuration fail specifically on sample count (9 passed, 1 failed). The first 150-fill run at 4 workers measured p50=1,429 ms and p95=2,682 ms; the p95 gate failed on that run. Queue acknowledgement p95 was 1,908 ms, followed by up to 901 ms prewarm. The final repeat measured p50=1,223 ms and p95=1,959 ms and passed. Queue backlog is the variable tail contributor; the final sample stayed below the unchanged limit, though the earlier run shows the tail can exceed it. No invariant or limit was relaxed.
+
+### Commands and counts
+
+Graphify query/explain was attempted before source inspection. The local graph was stale (built from `81c394bd`) and the helper returned no replay match or explanation:
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+python -u 'C:\Users\wigmore\WINAGENT-HERMES BRIDGE\graphify_query.py' query test_hotpath_replay_bench
+python -u 'C:\Users\wigmore\WINAGENT-HERMES BRIDGE\graphify_query.py' explain test_hotpath_replay_bench
+```
+
+40-fill sample-gate check (expected failure proving the new check catches the review issue):
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+$env:HL_BENCH_FILLS = '40'
+$env:HL_BENCH_WORKERS = '8'
+python -u _archive\hl_stage2\test_hotpath_replay_bench.py
+```
+
+Result: **9 passed, 1 failed** (`BENCH_P95_HAS_59_SENT_FILL_SAMPLES`, n=16).
+
+Final replay and related regressions (all run with the same Python path):
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+Remove-Item Env:HL_BENCH_FILLS -ErrorAction SilentlyContinue
+Remove-Item Env:HL_BENCH_WORKERS -ErrorAction SilentlyContinue
+python -u _archive\hl_stage2\test_hotpath_replay_bench.py
+python -u _archive\hl_stage2\test_core_fill_to_send_latency.py
+python -u _archive\hl_stage2\test_core_dynamic_lanes.py
+python -u _archive\hl_stage2\test_core_send_lock_isolation.py
+python -u _archive\hl_stage2\test_core_stage_stamps.py
+python -u _archive\hl_stage2\test_core_intent_outside_lock.py
+```
+
+After: replay **10 passed, 0 failed**; related scripts **29 passed, 0 failed** (4/4, 5/5, 8/8, 7/7, 5/5). Total after: **39 passed, 0 failed**. No mainnet orders, deployment, merge, commit, push, walletproof/scout writes, or CONTROL_STATE changes.
+
+### Blockers
+
+No blocker to obtaining 59 samples or to the final p95 result. The first 4-worker 150-fill run exceeded the p95 threshold due to queue backlog plus prewarm, while the final repeat was 41 ms under the gate. The 90 local blocks are the replay's intentional symbol blocklist (60%); they do not represent an external system cap. Graphify returned no lane-specific result because its local graph is stale and the helper graph contains no matching replay node.
+
+## Lane N round 2: 120 sent-fill sample (2026-11-28)
+
+### Change and result
+
+Raised the offline replay default burst from 150 to 300 and strengthened its sent-sample gate from 59 to 120. The existing worker count and 2,000 ms p95 threshold are unchanged. This replay drives the real local worker, intent, and send path into a stubbed fake exchange; it does not submit network orders. Results: **p50=1,645 ms, p95=3,169 ms, n=120 sent, 180 blocked locally**. All 180 local blocks are deliberate symbol-blocklist cases (60%); 120/300 reached the fake exchange.
+
+The largest p95 stage is **queue acknowledgement / enqueue-to-worker-pickup: 2,026 ms**. Next is prewarm at 902 ms; pickup-to-process is 74 ms, send-lock wait 39 ms, intent build/write 13 ms, and intent-to-send 187 ms. This identifies queue backlog as the largest tail contributor. The unchanged 2,000 ms fill-to-send p95 gate failed (3,169 ms); the 120-sample gate and other benchmark invariants passed. No assertion or invariant was weakened.
+
+### Commands and counts
+
+Before opening source, read `graphify-out/.graphify_root` and all available graphify label manifests. They contain label maps only; the existing lane log documents that the graphify helper has no replay node and its graph is stale.
+
+Benchmark command (PowerShell, from clone root):
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+Remove-Item Env:HL_BENCH_FILLS -ErrorAction SilentlyContinue
+Remove-Item Env:HL_BENCH_WORKERS -ErrorAction SilentlyContinue
+python -u _archive\hl_stage2\test_hotpath_replay_bench.py
+```
+
+Replay result: **9 passed, 1 failed**. The sole failure is `BENCH_FILL_TO_SEND_P95_WITHIN_2S_TARGET` (3,169 ms vs unchanged 2,000 ms); `BENCH_P95_HAS_120_SENT_FILL_SAMPLES` passed at n=120. Stage p95s use nearest-rank percentiles across the 120 sent rows.
+
+Related regression scripts, run sequentially with the same Python PATH:
+
+```powershell
+python -u _archive\hl_stage2\test_core_fill_to_send_latency.py
+python -u _archive\hl_stage2\test_core_dynamic_lanes.py
+python -u _archive\hl_stage2\test_core_send_lock_isolation.py
+python -u _archive\hl_stage2\test_core_stage_stamps.py
+python -u _archive\hl_stage2\test_core_intent_outside_lock.py
+```
+
+Regression result: **29 passed, 0 failed** (4/4, 5/5, 8/8, 7/7, 5/5). Combined: **38 passed, 1 failed**; the failure is the p95 target above.
+
+### Blockers
+
+The requested sample and stage attribution completed. The 2,000 ms p95 target is not met at n=120; queue acknowledgement is the dominant tail stage. This is a performance blocker, not a sample or harness blocker. The replay's intentional 180 local blocks are symbol-blocklist outcomes. No key, `.env`, or wallet material was accessed; ports 8014 and 8012 were not touched; no mainnet orders, deploy, merge, commit, push, or CONTROL_STATE changes occurred.

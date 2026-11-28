@@ -8,7 +8,7 @@ LiveCopyCore and driven by _process_leader_fill). It uses the existing test seam
 and the same offline/mock-send style as the other test_core_*.py files. No network, no orders, no key.
 
 Replay:
-  * one leader, one wallet config (fixed sizing), 40 unique coins so no fills merge.
+  * one leader, one wallet config (fixed sizing), 300 unique coins by default so no fills merge.
   * 40% of the coins are sendable (reach the fake exchange); 60% are on the symbol blocklist and are
     blocked locally (no order).
   * every simulated info read (any fetcher call) takes 900 ms; every fake exchange order call takes 1 s.
@@ -55,7 +55,7 @@ FOLLOWER = "0x" + "c" * 40
 LEADER = "0x" + "a" * 40
 FAKE_KEY = "0x" + "1" * 64  # placeholder only; _get_exchange_client is stubbed, nothing signs
 
-FILLS = max(2, int(os.getenv("HL_BENCH_FILLS", "40")))
+FILLS = max(2, int(os.getenv("HL_BENCH_FILLS", "300")))
 TIME_SCALE = max(0.01, float(os.getenv("HL_BENCH_TIME_SCALE", "1.0")))
 WORKERS = max(1, int(os.getenv("HL_BENCH_WORKERS", "4")))
 READ_S = 0.9 * TIME_SCALE   # 900 ms: every simulated info read
@@ -347,6 +347,8 @@ def main() -> None:
     a_limit = 2000 if strict else float(os.getenv("HL_BENCH_PR1_ACK_P90_MS", "5500")) * TIME_SCALE
     check("BENCH_QUEUE_WAIT_P90_WITHIN_LIMIT", q90 is not None and q90 <= q_limit, f"p90={q90} limit={q_limit}")
     check("BENCH_FILL_TO_ACK_P90_WITHIN_LIMIT", a90 is not None and a90 <= a_limit, f"p90={a90} limit={a_limit}")
+    check("BENCH_P95_HAS_120_SENT_FILL_SAMPLES", len(fill_to_send) >= 120,
+          f"sent_samples={len(fill_to_send)} minimum=120")
     check("BENCH_FILL_TO_SEND_P95_WITHIN_2S_TARGET", f2s_p95 is not None and f2s_p95 <= 2000,
           f"p50={f2s_p50} p95={f2s_p95} limit=2000")
     check("BENCH_ZERO_INFO_READS_BETWEEN_INTENT_AND_ORDER", not offenders,
