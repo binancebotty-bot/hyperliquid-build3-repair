@@ -21,3 +21,25 @@ The lock path trusted the process `PROGRAMDATA` environment variable. A user pro
 
 - The requested script does not reach zero failures in this environment: `requests` and `fastapi` are not installed, and package-index access is denied. The I08 scope regression itself passes.
 - The clone's `graphify-out` is stale/mismatched and lacks the analysis file needed for a local query, so graphify could not guide source navigation.
+
+## Lane i08: I08 DEX-scope recovery
+
+### Root cause and change
+
+The full-scope sweep discarded cached readings for DEXes no longer returned by `perpDexs`. If a cached reading showed a held position, dropping that DEX removed the only startup/recovery evidence of the position and let the sweep report clean. The sweep now keeps stale cache records that show positions and returns `SCOPE_UNAVAILABLE` when such a held DEX is absent from the current enumeration. This invalidates a prior clean sweep and keeps entries blocked; empty cached scopes can still be discarded.
+
+Added `certification/test_i08_dex_scope.py`, a standalone offline regression that simulates restart recovery from an old held-position cache while `perpDexs` omits that DEX. It checks both fail-closed gating and cache retention.
+
+### Commands and results
+
+| Command | Result |
+|---|---|
+| `$env:UV_CACHE_DIR=(Join-Path (Get-Location) '.uv-cache'); uv run --offline --python 3.12 python certification/test_i08_dex_scope.py` (before source fix) | 0 passed, 2 failed: the sweep returned `ok=True`, dropped `xyz`, and left the previous clean gate open. |
+| `$env:UV_CACHE_DIR=(Join-Path (Get-Location) '.uv-cache'); uv run --offline --python 3.12 python certification/test_i08_dex_scope.py` (after source fix) | 2 passed, 0 failed. |
+| `$env:UV_CACHE_DIR=(Join-Path (Get-Location) '.uv-cache'); uv run --offline --python 3.12 python _archive/hl_stage2/test_core_dex_scope_and_ui_truth.py` | Blocked before checks: `ModuleNotFoundError: No module named 'requests'`. |
+| `$env:UV_CACHE_DIR=(Join-Path (Get-Location) '.uv-cache'); uv run --offline --python 3.12 python -m py_compile _archive/hl_stage2/HL_Live_Copy_Service_Core.py certification/test_i08_dex_scope.py` | Passed. |
+| `git diff --check` | Passed. |
+
+### Blockers
+
+- The existing combined DEX/UI script cannot start because `requests` is not installed; the offline package cache has no dependency available and package-index access is denied. The new I08 regression has no third-party dependencies and passes.

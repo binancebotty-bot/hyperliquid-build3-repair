@@ -10415,10 +10415,21 @@ class LiveCopyCore:
                 keep_ms = int(fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC"), 900.0) * 1000)
                 if isinstance(saved, dict) and saved.get("account") == addr:
                     for d, v in (saved.get("dex") or {}).items():
-                        if isinstance(v, list) and len(v) == 2 and 0 <= started - int(fnum(v[0], 0)) <= keep_ms:
-                            cache.setdefault(str(d), (int(fnum(v[0], 0)), tuple(str(x) for x in v[1])))
+                        if isinstance(v, list) and len(v) == 2:
+                            coins = tuple(str(x) for x in v[1])
+                            if 0 <= started - int(fnum(v[0], 0)) <= keep_ms or coins:
+                                cache.setdefault(str(d), (int(fnum(v[0], 0)), coins))
             except Exception as exc:
                 log_error("scope_cache_load", exc)
+        vanished_held = sorted(d for d, (_ms, coins) in cache.items() if d not in enum["dexes"] and coins)
+        if vanished_held:
+            d = vanished_held[0]
+            res = {"ok": False, "status": "SCOPE_UNAVAILABLE", "dex": d,
+                   "detail": "previously held DEX is missing from perpDexs; scope is not trusted",
+                   "failed_dexes": len(vanished_held), "dex_count": len(enum["dexes"]),
+                   "outside_count": 0, "ms": started}
+            self._scope_sweep_note(res)
+            return res
         for gone in [d for d in cache if d not in outside]:
             cache.pop(gone, None)
         fresh_ms = int(fnum(os.getenv("HL_LIVE_SCOPE_DEX_FRESH_SEC"), 240.0) * 1000)
