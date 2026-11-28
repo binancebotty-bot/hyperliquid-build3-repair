@@ -33,15 +33,33 @@ os.environ.update({"HL_LIVE_ENV_FILE": "/nonexistent", "HL_LIVE_AUDIT_DIR": str(
                    "HL_LIVE_SEND_ROWS_WINDOW": "5000"})
 import HL_Live_Copy_Service_Core as C  # noqa: E402
 
-try:
-    import psutil
-    PROC = psutil.Process()
-except Exception:
-    PROC = None
-
-
 def rss_mb():
-    return PROC.memory_info().rss / 1e6 if PROC else float("nan")
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        class Counters(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                        ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                        ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+
+        counters = Counters()
+        counters.cb = ctypes.sizeof(counters)
+        get_current_process = ctypes.windll.kernel32.GetCurrentProcess
+        get_current_process.restype = wintypes.HANDLE
+        get_memory_info = ctypes.windll.psapi.GetProcessMemoryInfo
+        get_memory_info.argtypes = (wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD)
+        get_memory_info.restype = wintypes.BOOL
+        if get_memory_info(get_current_process(), ctypes.byref(counters), counters.cb):
+            return counters.WorkingSetSize / 1e6
+        return float("nan")
+    try:
+        resident_pages = int(Path("/proc/self/statm").read_text().split()[1])
+        return resident_pages * os.sysconf("SC_PAGE_SIZE") / 1e6
+    except (OSError, IndexError, ValueError, AttributeError):
+        return float("nan")
 
 
 def make_csv(path: Path, fields, target_mb: float, coin_pool=("BTC", "ETH", "SOL")):

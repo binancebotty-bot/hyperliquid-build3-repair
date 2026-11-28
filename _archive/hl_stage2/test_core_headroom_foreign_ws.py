@@ -100,6 +100,17 @@ local = {path.stem for path in HERE.glob("*.py")}
 third_party = sorted(mod for mod in mods if mod not in sys.stdlib_module_names and mod not in local)
 check("F9_NO_UNAPPROVED_THIRD_PARTY_IMPORT", not third_party, str(third_party))
 
+profile_targets = ("bench_memory_profile.py", "headroom.py", "tools_memory_profile.py")
+psutil_imports = []
+for filename in profile_targets:
+    tree = ast.parse((HERE / filename).read_text(encoding="utf-8-sig"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(alias.name.split(".")[0] == "psutil" for alias in node.names):
+            psutil_imports.append(filename)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and (node.module or "").split(".")[0] == "psutil":
+            psutil_imports.append(filename)
+check("F10_NO_PSUTIL_IMPORTS_IN_ORACLE_TARGETS", not psutil_imports, str(psutil_imports))
+
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
 sys.exit(1 if failed else 0)

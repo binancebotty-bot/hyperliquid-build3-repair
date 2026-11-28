@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import copy
 import csv
+import ctypes
 import gc
 import importlib
 import os
@@ -40,11 +41,6 @@ import tempfile
 import time
 import tracemalloc
 from pathlib import Path
-
-try:
-    import psutil  # optional
-except Exception:  # pragma: no cover
-    psutil = None
 
 HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
@@ -142,15 +138,59 @@ def gen_csv(path: Path, fields, target_bytes: int) -> int:
 
 
 def _rss_mb():
-    if psutil is None:
+    if os.name == "nt":
+        from ctypes import wintypes
+
+        class Counters(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                        ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                        ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+
+        counters = Counters()
+        counters.cb = ctypes.sizeof(counters)
+        get_current_process = ctypes.windll.kernel32.GetCurrentProcess
+        get_current_process.restype = wintypes.HANDLE
+        get_memory_info = ctypes.windll.psapi.GetProcessMemoryInfo
+        get_memory_info.argtypes = (wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD)
+        get_memory_info.restype = wintypes.BOOL
+        if get_memory_info(get_current_process(), ctypes.byref(counters), counters.cb):
+            return counters.WorkingSetSize / 1e6
         return None
-    return psutil.Process(os.getpid()).memory_info().rss / 1e6
+    try:
+        resident_pages = int(Path("/proc/self/statm").read_text().split()[1])
+        return resident_pages * os.sysconf("SC_PAGE_SIZE") / 1e6
+    except (OSError, IndexError, ValueError, AttributeError):
+        return None
 
 
 def _avail_mb():
-    if psutil is None:
+    if os.name == "nt":
+        from ctypes import wintypes
+
+        class MemoryStatus(ctypes.Structure):
+            _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+        status = MemoryStatus()
+        status.dwLength = ctypes.sizeof(status)
+        get_memory_status = ctypes.windll.kernel32.GlobalMemoryStatusEx
+        get_memory_status.argtypes = (ctypes.POINTER(MemoryStatus),)
+        get_memory_status.restype = wintypes.BOOL
+        if get_memory_status(ctypes.byref(status)):
+            return status.ullAvailPhys / 1e6
         return None
-    return psutil.virtual_memory().available / 1e6
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) * 1024 / 1e6
+        return os.sysconf("SC_AVPHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / 1e6
+    except (OSError, IndexError, ValueError, AttributeError):
+        return None
 
 
 def measure(fn, iters: int, budget_s: float, keep_result: bool, prep=None):
@@ -198,7 +238,7 @@ def measure(fn, iters: int, budget_s: float, keep_result: bool, prep=None):
         if keep_result:
             keep = res
         k += 1
-        if psutil is not None and (k & 0x1F) == 0:
+        if (k & 0x1F) == 0:
             cur = _rss_mb()
             if cur is not None and cur > rss_peak:
                 rss_peak = cur
@@ -333,7 +373,7 @@ def write_report(path: Path, rows, sizes_mb, rev: str):
     L.append("")
     L.append("Revision profiled: `%s`" % rev)
     L.append("")
-    L.append("Tool: `_archive/hl_stage2/tools_memory_profile.py` (tracemalloc + psutil RSS).")
+    L.append("Tool: `_archive/hl_stage2/tools_memory_profile.py` (tracemalloc + OS RSS).")
     L.append("Row shapes copied verbatim from the module's own writers "
              "(`SEND_ATTEMPT_FIELDS`/`LIVE_FILL_FIELDS`/`RECONCILIATION_FIELDS`).")
     L.append("")
