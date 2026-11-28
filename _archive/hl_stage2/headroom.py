@@ -251,27 +251,31 @@ class CountingRequests:
 
     def post(self, url: str, *a: Any, **k: Any) -> Any:
         real_post = self._real.post   # looked up at call time: patches on the real module still apply
-        if (getattr(real_post, "__module__", "") == "requests.api" and not a and "json" in k
-                and set(k) <= {"json", "timeout"}):
-            try:
-                import exchange_truth as _xt  # one shared keep-alive session: a bare post opens a new TCP+TLS connection per read
-                resp = _xt.http_post(url, k.get("json"), k.get("timeout"))
-            except ImportError:
-                resp = real_post(url, *a, **k)
-        else:
-            resp = real_post(url, *a, **k)
-        if url in self._urls:
-            try:
-                host = str(url).split("//", 1)[-1].split("/", 1)[0]
-                rows = 0
+        resp = None
+        try:
+            if (getattr(real_post, "__module__", "") == "requests.api" and not a and "json" in k
+                    and set(k) <= {"json", "timeout"}):
                 try:
-                    j = resp.json()
-                    rows = len(j) if isinstance(j, list) else 0
+                    import exchange_truth as _xt  # one shared keep-alive session: a bare post opens a new TCP+TLS connection per read
+                    resp = _xt.http_post(url, k.get("json"), k.get("timeout"))
+                except ImportError:
+                    resp = real_post(url, *a, **k)
+            else:
+                resp = real_post(url, *a, **k)
+        finally:
+            if url in self._urls:
+                try:
+                    host = str(url).split("//", 1)[-1].split("/", 1)[0]
+                    rows = 0
+                    if resp is not None:
+                        try:
+                            j = resp.json()
+                            rows = len(j) if isinstance(j, list) else 0
+                        except Exception:
+                            pass
+                    self._monitor.note_info(host, k.get("json"), rows)
+                    if resp is not None and getattr(resp, "status_code", 200) == 429:
+                        self._monitor.note_refusal("info:" + host, "HTTP 429 from /info")
                 except Exception:
                     pass
-                self._monitor.note_info(host, k.get("json"), rows)
-                if getattr(resp, "status_code", 200) == 429:
-                    self._monitor.note_refusal("info:" + host, "HTTP 429 from /info")
-            except Exception:
-                pass
         return resp

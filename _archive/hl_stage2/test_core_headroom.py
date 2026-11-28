@@ -88,6 +88,19 @@ check("proxy_counts_info_only", m2.info_used("api.hl") == 22 and len(calls) == 2
 fake_real.post = lambda url, *a, **k: SimpleNamespace(status_code=429, json=lambda: {})
 cr.post("https://api.hl/info", json={"type": "meta"})
 check("429_is_refusal", any(r["resource"].startswith("info:") for r in m2.refusals))
+before_timeout = m2.info_used("api.hl")
+def timeout_post(*_a, **_k):
+    raise TimeoutError("response timed out")
+
+
+fake_real.post = timeout_post
+raised = False
+try:
+    cr.post("https://api.hl/info", json={"type": "userRole"})
+except TimeoutError:
+    raised = True
+check("raised_info_request_counts_weight", raised and m2.info_used("api.hl") == before_timeout + 60,
+      str(m2.info_used("api.hl") - before_timeout))
 cr.post = lambda *a, **k: "patched"      # tests patch requests.post on the proxy: must work
 check("proxy_patchable", cr.post("u") == "patched")
 
