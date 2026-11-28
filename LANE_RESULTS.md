@@ -22,3 +22,19 @@
 - `py --list-paths` reported `No installed Pythons found!`; Graphify's Python shim could not find `python` on `PATH`. A Python 3.12 runtime installed by `uv` was available and used directly for the script tests.
 - The `graphify` shim depends on Python. `graphify query headroom` and `graphify explain _archive/hl_stage2/headroom.py` could not run because its Python launcher was unavailable. As a fallback, I queried the checked-in `graphify-out/graph.json`: it has no headroom or I06 nodes and only identifies archived stage-2 source; the graph appears stale for this lane.
 - The keepalive check needs the unavailable `requests` package; the focused headroom and foreign-WebSocket scripts ran successfully. No secrets or wallet material were opened; `CONTROL_STATE.json`, walletproof engine (8014), and scout (8012) were not changed.
+
+
+## I06 no-new-runtime correction
+
+- Removed the live-service wiring for foreign WebSocket process scans, removed the daemon-thread execution path, and removed the Windows `netstat` fallback. Explicitly injected scanner tests remain supported synchronously; the live service no longer configures that scanner. Failed scans without `psutil` now report `psutil unavailable`.
+- Root cause: the I06 change added periodic live process/network inspection and spawned a daemon thread from the headroom poll path. The Windows fallback added a subprocess call. These runtime effects exceeded the no-new-runtime requirement.
+
+| Stage | Exact command | Checks | Passed | Failed | Outcome |
+|---|---|---:|---:|---:|---|
+| Before | `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_headroom.py` | 15 | 15 | 0 | Pass |
+| Before | `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_headroom_foreign_ws.py` | 8 | 8 | 0 | Pass |
+| After | `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_headroom.py` | 15 | 15 | 0 | Pass |
+| After | `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' _archive/hl_stage2/test_core_headroom_foreign_ws.py` | 8 | 8 | 0 | Pass |
+| After | `git diff --check` | n/a | 1 | 0 | Pass |
+
+- Graphify commands attempted first: `graphify query headroom` and `graphify explain _archive/hl_stage2/headroom.py`; both were blocked because the Graphify shim could not find `python`. Prior lane notes identify the checked-in graph as stale. No other blockers.

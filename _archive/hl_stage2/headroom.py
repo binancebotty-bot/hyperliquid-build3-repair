@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import os
 import socket
-import subprocess
 import threading
 import time
 from collections import deque
@@ -55,16 +54,7 @@ def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any
                     except Exception:
                         pass
         except ImportError:
-            if os.name != "nt":
-                return {"ok": False, "error": "no psutil and not Windows", "foreign": 0, "pids": {}}
-            out = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
-            for line in out.splitlines():
-                parts = line.split()
-                if len(parts) >= 5 and parts[0] == "TCP" and parts[3] == "ESTABLISHED" and parts[2].rsplit(":", 1)[-1] == "443":
-                    remote_ip = parts[2].rsplit(":", 1)[0].strip("[]")
-                    pid = int(parts[4]) if parts[4].isdigit() else 0
-                    if remote_ip in ips and pid and pid != own_pid:
-                        pids.setdefault(pid, {"connections": 0, "name": ""})["connections"] += 1
+            return {"ok": False, "error": "psutil unavailable", "foreign": 0, "pids": {}}
     except Exception as exc:
         return {"ok": False, "error": repr(exc)[:160], "foreign": 0, "pids": {}}
     return {"ok": True, "foreign": sum(v["connections"] for v in pids.values()),
@@ -196,23 +186,19 @@ class HeadroomMonitor:
         return out
 
     def _refresh_foreign(self) -> None:
-        """Rescan at most every FOREIGN_SCAN_SEC, on a daemon thread, so a slow OS call never delays the poll cycle."""
+        """Rescan an explicitly configured scanner at most every FOREIGN_SCAN_SEC."""
         now = self._clock()
-        if now - self._foreign_at < FOREIGN_SCAN_SEC or (self._foreign_busy and now - self._foreign_at < 120.0):
-            return  # a scan stuck for 2 min (DNS) is abandoned and retried; the old thread is a daemon
+        if now - self._foreign_at < FOREIGN_SCAN_SEC:
+            return
         self._foreign_busy = True
         self._foreign_at = now
         scanner = self.foreign_ws_scanner
-
-        def _run() -> None:
-            try:
-                self._foreign = scanner() or {}
-            except Exception as exc:
-                self._foreign = {"ok": False, "error": repr(exc)[:160]}
-            finally:
-                self._foreign_busy = False
-
-        threading.Thread(target=_run, name="headroom-foreign-ws", daemon=True).start()
+        try:
+            self._foreign = scanner() or {}
+        except Exception as exc:
+            self._foreign = {"ok": False, "error": repr(exc)[:160]}
+        finally:
+            self._foreign_busy = False
 
     # ---- output ---------------------------------------------------------------------------------------------
     def _write_event(self, ev: Dict[str, Any]) -> None:
