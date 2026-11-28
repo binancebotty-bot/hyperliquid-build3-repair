@@ -30,6 +30,13 @@ class ProportionalReductionRegression(unittest.TestCase):
         self.assertTrue(intent.reduce_only_intended)
         self.assertLessEqual(intent.copy_size, abs(intent.wallet_position_before))
 
+    def test_zero_notional_reduction_or_close_is_not_manual_review(self):
+        builder = self.setup_builder(10.0)
+        fill = self.intent(builder, 2.0, 2.0).fill
+        for lifecycle in ("REDUCE", "EXIT"):
+            with self.subTest(lifecycle=lifecycle):
+                self.assertEqual(builder._decision(W, fill, lifecycle, 0.0, -10.0), ("EXIT_ALLOWED", lifecycle))
+
     def test_missing_start_position_skips_reduction(self):
         builder = self.setup_builder(10.0)
         fill = c.LeaderFill("f", W, "BTC", "SELL", 100.0, 2.0, c.utc_now_ms(), "TEST", 0,

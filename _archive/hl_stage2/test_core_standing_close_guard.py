@@ -78,15 +78,18 @@ n, can, left = guard(base, sleeve=-10.0)
 check("SLEEVE_FLIPPING_CANCELS", n == 1)
 
 # plan: ledger may lag -> sized from the exchange alone, never past flat
-def plan(side, size, ex, lag, mode="ON", min_ok=lambda s: True):
+def plan(side, size, ex, lag, mode="ON", min_ok=lambda s: True, intent_size=None):
     me = SimpleNamespace(ledger=Ledger(0, 0), cfg=SimpleNamespace(wallet_mode=lambda w: mode, send_mode_now=lambda: "ON"))
     me._reduce_only_for_intent = lambda i: True
     me._fresh_exchange_net = lambda coin: ex
     me._floor_wire_size = lambda s, d: round(s, d)
-    intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet="0xw", coin="BTC"), copy_side=side, copy_size=size)
+    intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet="0xw", coin="BTC"), copy_side=side,
+                             copy_size=size if intent_size is None else intent_size)
     return c.SenderGateway._close_wire_plan(me, intent, size, 3, min_ok, None, lag)
 check("LAG_SIZES_FROM_EXCHANGE_ONLY", plan("SELL", 6.0, 4.0, True) == (True, 4.0, ""))
 check("LAG_NOTHING_TO_CLOSE_SKIPS", plan("SELL", 6.0, 0.0, True)[1] == 0.0 and plan("SELL", 6.0, -3.0, True)[1] == 0.0)
+check("ZERO_REMAINDER_IS_NOT_REEXPANDED", plan("SELL", 0.0, 4.0, True, intent_size=6.0)[1] == 0.0)
+check("ZERO_CLOSE_IS_NOT_REEXPANDED", plan("SELL", 0.0, 4.0, False, intent_size=6.0)[1] == 0.0)
 check("LAG_FULL_POSITION_KEEPS_ORDER_SIZE", plan("SELL", 6.0, 9.0, True) == (True, 6.0, ""))
 check("LAG_WALLET_CLOSE_ONLY_IS_NOT_REDUCE_ONLY", plan("SELL", 6.0, 9.0, True, mode="CLO") == (True, 6.0, ""))
 n, can, _ = guard(dict(base, sleeve_signed=10.0, sleeve_tol=4.0), sleeve=6.0, led_net=10.0, ex_net=4.0)

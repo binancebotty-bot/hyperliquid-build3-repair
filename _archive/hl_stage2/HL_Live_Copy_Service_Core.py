@@ -4390,12 +4390,12 @@ class IntentBuilder:
         # Only fires when raw fill data positively identifies a close-side event.
         if lifecycle == "ENTRY" and abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill):
             return "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION", "no owned sleeve; leader close fill cannot open reverse position"
-        if copy_notional <= 0:
+        if copy_notional <= 0 and lifecycle in {"ENTRY", "ADD"}:
             return "MANUAL_REVIEW", self._sizing_block.get(wallet) or "copy notional is zero"
         if copy_notional < self.cfg.min_notional() and lifecycle in {"ENTRY", "ADD"}:
             return "BELOW_MIN_NOTIONAL", "entry/add notional below minimum"
         if lifecycle not in {"ENTRY", "ADD"}:
-            return ("EXIT_ALLOWED" if lifecycle == "EXIT" else "ENTRY_ALLOWED"), lifecycle
+            return ("EXIT_ALLOWED" if lifecycle in {"REDUCE", "EXIT"} else "ENTRY_ALLOWED"), lifecycle
         # every notional limit is checked at the worst-case FOLLOWER price the order can fill at:
         # units are sized from the leader, so cross-network the USD value can differ from copy_notional
         value_px = self._order_value_px(fill)
@@ -6155,7 +6155,7 @@ class SenderGateway:
         if not self.ledger or not bval(os.getenv("HL_LIVE_CLOSE_TO_TARGET"), True):
             return True, size, ""
         key = canonical_coin_key(intent.fill.coin)
-        delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
+        delta = ManualLedger.signed_delta(intent.copy_side, abs(size))
         ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
         if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
             return True, size, ""

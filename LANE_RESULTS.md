@@ -27,3 +27,22 @@ Result: 14 passed, 14 subtests passed (EXIT boolean startPosition regression inc
 - Graph navigation commands: `graphify query "close recovery standing close"` and `graphify explain "_withdraw_standing_close"` — both blocked because the graphify wrapper could not find `python`. The checked-in graph data was queried as a fallback and points to an older archived service.
 - Blocker: this environment has no runnable Python (`python` is denied; `py` reports no installed Python, and the available Hermes venv interpreter is denied). Runtime test results, including the proportional-reduction green check, remain unverified here. No service, deploy, merge, commit, push, or CONTROL_STATE gate/action change was performed.
 
+## Lane b-zero-remainder (2026-11-28)
+
+- Base: `878507af8caf0ad2ce943479f247d60f7fb193dc`; branch: `lane-b/zero-remainder-fix`.
+- Root cause: `_decision()` classified zero-notional reductions/exits as `MANUAL_REVIEW`, and `_close_wire_plan()` used `size or intent.copy_size`, replacing an explicit zero remainder with the original close size.
+- Regressions added before the fix: zero-notional REDUCE/EXIT classification in `test_core_proportional_reduction.py`, plus zero remainder cases for both lagging and normal close planning in `test_core_standing_close_guard.py`.
+- RED evidence: the proportional script ran 14 tests with 2 failing subtests (REDUCE and EXIT got `MANUAL_REVIEW`); the standing-close script ran 23 checks with 2 failures (lagging and normal close both re-expanded zero to the original size).
+- Fix: zero-notional `MANUAL_REVIEW` applies only to ENTRY/ADD; REDUCE/EXIT retain `EXIT_ALLOWED`. `_close_wire_plan()` now uses the explicit `size` argument, including zero.
+- Before baseline commands, from `_archive/hl_stage2`:
+  - `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' test_core_proportional_reduction.py` — 13 passed, 0 failed.
+  - `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' test_core_standing_close_guard.py` — 21 passed, 0 failed.
+- After fix, from `_archive/hl_stage2`:
+  - `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' test_core_proportional_reduction.py` — 14 passed, 0 failed.
+  - `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' test_core_standing_close_guard.py` — 23 passed, 0 failed.
+  - `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' test_core_close_to_target.py` — 24 passed, 0 failed.
+  - `& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.12.13-windows-x86_64-none\python.exe' test_core_reduce_only_repair.py` — 5 passed, 0 failed.
+- Total focused checks: baseline 34 passed, 0 failed across the two baseline scripts; after 66 passed, 0 failed across four scripts. The two added regressions were observed failing before the production edit and passing after it.
+- Graphify blocker: `graphify-out/GRAPH_REPORT.md` reports graph commit `81c394bd` and does not index the current Core file. Queries `graphify_query.py 'MANUAL_REVIEW'` and `graphify_query.py 'zero remainder'` had no matches. I read graphify output before source; the stale graph did not provide current Core navigation.
+- Environment blocker: the `python` shim could not launch; `uv` exposed an installed Python runtime, used directly for all test commands above. No blocker remains for the focused verification. No protected engine/scout files, `CONTROL_STATE.json`, wallet material, or environment files were opened or changed.
+
