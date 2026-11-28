@@ -8,7 +8,7 @@ LiveCopyCore and driven by _process_leader_fill). It uses the existing test seam
 and the same offline/mock-send style as the other test_core_*.py files. No network, no orders, no key.
 
 Replay:
-  * one leader, one wallet config (fixed sizing), 20 unique coins so no fills merge.
+  * one leader, one wallet config (fixed sizing), 40 unique coins so no fills merge.
   * 40% of the coins are sendable (reach the fake exchange); 60% are on the symbol blocklist and are
     blocked locally (no order).
   * every simulated info read (any fetcher call) takes 900 ms; every fake exchange order call takes 1 s.
@@ -55,7 +55,7 @@ FOLLOWER = "0x" + "c" * 40
 LEADER = "0x" + "a" * 40
 FAKE_KEY = "0x" + "1" * 64  # placeholder only; _get_exchange_client is stubbed, nothing signs
 
-FILLS = max(2, int(os.getenv("HL_BENCH_FILLS", "20")))
+FILLS = max(2, int(os.getenv("HL_BENCH_FILLS", "40")))
 TIME_SCALE = max(0.01, float(os.getenv("HL_BENCH_TIME_SCALE", "1.0")))
 WORKERS = max(1, int(os.getenv("HL_BENCH_WORKERS", "4")))
 READ_S = 0.9 * TIME_SCALE   # 900 ms: every simulated info read

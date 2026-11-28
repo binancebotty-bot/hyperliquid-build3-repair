@@ -143,3 +143,38 @@ Before: benchmark **8 passed, 1 failed** (`BENCH_FILL_TO_SEND_P95_WITHIN_2S_TARG
 ### Blockers
 
 None. No walletproof/scout writes, key or `.env` access, mainnet orders, deploy, merge, commit, push, or CONTROL_STATE change.
+
+## Lane F larger replay sample (2026-11-27)
+
+### Change and result
+
+Raised the replay's default burst from 20 to 40 unique fills; no production code, assertion, or latency limit changed. At 40 fills, 16 reached the exchange and 24 were blocked locally. Websocket-receive-to-send-real measured **p50=792 ms, p95=1,743 ms, n=16**, under the 2,000 ms target. The largest stage tail was queue acknowledgement (enqueue to worker pickup), p95 **1,726 ms**; queue backlog drives the tail. There were zero info reads between intent and order.
+
+### Commands and counts
+
+Before (20-fill baseline): **9 passed, 0 failed**; p50=931 ms, p95=1,828 ms, n=8.
+
+After (40-fill default): **9 passed, 0 failed**; p50=792 ms, p95=1,743 ms, n=16.
+
+Exact PowerShell commands (from the clone root):
+
+```powershell
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+$env:HL_BENCH_FILLS = '20'
+python -u _archive\hl_stage2\test_hotpath_replay_bench.py
+
+$env:PATH = 'C:\Program Files (x86)\Steam\steamapps\common\Blender\5.2\python\bin;' + $env:PATH
+Remove-Item Env:HL_BENCH_FILLS -ErrorAction SilentlyContinue
+python -u _archive\hl_stage2\test_hotpath_replay_bench.py
+```
+
+Graphify was attempted before source inspection. The local `graphify-out` graph has no replay node; the available helper falls back to a different project. Exact helper commands returned no match/no explanation:
+
+```powershell
+& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14.7-windows-x86_64-none\python.exe' 'C:\Users\wigmore\WINAGENT-HERMES BRIDGE\graphify_query.py' query test_hotpath_replay_bench
+& 'C:\Users\wigmore\AppData\Roaming\uv\python\cpython-3.14.7-windows-x86_64-none\python.exe' 'C:\Users\wigmore\WINAGENT-HERMES BRIDGE\graphify_query.py' explain test_hotpath_replay_bench
+```
+
+### Blockers
+
+No test or measurement blockers. Graphify navigation for this lane remains unavailable because its local index has no replay node and the installed helper points elsewhere. No key, `.env`, or wallet material was accessed; no walletproof/scout writes, mainnet orders, deploy, merge, commit, push, or CONTROL_STATE change occurred.
